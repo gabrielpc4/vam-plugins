@@ -44,7 +44,7 @@ namespace geesp0t
             if (horiz.sqrMagnitude <= maxSq)
                 return;
 
-            MainUIButtons.RequestClearAllPossession("Easy Mate: auto-unpossess — look camera too far horizontally from feet.");
+            MainUIButtons.RequestClearAllPossession(null);
             _cooldownUntil = Time.time + 0.35f;
         }
 

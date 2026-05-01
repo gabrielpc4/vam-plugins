@@ -56,7 +56,8 @@ namespace geesp0t
         /// <summary>
         /// When true (default), a short press on each controller’s <b>physical grip</b> (Oculus) or HoldGrab (OpenVR)
         /// toggles that side between articulated VR hands and VaM’s sphere/kinematic hand mode (see <see cref="EasyMateGripHandVisibility"/>).
-        /// Collisions stay off while both sides are in sphere mode.
+        /// Collisions stay off while both sides are in sphere mode. The <b>first</b> time in a scene either side becomes articulated,
+        /// Easy Mate merges <b>Spankings</b> onto every <c>Person</c> that does not already have it (same as HUD <c>+ Spankings</c> merge-only).
         /// </summary>
         public JSONStorableBool gripTogglesHandVisibility;
 
@@ -124,6 +125,14 @@ namespace geesp0t
             loadEmotionOnSceneLoad = new JSONStorableBool("Load E-Motion on every scene", false, OnLoadEmotionOnSceneLoadChanged);
             RegisterBool(loadEmotionOnSceneLoad);
             mainUIButtons.BindSceneEmotionAutoLoad(loadEmotionOnSceneLoad);
+
+            EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(OnMergeSpankingsAfterFirstVrGripToArticulated);
+        }
+
+        private void OnMergeSpankingsAfterFirstVrGripToArticulated()
+        {
+            if (mainUIButtons != null)
+                mainUIButtons.MergeSpankingsOnAllPersonsOnly();
         }
 
         private void OnLoadEmotionOnSceneLoadChanged(bool v)
@@ -468,6 +477,7 @@ namespace geesp0t
 
         void OnDestroy()
         {
+            EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
             EasyMateHeadSnapPovRuntime.End();
             if (mainUIButtons != null) mainUIButtons.OnDestroy();
         }

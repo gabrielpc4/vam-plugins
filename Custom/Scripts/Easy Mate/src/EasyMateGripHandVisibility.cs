@@ -14,6 +14,8 @@ namespace geesp0t
     /// is articulated (matches “hidden” = no overlap grabs). See decompiled <c>MeshVR.HandModelControl</c>.
     /// Re-applies at end of frame so settings persist after <c>SuperController.Update</c> (built-in grab+trigger hand hide).
     /// Articulated-on for a side is skipped while that Person hand control is possessed.
+    /// The first time in a scene either side becomes articulated, runs an optional callback (registered by <see cref="EasyMate"/>)
+    /// to merge Spankings onto Persons missing it (<see cref="MainUIButtons.MergeSpankingsOnAllPersonsOnly"/>).
     /// </summary>
     internal static class EasyMateGripHandVisibility
     {
@@ -25,6 +27,17 @@ namespace geesp0t
         private static bool _leftArticulated;
 
         private static bool _rightArticulated;
+
+        /// <summary>After <see cref="DisableVrHandModelsForSceneStart"/>, first transition to any articulated hand merges Spankings once.</summary>
+        private static bool _mergedSpankingsAfterFirstGripThisScene;
+
+        private static Action _mergeSpankingsOntoPersonsMissingOnly;
+
+        /// <summary>Called from <see cref="EasyMate.Init"/>; pass <c>null</c> on teardown.</summary>
+        public static void SetMergeSpankingsOnFirstGrip(Action mergeSpankingsOntoPersonsMissingOnly)
+        {
+            _mergeSpankingsOntoPersonsMissingOnly = mergeSpankingsOntoPersonsMissingOnly;
+        }
 
         /// <summary>Re-apply after SuperController.Update / internal toggles (e.g. grab+trigger hand hide via <c>ToggleRightHandEnabled</c>).</summary>
         private static void QueueApplyHandsEndOfFrame(SuperController sc)
@@ -46,6 +59,7 @@ namespace geesp0t
         {
             _leftArticulated = false;
             _rightArticulated = false;
+            _mergedSpankingsAfterFirstGripThisScene = false;
             SuperController sc = SuperController.singleton;
             ApplyBothControls(sc);
             QueueApplyHandsEndOfFrame(sc);
@@ -68,13 +82,35 @@ namespace geesp0t
             if (!leftDown && !rightDown)
                 return;
 
+            bool anyArticulatedBefore = _leftArticulated || _rightArticulated;
+
             if (leftDown)
                 ToggleLeft(sc);
             if (rightDown)
                 ToggleRight(sc);
 
+            bool anyArticulatedAfter = _leftArticulated || _rightArticulated;
+            TryMergeSpankingsOnFirstArticulatedGrip(anyArticulatedBefore, anyArticulatedAfter);
+
             ApplyBothControls(sc);
             QueueApplyHandsEndOfFrame(sc);
+        }
+
+        private static void TryMergeSpankingsOnFirstArticulatedGrip(bool anyArticulatedBefore, bool anyArticulatedAfter)
+        {
+            if (anyArticulatedBefore || !anyArticulatedAfter || _mergedSpankingsAfterFirstGripThisScene)
+                return;
+            if (_mergeSpankingsOntoPersonsMissingOnly == null)
+                return;
+            _mergedSpankingsAfterFirstGripThisScene = true;
+            try
+            {
+                _mergeSpankingsOntoPersonsMissingOnly();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("EasyMateGripHandVisibility: Spankings merge on first articulated grip: " + e.Message);
+            }
         }
 
         private static void ToggleLeft(SuperController sc)

@@ -12,14 +12,14 @@ using SimpleJSON;
 
 namespace geesp0t
 {
-    // World-space HUD: Shift+S = toggle Spankings on all Persons; Possess+Align+Select (F/M/P) merges Spankings once onto other Persons missing it when at least one possessed hand on the target; F = toggle freeze/unfreeze animations (VaM main HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; E = merge E-Motion onto all Persons + enable load-on-scene; Shift+E = disable that + remove E-Motion from all; E-Motion HUD = merge onto all; Spankings stripped on scene load then merged on first VR grip hand-on (or HUD +/-); I = hide hands + snap to closest Person head (F vs M by gender); P = Possess+Align+Select on closest Person by head to camera; O = unpossess all; C (no Shift) = cycle Female Persons then Male Persons (by atom uid), Edit mode, main HUD on, Selected Options with root control selected.
+    // World-space HUD: Shift+S = toggle Spankings on all Persons; Possess+Align+Select (F/M/P) merges Spankings once onto other Persons missing it when at least one possessed hand on the target; F = toggle freeze/unfreeze animations (VaM main HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; E = merge E-Motion onto all Persons + enable load-on-scene; Shift+E = disable that + remove E-Motion from all; E-Motion HUD = merge onto all; I = hide hands + snap to closest Person head (F vs M by gender); P = Possess+Align+Select on closest Person by head to camera; O = unpossess all; C (no Shift) = cycle Female Persons then Male Persons (by atom uid), Edit mode, main HUD on, Selected Options with root control selected.
     public class MainUIButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
         public const string PluginSpankings = "Custom/Scripts/Spankings/Spankings.cslist";
         public const string PluginEasyMateClothingTouchFallOff = "Custom/Scripts/Easy Mate/EasyMateClothingTouchFallOff.cslist";
 
-        /// <summary>Scene atom UIDs created by <c>octopussy.Spankings</c> when missing (<see cref="MergeSpankingsOnAllPersonsOnly"/> / plugin strip must delete these; plugin <c>OnDestroy</c> does not).</summary>
+        /// <summary>Scene atom UIDs created by <c>octopussy.Spankings</c> when missing (<see cref="RemoveSpankingsFromAllPersons"/> / HUD toggle strip must delete these; plugin <c>OnDestroy</c> does not).</summary>
         private static readonly string[] SpankingsOwnedSceneAtomUids =
         {
             "HitAudioSource",
@@ -625,28 +625,6 @@ namespace geesp0t
                 {
                     SuperController.LogError("Easy Mate: remove Spankings scene atom \"" + uid + "\": " + e.Message);
                 }
-            }
-        }
-
-        /// <summary>Merges Spankings onto every Person after a full strip (plugins + Spankings scene atoms) so reload matches a clean init.</summary>
-        public void MergeSpankingsOnAllPersonsOnly()
-        {
-            try
-            {
-                RemoveSpankingsFromAllPersons();
-
-                foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
-                {
-                    if (at == null)
-                        continue;
-                    TryMergePluginOntoPerson(at, PluginSpankings);
-                }
-
-                RefreshPluginToggleLabels();
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError("Spankings merge on all Persons: " + e);
             }
         }
 
@@ -1752,28 +1730,13 @@ namespace geesp0t
 
         private static bool FileExists(string relativePath)
         {
-            if (string.IsNullOrEmpty(relativePath) || SuperController.singleton == null)
-                return false;
-
             int folderSeparatorIndex = relativePath.LastIndexOfAny(new char[] { '/', '\\' });
-            if (folderSeparatorIndex <= 0)
+            if (folderSeparatorIndex < 0)
                 return false;
 
             string pathFolder = relativePath.Substring(0, folderSeparatorIndex);
             string pathFile = relativePath.Substring(folderSeparatorIndex + 1);
-            if (string.IsNullOrEmpty(pathFolder) || string.IsNullOrEmpty(pathFile))
-                return false;
-
-            string[] pathFileList = null;
-            try
-            {
-                pathFileList = SuperController.singleton.GetFilesAtPath(pathFolder);
-            }
-            catch (Exception)
-            {
-                return false;
-            }
-
+            string[] pathFileList = SuperController.singleton.GetFilesAtPath(pathFolder);
             if (pathFileList == null || pathFileList.Length == 0)
                 return false;
 

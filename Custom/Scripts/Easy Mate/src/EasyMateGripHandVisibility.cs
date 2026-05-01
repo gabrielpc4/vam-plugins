@@ -1,4 +1,3 @@
-using System;
 using MeshVR;
 using UnityEngine;
 using UnityEngine.XR;
@@ -13,50 +12,15 @@ namespace geesp0t
     /// so VR hand models do not appear over an active hand possession.
     /// When turning a hand <b>on</b>, sets <see cref="HandModelControl.useCollision"/> to true if it was false,
     /// and selects the <b>Male2</b> hand model (or <b>Male 2</b>) when that option exists and is not already active.
-    /// <see cref="DisableVrHandModelsForSceneStart"/> turns both hands off on each scene load (EasyMate) and resets the one-shot Spankings merge gate.
-    /// The first time either hand is turned <b>on</b> after that, runs <see cref="SetSpankingsFirstHandShowMergeCallback"/> if set (Easy Mate merges Spankings after E-Motion has loaded).
+    /// <see cref="DisableVrHandModelsForSceneStart"/> turns both hands off on each scene load (EasyMate).
     /// </summary>
     internal static class EasyMateGripHandVisibility
     {
         private static readonly string[] PreferredHandIds = { "Male2", "Male 2" };
 
-        private static Action _spankingsMergeOnFirstVrHandShow;
-        private static bool _spankingsMergeOnFirstHandShowStillPending = true;
-
-        public static void SetSpankingsFirstHandShowMergeCallback(Action callback)
-        {
-            _spankingsMergeOnFirstVrHandShow = callback;
-        }
-
-        public static void ClearSpankingsFirstHandShowMergeCallback()
-        {
-            _spankingsMergeOnFirstVrHandShow = null;
-        }
-
-        public static void ResetDeferredSpankingsMergeForNewScene()
-        {
-            _spankingsMergeOnFirstHandShowStillPending = true;
-        }
-
-        private static void NotifyFirstVrHandTurnedOnForSpankings()
-        {
-            if (!_spankingsMergeOnFirstHandShowStillPending || _spankingsMergeOnFirstVrHandShow == null)
-                return;
-            _spankingsMergeOnFirstHandShowStillPending = false;
-            try
-            {
-                _spankingsMergeOnFirstVrHandShow();
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError("Easy Mate: Spankings merge on first VR hand show: " + e);
-            }
-        }
-
         /// <summary>Turn off VR hand models on common + alternate <see cref="HandModelControl"/> (scene / plugin start).</summary>
         public static void DisableVrHandModelsForSceneStart()
         {
-            ResetDeferredSpankingsMergeForNewScene();
             SuperController sc = SuperController.singleton;
             if (sc == null)
                 return;
@@ -186,7 +150,6 @@ namespace geesp0t
                 EnableCollisionIfOff(common, alt);
                 EnsurePreferredHandModels(common, left: true, right: false);
                 EnsurePreferredHandModels(alt, left: true, right: false);
-                NotifyFirstVrHandTurnedOnForSpankings();
             }
         }
 
@@ -204,7 +167,6 @@ namespace geesp0t
                 EnableCollisionIfOff(common, alt);
                 EnsurePreferredHandModels(common, left: false, right: true);
                 EnsurePreferredHandModels(alt, left: false, right: true);
-                NotifyFirstVrHandTurnedOnForSpankings();
             }
         }
 

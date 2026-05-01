@@ -117,12 +117,6 @@ namespace geesp0t
             loadEmotionOnSceneLoad = new JSONStorableBool("Load E-Motion on every scene", false, OnLoadEmotionOnSceneLoadChanged);
             RegisterBool(loadEmotionOnSceneLoad);
             mainUIButtons.BindSceneEmotionAutoLoad(loadEmotionOnSceneLoad);
-
-            EasyMateGripHandVisibility.SetSpankingsFirstHandShowMergeCallback(() =>
-            {
-                if (mainUIButtons != null)
-                    mainUIButtons.MergeSpankingsOnAllPersonsOnly();
-            });
         }
 
         private void OnLoadEmotionOnSceneLoadChanged(bool v)
@@ -448,7 +442,6 @@ namespace geesp0t
         void OnDestroy()
         {
             EasyMateHeadSnapPovRuntime.End();
-            EasyMateGripHandVisibility.ClearSpankingsFirstHandShowMergeCallback();
             if (mainUIButtons != null) mainUIButtons.OnDestroy();
         }
 

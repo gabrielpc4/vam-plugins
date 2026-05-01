@@ -32,6 +32,9 @@ namespace geesp0t
         private bool sceneChanged = true;
         private float loadingTimeCounter = 0;
 
+        /// <summary>Edge-detect <see cref="SuperController.isLoading"/> for camera pose logging.</summary>
+        private bool _prevSuperControllerLoading;
+
         private string lastLoadDir = ""; //wish this was last full path of loaded file included directory and filename!
 
         private Coroutine _applyEmotionAfterSceneCo;
@@ -353,6 +356,17 @@ namespace geesp0t
 
         void Update()
         {
+            SuperController scCam = SuperController.singleton;
+            if (scCam != null)
+            {
+                bool scLoading = scCam.isLoading;
+                if (scLoading && !_prevSuperControllerLoading)
+                    EasyMateCameraPoseLog.LogSnapshot("loading started");
+                _prevSuperControllerLoading = scLoading;
+                if (Input.GetKeyDown(KeyCode.K))
+                    EasyMateCameraPoseLog.LogSnapshot("key K");
+            }
+
             //once finished loading, apply
             if (SuperController.singleton.isLoading)
             {

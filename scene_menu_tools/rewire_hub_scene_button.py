@@ -5,8 +5,10 @@ Rewire **one** main-hub ``UIButton`` so it loads a chosen scene:
 - Edits ``Saves/scene/Default.json`` only in memory, then writes it and **copies** it to
   ``Saves/scene/MainMenu.json`` so both hub files stay byte-for-byte identical.
 - After resolving a scene ``.json``, if the **pack folder** (e.g. ``CG-STUDIO/Amnesia`` for
-  ``.../Amnesia/Amnesia - CAMRIDE/Amnesia - CAMRIDE.json``) contains a ``.vac``, the hub
-  loads that ``.vac`` instead and the button title uses the ``.vac`` filename (see code).
+  ``.../Amnesia/Amnesia - CAMRIDE/Amnesia - CAMRIDE.json``) contains a ``.vac``, the script
+  picks that ``.vac`` as the pack asset **unless** a ``.json`` with the **same basename**
+  (same stem) exists beside it — then the hub loads that ``.json`` instead (button label stem
+  matches that file).
 - Then run ``inject_default_scene_thumbnails.py`` for ``_SceneThumb_*`` vs ``MainMenu_Original.json``.
 
 See: ``SCENE_MENU_AND_THUMBS.md``
@@ -135,12 +137,25 @@ def hub_and_label_paths(
 ) -> tuple[str, Path, Path]:
     """
     Returns ``(hub sceneFilePath, path for button title stem, path for JSON author sniff)``.
-    If a ``.vac`` exists in the pack root, hub targets that file; author sniff still uses
-    the resolved ``.json`` when possible.
+    If a ``.vac`` exists in the pack root, hub targets that ``.vac`` **unless**
+    ``<vac-stem>.json`` exists in the same folder — then hub targets that ``.json`` and
+    author sniff uses it too. Otherwise author sniff still uses the originally resolved
+    ``.json`` when hub uses ``.vac``.
     """
     vac = pick_vac_in_pack_root(abs_json, scene_root)
     if vac is None:
         return hub_rel_for_json, abs_json, abs_json
+
+    paired_json = vac.with_suffix(".json")
+    if paired_json.is_file():
+        try:
+            paired_json.relative_to(scene_root)
+        except ValueError:
+            pass
+        else:
+            hub = "./" + paired_json.relative_to(scene_root).as_posix()
+            return hub, paired_json, paired_json
+
     hub = "./" + vac.relative_to(scene_root).as_posix()
     return hub, vac, abs_json
 
@@ -321,7 +336,10 @@ def main() -> int:
     print(f"Button id:       {bid}")
     print(f"Scene JSON:      {abs_scene}")
     if hub_rel != hub_rel_json:
-        print(f"Pack .vac override: {title_src}")
+        if title_src.suffix.lower() == ".json":
+            print(f"Pack hub uses paired JSON (same name as .vac): {title_src}")
+        else:
+            print(f"Pack .vac override: {title_src}")
     print(f"Hub sceneFilePath: {hub_rel}")
     print(f"Button label:\n{label}\n---")
 

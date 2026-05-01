@@ -49,7 +49,8 @@ namespace geesp0t
 
         /// <summary>
         /// When true (default), a short press on each controller’s <b>physical grip</b> (Oculus) or HoldGrab (OpenVR)
-        /// toggles that hand’s VR model on/off; turning a hand on re-enables <c>HandModelControl.useCollision</c> if it was off.
+        /// toggles that side between articulated VR hands and VaM’s sphere/kinematic hand mode (see <see cref="EasyMateGripHandVisibility"/>).
+        /// Collisions stay off while both sides are in sphere mode.
         /// </summary>
         public JSONStorableBool gripTogglesHandVisibility;
 

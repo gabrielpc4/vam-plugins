@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using MeshVR;
 using UnityEngine;
 using UnityEngine.XR;
@@ -11,6 +12,7 @@ namespace geesp0t
     /// hand (same string as User Preferences → VR Hands → Left/Right Hand Choice). Sphere mode keeps the hand
     /// enabled so the proxy stays visible; <see cref="HandModelControl.useCollision"/> is off when neither side
     /// is articulated (matches “hidden” = no overlap grabs). See decompiled <c>MeshVR.HandModelControl</c>.
+    /// Re-applies at end of frame so settings persist after <c>SuperController.Update</c> (built-in grab+trigger hand hide).
     /// Articulated-on for a side is skipped while that Person hand control is possessed.
     /// </summary>
     internal static class EasyMateGripHandVisibility
@@ -24,12 +26,29 @@ namespace geesp0t
 
         private static bool _rightArticulated;
 
+        /// <summary>Re-apply after SuperController.Update / internal toggles (e.g. grab+trigger hand hide via <c>ToggleRightHandEnabled</c>).</summary>
+        private static void QueueApplyHandsEndOfFrame(SuperController sc)
+        {
+            if (sc == null)
+                return;
+            sc.StartCoroutine(CoApplyHandsEndOfFrame());
+        }
+
+        private static IEnumerator CoApplyHandsEndOfFrame()
+        {
+            yield return new WaitForEndOfFrame();
+            if (SuperController.singleton != null)
+                ApplyBothControls(SuperController.singleton);
+        }
+
         /// <summary>Scene load: both sides sphere (or legacy-off if slot missing), no collisions.</summary>
         public static void DisableVrHandModelsForSceneStart()
         {
             _leftArticulated = false;
             _rightArticulated = false;
-            ApplyBothControls(SuperController.singleton);
+            SuperController sc = SuperController.singleton;
+            ApplyBothControls(sc);
+            QueueApplyHandsEndOfFrame(sc);
         }
 
         public static void LateTick(bool featureEnabled)
@@ -46,10 +65,16 @@ namespace geesp0t
             bool leftDown = EasyMateVrInput.PollLeftGripClickDown(sc);
             bool rightDown = EasyMateVrInput.PollRightGripClickDown(sc);
 
+            if (!leftDown && !rightDown)
+                return;
+
             if (leftDown)
                 ToggleLeft(sc);
             if (rightDown)
                 ToggleRight(sc);
+
+            ApplyBothControls(sc);
+            QueueApplyHandsEndOfFrame(sc);
         }
 
         private static void ToggleLeft(SuperController sc)
@@ -58,7 +83,6 @@ namespace geesp0t
             if (nextArticulated && AnyPersonLeftHandPossessed())
                 return;
             _leftArticulated = nextArticulated;
-            ApplyBothControls(sc);
         }
 
         private static void ToggleRight(SuperController sc)
@@ -67,7 +91,6 @@ namespace geesp0t
             if (nextArticulated && AnyPersonRightHandPossessed())
                 return;
             _rightArticulated = nextArticulated;
-            ApplyBothControls(sc);
         }
 
         private static void ApplyBothControls(SuperController sc)

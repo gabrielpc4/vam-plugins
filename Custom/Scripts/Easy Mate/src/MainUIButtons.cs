@@ -12,7 +12,7 @@ using SimpleJSON;
 
 namespace geesp0t
 {
-    // World-space HUD: Shift+S = toggle Spankings on all Persons; Possess+Align+Select (F/M/P) merges Spankings once onto other Persons missing it when at least one possessed hand on the target; F = toggle freeze/unfreeze animations (VaM main HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; E = merge E-Motion onto all Persons + enable load-on-scene; Shift+E = disable that + remove E-Motion from all; E-Motion HUD = merge onto all; Spankings stripped on scene load then merged on first VR grip hand-on (or HUD +/-); I = hide hands + snap to closest Person head (F vs M by gender); P = Possess+Align+Select on closest Person by head to camera; O = unpossess all).
+    // World-space HUD: Shift+S = toggle Spankings on all Persons; Possess+Align+Select (F/M/P) merges Spankings once onto other Persons missing it when at least one possessed hand on the target; F = toggle freeze/unfreeze animations (VaM main HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; E = merge E-Motion onto all Persons + enable load-on-scene; Shift+E = disable that + remove E-Motion from all; E-Motion HUD = merge onto all; Spankings stripped on scene load then merged on first VR grip hand-on (or HUD +/-); I = hide hands + snap to closest Person head (F vs M by gender); P = Possess+Align+Select on closest Person by head to camera; O = unpossess all; C (no Shift) = cycle Female Persons then Male Persons (by atom uid), Edit mode, main HUD on, Selected Options with root control selected.
     public class MainUIButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
@@ -179,6 +179,7 @@ namespace geesp0t
         /// <b>E</b> merges E-Motion onto every Person (same as HUD <b>E-Motion all</b>) and turns on “E-Motion on every scene”. <b>Shift+E</b> turns that off and removes E-Motion from every Person.
         /// <b>O</b> stops auto-possess and <see cref="SuperController.ClearPossess"/>. <b>I</b> hides VR hand models then snaps the rig to the <b>closest Person head</b> to the look camera (same rules as <b>Snap F</b> for female, <b>Snap M</b> for male).
         /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD buttons on the <b>closest Person by head</b> to the look/center camera (not alphabetically first F/M).
+        /// <b>C</b> (without Shift, Ctrl, or Alt) cycles visible Person atoms in order: all <b>female</b> then all <b>male</b> (by atom uid), switches to <b>Edit</b>, shows the main HUD, opens <b>Selected Options</b>, and selects each atom’s root <c>control</c> (or the first free controller if there is no <c>control</c>).
         /// <b>F</b> toggles VaM <b>Freeze animation</b> (same as the main HUD toggle).
         /// Skips while VaM is loading or a Unity UI text field has focus.
         /// </summary>
@@ -290,6 +291,21 @@ namespace geesp0t
                 return;
             }
 
+            if (Input.GetKeyDown(KeyCode.C) && !Input.GetKey(KeyCode.LeftShift) &&
+                !Input.GetKey(KeyCode.RightShift))
+            {
+                try
+                {
+                    CycleFemaleThenMalePersonRootEditMenuOnHotkey();
+                }
+                catch (Exception e)
+                {
+                    SuperController.LogError("C hotkey (cycle Person edit root): " + e);
+                }
+
+                return;
+            }
+
             if (Input.GetKeyDown(KeyCode.Y))
             {
                 SuperController scY = SuperController.singleton;
@@ -314,6 +330,83 @@ namespace geesp0t
 
                 return;
             }
+        }
+
+        /// <summary>
+        /// Desktop <c>C</c> (without Shift): cycles visible Person atoms — all females (by uid) then all males — selects root <c>control</c>, Edit mode, shows main HUD and Selected Options panel (matches VaM edit/target UI).
+        /// </summary>
+        private static void CycleFemaleThenMalePersonRootEditMenuOnHotkey()
+        {
+            SuperController sc = SuperController.singleton;
+            if (sc == null)
+                return;
+
+            EnsurePersonGenderCaches();
+            List<Atom> cycle = new List<Atom>();
+            foreach (Atom a in _cachedFemalePersonsByUid)
+            {
+                if (a != null && !a.hidden && PersonHasFreeControllers(sc, a))
+                    cycle.Add(a);
+            }
+
+            foreach (Atom a in _cachedMalePersonsByUid)
+            {
+                if (a != null && !a.hidden && PersonHasFreeControllers(sc, a))
+                    cycle.Add(a);
+            }
+
+            if (cycle.Count == 0)
+                return;
+
+            int idx = -1;
+            Atom sel = sc.GetSelectedAtom();
+            if (sel != null && sel.type == "Person")
+                idx = cycle.FindIndex(x => x.uid == sel.uid);
+
+            int next = (idx + 1) % cycle.Count;
+            Atom target = cycle[next];
+            string rootName = ResolvePersonRootControllerName(sc, target);
+            if (rootName == null)
+                return;
+
+            sc.ShowMainHUDAuto();
+            sc.gameMode = SuperController.GameMode.Edit;
+            sc.SelectController(target.uid, rootName, alignView: false);
+            SyncHudPopupsToSelectedController(sc);
+            sc.activeUI = SuperController.ActiveUI.SelectedOptions;
+        }
+
+        private static bool PersonHasFreeControllers(SuperController sc, Atom person)
+        {
+            if (sc == null || person == null || person.type != "Person")
+                return false;
+            List<string> names = sc.GetFreeControllerNamesInAtom(person.uid);
+            return names != null && names.Count > 0;
+        }
+
+        private static string ResolvePersonRootControllerName(SuperController sc, Atom person)
+        {
+            if (person == null || sc == null)
+                return null;
+            List<string> names = sc.GetFreeControllerNamesInAtom(person.uid);
+            if (names == null || names.Count == 0)
+                return null;
+            if (names.Contains("control"))
+                return "control";
+            return names[0];
+        }
+
+        private static void SyncHudPopupsToSelectedController(SuperController sc)
+        {
+            if (sc == null)
+                return;
+            FreeControllerV3 fc = sc.GetSelectedController();
+            if (fc == null || fc.containingAtom == null)
+                return;
+            if (sc.selectAtomPopup != null)
+                sc.selectAtomPopup.currentValue = fc.containingAtom.uid;
+            if (sc.selectControllerPopup != null)
+                sc.selectControllerPopup.currentValueNoCallback = fc.name;
         }
 
         private static void LogYKeyHmdPoseDebug()

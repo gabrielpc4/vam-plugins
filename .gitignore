@@ -1,0 +1,44 @@
+# Whitelist-only: ignore everything except paths listed below.
+# (`*` ignores files; `!*/` lets Git traverse directories so `!` files can match.)
+*
+!*/
+!.gitignore
+
+# scene_menu_tools/ (at repo root; if this folder lives outside the repo, move it in or adjust paths)
+!scene_menu_tools/
+!scene_menu_tools/**
+
+!/Custom/
+!/Custom/Scripts/
+!/Custom/Scripts/AutoMate/
+!/Custom/Scripts/AutoMate/SESSION_PLUGINS/
+!/Custom/Scripts/AutoMate/SESSION_PLUGINS/src/
+!Custom/Scripts/AutoMate/Load_Session_Plugins.cs
+!Custom/Scripts/AutoMate/SESSION_PLUGINS/Auto_Load_Person_Plugins.cslist
+!Custom/Scripts/AutoMate/SESSION_PLUGINS/src/MainUIButtons.cs
+
+!/Custom/Scripts/E-Motion/
+!/Custom/Scripts/E-Motion/Scripts/
+!/Custom/Scripts/E-Motion/Scripts/Scripts/
+!Custom/Scripts/E-Motion/Scripts/EmotionEngine.cs
+!Custom/Scripts/E-Motion/Scripts/Scripts/EmotionEngine.cs
+
+!/Custom/Scripts/Easy Mate/
+!Custom/Scripts/Easy Mate/**
+
+!/Custom/Scripts/Easy Background Sounds/
+!Custom/Scripts/Easy Background Sounds/EasyBackgroundSounds.cs
+
+!Custom/Scripts/ImprovedPoV.cs
+!Custom/Scripts/Passenger.cs
+
+!/Reference/
+!/Reference/Assembly-CSharp-decompiled/
+!Reference/Assembly-CSharp-decompiled/SuperController.cs
+!Reference/VaM-Scripting-Notes.md
+
+!/Saves/
+!/Saves/scene/
+!Saves/scene/MainMenu_Original.json
+!Saves/scene/female_male.json
+!Saves/scene/Default.json

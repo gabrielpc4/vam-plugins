@@ -1,0 +1,8 @@
+src/EasyMate.cs
+src/EasyMateGripHandVisibility.cs
+src/EasyMateHeadSnapPovRuntime.cs
+src/EasyMateNxtUiQuestThumbstick.cs
+src/EasyMateOverlapFullGrabRelease.cs
+src/EasyMateVrInput.cs
+src/MainUIButtons.cs
+src/EasyMatePossessFootDistanceAutoRelease.cs

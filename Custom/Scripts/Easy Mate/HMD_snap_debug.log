@@ -1,0 +1,213 @@
+
+======== EasyMate HMD snap session 2026-04-30 02:00:42.568 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.002268,1.623248,-0.030084) head.control=(0.000000,1.622025,-0.020256) delta(HMD-head.control)=(-0.002268,0.001223,-0.009828)
+
+======== EasyMate HMD snap session 2026-04-30 02:06:59.618 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.002630,1.567170,-0.005198) head.control=(0.000000,1.622025,-0.020256) delta(HMD-head.control)=(-0.002630,-0.054855,0.015058)
+
+======== EasyMate HMD snap session 2026-04-30 02:07:12.991 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.004755,1.556139,-0.007442) head.control=(0.000000,1.622025,-0.020256) delta(HMD-head.control)=(-0.004755,-0.065886,0.012814)
+
+======== EasyMate HMD snap session 2026-04-30 02:07:15.836 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+
+======== EasyMate HMD snap session 2026-04-30 02:07:16.322 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.002092,1.622037,-0.022228) head.control=(0.000000,1.622025,-0.020256) delta(HMD-head.control)=(-0.002092,0.000012,-0.001972)
+
+======== EasyMate HMD snap session 2026-04-30 02:07:22.697 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+
+======== EasyMate HMD snap session 2026-04-30 02:07:23.169 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.004979,1.621382,-0.033443) head.control=(0.000000,1.622025,-0.020256) delta(HMD-head.control)=(-0.004979,-0.000643,-0.013186)
+
+======== EasyMate HMD snap session 2026-04-30 02:07:38.072 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.001352,1.565319,-0.013313) head.control=(0.000000,1.622025,-0.020256) delta(HMD-head.control)=(-0.001352,-0.056706,0.006944)
+
+======== EasyMate HMD snap session 2026-04-30 02:10:35.123 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(0.000447,1.509596,0.000598) head.control=(0.000000,1.622025,-0.020256) delta(HMD-head.control)=(0.000447,-0.112429,0.020854)
+
+======== EasyMate HMD snap session 2026-04-30 02:13:20.578 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(0.001308,1.891799,-0.004620) head.control=(0.000000,1.622025,-0.020256) delta(HMD-head.control)=(0.001308,0.269774,0.015637)
+
+======== EasyMate HMD snap session 2026-04-30 02:14:33.042 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.004287,1.744805,-0.155562) head.control=(0.000000,1.622025,-0.020256) delta(HMD-head.control)=(-0.004287,0.122780,-0.135305)
+
+======== EasyMate HMD snap session 2026-04-30 02:15:27.814 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.004232,1.737329,-0.050151) head.control=(0.000000,1.622025,-0.020256) delta(HMD-head.control)=(-0.004232,0.115304,-0.029895)
+
+======== EasyMate HMD snap session 2026-04-30 02:20:10.646 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.288702,1.267894,2.689677) head.control=(-1.340367,1.123158,2.677541) delta(HMD-head.control)=(0.051666,0.144737,0.012136)
+
+======== EasyMate HMD snap session 2026-04-30 02:20:12.433 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.297500,1.261937,2.204935) head.control=(-1.315828,1.092753,2.242636) delta(HMD-head.control)=(0.018327,0.169184,-0.037701)
+
+======== EasyMate HMD snap session 2026-04-30 02:20:41.522 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.281086,1.291074,1.997996) head.control=(-1.270487,1.166038,1.998590) delta(HMD-head.control)=(-0.010598,0.125036,-0.000594)
+
+======== EasyMate HMD snap session 2026-04-30 02:29:44.584 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.177261,1.276063,1.943731) head.control=(-1.263152,1.142018,1.976796) delta(HMD-head.control)=(0.085891,0.134046,-0.033065)
+
+======== EasyMate HMD snap session 2026-04-30 02:29:55.139 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.262814,1.318477,1.939611) head.control=(-1.307564,1.207670,2.029804) delta(HMD-head.control)=(0.044750,0.110807,-0.090194)
+
+======== EasyMate HMD snap session 2026-04-30 02:30:15.059 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.267985,1.240093,2.303168) head.control=(-1.334865,1.227185,2.387534) delta(HMD-head.control)=(0.066880,0.012908,-0.084366)
+
+======== EasyMate HMD snap session 2026-04-30 02:31:46.490 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.186113,1.259943,1.951997) head.control=(-1.268898,1.113421,1.975615) delta(HMD-head.control)=(0.082785,0.146522,-0.023618)
+
+======== EasyMate HMD snap session 2026-04-30 02:32:01.955 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.037133,1.057752,2.181979) head.control=(-1.194216,1.026894,2.141740) delta(HMD-head.control)=(0.157083,0.030859,0.040238)
+
+======== EasyMate HMD snap session 2026-04-30 02:33:36.357 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(0.003682,1.774374,-0.068466) head.control=(0.000000,1.622025,-0.020256) delta(HMD-head.control)=(0.003682,0.152349,-0.048209)
+
+======== EasyMate HMD snap session 2026-04-30 02:33:51.603 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.036494,1.772574,-0.018581) head.control=(0.000000,1.622025,-0.020256) delta(HMD-head.control)=(-0.036494,0.150549,0.001676)
+
+======== EasyMate HMD snap session 2026-04-30 02:41:42.399 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, press Right controller A (Quest / OVR) or Space (desktop), to log more HMD samples.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.018312,1.727411,-0.063914) head.control=(-0.041263,1.573485,-0.035978) delta(HMD-head.control)=(0.022951,0.153926,-0.027936)
+
+======== EasyMate HMD snap session 2026-04-30 02:49:09.955 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-2.722991,1.569592,-0.200603) head.control=(-2.687889,1.391625,-0.150742) delta(HMD-head.control)=(-0.035102,0.177967,-0.049861)
+
+======== EasyMate HMD snap session 2026-04-30 02:49:44.221 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.159201,1.279205,1.951952) head.control=(-1.259363,1.147654,1.976681) delta(HMD-head.control)=(0.100162,0.131551,-0.024729)
+
+======== EasyMate HMD snap session 2026-04-30 02:49:55.860 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.255898,1.356646,2.007491) head.control=(-1.253417,1.168959,2.057387) delta(HMD-head.control)=(-0.002482,0.187687,-0.049896)
+
+======== EasyMate HMD snap session 2026-04-30 02:50:09.139 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.257335,1.276613,2.036987) head.control=(-1.288651,1.136124,2.089009) delta(HMD-head.control)=(0.031316,0.140489,-0.052022)
+
+======== EasyMate HMD snap session 2026-04-30 02:51:09.075 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.221662,1.310324,2.474683) head.control=(-1.159632,1.162129,2.429877) delta(HMD-head.control)=(-0.062030,0.148195,0.044806)
+
+======== EasyMate HMD snap session 2026-04-30 02:51:59.808 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.138753,1.589267,1.987199) head.control=(-1.218181,1.494743,1.913257) delta(HMD-head.control)=(0.079428,0.094524,0.073942)
+
+======== EasyMate HMD snap session 2026-04-30 03:05:34.436 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.017497,1.726738,-0.060048) head.control=(-0.041263,1.573485,-0.035978) delta(HMD-head.control)=(0.023766,0.153253,-0.024069)
+
+======== EasyMate HMD snap session 2026-04-30 03:23:35.324 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(0.181505,1.843886,-0.665391) head.control=(0.147513,1.695296,-0.616710) delta(HMD-head.control)=(0.033992,0.148590,-0.048682)
+
+======== EasyMate HMD snap session 2026-04-30 03:26:40.699 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(0.199364,1.844351,-0.367966) head.control=(0.151114,1.699525,-0.355243) delta(HMD-head.control)=(0.048250,0.144826,-0.012724)
+
+======== EasyMate HMD snap session 2026-04-30 03:37:39.647 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(1.482749,1.209231,-0.030242) head.control=(1.443656,1.067790,-0.080587) delta(HMD-head.control)=(0.039093,0.141442,0.050345)
+
+======== EasyMate HMD snap session 2026-04-30 03:38:04.111 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.036927,1.352063,0.818639) head.control=(-0.996566,1.179502,0.783630) delta(HMD-head.control)=(-0.040361,0.172561,0.035009)
+
+======== EasyMate HMD snap session 2026-04-30 03:38:21.130 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.113483,1.308045,0.893817) head.control=(-1.073453,1.156346,0.864483) delta(HMD-head.control)=(-0.040030,0.151699,0.029334)
+
+======== EasyMate HMD snap session 2026-04-30 03:38:55.253 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.890115,1.271025,0.446991) head.control=(-0.868558,1.166017,0.358779) delta(HMD-head.control)=(-0.021557,0.105008,0.088212)
+
+======== EasyMate HMD snap session 2026-04-30 03:39:19.319 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.085312,1.249907,0.792117) head.control=(-1.124010,1.104282,0.829457) delta(HMD-head.control)=(0.038697,0.145626,-0.037340)
+
+======== EasyMate HMD snap session 2026-04-30 03:40:21.650 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.166852,0.858747,0.856710) head.control=(-0.316196,0.962375,0.814810) delta(HMD-head.control)=(0.149345,-0.103628,0.041901)
+
+======== EasyMate HMD snap session 2026-04-30 03:40:27.117 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.391171,1.098091,0.909439) head.control=(-1.319382,0.952132,0.895790) delta(HMD-head.control)=(-0.071790,0.145959,0.013649)
+
+======== EasyMate HMD snap session 2026-04-30 03:42:47.999 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.127406,1.472997,0.809374) head.control=(-1.052749,1.391347,0.811435) delta(HMD-head.control)=(-0.074656,0.081650,-0.002061)
+
+======== EasyMate HMD snap session 2026-04-30 03:42:52.270 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.085222,1.481786,0.700141) head.control=(-1.052749,1.391347,0.811435) delta(HMD-head.control)=(-0.032472,0.090440,-0.111294)
+
+======== EasyMate HMD snap session 2026-04-30 03:42:53.989 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-0.971062,1.456334,0.789413) head.control=(-1.052749,1.391347,0.811435) delta(HMD-head.control)=(0.081687,0.064987,-0.022022)
+
+======== EasyMate HMD snap session 2026-04-30 03:43:28.403 ========
+Easy Mate HUD: log file path Custom/Scripts/Easy Mate/HMD_snap_debug.log
+Easy Mate HUD: after t+1s start line, Right A (Quest) or Space runs the plugin action (default Snap F1). Configure: EasyMatePostSnapRightAOrSpaceAction.
+Easy Mate HUD HMD debug [t+1.0s-start-position] source=CameraRig/CenterEye (rb) HMD=(-1.733273,0.891671,0.855877) head.control=(-1.569325,0.797566,0.849735) delta(HMD-head.control)=(-0.163948,0.094106,0.006142)

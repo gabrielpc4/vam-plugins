@@ -12,14 +12,14 @@ using SimpleJSON;
 
 namespace geesp0t
 {
-    // World-space HUD: Shift+S = toggle Spankings on all Persons; Possess+Align+Select (F/M/P) merges Spankings once onto other Persons missing it when at least one possessed hand on the target; F = toggle freeze/unfreeze animations (VaM main HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; E = merge E-Motion onto all Persons + enable load-on-scene; Shift+E = disable that + remove E-Motion from all; E-Motion HUD = merge onto all; I = hide hands + snap to closest Person head (F vs M by gender); P = Possess+Align+Select on closest Person by head to camera; O = unpossess all; C (no Shift) = cycle Female Persons then Male Persons (by atom uid), Edit mode, main HUD on, Selected Options with root control selected.
+    // World-space HUD: Ctrl+Shift+S = toggle Spankings off / merge onto Persons missing it; Possess+Align+Select (F/M/P) merges Spankings onto other Persons missing it when at least one possessed hand on the target; F = freeze animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; E = merge E-Motion onto all Persons + enable load-on-scene; Shift+E = disable that + remove E-Motion from all; E-Motion HUD = merge onto all; I = hide hands + closest Person head snap; P = Possess+Align+Select closest Person by head; O = unpossess all; C = cycle Female then Male Persons (uid), Edit + Selected Options + root control.
     public class MainUIButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
         public const string PluginSpankings = "Custom/Scripts/Spankings/Spankings.cslist";
         public const string PluginEasyMateClothingTouchFallOff = "Custom/Scripts/Easy Mate/EasyMateClothingTouchFallOff.cslist";
 
-        /// <summary>Scene atom UIDs created by <c>octopussy.Spankings</c> when missing (<see cref="RemoveSpankingsFromAllPersons"/> / HUD toggle strip must delete these; plugin <c>OnDestroy</c> does not).</summary>
+        /// <summary>Scene atom UIDs created by <c>octopussy.Spankings</c>; removed when Spankings is toggled off (<see cref="RemoveSpankingsFromAllPersons"/>).</summary>
         private static readonly string[] SpankingsOwnedSceneAtomUids =
         {
             "HitAudioSource",
@@ -174,7 +174,7 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Call from session plugin <c>Update</c>. <b>Shift+S</b> toggles Spankings on every Person (same as HUD <b>+/- Spankings</b>).
+        /// Call from session plugin <c>Update</c>. <b>Ctrl+Shift+S</b> toggles Spankings (same as HUD <b>+/- Spankings</b>): removes when everyone has it; otherwise merges onto Persons that do not.
         /// <b>Y</b> logs look camera / HMD-related poses (debounced ~0.35s). With Oculus or OpenVR active, hold <b>Shift+Y</b> so the controller Y binding does not spam logs; <c>XRSettings.enabled</c> alone is not used for that gate (it often stays true with drivers while using the desktop keyboard).
         /// <b>E</b> merges E-Motion onto every Person (same as HUD <b>E-Motion all</b>) and turns on “E-Motion on every scene”. <b>Shift+E</b> turns that off and removes E-Motion from every Person.
         /// <b>O</b> stops auto-possess and <see cref="SuperController.ClearPossess"/>. <b>I</b> hides VR hand models then snaps the rig to the <b>closest Person head</b> to the look camera (same rules as <b>Snap F</b> for female, <b>Snap M</b> for male).
@@ -191,11 +191,10 @@ namespace geesp0t
                 return;
             if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null)
                 return;
-            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl) ||
-                Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
-                return;
 
-            if (Input.GetKeyDown(KeyCode.S) && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
+            if (Input.GetKeyDown(KeyCode.S) &&
+                (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) &&
+                (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
                 try
                 {
@@ -203,11 +202,15 @@ namespace geesp0t
                 }
                 catch (Exception e)
                 {
-                    SuperController.LogError("Shift+S hotkey (Spankings toggle): " + e);
+                    SuperController.LogError("Ctrl+Shift+S hotkey (Spankings toggle): " + e);
                 }
 
                 return;
             }
+
+            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl) ||
+                Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
+                return;
 
             if (Input.GetKeyDown(KeyCode.E) && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
             {
@@ -628,6 +631,28 @@ namespace geesp0t
             }
         }
 
+        /// <summary>Merges Spankings onto every <c>Person</c> that does not already have it (no strip pass).</summary>
+        public void MergeSpankingsOnAllPersonsOnly()
+        {
+            try
+            {
+                string fn = GetFileName(PluginSpankings);
+                foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
+                {
+                    if (at == null)
+                        continue;
+                    if (!PersonHasPluginByFileName(at, fn))
+                        TryMergePluginOntoPerson(at, PluginSpankings);
+                }
+
+                RefreshPluginToggleLabels();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("Spankings merge on all Persons: " + e);
+            }
+        }
+
         private void OnEmotionMergeAllHudClicked()
         {
             try
@@ -846,19 +871,22 @@ namespace geesp0t
             ToggleSpankingsPluginOnAllPersons();
         }
 
-        /// <summary>Merge or remove Spankings on every Person (HUD button and <b>Shift+S</b> hotkey). Always strips plugins and Spankings scene atoms first; merges back on when enabling.</summary>
+        /// <summary>Merge or remove Spankings on every Person (HUD and <b>Ctrl+Shift+S</b>). When disabling (everyone had it): full remove + cleanup scene atoms. When enabling: merge only onto Persons missing the plugin (does not strip scene-loaded Spankings first).</summary>
         private void ToggleSpankingsPluginOnAllPersons()
         {
             try
             {
                 string desiredFileName = GetFileName(PluginSpankings);
                 bool turningOff = AllPersonAtomsHavePluginByFileName(desiredFileName);
-                RemoveSpankingsFromAllPersons();
-                if (!turningOff)
+                if (turningOff)
+                {
+                    RemoveSpankingsFromAllPersons();
+                }
+                else
                 {
                     foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                     {
-                        if (at != null)
+                        if (at != null && !PersonHasPluginByFileName(at, desiredFileName))
                             TryMergePluginOntoPerson(at, PluginSpankings);
                     }
                 }

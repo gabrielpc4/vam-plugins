@@ -4,8 +4,10 @@ Working reference for future custom scripting in this workspace.
 
 ## Scope
 
-- `Reference/Assembly-CSharp-decompiled` is decompiled reference code from `VaM_Data/Managed/Assembly-CSharp.dll`.
-- Do not edit files under `Reference/Assembly-CSharp-decompiled`; they are only for reverse-engineering how VaM works.
+- **`Assembly-CSharp` decompile (where to read it):**
+  - **Inside this workspace:** `Reference/Assembly-CSharp-decompiled` — decompiled from `VaM_Data/Managed/Assembly-CSharp.dll`, beside these notes.
+  - **Same tree outside VaM (optional mirror):** `d:\Games\Assembly-CSharp-decompiled` — use for IDE search, Cursor `@` references, or tooling when you want a path that does not live under `VaM`. Keep it in sync if you rely on both (same ILSpy/dnSpy export).
+- Do not edit files under `Reference/Assembly-CSharp-decompiled` (or the mirror); they are only for reverse-engineering how VaM works.
 - The live scripts VaM actually loads in this workspace are under `Custom/Scripts`.
 
 ### C# language level (VaM plugin compiler)

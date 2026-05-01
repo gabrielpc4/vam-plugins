@@ -10,8 +10,9 @@ namespace geesp0t
     /// Per-controller VR grip (Quest squeeze / OpenVR HoldGrab): toggles each side between articulated hands
     /// (<b>Male2</b> / <b>Male 2</b> when present) with collision, and VaM’s compact <see cref="SphereKinematicChoice"/>
     /// hand (same string as User Preferences → VR Hands → Left/Right Hand Choice). Sphere mode keeps the hand
-    /// enabled so the proxy stays visible; <see cref="HandModelControl.useCollision"/> is off when neither side
-    /// is articulated (matches “hidden” = no overlap grabs). See decompiled <c>MeshVR.HandModelControl</c>.
+    /// enabled so the proxy stays visible; on fresh scene load both sides start as spheres with
+    /// <see cref="HandModelControl.useCollision"/> off. After any VR grip toggle (sphere ↔ articulated),
+    /// collision stays on for spheres so proxies can overlap-grab again. See decompiled <c>MeshVR.HandModelControl</c>.
     /// Re-applies at end of frame so settings persist after <c>SuperController.Update</c> (built-in grab+trigger hand hide).
     /// Articulated-on for a side is skipped while that Person hand control is possessed.
     /// The first time in a scene either side becomes articulated, runs an optional callback (registered by <see cref="EasyMate"/>)
@@ -27,6 +28,9 @@ namespace geesp0t
         private static bool _leftArticulated;
 
         private static bool _rightArticulated;
+
+        /// <summary>Until the user presses a VR grip this scene, sphere proxies stay non-colliding after scene reset.</summary>
+        private static bool _vrGripUsedThisScene;
 
         /// <summary>After <see cref="DisableVrHandModelsForSceneStart"/>, first transition to any articulated hand merges Spankings once.</summary>
         private static bool _mergedSpankingsAfterFirstGripThisScene;
@@ -54,12 +58,13 @@ namespace geesp0t
                 ApplyBothControls(SuperController.singleton);
         }
 
-        /// <summary>Scene load: both sides sphere (or legacy-off if slot missing), no collisions.</summary>
+        /// <summary>Scene load: both sides sphere (or legacy-off if slot missing); collisions off until first VR grip.</summary>
         public static void DisableVrHandModelsForSceneStart()
         {
             _leftArticulated = false;
             _rightArticulated = false;
             _mergedSpankingsAfterFirstGripThisScene = false;
+            _vrGripUsedThisScene = false;
             SuperController sc = SuperController.singleton;
             ApplyBothControls(sc);
             QueueApplyHandsEndOfFrame(sc);
@@ -81,6 +86,8 @@ namespace geesp0t
 
             if (!leftDown && !rightDown)
                 return;
+
+            _vrGripUsedThisScene = true;
 
             bool anyArticulatedBefore = _leftArticulated || _rightArticulated;
 
@@ -171,7 +178,8 @@ namespace geesp0t
                 h.rightHandEnabled = false;
             }
 
-            h.useCollision = _leftArticulated || _rightArticulated;
+            bool sphereOnlyNoGripYet = !_vrGripUsedThisScene && !_leftArticulated && !_rightArticulated;
+            h.useCollision = !sphereOnlyNoGripYet;
         }
 
         private static bool AnyPersonLeftHandPossessed()

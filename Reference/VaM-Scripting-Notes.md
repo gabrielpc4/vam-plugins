@@ -44,7 +44,6 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
   - Loads:
     - `Custom/Scripts/Easy Mate/EasyMate.cslist`
     - `Custom/Scripts/AutoMate/SESSION_PLUGINS/Auto_Load_Person_Plugins.cslist`
-    - `Custom/Scripts/AutoMate/SESSION_PLUGINS/ClockSessionPlugin.cs`
   - In desktop mode, also adds `Custom/Scripts/prestigitis_DesktopClothGrab.cs`.
   - Directly sets `SuperController.singleton.navigationRig.position` during init, so it already affects initial camera placement.
 

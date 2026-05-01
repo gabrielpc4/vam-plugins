@@ -18,7 +18,6 @@ namespace geesp0t
         string[] sessionPlugins = new string[] {
             "Custom/Scripts/Easy Mate/EasyMate.cslist",
             "Custom/Scripts/AutoMate/SESSION_PLUGINS/Auto_Load_Person_Plugins.cslist",
-            "Custom/Scripts/AutoMate/SESSION_PLUGINS/ClockSessionPlugin.cs"            
         };
 
         string[] desktopSessionPlugins = new string[] {

@@ -1752,13 +1752,28 @@ namespace geesp0t
 
         private static bool FileExists(string relativePath)
         {
+            if (string.IsNullOrEmpty(relativePath) || SuperController.singleton == null)
+                return false;
+
             int folderSeparatorIndex = relativePath.LastIndexOfAny(new char[] { '/', '\\' });
-            if (folderSeparatorIndex < 0)
+            if (folderSeparatorIndex <= 0)
                 return false;
 
             string pathFolder = relativePath.Substring(0, folderSeparatorIndex);
             string pathFile = relativePath.Substring(folderSeparatorIndex + 1);
-            string[] pathFileList = SuperController.singleton.GetFilesAtPath(pathFolder);
+            if (string.IsNullOrEmpty(pathFolder) || string.IsNullOrEmpty(pathFile))
+                return false;
+
+            string[] pathFileList = null;
+            try
+            {
+                pathFileList = SuperController.singleton.GetFilesAtPath(pathFolder);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+
             if (pathFileList == null || pathFileList.Length == 0)
                 return false;
 

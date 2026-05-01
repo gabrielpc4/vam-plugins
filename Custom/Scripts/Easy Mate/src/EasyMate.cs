@@ -389,8 +389,6 @@ namespace geesp0t
 
                 if (mainUIButtons != null)
                 {
-                    mainUIButtons.RemoveSpankingsFromAllPersons();
-
                     if (_applyEmotionAfterSceneCo != null)
                     {
                         StopCoroutine(_applyEmotionAfterSceneCo);

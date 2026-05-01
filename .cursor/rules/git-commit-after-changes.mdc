@@ -1,0 +1,29 @@
+---
+description: Whitelist gitignore — add ! exceptions for touched files, then commit (VaM vam-plugins).
+alwaysApply: true
+---
+
+# Git: whitelist exceptions + commit after changes
+
+This repo uses **whitelist-only** `.gitignore` (`*` plus `!…` exceptions). Files you create or edit are **ignored until** they have matching exception rules.
+
+Whenever you **modify, create, or delete** a project file you intend to keep under version control:
+
+1. **Check tracking**  
+   After your edit, if the path would stay ignored, fix `.gitignore` first — do **not** rely on `git add -f` for normal plugin/script/tool files.
+
+2. **Add exceptions** when needed  
+   - If `git check-ignore -v <path>` reports that the file is ignored and there is **no** matching `!` rule for that path, append the minimal rules so Git can see the file, following the style already in `.gitignore`:
+     - Use **forward slashes**, paths **relative to repo root**.
+     - If the file sits under a **new** directory chain not already opened by existing `!foo/` lines, add `!/each/parent/` segments (same idea as `!/Custom/` … `!/Custom/Scripts/…`) so Git can traverse down to the file.
+     - For a **single file**: `!path/to/File.ext`.
+     - For a **whole subtree** you maintain (like an app folder): prefer `!path/to/root/` and `!path/to/root/**` when that matches how the repo already groups things.
+   - **Do not** blanket-whitelist huge trees (e.g. entire `Reference/Assembly-CSharp-decompiled/`, game `VaM_Data/`, etc.) unless the user explicitly asked to track them.
+
+3. **Commit in the same turn**  
+   Stage `.gitignore` (if changed) and every project file you touched, then commit with a clear conventional message (`feat:`, `fix:`, `chore:`, …). Do not leave intentional work uncommitted unless the user said not to commit.
+
+4. **Scope**  
+   Do **not** stage unrelated untracked paths (random `Saves/`, assets, logs) unless the user asked to include them.
+
+Applies to this VaM workspace and follow-up edits in the same conversation.

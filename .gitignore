@@ -4,6 +4,11 @@
 !*/
 !.gitignore
 
+# Cursor project rules
+!/.cursor/
+!/.cursor/rules/
+!.cursor/rules/**
+
 # scene_menu_tools/ (at repo root; if this folder lives outside the repo, move it in or adjust paths)
 !scene_menu_tools/
 !scene_menu_tools/**

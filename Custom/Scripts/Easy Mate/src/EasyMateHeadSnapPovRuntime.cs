@@ -16,6 +16,8 @@ namespace geesp0t
     /// During Snap F/M, the snapped Person is preferred when their zone contains the camera; otherwise proximity still
     /// picks the closest Person in a head zone (e.g. partner) so their face can clear too.
     /// Same camera filters as before (VR eye only; not <c>MonitorRig</c> or mirror/reflection cameras).
+    /// Skin opaque→transparent swaps and <c>BroadcastMessage</c> run only after all replacement shaders resolve via <c>Shader.Find</c>;
+    /// hide passes are skipped while <c>SuperController.singleton.isLoading</c> to avoid load-order shader errors.
     /// Adapted from ImprovedPoV 2.1.1 (Acidbubbles) — https://github.com/acidbubbles/vam-improved-pov
     /// </summary>
     public static class EasyMateHeadSnapPovRuntime
@@ -331,6 +333,8 @@ namespace geesp0t
             SuperController sc = SuperController.singleton;
             if (sc == null)
                 return false;
+            if (sc.isLoading)
+                return false;
             if (!HasSnapHeadContext() && !_headProximityHideWithoutSnap)
                 return false;
             if (!HasSnapHeadContext() && _headProximityHideWithoutSnap && !sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
@@ -463,6 +467,14 @@ namespace geesp0t
             }
 
             float t = Time.time;
+
+            SuperController scLoad = SuperController.singleton;
+            if (scLoad != null && scLoad.isLoading)
+            {
+                _nextConfigureRetryTime = t + TryConfigureHandlersIntervalSeconds;
+                return;
+            }
+
             if (_cachedSelector.selectedCharacter?.skin == null)
             {
                 if (t < _nextPollSkinNullTime)
@@ -671,8 +683,6 @@ namespace geesp0t
                 { "Marmoset/Transparent/Simple Glass/Specular IBLComputeBuff", null },
             };
 
-            private static readonly HashSet<string> WarnedMissingReplacementShader = new HashSet<string>();
-
             private static string NormalizeMaterialShaderName(string raw)
             {
                 if (string.IsNullOrEmpty(raw))
@@ -681,19 +691,53 @@ namespace geesp0t
                 return s.Length == 0 ? null : s;
             }
 
+            /// <summary>Optional opaque→transparent swap name for a skin material (<c>null</c> = none). Read-only.</summary>
+            private static string GetReplacementShaderNameForSkinMaterial(Material material)
+            {
+                if (material == null)
+                    return null;
+                string shaderName = material.shader != null ? NormalizeMaterialShaderName(material.shader.name) : null;
+                string replacementName = null;
+                bool mapped = shaderName != null && ReplacementShaderNames.TryGetValue(shaderName, out replacementName);
+                if (!mapped)
+                {
+                    if (shaderName != null && shaderName.IndexOf("Custom/Subsurface/Transparent", StringComparison.Ordinal) >= 0)
+                        replacementName = null;
+                    else
+                        replacementName = null;
+                }
+
+                return replacementName;
+            }
+
             private DAZSkinV2 _skin;
             private List<SkinShaderMaterialReference> _materialRefs;
 
             public int Configure(DAZSkinV2 skin)
             {
                 _skin = skin;
-                _materialRefs = new List<SkinShaderMaterialReference>();
+                _materialRefs = null;
 
-                foreach (Material material in GetMaterialsToHide(skin))
+                IList<Material> hideSet = GetMaterialsToHide(skin);
+                foreach (Material material in hideSet)
                 {
                     if (material == null)
                         continue;
-                    var materialInfo = SkinShaderMaterialReference.FromMaterial(material);
+                    string replacementName = GetReplacementShaderNameForSkinMaterial(material);
+                    if (!string.IsNullOrEmpty(replacementName) && Shader.Find(replacementName) == null)
+                    {
+                        _skin = null;
+                        return SnapHandlerConfigurationResult.TryAgainLater;
+                    }
+                }
+
+                _materialRefs = new List<SkinShaderMaterialReference>();
+
+                foreach (Material material in hideSet)
+                {
+                    if (material == null)
+                        continue;
+                    SkinShaderMaterialReference materialInfo = SkinShaderMaterialReference.FromMaterial(material);
                     string shaderName = material.shader != null ? NormalizeMaterialShaderName(material.shader.name) : null;
                     string replacementName = null;
                     bool mapped = shaderName != null && ReplacementShaderNames.TryGetValue(shaderName, out replacementName);
@@ -713,8 +757,12 @@ namespace geesp0t
                     if (!string.IsNullOrEmpty(replacementName))
                     {
                         shader = Shader.Find(replacementName);
-                        if (shader == null && WarnedMissingReplacementShader.Add(replacementName))
-                            SuperController.LogMessage("EasyMateHeadSnapPov: replacement shader not found (will skip swap): '" + replacementName + "'");
+                        if (shader == null)
+                        {
+                            _materialRefs = null;
+                            _skin = null;
+                            return SnapHandlerConfigurationResult.TryAgainLater;
+                        }
                     }
 
                     if (shader != null)

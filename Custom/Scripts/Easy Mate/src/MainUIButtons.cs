@@ -16,6 +16,7 @@ namespace geesp0t
     public class MainUIButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
+        /// <summary>Face-only morph idle (brow + mouth). Loaded by Easy Mate when <c>emotion_path_keywords.txt</c> matches the scene path (not the full <see cref="PluginEMotion"/> pack).</summary>
         public const string PluginEasyMotionLite = "Custom/Scripts/EasyMotionLite/EasyMotionLite.cslist";
         public const string PluginSpankings = "Custom/Scripts/Spankings/Spankings.cslist";
         public const string PluginEasyMateClothingTouchFallOff = "Custom/Scripts/Easy Mate/EasyMateClothingTouchFallOff.cslist";
@@ -529,15 +530,17 @@ namespace geesp0t
             ClearAllPossession(string.IsNullOrEmpty(logMessage) ? null : logMessage);
         }
 
-        /// <summary>Merges E-Motion only onto every Person (scene load when auto-load is on, plugin UI when enabling auto-load, HUD “E-Motion all”).</summary>
+        /// <summary>Merges E-Motion only onto every Person (scene load when auto-load is on, plugin UI when enabling auto-load, HUD “E-Motion all”). Strips <see cref="PluginEasyMotionLite"/> first so full E-Motion replaces the path-rule lite.</summary>
         public void MergeEmotionOnAllPersonsOnly()
         {
             try
             {
+                string fnLite = GetFileName(PluginEasyMotionLite);
                 foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                 {
                     if (at == null)
                         continue;
+                    TryRemovePluginFromPerson(at, fnLite);
                     TryMergePluginOntoPerson(at, PluginEMotion);
                 }
 
@@ -549,15 +552,41 @@ namespace geesp0t
             }
         }
 
+        /// <summary>Removes full E-Motion from every Person, then merges <see cref="PluginEasyMotionLite"/> when missing. Used when <c>emotion_path_keywords.txt</c> matches (not “E-Motion on every scene”).</summary>
+        public void MergeEasyMotionLiteForPathRuleOnAllPersonsOnly()
+        {
+            try
+            {
+                string fnEm = GetFileName(PluginEMotion);
+                string fnLite = GetFileName(PluginEasyMotionLite);
+                foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
+                {
+                    if (at == null)
+                        continue;
+                    TryRemovePluginFromPerson(at, fnEm);
+                    if (!PersonHasPluginByFileName(at, fnLite))
+                        TryMergePluginOntoPerson(at, PluginEasyMotionLite);
+                }
+
+                RefreshPluginToggleLabels();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("EasyMotionLite merge (path rule) on all Persons: " + e);
+            }
+        }
+
         /// <summary>Merges E-Motion onto every <b>female</b> <c>Person</c> (merge-only via <see cref="TryMergePluginOntoPerson"/>).</summary>
         public void MergeEmotionOnFemalePersonsOnly()
         {
             try
             {
+                string fnLite = GetFileName(PluginEasyMotionLite);
                 foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                 {
                     if (at == null || !IsPersonFemale(at))
                         continue;
+                    TryRemovePluginFromPerson(at, fnLite);
                     TryMergePluginOntoPerson(at, PluginEMotion);
                 }
 
@@ -566,26 +595,6 @@ namespace geesp0t
             catch (Exception e)
             {
                 SuperController.LogError("E-Motion merge on female Persons: " + e);
-            }
-        }
-
-        /// <summary>Merges <see cref="PluginEasyMotionLite"/> onto every Person (Easy Mate path-keyword rule only).</summary>
-        public void MergeEasyMotionLiteOnAllPersonsOnly()
-        {
-            try
-            {
-                foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
-                {
-                    if (at == null)
-                        continue;
-                    TryMergePluginOntoPerson(at, PluginEasyMotionLite);
-                }
-
-                RefreshPluginToggleLabels();
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError("EasyMotionLite merge on all Persons: " + e);
             }
         }
 
@@ -607,18 +616,18 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Removes E-Motion and EasyMotionLite from every Person (used when disabling auto-load).</summary>
+        /// <summary>Removes full E-Motion and EasyMotionLite from every Person (when disabling auto-load or Shift+E).</summary>
         public void RemoveEmotionFromAllPersons()
         {
             try
             {
-                string fnEmotion = GetFileName(PluginEMotion);
+                string fnEm = GetFileName(PluginEMotion);
                 string fnLite = GetFileName(PluginEasyMotionLite);
                 foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                 {
                     if (at == null)
                         continue;
-                    TryRemovePluginFromPerson(at, fnEmotion);
+                    TryRemovePluginFromPerson(at, fnEm);
                     TryRemovePluginFromPerson(at, fnLite);
                 }
 
@@ -626,7 +635,7 @@ namespace geesp0t
             }
             catch (Exception e)
             {
-                SuperController.LogError("E-Motion / EasyMotionLite remove from all Persons: " + e);
+                SuperController.LogError("Remove E-Motion / EasyMotionLite from all Persons: " + e);
             }
         }
 

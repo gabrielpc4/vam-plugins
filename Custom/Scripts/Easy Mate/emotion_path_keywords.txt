@@ -1,5 +1,7 @@
-# E-Motion auto-load path keywords (Easy Mate)
-# VaM reads this file from the install: Custom/Scripts/Easy Mate/emotion_path_keywords.txt
+# EasyMotionLite auto-load path keywords (Easy Mate)
+# When the scene path matches (see below), Easy Mate merges geesp0t.EasyMotionLite on all Persons (face morphs only), not full E-Motion.
+# "Load E-Motion on every scene" still uses the full E-Motion package instead.
+# VaM reads: Custom/Scripts/Easy Mate/emotion_path_keywords.txt
 # Matching: lowercase SuperController.currentLoadDir and currentSaveDir (as one string) must CONTAIN each keyword (substring).
 # One entry per line, or separate with commas / semicolons. Lines starting with # are ignored. Trimmed.
 #
@@ -7,5 +9,6 @@
 # _dance/
 # saves/scene/mypack
 
-# Touchy Booty shake dance Vol.1 — substring must appear in VaM load/save dir (use path segments if a full line does not match).
-Saves/scene/Gato87/C&G Special release/Touchy booty shake dance Vol.1/Touchy Booty shake dance Vol1.json
+
+booty shake
+female_male

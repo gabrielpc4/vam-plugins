@@ -1301,6 +1301,10 @@ namespace VRAdultFun
                      
         public void FixedUpdate()
         {
+			float actualH = 0.0f;
+			float targetH = 0.0f;
+			float actualV = 0.0f;
+			float targetV = 0.0f;
 			bool testRun = false;
 			if (testRun)
 			{
@@ -6422,10 +6426,10 @@ namespace VRAdultFun
             targetDirH.Normalize();
             actualDirV.Normalize();
             targetDirV.Normalize();
-            float actualH = Mathf.Atan2(actualDirH.x, actualDirH.y);
-            float targetH = Mathf.Atan2(targetDirH.x, targetDirH.y);
-            float actualV = Mathf.Atan2(actualDirV.y, actualDirV.x);
-            float targetV = Mathf.Atan2(targetDirV.y, targetDirV.x);
+            actualH = Mathf.Atan2(actualDirH.x, actualDirH.y);
+            targetH = Mathf.Atan2(targetDirH.x, targetDirH.y);
+            actualV = Mathf.Atan2(actualDirV.y, actualDirV.x);
+            targetV = Mathf.Atan2(targetDirV.y, targetDirV.x);
 
 
             headToEyeController = Mathf.Abs(Vector3.Angle(eyeController.transform.position - headController.followWhenOff.position, headController.followWhenOff.forward));

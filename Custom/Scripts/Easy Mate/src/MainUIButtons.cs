@@ -548,6 +548,26 @@ namespace geesp0t
             }
         }
 
+        /// <summary>Merges E-Motion onto every <b>female</b> <c>Person</c> (merge-only via <see cref="TryMergePluginOntoPerson"/>).</summary>
+        public void MergeEmotionOnFemalePersonsOnly()
+        {
+            try
+            {
+                foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
+                {
+                    if (at == null || !IsPersonFemale(at))
+                        continue;
+                    TryMergePluginOntoPerson(at, PluginEMotion);
+                }
+
+                RefreshPluginToggleLabels();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("E-Motion merge on female Persons: " + e);
+            }
+        }
+
         /// <summary>Merges Easy Mate clothing touch fall-off onto every Person (after scene settles; idempotent merge).</summary>
         public void MergeClothingTouchFallOffOnAllPersonsOnly()
         {

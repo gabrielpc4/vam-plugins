@@ -81,6 +81,12 @@ namespace geesp0t
         /// <summary>When true, merges E-Motion onto every Person shortly after each scene load (deferred so every Person’s plugin list has finished restoring). Default is off; enable in plugin settings, the HUD <b>E-Motion all</b> button, or keyboard <b>E</b>. Keyboard <b>Shift+E</b> turns this off and removes E-Motion from all Persons.</summary>
         public JSONStorableBool loadEmotionOnSceneLoad;
 
+        /// <summary>When true (default), after a non-looping scene mocap at least <see cref="longMocapMinSecondsForEmotionMerge"/> long finishes, merge E-Motion onto female Persons once (uses <see cref="SuperController.motionAnimationMaster"/>).</summary>
+        public JSONStorableBool mergeEmotionWhenLongMocapEndsNoLoop;
+
+        /// <summary>Minimum longest <see cref="MotionAnimationClip.clipLength"/> in the scene (seconds) for end-of-mocap female E-Motion merge; avoids short clips.</summary>
+        public JSONStorableFloat longMocapMinSecondsForEmotionMerge;
+
         /// <summary>Horizontal distance threshold from look camera to feet midpoint for <see cref="possessAutoUnpossessWhenFarFromFeet"/>.</summary>
         public JSONStorableFloat possessAutoUnpossessFeetMaxHorizontalM;
 
@@ -125,6 +131,12 @@ namespace geesp0t
             loadEmotionOnSceneLoad = new JSONStorableBool("Load E-Motion on every scene", false, OnLoadEmotionOnSceneLoadChanged);
             RegisterBool(loadEmotionOnSceneLoad);
             mainUIButtons.BindSceneEmotionAutoLoad(loadEmotionOnSceneLoad);
+
+            mergeEmotionWhenLongMocapEndsNoLoop = new JSONStorableBool("Merge E-Motion on females when long mocap ends (no loop)", true);
+            RegisterBool(mergeEmotionWhenLongMocapEndsNoLoop);
+
+            longMocapMinSecondsForEmotionMerge = new JSONStorableFloat("Min mocap length (s) for end-of-clip E-Motion", 45f, 5f, 600f);
+            RegisterFloat(longMocapMinSecondsForEmotionMerge);
 
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
@@ -194,6 +206,7 @@ namespace geesp0t
             if (headProximityHideWithoutSnap != null)
                 EasyMateHeadSnapPovRuntime.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
+            EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
 
             if (mainUIButtons != null)
                 mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
@@ -580,6 +593,7 @@ namespace geesp0t
 
             if (sceneChanged)
             {
+                EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
                 sceneChanged = false;
                 Log("EasyMate Scene Changed, Load Dir: " + SuperController.singleton.currentLoadDir + ", Time Since Level Load: " + Time.timeSinceLevelLoad);
                 //get menu data, if this is a menu
@@ -646,6 +660,10 @@ namespace geesp0t
             bool footDist = possessAutoUnpossessWhenFarFromFeet != null && possessAutoUnpossessWhenFarFromFeet.val;
             float footMax = possessAutoUnpossessFeetMaxHorizontalM != null ? possessAutoUnpossessFeetMaxHorizontalM.val : 1.35f;
             EasyMatePossessFootDistanceAutoRelease.LateTick(footDist, footMax);
+
+            bool mocapEmotionEnd = mergeEmotionWhenLongMocapEndsNoLoop != null && mergeEmotionWhenLongMocapEndsNoLoop.val;
+            float mocapMinSec = longMocapMinSecondsForEmotionMerge != null ? longMocapMinSecondsForEmotionMerge.val : 45f;
+            EasyMateMotionAnimationEmotionEnd.LateTick(mocapEmotionEnd, mocapMinSec, mainUIButtons);
         }
 
         void OnDestroy()

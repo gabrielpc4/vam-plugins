@@ -16,10 +16,8 @@ namespace geesp0t
     public class MainUIButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
-        /// <summary>Lite face/emotion pack (no scripted head/neck). Loaded when <c>emotion_path_keywords.txt</c> matches the scene path.</summary>
+        /// <summary>Lite face/emotion pack (no scripted head/neck). Loaded when <c>emotion_path_keywords.txt</c> matches the scene path. Uses the same cslist file name as <see cref="PluginEMotion"/>; merging must replace by basename (see <see cref="TryReplacePluginBasenameWithExactPath"/>).</summary>
         public const string PluginEMotionLite = "Custom/Scripts/E-MotionLite/E-Motion_AddThisONLY.cslist";
-        /// <summary>Former lite path; still stripped when merging full E-Motion or Shift+E.</summary>
-        public const string PluginEasyMotionLiteLegacyPath = "Custom/Scripts/EasyMotionLite/EasyMotionLite.cslist";
         public const string PluginSpankings = "Custom/Scripts/Spankings/Spankings.cslist";
         public const string PluginEasyMateClothingTouchFallOff = "Custom/Scripts/Easy Mate/EasyMateClothingTouchFallOff.cslist";
 
@@ -518,20 +516,16 @@ namespace geesp0t
             ClearAllPossession(string.IsNullOrEmpty(logMessage) ? null : logMessage);
         }
 
-        /// <summary>Merges full E-Motion onto every Person. Strips <see cref="PluginEMotionLite"/> (and legacy lite path) first so full E-Motion replaces the path-rule lite. HUD <b>E-Motion all</b>, keyboard <b>E</b>, and post–long-mocap merge use this.</summary>
+        /// <summary>Merges full E-Motion onto every Person. Replaces any existing plugin with the same cslist base name as lite/full so HUD <b>E-Motion all</b>, hotkey <b>E</b>, and post–long-mocap merge always install the AutoMate full pack path.</summary>
         public void MergeEmotionOnAllPersonsOnly()
         {
             try
             {
-                string fnLite = GetFileName(PluginEMotionLite);
-                string fnLiteLegacy = GetFileName(PluginEasyMotionLiteLegacyPath);
                 foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                 {
                     if (at == null)
                         continue;
-                    TryRemovePluginFromPerson(at, fnLite);
-                    TryRemovePluginFromPerson(at, fnLiteLegacy);
-                    TryMergePluginOntoPerson(at, PluginEMotion);
+                    TryReplacePluginBasenameWithExactPath(at, PluginEMotion);
                 }
 
                 RefreshPluginToggleLabels();
@@ -542,22 +536,16 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Removes full E-Motion from every Person, then merges <see cref="PluginEMotionLite"/> when missing. Used when <c>emotion_path_keywords.txt</c> matches the load path.</summary>
+        /// <summary>Installs <see cref="PluginEMotionLite"/> on every Person (replacing full E-Motion when present). Used only when <c>emotion_path_keywords.txt</c> matches the load path.</summary>
         public void MergeEmotionLiteForPathRuleOnAllPersonsOnly()
         {
             try
             {
-                string fnEm = GetFileName(PluginEMotion);
-                string fnLite = GetFileName(PluginEMotionLite);
-                string fnLiteLegacy = GetFileName(PluginEasyMotionLiteLegacyPath);
                 foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                 {
                     if (at == null)
                         continue;
-                    TryRemovePluginFromPerson(at, fnEm);
-                    TryRemovePluginFromPerson(at, fnLiteLegacy);
-                    if (!PersonHasPluginByFileName(at, fnLite))
-                        TryMergePluginOntoPerson(at, PluginEMotionLite);
+                    TryReplacePluginBasenameWithExactPath(at, PluginEMotionLite);
                 }
 
                 RefreshPluginToggleLabels();
@@ -568,20 +556,16 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Merges E-Motion onto every <b>female</b> <c>Person</c> (merge-only via <see cref="TryMergePluginOntoPerson"/>).</summary>
+        /// <summary>Merges full E-Motion onto every <b>female</b> <c>Person</c> via <see cref="TryReplacePluginBasenameWithExactPath"/>.</summary>
         public void MergeEmotionOnFemalePersonsOnly()
         {
             try
             {
-                string fnLite = GetFileName(PluginEMotionLite);
-                string fnLiteLegacy = GetFileName(PluginEasyMotionLiteLegacyPath);
                 foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                 {
                     if (at == null || !IsPersonFemale(at))
                         continue;
-                    TryRemovePluginFromPerson(at, fnLite);
-                    TryRemovePluginFromPerson(at, fnLiteLegacy);
-                    TryMergePluginOntoPerson(at, PluginEMotion);
+                    TryReplacePluginBasenameWithExactPath(at, PluginEMotion);
                 }
 
                 RefreshPluginToggleLabels();
@@ -610,21 +594,17 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Removes full E-Motion, E-MotionLite, and legacy lite plugin from every Person (<b>Shift+E</b> hotkey).</summary>
+        /// <summary>Removes full E-Motion and E-MotionLite from every Person (<b>Shift+E</b> hotkey).</summary>
         public void RemoveEmotionFromAllPersons()
         {
             try
             {
-                string fnEm = GetFileName(PluginEMotion);
-                string fnLite = GetFileName(PluginEMotionLite);
-                string fnLiteLegacy = GetFileName(PluginEasyMotionLiteLegacyPath);
+                string fnPack = GetFileName(PluginEMotion);
                 foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                 {
                     if (at == null)
                         continue;
-                    TryRemovePluginFromPerson(at, fnEm);
-                    TryRemovePluginFromPerson(at, fnLite);
-                    TryRemovePluginFromPerson(at, fnLiteLegacy);
+                    TryRemovePluginFromPerson(at, fnPack);
                 }
 
                 RefreshPluginToggleLabels();
@@ -1109,6 +1089,24 @@ namespace geesp0t
 
             List<string> newPlugins = CollectNormalizedPluginPaths(manager);
             newPlugins.RemoveAll(p => GetFileName(p) == desiredFileName);
+            ApplyPluginPathsToManager(manager, newPlugins);
+        }
+
+        /// <summary>
+        /// Removes every merged plugin whose file name matches <see cref="GetFileName"/> of <paramref name="desiredPluginPath"/>,
+        /// then adds exactly <paramref name="desiredPluginPath"/>. Needed because full E-Motion and E-MotionLite share <c>E-Motion_AddThisONLY.cslist</c>;
+        /// <see cref="TryMergePluginOntoPerson"/> alone would skip switching lite→full when the basename is already present.
+        /// </summary>
+        private static void TryReplacePluginBasenameWithExactPath(Atom at, string desiredPluginPath)
+        {
+            MVRPluginManager manager = at.GetStorableByID("PluginManager") as MVRPluginManager;
+            if (manager == null)
+                return;
+
+            string fn = GetFileName(desiredPluginPath);
+            List<string> newPlugins = CollectNormalizedPluginPaths(manager);
+            newPlugins.RemoveAll(p => GetFileName(p) == fn);
+            newPlugins.Add(desiredPluginPath);
             ApplyPluginPathsToManager(manager, newPlugins);
         }
 

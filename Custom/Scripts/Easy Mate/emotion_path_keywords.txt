@@ -1,0 +1,16 @@
+# E-MotionLite auto-load path keywords (Easy Mate)
+# When the scene path matches (see below), Easy Mate merges E-MotionLite on all Persons (expression/gaze without scripted head/neck), not full E-Motion.
+# Full E-Motion is added only manually (HUD “E-Motion all” / hotkey E), after a long non-loop mocap ends, or via your scene JSON — not globally on every load.
+# VaM reads: Custom/Scripts/Easy Mate/emotion_path_keywords.txt
+# Matching: lowercase haystack = currentLoadDir + currentSaveDir + inferred scene .json path (when unique).
+# Save dirs do not include the file name; Easy Mate scans *.json under currentSaveDir and picks the file whose
+# atom id:type fingerprint matches SuperController.loadJson (SuperController API only — no reflection).
+# One entry per line, or separate with commas / semicolons. Lines starting with # are ignored. Trimmed.
+#
+# Examples (uncomment or replace with your own):
+# _dance/
+# saves/scene/mypack
+
+
+booty shake
+female_male

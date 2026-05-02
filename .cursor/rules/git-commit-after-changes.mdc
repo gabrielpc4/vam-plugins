@@ -21,9 +21,9 @@ Whenever you **modify, create, or delete** a project file you intend to keep und
    - **Do not** blanket-whitelist huge trees (e.g. entire `Reference/Assembly-CSharp-decompiled/`, game `VaM_Data/`, etc.) unless the user explicitly asked to track them.
 
 3. **Commit in the same turn**  
-   Stage **only** paths you **created, modified, or deleted in the current conversation** (explicit `git add <path> …`), then commit with a clear conventional message (`feat:`, `fix:`, `chore:`, …). Do **not** run `git add .`, `git add -A`, or other bulk staging. Do not leave intentional work uncommitted unless the user said not to commit.
+   Stage **only** paths you **created, modified, or deleted in the current conversation** (explicit `git add -- path/to/file …`). Do **not** run `git add .`, `git add -A` / `--all`, `git add -u` without path arguments, or `git commit -a` / `-am` unless the user explicitly asked for a repo-wide staging/commit. Then commit with a clear conventional message (`feat:`, `fix:`, `chore:`, …). Do not leave intentional work uncommitted unless the user said not to commit.
 
 4. **Scope**  
-   This repo may have **thousands of untracked or dirty files** (e.g. game content). Do **not** stage unrelated paths (`Saves/`, assets, logs, or bulk plugin trees) unless the user explicitly asked to include them. When in doubt, `git status` and add **only** the few paths tied to your edits.
+   This repo may have **thousands of untracked or dirty files** (e.g. game content). Do **not** stage unrelated paths (`Saves/`, assets, logs, or bulk trees) unless the user explicitly asked to include them. Before committing, run `git status` and ensure only your edited paths are staged (`git diff --cached --stat`).
 
 Applies to this VaM workspace and follow-up edits in the same conversation.

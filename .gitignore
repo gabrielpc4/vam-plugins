@@ -1,5 +1,7 @@
 # Whitelist-only: ignore everything except *.md, *.py, *.vac, *.json, *.cs, *.cslist,
 # *.txt, and *.jpg only under Saves/scene/ (any subfolder depth).
+# Under Custom/, only Custom/Scripts/ may contain trackable files; other Custom/
+# subtrees stay ignored while extension rules apply elsewhere as before.
 # (`*` ignores; `!*/` lets Git traverse directories so `!` rules can match.)
 *
 !*/
@@ -14,6 +16,11 @@
 !**/*.cs
 !**/*.cslist
 !**/*.txt
+
+# Custom/: only Scripts/ is eligible for the extensions above; rest of Custom stays ignored.
+Custom/**
+!Custom/Scripts/
+!Custom/Scripts/**
 
 # After whitelist: hide paths whose components contain these substrings (case variants).
 # Later rules win; * does not cross '/' so each path segment is checked.

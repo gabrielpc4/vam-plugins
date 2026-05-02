@@ -38,11 +38,8 @@ namespace geesp0t
 
         private Coroutine _applyEmotionAfterSceneCo;
 
-        /// <summary>Relative to VaM install; substring match on lowercase haystack built from currentLoadDir, currentSaveDir, and (when uniquely inferable) the loaded scene .json path scanned under save dir or load dir.</summary>
+        /// <summary>Relative to VaM install; substring match on lowercase haystack built from <see cref="SuperController.currentLoadDir"/> and <see cref="SuperController.currentSaveDir"/> only.</summary>
         private const string EmotionPathKeywordsFileRelative = "Custom/Scripts/Easy Mate/emotion_path_keywords.txt";
-
-        /// <summary>Fingerprint inference reads every <c>*.json</c> under the scan folder; skip when the folder is huge (e.g. <c>Saves/scene</c> menus) to avoid multi-second loads.</summary>
-        private const int MaxJsonFilesForScenePathInference = 48;
 
         private Coroutine _pathRuleEmotionMergeCo;
 
@@ -347,7 +344,7 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Substring match on <paramref name="haystack"/> for keywords from <see cref="EmotionPathKeywordsFileRelative"/>. Haystack may include the resolved scene file path (via <see cref="TryInferLoadedSceneJsonRelativePath"/>).</summary>
+        /// <summary>Substring match on <paramref name="haystack"/> for keywords from <see cref="EmotionPathKeywordsFileRelative"/>.</summary>
         private static bool EvaluateEmotionPathKeywordsAgainstHaystack(List<string> keys, string haystack, out string matchDetail)
         {
             matchDetail = "";
@@ -394,133 +391,9 @@ namespace geesp0t
 
             loadDir = sc.currentLoadDir != null ? sc.currentLoadDir : "";
             saveDir = sc.currentSaveDir != null ? sc.currentSaveDir : "";
-
-            string haystackMinimal = (loadDir + " " + saveDir).Replace('\\', '/').ToLowerInvariant();
-
-            if (keywordCount == 0)
-            {
-                haystack = haystackMinimal;
-                matchDetail = "no keywords in " + EmotionPathKeywordsFileRelative;
-                return false;
-            }
-
-            if (EvaluateEmotionPathKeywordsAgainstHaystack(keys, haystackMinimal, out matchDetail))
-            {
-                haystack = haystackMinimal;
-                return true;
-            }
-
-            string loadedPath = TryInferLoadedSceneJsonRelativePath(sc);
-            haystack = (loadDir + " " + saveDir + " " + loadedPath).Replace('\\', '/').ToLowerInvariant();
+            haystack = (loadDir + " " + saveDir).Replace('\\', '/').ToLowerInvariant();
 
             return EvaluateEmotionPathKeywordsAgainstHaystack(keys, haystack, out matchDetail);
-        }
-
-        /// <summary>
-        /// VaM exposes <see cref="SuperController.currentSaveDir"/> (folder only), not the loaded file name. Infer <c>Saves/scene/foo.json</c> by scanning that folder with
-        /// <see cref="SuperController.GetFilesAtPath"/> / <see cref="SuperController.ReadFileIntoString"/> and matching a fingerprint of <see cref="SuperController.loadJson"/> to exactly one file.
-        /// When <see cref="SuperController.currentSaveDir"/> is empty (common after loading from a menu), falls back to <see cref="SuperController.currentLoadDir"/> so subfolder scenes still infer their .json path when only one candidate matches.
-        /// </summary>
-        private static string TryInferLoadedSceneJsonRelativePath(SuperController sc)
-        {
-            if (sc == null || sc.loadJson == null)
-                return "";
-
-            string scanDir = sc.currentSaveDir;
-            if (scanDir == null || scanDir.Length == 0)
-                scanDir = sc.currentLoadDir;
-            if (scanDir == null || scanDir.Length == 0)
-                return "";
-
-            string needle = BuildSceneAtomsFingerprint(sc.loadJson);
-            if (needle == null || needle.Length == 0)
-                return "";
-
-            string[] files;
-            try
-            {
-                files = sc.GetFilesAtPath(scanDir, "*.json");
-            }
-            catch
-            {
-                return "";
-            }
-
-            if (files == null || files.Length == 0)
-                return "";
-
-            if (files.Length > MaxJsonFilesForScenePathInference)
-                return "";
-
-            string hitPath = "";
-            for (int i = 0; i < files.Length; i++)
-            {
-                string candidatePath = files[i];
-                if (candidatePath == null || candidatePath.Length == 0)
-                    continue;
-
-                try
-                {
-                    string contents = sc.ReadFileIntoString(candidatePath);
-                    if (contents == null || contents.Length == 0)
-                        continue;
-
-                    JSONNode parsed = JSON.Parse(contents);
-                    if (parsed == null)
-                        continue;
-
-                    string fp = BuildSceneAtomsFingerprint(parsed);
-                    if (fp != needle)
-                        continue;
-
-                    if (hitPath.Length > 0)
-                        return "";
-
-                    hitPath = candidatePath.Replace('\\', '/');
-                }
-                catch
-                {
-                    continue;
-                }
-            }
-
-            return hitPath;
-        }
-
-        /// <summary>Sorted atom id:type pairs so load order vs file order does not matter.</summary>
-        private static string BuildSceneAtomsFingerprint(JSONNode root)
-        {
-            if (root == null)
-                return "";
-
-            JSONArray atoms = root["atoms"].AsArray;
-            if (atoms == null || atoms.Count == 0)
-                return "";
-
-            List<string> parts = new List<string>(atoms.Count);
-            for (int i = 0; i < atoms.Count; i++)
-            {
-                JSONNode atom = atoms[i];
-                if (atom == null)
-                    continue;
-
-                string id = atom["id"];
-                string typ = atom["type"];
-                parts.Add((id != null ? id : "") + ":" + (typ != null ? typ : ""));
-            }
-
-            parts.Sort(StringComparer.Ordinal);
-
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
-            sb.Append(parts.Count);
-            sb.Append('|');
-            for (int p = 0; p < parts.Count; p++)
-            {
-                sb.Append(parts[p]);
-                sb.Append(';');
-            }
-
-            return sb.ToString();
         }
 
         private bool ShouldMergeEmotionForCurrentScenePath()

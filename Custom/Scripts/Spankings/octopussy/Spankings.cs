@@ -104,6 +104,7 @@ namespace octopussy
         /// <summary>When true, moan/voice folders are not loaded, expressions are not loaded, and only spank + cheek + hit audio run.</summary>
         private bool _isMalePerson;
 
+        private bool CanPlaySoftMoan()
         {
             return !_isMalePerson && softVoiceAudioclips != null && softVoiceAudioclips.Count > 0;
         }

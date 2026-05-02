@@ -77,6 +77,7 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
 - **E-Motion Final** (VRAdultFun standalone tree — **not** auto-merged by Easy Mate path rules or HUD **E‑Motion all** swap logic beyond removal when installing full/lite):
   - **`Custom/Scripts/E-MotionFinal/E-Motion_Final_AddThisONLY.cslist`** (`PluginEMotionFinal`).
   - **Different basename** from full/lite so scenes and tooling do not confuse it with **`E-Motion_AddThisONLY.cslist`**. Lives under **`Custom/Scripts/E-MotionFinal/`** so edits to Original or Lite sources do not affect Final files when only Final is loaded.
+  - Presets and defaults load from **`Custom/Scripts/E-MotionFinal/Presets/`** (same pattern as Original/Lite: **`GetPluginPath()`** + `\Presets\`), not from legacy **`Custom/E-Motion/Presets`**.
 
 - **`EasyMateEmotionPathKeywords.cs`** (`Custom/Scripts/Easy Mate/src/EasyMateEmotionPathKeywords.cs`, listed in **`EasyMate.cslist`**):
   - **`KeywordsFileRelative`**: **`Custom/Scripts/Easy Mate/emotion_path_keywords.txt`** — read with **`SuperController.ReadFileIntoString`**; `#` lines skipped; tokens trimmed and split on newline / comma / semicolon; stored lowercase for matching.

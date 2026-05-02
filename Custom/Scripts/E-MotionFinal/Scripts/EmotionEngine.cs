@@ -427,8 +427,6 @@ namespace VRAdultFun
 
 		private static float movementInterest = 1.0f;
 
-		protected string lastPath = "Custom/E-Motion/Presets";
-
 		private static float uiExpressionLengthVal;
 		
 
@@ -11414,9 +11412,8 @@ namespace VRAdultFun
 		{
 			//SuperController.LogError("Load Defaults Start");
 			SimpleJSON.JSONNode loadedSettings = new SimpleJSON.JSONClass();
-			string tempPath = this.GetPackagePath();
-			//SuperController.LogMessage("Path is " + tempPath, false);
-			loadedSettings=SuperController.singleton.LoadJSON(tempPath + lastPath + "/E-Motion_Defaults.json");
+			string pluginPath = GetPluginPath();
+			loadedSettings = SuperController.singleton.LoadJSON(pluginPath + "\\Presets\\E-Motion_Defaults.json");
 			if (loadedSettings != null)
 			{
 				uiExtraversion.val = loadedSettings["Extraversion"].AsFloat;
@@ -12132,7 +12129,9 @@ namespace VRAdultFun
             CreateTextField(uiArousalStatus, true);
 			UIDynamic spacer = CreateSpacer(true);
 			spacer.height = 30f;
-			FileManagerSecure.CreateDirectory(lastPath);
+			string presetsDir = GetPluginPath() + "\\Presets";
+			FileManagerSecure.CreateDirectory(presetsDir);
+			string presetsBrowse = presetsDir + "\\";
 			CreateToggle(uiShowStats, false);
 			CreateButton("Load Defaults", false).button.onClick.AddListener(() =>
 			{
@@ -12141,8 +12140,8 @@ namespace VRAdultFun
 			CreateButton("Load Preset", false).button.onClick.AddListener(() =>
 			{
 				//SuperController.LogError("Starting Load Preset");
-				SuperController.singleton.fileBrowserUI.defaultPath = lastPath;
-				SuperController.singleton.fileBrowserUI.shortCuts = FileManagerSecure.GetShortCutsForDirectory(lastPath, false, false, true, true);
+				SuperController.singleton.fileBrowserUI.defaultPath = presetsBrowse;
+				SuperController.singleton.fileBrowserUI.shortCuts = FileManagerSecure.GetShortCutsForDirectory(presetsBrowse, false, false, true, true);
 				//SuperController.LogError("Starting Load Preset A");
 				SuperController.singleton.fileBrowserUI.SetTextEntry(false);
 				//SuperController.LogError("Starting Load Preset B");
@@ -12344,8 +12343,8 @@ namespace VRAdultFun
 			});
 			CreateButton("Save Preset", false).button.onClick.AddListener(() =>
 			{
-				SuperController.singleton.fileBrowserUI.defaultPath = lastPath; // or path to your plugin
-				SuperController.singleton.fileBrowserUI.shortCuts = FileManagerSecure.GetShortCutsForDirectory(lastPath, false, false, true, true);
+				SuperController.singleton.fileBrowserUI.defaultPath = presetsBrowse;
+				SuperController.singleton.fileBrowserUI.shortCuts = FileManagerSecure.GetShortCutsForDirectory(presetsBrowse, false, false, true, true);
 				SuperController.singleton.fileBrowserUI.SetTextEntry(true);
 
 				SuperController.singleton.fileBrowserUI.Show((path) =>
@@ -13129,24 +13128,6 @@ namespace VRAdultFun
 			RemoveSlider(uicustomfeetweight);
 			uiShowingCharacter = false;
 			ColorButtons();
-		}
-	}
-	public static class MVRScriptExtension
-	{
-		public static string GetPackagePath(this MVRScript script)
-		{
-			string packageId = script.GetPackageId();
-			return packageId == "" ? "" : $"{packageId}:/";
-		}
-
-		//MacGruber / Discord 20.10.2020
-		//Get path prefix of the package that contains this plugin
-		public static string GetPackageId(this MVRScript script)
-		{
-			string id = script.name.Substring(0, script.name.IndexOf('_'));
-			string filename = script.manager.GetJSON()["plugins"][id].Value;
-			int idx = filename.IndexOf(":/", StringComparison.Ordinal);
-			return idx >= 0 ? filename.Substring(0, idx) : "";
 		}
 	}
 }

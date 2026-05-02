@@ -28,7 +28,7 @@ namespace octopussy
     {
         public const string pluginAuthor = "octopussy (mod by geesp0t)";
         public const string pluginName = "Spankings";
-        public const string pluginVersion = "1.5";
+        public const string pluginVersion = "1.5.1";
         public const string pluginDate = "[2020-03-03]";
         public const string pluginDescription = @"
         Gently manages sound effects, movement and feedback
@@ -162,7 +162,7 @@ namespace octopussy
                 CreateTextField(explanationString, true);
 
 
-                collisionThreshold = new JSONStorableFloat("Impact Force Required for Sound", 0.25f, 0, 1.0f, true);
+                collisionThreshold = new JSONStorableFloat("Impact Force Required for Sound", 0.48f, 0, 2.0f, true);
                 collisionThreshold.storeType = JSONStorableParam.StoreType.Full;
                 RegisterFloat(collisionThreshold);
                 CreateSlider(collisionThreshold, false);
@@ -549,8 +549,7 @@ namespace octopussy
 
             if (useExpressions.val) expressionBank.PlayRandomAction(true); // << needs a quick lerp here
 
-            randLoudVoiceAudio.playNow = playMoansHighPriority.val;
-            randLoudVoiceAudio.playRandomDelayedIfClear(headAudio.audioSource, level * collisionSoundVolume.val, 0.1f, 0.8f);
+            randLoudVoiceAudio.playRandom(headAudio.audioSource, level * collisionSoundVolume.val, UnityEngine.Random.Range(0.1f, 0.8f));
             reaction.SetForceAxis(axis[(++crntAxis + 1) % axis.Length]);
             reaction.restart();
             arousal += 0.5f;
@@ -567,8 +566,7 @@ namespace octopussy
 
             if (useExpressions.val) expressionBank.PlayRandomAction(true); // << needs a quick lerp here
 
-            randSoftVoiceAudio.playNow = playMoansHighPriority.val;
-            randSoftVoiceAudio.playRandomDelayedIfClear(headAudio.audioSource, level * collisionSoundVolume.val, 0.1f, 0.8f);
+            randSoftVoiceAudio.playRandom(headAudio.audioSource, level * collisionSoundVolume.val, UnityEngine.Random.Range(0.1f, 0.8f));
             arousal += 0.25f;
 
             reaction.restart();
@@ -593,16 +591,14 @@ namespace octopussy
 
                         if (level > 1.0f)
                         {
-                            randLoudVoiceAudio.playNow = playMoansHighPriority.val;
-                            randLoudVoiceAudio.playRandomDelayedIfClear(headAudio.audioSource, level * collisionSoundVolume.val, 0.1f, 0.8f);
+                            randLoudVoiceAudio.playRandom(headAudio.audioSource, level * collisionSoundVolume.val, UnityEngine.Random.Range(0.1f, 0.8f));
                             reaction.SetForceAxis(axis[(++crntAxis + 1) % axis.Length]);
                             reaction.restart();
                             arousal += 0.5f;
                         }
                         else
                         {
-                            randSoftVoiceAudio.playNow = playMoansHighPriority.val;
-                            randSoftVoiceAudio.playRandomDelayedIfClear(headAudio.audioSource, level * collisionSoundVolume.val, 0.1f, 0.8f);
+                            randSoftVoiceAudio.playRandom(headAudio.audioSource, level * collisionSoundVolume.val, UnityEngine.Random.Range(0.1f, 0.8f));
                             arousal += 0.25f;
                         }
 
@@ -612,8 +608,20 @@ namespace octopussy
                     else
                     {
                         //SuperController.LogMessage("Collide with other object");
-                        if (!collideOnlyWithTriggers.val) { 
+                        if (!collideOnlyWithTriggers.val)
+                        {
                             randAudio.playRandom(hitAudioSourceControl.audioSource, level * collisionSoundVolume.val);
+                            if (useExpressions.val) expressionBank.PlayRandomAction(true);
+                            if (level > 1.0f)
+                            {
+                                randLoudVoiceAudio.playRandom(headAudio.audioSource, level * collisionSoundVolume.val, UnityEngine.Random.Range(0.1f, 0.8f));
+                                arousal += 0.5f;
+                            }
+                            else
+                            {
+                                randSoftVoiceAudio.playRandom(headAudio.audioSource, level * collisionSoundVolume.val, UnityEngine.Random.Range(0.1f, 0.8f));
+                                arousal += 0.25f;
+                            }
                         }
                     }
                 } else

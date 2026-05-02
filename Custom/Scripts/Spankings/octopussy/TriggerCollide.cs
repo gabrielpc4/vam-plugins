@@ -27,9 +27,10 @@ namespace octopussy
         bool inside = false;
 
         public static float minTimeBetweenCollisions = 0.1f;
-        public static float lastCollisionTime = 0;
 
         public event EventHandler<TriggerEventArgs> OnCollide;
+
+        private float _lastCollisionTime = -1000f;
 
         void Awake()
         {
@@ -74,7 +75,7 @@ namespace octopussy
 
         private void DoCollideEvent(byte evtType, Collider col, Collision c)
         {
-            if (Time.timeSinceLevelLoad - lastCollisionTime > minTimeBetweenCollisions)
+            if (Time.timeSinceLevelLoad - _lastCollisionTime > minTimeBetweenCollisions)
             {
                 if (evtType == lastEvent.evtType || c == null)
                 {
@@ -84,7 +85,7 @@ namespace octopussy
                 {
                     //SuperController.LogMessage("collide: " + col.name + "time: " + Time.timeSinceLevelLoad);
 
-                    lastCollisionTime = Time.timeSinceLevelLoad;
+                    _lastCollisionTime = Time.timeSinceLevelLoad;
 
                     TriggerEventArgs tempEvent = new TriggerEventArgs
                     {

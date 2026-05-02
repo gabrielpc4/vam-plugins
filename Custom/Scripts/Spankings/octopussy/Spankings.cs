@@ -28,7 +28,7 @@ namespace octopussy
     {
         public const string pluginAuthor = "octopussy (mod by geesp0t)";
         public const string pluginName = "Spankings";
-        public const string pluginVersion = "1.5.1";
+        public const string pluginVersion = "1.5.2";
         public const string pluginDate = "[2020-03-03]";
         public const string pluginDescription = @"
         Gently manages sound effects, movement and feedback
@@ -339,16 +339,106 @@ namespace octopussy
             c.atomFilterPopup.currentValue = her.uid;
         }
 
-        public void RefreshColliders()
+        /// <summary>One <see cref="TriggerCollide"/> per GameObject; all Spankings handlers share it and filter by struck Person.</summary>
+        private void HookCollideOnGameObject(GameObject go)
+        {
+            if (go == null)
+                return;
+            TriggerCollide tc = go.GetComponent<TriggerCollide>();
+            if (tc == null)
+                tc = go.AddComponent<TriggerCollide>();
+            tc.OnCollide -= ObserveSpankTrigger;
+            tc.OnCollide += ObserveSpankTrigger;
+        }
+
+        private void HookCollideOnRigidbody(Rigidbody rb)
+        {
+            if (rb == null)
+                return;
+            HookCollideOnGameObject(rb.gameObject);
+        }
+
+        private static Atom ResolveOwningPersonFromCollider(Collider col)
+        {
+            if (col == null)
+                return null;
+            Transform t = col.transform;
+            while (t != null)
+            {
+                Atom a = t.GetComponent<Atom>();
+                if (a != null)
+                {
+                    if (a.type == "Person")
+                        return a;
+                    if (a.parentAtom != null && a.parentAtom.type == "Person")
+                        return a.parentAtom;
+                }
+
+                FreeControllerV3 fc = t.GetComponent<FreeControllerV3>();
+                if (fc != null && fc.containingAtom != null)
+                {
+                    Atom ca = fc.containingAtom;
+                    if (ca.type == "Person")
+                        return ca;
+                    if (ca.parentAtom != null && ca.parentAtom.type == "Person")
+                        return ca.parentAtom;
+                }
+
+                t = t.parent;
+            }
+
+            return null;
+        }
+
+        private Atom ResolveStruckPersonFromEvent(TriggerEventArgs e)
+        {
+            if (e == null)
+                return null;
+            Atom struck = ResolveOwningPersonFromCollider(e.collider);
+            if (struck != null)
+                return struck;
+            if (e.collision == null)
+                return null;
+            ContactPoint[] pts = e.collision.contacts;
+            if (pts == null || pts.Length == 0)
+                return null;
+            for (int i = 0; i < pts.Length; i++)
+            {
+                struck = ResolveOwningPersonFromCollider(pts[i].otherCollider);
+                if (struck != null)
+                    return struck;
+                struck = ResolveOwningPersonFromCollider(pts[i].thisCollider);
+                if (struck != null)
+                    return struck;
+            }
+            return null;
+        }
+
+        private void UnhookObserveFromGameObject(GameObject go)
+        {
+            if (go == null)
+                return;
+            TriggerCollide[] tcs = go.GetComponents<TriggerCollide>();
+            if (tcs == null)
+                return;
+            for (int i = 0; i < tcs.Length; i++)
+            {
+                if (tcs[i] != null)
+                    tcs[i].OnCollide -= ObserveSpankTrigger;
+            }
+        }
+
+        private void UnhookObserveFromAllKnownColliders()
         {
             playerHands = GameObject.Find("Hands");
             if (playerHands)
-            {// only the middle finger is the actual collider
+            {
                 playerHands
                     .GetComponentsInChildren<Rigidbody>()
                     .Where(f => f.name == "R_Finger_Middle_C"
-                             || f.name == "L_Finger_Middle_C").ToList().ForEach(f => {
-                                 f.gameObject.AddComponent<TriggerCollide>().OnCollide += ObserveSpankTrigger;
+                             || f.name == "L_Finger_Middle_C").ToList().ForEach(f =>
+                             {
+                                 UnhookObserveFromGameObject(f.gameObject);
                              });
             }
 
@@ -358,15 +448,17 @@ namespace octopussy
                    .Where(h =>
                       h.name == "rHand"
                    || h.name == "lHand").ToList().ForEach(h => {
-                       h.gameObject.AddComponent<TriggerCollide>().OnCollide += ObserveSpankTrigger;
+                       UnhookObserveFromGameObject(h.gameObject);
                    }));
 
             GetSceneAtoms()
                 .Where(a => a.category == "Toys")
                 .ToList().ForEach(h => {
-                    if (h.rigidbodies.Length > 0) { 
-                        foreach (Rigidbody rigidbody in h.rigidbodies) { 
-                            rigidbody.gameObject.AddComponent<TriggerCollide>().OnCollide += ObserveSpankTrigger;
+                    if (h.rigidbodies.Length > 0)
+                    {
+                        foreach (Rigidbody rigidbody in h.rigidbodies)
+                        {
+                            UnhookObserveFromGameObject(rigidbody.gameObject);
                         }
                     }
                 });
@@ -378,7 +470,86 @@ namespace octopussy
                     {
                         foreach (Rigidbody rigidbody in h.rigidbodies)
                         {
-                            rigidbody.gameObject.AddComponent<TriggerCollide>().OnCollide += ObserveSpankTrigger;
+                            UnhookObserveFromGameObject(rigidbody.gameObject);
+                        }
+                    }
+                });
+
+            GetSceneAtoms()
+                .Where(a => a.name.StartsWith("IS"))
+                .ToList().ForEach(h => {
+                    if (h.rigidbodies.Length > 0)
+                    {
+                        foreach (Rigidbody rigidbody in h.rigidbodies)
+                        {
+                            UnhookObserveFromGameObject(rigidbody.gameObject);
+                        }
+                    }
+                });
+
+            if (collideWithCustomUnityAssets.val)
+            {
+                GetSceneAtoms()
+                    .Where(a => a.type == "CustomUnityAsset")
+                    .ToList().ForEach(h => {
+                        foreach (Transform transform in h.GetComponentsInChildren<Transform>())
+                        {
+                            if (transform.GetComponent<Collider>() || transform.GetComponent<MeshCollider>() || transform.GetComponent<CapsuleCollider>() || transform.GetComponent<BoxCollider>() || transform.GetComponent<NonConvexMeshCollider>() || transform.GetComponent<SphereCollider>())
+                            {
+                                UnhookObserveFromGameObject(transform.gameObject);
+                            }
+                        }
+                        if (h.rigidbodies.Length > 0)
+                        {
+                            foreach (Rigidbody rigidbody in h.rigidbodies)
+                            {
+                                UnhookObserveFromGameObject(rigidbody.gameObject);
+                            }
+                        }
+                    });
+            }
+        }
+
+        public void RefreshColliders()
+        {
+            playerHands = GameObject.Find("Hands");
+            if (playerHands)
+            {// only the middle finger is the actual collider
+                playerHands
+                    .GetComponentsInChildren<Rigidbody>()
+                    .Where(f => f.name == "R_Finger_Middle_C"
+                             || f.name == "L_Finger_Middle_C").ToList().ForEach(f => {
+                                 HookCollideOnRigidbody(f);
+                             });
+            }
+
+            GetSceneAtoms()
+                .Where(a => a.type == "Person")
+                .ToList().ForEach(p => p.rigidbodies
+                   .Where(h =>
+                      h.name == "rHand"
+                   || h.name == "lHand").ToList().ForEach(h => {
+                       HookCollideOnRigidbody(h);
+                   }));
+
+            GetSceneAtoms()
+                .Where(a => a.category == "Toys")
+                .ToList().ForEach(h => {
+                    if (h.rigidbodies.Length > 0) { 
+                        foreach (Rigidbody rigidbody in h.rigidbodies) { 
+                            HookCollideOnRigidbody(rigidbody);
+                        }
+                    }
+                });
+
+            GetSceneAtoms()
+                .Where(a => a.category == "Shapes")
+                .ToList().ForEach(h => {
+                    if (h.rigidbodies.Length > 0)
+                    {
+                        foreach (Rigidbody rigidbody in h.rigidbodies)
+                        {
+                            HookCollideOnRigidbody(rigidbody);
                         }
                     }
                 });
@@ -391,7 +562,7 @@ namespace octopussy
                     {
                         foreach (Rigidbody rigidbody in h.rigidbodies)
                         {
-                            rigidbody.gameObject.AddComponent<TriggerCollide>().OnCollide += ObserveSpankTrigger;
+                            HookCollideOnRigidbody(rigidbody);
                         }
                     }
                 });
@@ -407,7 +578,7 @@ namespace octopussy
                             if (transform.GetComponent<Collider>() || transform.GetComponent<MeshCollider>() || transform.GetComponent<CapsuleCollider>() || transform.GetComponent<BoxCollider>() || transform.GetComponent<NonConvexMeshCollider>() || transform.GetComponent<SphereCollider>())
                             {
                                 //SuperController.LogMessage("Found customunityasset collider: " + transform.gameObject.name);
-                                transform.gameObject.AddComponent<TriggerCollide>().OnCollide += ObserveSpankTrigger;
+                                HookCollideOnGameObject(transform.gameObject);
                             }
                         }
                         if (h.rigidbodies.Length > 0)
@@ -415,7 +586,7 @@ namespace octopussy
                             foreach (Rigidbody rigidbody in h.rigidbodies)
                             {
                                 //SuperController.LogMessage("Found customunityasset rigidbody: " + rigidbody.name);
-                                rigidbody.gameObject.AddComponent<TriggerCollide>().OnCollide += ObserveSpankTrigger;
+                                HookCollideOnRigidbody(rigidbody);
                             }
                         }
                     });
@@ -457,87 +628,13 @@ namespace octopussy
 
         void OnDestroy()
         {
-            playerHands = GameObject.Find("Hands");
-            if (playerHands)
-            {  // only the middle finger is the actual collider
-                playerHands
-                    .GetComponentsInChildren<Rigidbody>()
-                    .Where(f => f.name == "R_Finger_Middle_C"
-                             || f.name == "L_Finger_Middle_C").ToList().ForEach(f =>
-                             {
-                                 f.gameObject.AddComponent<TriggerCollide>().OnCollide -= ObserveSpankTrigger;
-                             });
-            }
-
-            GetSceneAtoms()
-                .Where(a => a.type == "Person")
-                .ToList().ForEach(p => p.rigidbodies
-                   .Where(h =>
-                      h.name == "rHand"
-                   || h.name == "lHand").ToList().ForEach(h => {
-                       h.gameObject.AddComponent<TriggerCollide>().OnCollide -= ObserveSpankTrigger;
-                   }));
-
-            GetSceneAtoms()
-                .Where(a => a.category == "Toys")
-                .ToList().ForEach(h => {
-                    if (h.rigidbodies.Length > 0)
-                    {
-                        foreach (Rigidbody rigidbody in h.rigidbodies)
-                        {
-                            rigidbody.gameObject.AddComponent<TriggerCollide>().OnCollide -= ObserveSpankTrigger;
-                        }
-                    }
-                });
-
-            GetSceneAtoms()
-                .Where(a => a.category == "Shapes")
-                .ToList().ForEach(h => {
-                    if (h.rigidbodies.Length > 0)
-                    {
-                        foreach (Rigidbody rigidbody in h.rigidbodies)
-                        {
-                            rigidbody.gameObject.AddComponent<TriggerCollide>().OnCollide -= ObserveSpankTrigger;
-                        }
-                    }
-                });
-
-            //some shapes don't have category but begin with IS, this may of course add other objects as triggers, but not sure if that's a big deal, in fact, it can be useful if documented
-            GetSceneAtoms()
-                .Where(a => a.name.StartsWith("IS"))
-                .ToList().ForEach(h => {
-                    if (h.rigidbodies.Length > 0)
-                    {
-                        foreach (Rigidbody rigidbody in h.rigidbodies)
-                        {
-                            rigidbody.gameObject.AddComponent<TriggerCollide>().OnCollide -= ObserveSpankTrigger;
-                        }
-                    }
-                });
-
-            if (collideWithCustomUnityAssets.val)
+            try
             {
-                GetSceneAtoms()
-                    .Where(a => a.type == "CustomUnityAsset")
-                    .ToList().ForEach(h => {
-                        //SuperController.LogMessage("Found customunityasset: " + h.gameObject.name);
-                        foreach (Transform transform in h.GetComponentsInChildren<Transform>())
-                        {
-                            if (transform.GetComponent<Collider>() || transform.GetComponent<MeshCollider>() || transform.GetComponent<CapsuleCollider>() || transform.GetComponent<BoxCollider>() || transform.GetComponent<NonConvexMeshCollider>() || transform.GetComponent<SphereCollider>())
-                            {
-                                //SuperController.LogMessage("Found customunityasset collider: " + transform.gameObject.name);
-                                transform.gameObject.AddComponent<TriggerCollide>().OnCollide -= ObserveSpankTrigger;
-                            }
-                        }
-                        if (h.rigidbodies.Length > 0)
-                        {
-                            foreach (Rigidbody rigidbody in h.rigidbodies)
-                            {
-                                //SuperController.LogMessage("Found customunityasset rigidbody: " + rigidbody.name);
-                                rigidbody.gameObject.AddComponent<TriggerCollide>().OnCollide -= ObserveSpankTrigger;
-                            }
-                        }
-                    });
+                UnhookObserveFromAllKnownColliders();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("Spankings OnDestroy unhook: " + e.Message);
             }
         }
 
@@ -578,6 +675,12 @@ namespace octopussy
             //SuperController.LogError("Receiving event " + e.collider.name);
             if (e.evtType == EventType.HIT)
             {
+                Atom struck = ResolveStruckPersonFromEvent(e);
+                if (struck != her)
+                    return;
+                if (e.collision == null)
+                    return;
+
                 float level = e.collision.relativeVelocity.magnitude / 3.0f;
                  if (level > collisionThreshold.val)
                 {

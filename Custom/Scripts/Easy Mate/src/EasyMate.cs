@@ -229,7 +229,7 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Person plugin lists can restore over several frames; merge EasyMotionLite when
+        /// Person plugin lists can restore over several frames; merge E-MotionLite when
         /// <c>emotion_path_keywords.txt</c> matches the load path; clothing touch fall-off on everyone; refresh HUD.
         /// </summary>
         private IEnumerator CoApplyEmotionAfterSceneSettles()
@@ -255,10 +255,10 @@ namespace geesp0t
                     + elLoadDir + "\" currentSaveDir=\"" + elSaveDir + "\" compareHaystack=\"" + elHaystack
                     + "\" keywordCount=" + elKeywordCount + " pathRuleMatch="
                     + pathRuleMerge + " (" + elPathDetail + ") → apply: "
-                    + (!pathRuleMerge ? "none (path rule)" : "EasyMotionLite all Persons") + " | clothing touch fall-off: YES");
+                    + (!pathRuleMerge ? "none (path rule)" : "E-MotionLite all Persons") + " | clothing touch fall-off: YES");
 
                 if (pathRuleMerge)
-                    mainUIButtons.MergeEasyMotionLiteForPathRuleOnAllPersonsOnly();
+                    mainUIButtons.MergeEmotionLiteForPathRuleOnAllPersonsOnly();
                 mainUIButtons.MergeClothingTouchFallOffOnAllPersonsOnly();
                 mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
                 mainUIButtons.RefreshPluginToggleLabels();
@@ -333,7 +333,7 @@ namespace geesp0t
                 if (!ShouldMergeEmotionForCurrentScenePath())
                     yield break;
 
-                mainUIButtons.MergeEasyMotionLiteForPathRuleOnAllPersonsOnly();
+                mainUIButtons.MergeEmotionLiteForPathRuleOnAllPersonsOnly();
                 mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
                 mainUIButtons.RefreshPluginToggleLabels();
             }

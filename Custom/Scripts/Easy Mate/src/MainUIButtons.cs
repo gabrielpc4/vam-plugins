@@ -12,12 +12,14 @@ using SimpleJSON;
 
 namespace geesp0t
 {
-    // World-space HUD: Ctrl+Shift+S = toggle Spankings off / merge onto Persons missing it; Possess+Align+Select (F/M/P) merges Spankings onto other Persons missing it when at least one possessed hand on the target; F = freeze animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; E = merge full E-Motion onto all Persons (same as HUD E-Motion all); Shift+E = remove E-Motion / EasyMotionLite from all Persons; E-Motion HUD = merge onto all; I = hide hands + closest Person head snap; P = Possess+Align+Select closest Person by head; O = unpossess all; C = cycle Female then Male Persons (uid), Edit + Selected Options + root control.
+    // World-space HUD: Ctrl+Shift+S = toggle Spankings off / merge onto Persons missing it; Possess+Align+Select (F/M/P) merges Spankings onto other Persons missing it when at least one possessed hand on the target; F = freeze animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; E = merge full E-Motion onto all Persons (same as HUD E-Motion all); Shift+E = remove E-Motion / E-MotionLite from all Persons; E-Motion HUD = merge onto all; I = hide hands + closest Person head snap; P = Possess+Align+Select closest Person by head; O = unpossess all; C = cycle Female then Male Persons (uid), Edit + Selected Options + root control.
     public class MainUIButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
-        /// <summary>Face-only morph idle (brow + mouth). Loaded by Easy Mate when <c>emotion_path_keywords.txt</c> matches the scene path (not the full <see cref="PluginEMotion"/> pack).</summary>
-        public const string PluginEasyMotionLite = "Custom/Scripts/EasyMotionLite/EasyMotionLite.cslist";
+        /// <summary>Lite face/emotion pack (no scripted head/neck). Loaded when <c>emotion_path_keywords.txt</c> matches the scene path.</summary>
+        public const string PluginEMotionLite = "Custom/Scripts/E-MotionLite/E-Motion_AddThisONLY.cslist";
+        /// <summary>Former lite path; still stripped when merging full E-Motion or Shift+E.</summary>
+        public const string PluginEasyMotionLiteLegacyPath = "Custom/Scripts/EasyMotionLite/EasyMotionLite.cslist";
         public const string PluginSpankings = "Custom/Scripts/Spankings/Spankings.cslist";
         public const string PluginEasyMateClothingTouchFallOff = "Custom/Scripts/Easy Mate/EasyMateClothingTouchFallOff.cslist";
 
@@ -170,7 +172,7 @@ namespace geesp0t
         /// <summary>
         /// Call from session plugin <c>Update</c>. <b>Ctrl+Shift+S</b> toggles Spankings (same as HUD <b>+/- Spankings</b>): removes when everyone has it; otherwise merges onto Persons that do not.
         /// <b>Y</b> logs look camera / HMD-related poses (debounced ~0.35s). With Oculus or OpenVR active, hold <b>Shift+Y</b> so the controller Y binding does not spam logs; <c>XRSettings.enabled</c> alone is not used for that gate (it often stays true with drivers while using the desktop keyboard).
-        /// <b>E</b> merges full E-Motion onto every Person (same as HUD <b>E-Motion all</b>). <b>Shift+E</b> removes full E-Motion and EasyMotionLite from every Person.
+        /// <b>E</b> merges full E-Motion onto every Person (same as HUD <b>E-Motion all</b>). <b>Shift+E</b> removes full E-Motion and E-MotionLite from every Person.
         /// <b>O</b> stops auto-possess and <see cref="SuperController.ClearPossess"/>. <b>I</b> hides VR hand models then snaps the rig to the <b>closest Person head</b> to the look camera (same rules as <b>Snap F</b> for female, <b>Snap M</b> for male).
         /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD buttons on the <b>closest Person by head</b> to the look/center camera (not alphabetically first F/M).
         /// <b>C</b> (without Shift, Ctrl, or Alt) cycles visible Person atoms in order: all <b>female</b> then all <b>male</b> (by atom uid), switches to <b>Edit</b>, shows the main HUD, opens <b>Selected Options</b>, and selects each atom’s root <c>control</c> (or the first free controller if there is no <c>control</c>).
@@ -214,7 +216,7 @@ namespace geesp0t
                 }
                 catch (Exception e)
                 {
-                    SuperController.LogError("Shift+E hotkey (remove E-Motion / EasyMotionLite from all): " + e);
+                    SuperController.LogError("Shift+E hotkey (remove E-Motion / E-MotionLite from all): " + e);
                 }
 
                 return;
@@ -516,17 +518,19 @@ namespace geesp0t
             ClearAllPossession(string.IsNullOrEmpty(logMessage) ? null : logMessage);
         }
 
-        /// <summary>Merges full E-Motion onto every Person. Strips <see cref="PluginEasyMotionLite"/> first so full E-Motion replaces the path-rule lite. HUD <b>E-Motion all</b>, keyboard <b>E</b>, and post–long-mocap merge use this.</summary>
+        /// <summary>Merges full E-Motion onto every Person. Strips <see cref="PluginEMotionLite"/> (and legacy lite path) first so full E-Motion replaces the path-rule lite. HUD <b>E-Motion all</b>, keyboard <b>E</b>, and post–long-mocap merge use this.</summary>
         public void MergeEmotionOnAllPersonsOnly()
         {
             try
             {
-                string fnLite = GetFileName(PluginEasyMotionLite);
+                string fnLite = GetFileName(PluginEMotionLite);
+                string fnLiteLegacy = GetFileName(PluginEasyMotionLiteLegacyPath);
                 foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                 {
                     if (at == null)
                         continue;
                     TryRemovePluginFromPerson(at, fnLite);
+                    TryRemovePluginFromPerson(at, fnLiteLegacy);
                     TryMergePluginOntoPerson(at, PluginEMotion);
                 }
 
@@ -538,27 +542,29 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Removes full E-Motion from every Person, then merges <see cref="PluginEasyMotionLite"/> when missing. Used when <c>emotion_path_keywords.txt</c> matches the load path.</summary>
-        public void MergeEasyMotionLiteForPathRuleOnAllPersonsOnly()
+        /// <summary>Removes full E-Motion from every Person, then merges <see cref="PluginEMotionLite"/> when missing. Used when <c>emotion_path_keywords.txt</c> matches the load path.</summary>
+        public void MergeEmotionLiteForPathRuleOnAllPersonsOnly()
         {
             try
             {
                 string fnEm = GetFileName(PluginEMotion);
-                string fnLite = GetFileName(PluginEasyMotionLite);
+                string fnLite = GetFileName(PluginEMotionLite);
+                string fnLiteLegacy = GetFileName(PluginEasyMotionLiteLegacyPath);
                 foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                 {
                     if (at == null)
                         continue;
                     TryRemovePluginFromPerson(at, fnEm);
+                    TryRemovePluginFromPerson(at, fnLiteLegacy);
                     if (!PersonHasPluginByFileName(at, fnLite))
-                        TryMergePluginOntoPerson(at, PluginEasyMotionLite);
+                        TryMergePluginOntoPerson(at, PluginEMotionLite);
                 }
 
                 RefreshPluginToggleLabels();
             }
             catch (Exception e)
             {
-                SuperController.LogError("EasyMotionLite merge (path rule) on all Persons: " + e);
+                SuperController.LogError("E-MotionLite merge (path rule) on all Persons: " + e);
             }
         }
 
@@ -567,12 +573,14 @@ namespace geesp0t
         {
             try
             {
-                string fnLite = GetFileName(PluginEasyMotionLite);
+                string fnLite = GetFileName(PluginEMotionLite);
+                string fnLiteLegacy = GetFileName(PluginEasyMotionLiteLegacyPath);
                 foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                 {
                     if (at == null || !IsPersonFemale(at))
                         continue;
                     TryRemovePluginFromPerson(at, fnLite);
+                    TryRemovePluginFromPerson(at, fnLiteLegacy);
                     TryMergePluginOntoPerson(at, PluginEMotion);
                 }
 
@@ -602,26 +610,28 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Removes full E-Motion and EasyMotionLite from every Person (<b>Shift+E</b> hotkey).</summary>
+        /// <summary>Removes full E-Motion, E-MotionLite, and legacy lite plugin from every Person (<b>Shift+E</b> hotkey).</summary>
         public void RemoveEmotionFromAllPersons()
         {
             try
             {
                 string fnEm = GetFileName(PluginEMotion);
-                string fnLite = GetFileName(PluginEasyMotionLite);
+                string fnLite = GetFileName(PluginEMotionLite);
+                string fnLiteLegacy = GetFileName(PluginEasyMotionLiteLegacyPath);
                 foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                 {
                     if (at == null)
                         continue;
                     TryRemovePluginFromPerson(at, fnEm);
                     TryRemovePluginFromPerson(at, fnLite);
+                    TryRemovePluginFromPerson(at, fnLiteLegacy);
                 }
 
                 RefreshPluginToggleLabels();
             }
             catch (Exception e)
             {
-                SuperController.LogError("Remove E-Motion / EasyMotionLite from all Persons: " + e);
+                SuperController.LogError("Remove E-Motion / E-MotionLite from all Persons: " + e);
             }
         }
 

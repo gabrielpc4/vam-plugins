@@ -1,0 +1,8 @@
+# E-Motion auto-load path keywords (Easy Mate)
+# VaM reads this file from the install: Custom/Scripts/Easy Mate/emotion_path_keywords.txt
+# Matching: lowercase SuperController.currentLoadDir and currentSaveDir (as one string) must CONTAIN each keyword (substring).
+# One entry per line, or separate with commas / semicolons. Lines starting with # are ignored. Trimmed.
+#
+# Examples (uncomment or replace with your own):
+# _dance/
+# saves/scene/mypack

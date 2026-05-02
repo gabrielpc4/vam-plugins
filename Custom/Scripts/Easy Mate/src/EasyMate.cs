@@ -42,8 +42,8 @@ namespace geesp0t
 
         private Coroutine _applyEmotionAfterSceneCo;
 
-        /// <summary>Merge-substring keywords for <see cref="ShouldMergeEmotionForCurrentScenePath"/> (one per line or comma/semicolon-separated; # starts a comment line).</summary>
-        public JSONStorableString emotionAutoLoadPathKeywords;
+        /// <summary>Relative to VaM install; edit in repo — one keyword per line or comma/semicolon; # comments; substring match on lowercase currentLoadDir + currentSaveDir.</summary>
+        private const string EmotionPathKeywordsFileRelative = "Custom/Scripts/Easy Mate/emotion_path_keywords.txt";
 
         private Coroutine _pathRuleEmotionMergeCo;
 
@@ -131,12 +131,6 @@ namespace geesp0t
             RegisterBool(loadEmotionOnSceneLoad);
             mainUIButtons.BindSceneEmotionAutoLoad(loadEmotionOnSceneLoad);
 
-            // Substring match against lowercase SuperController.currentLoadDir + currentSaveDir (see ShouldMergeEmotionForCurrentScenePath). One keyword per line or comma/semicolon; trim; lines starting with # ignored.
-            emotionAutoLoadPathKeywords = new JSONStorableString("E-Motion path keywords (load/save dir substring)", "");
-            RegisterString(emotionAutoLoadPathKeywords);
-            UIDynamicTextField kwField = CreateTextField(emotionAutoLoadPathKeywords, true);
-            kwField.height = 220f;
-
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
 
@@ -211,7 +205,8 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Person plugin lists can restore over several frames; merge E-Motion (when enabled), clothing touch fall-off on everyone, then refresh HUD labels.
+        /// Person plugin lists can restore over several frames; merge E-Motion when "every scene" is on or when
+        /// emotion_path_keywords.txt matches the load path; clothing touch fall-off on everyone; refresh HUD.
         /// </summary>
         private IEnumerator CoApplyEmotionAfterSceneSettles()
         {
@@ -342,10 +337,24 @@ namespace geesp0t
         private List<string> GetParsedEmotionPathKeywords()
         {
             List<string> result = new List<string>();
-            if (emotionAutoLoadPathKeywords == null || string.IsNullOrEmpty(emotionAutoLoadPathKeywords.val))
+            SuperController sc = SuperController.singleton;
+            if (sc == null)
                 return result;
 
-            string raw = emotionAutoLoadPathKeywords.val;
+            string raw = null;
+            try
+            {
+                raw = sc.ReadFileIntoString(EmotionPathKeywordsFileRelative);
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("EasyMate: read " + EmotionPathKeywordsFileRelative + ": " + e.Message);
+                return result;
+            }
+
+            if (string.IsNullOrEmpty(raw))
+                return result;
+
             char[] seps = new char[] { '\r', '\n', ',', ';' };
             string[] parts = raw.Split(seps);
             for (int p = 0; p < parts.Length; p++)

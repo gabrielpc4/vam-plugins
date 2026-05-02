@@ -1,6 +1,6 @@
 # EasyMotionLite auto-load path keywords (Easy Mate)
 # When the scene path matches (see below), Easy Mate merges geesp0t.EasyMotionLite on all Persons (face morphs only), not full E-Motion.
-# "Load E-Motion on every scene" still uses the full E-Motion package instead.
+# Full E-Motion is added only manually (HUD “E-Motion all” / hotkey E), after a long non-loop mocap ends, or via your scene JSON — not globally on every load.
 # VaM reads: Custom/Scripts/Easy Mate/emotion_path_keywords.txt
 # Matching: lowercase SuperController.currentLoadDir and currentSaveDir (as one string) must CONTAIN each keyword (substring).
 # One entry per line, or separate with commas / semicolons. Lines starting with # are ignored. Trimmed.

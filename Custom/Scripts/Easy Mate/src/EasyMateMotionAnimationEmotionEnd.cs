@@ -84,7 +84,6 @@ namespace geesp0t
             try
             {
                 mainUIButtons.MergeEmotionOnFemalePersonsOnly();
-                mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
                 mainUIButtons.RefreshPluginToggleLabels();
             }
             catch (System.Exception e)

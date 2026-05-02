@@ -12,7 +12,7 @@ using SimpleJSON;
 
 namespace geesp0t
 {
-    // World-space HUD: Ctrl+Shift+S = toggle Spankings off / merge onto Persons missing it; Possess+Align+Select (F/M/P) merges Spankings onto other Persons missing it when at least one possessed hand on the target; F = freeze animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; E = merge E-Motion onto all Persons + enable load-on-scene; Shift+E = disable that + remove E-Motion from all; E-Motion HUD = merge onto all; I = hide hands + closest Person head snap; P = Possess+Align+Select closest Person by head; O = unpossess all; C = cycle Female then Male Persons (uid), Edit + Selected Options + root control.
+    // World-space HUD: Ctrl+Shift+S = toggle Spankings off / merge onto Persons missing it; Possess+Align+Select (F/M/P) merges Spankings onto other Persons missing it when at least one possessed hand on the target; F = freeze animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; E = merge full E-Motion onto all Persons (same as HUD E-Motion all); Shift+E = remove E-Motion / EasyMotionLite from all Persons; E-Motion HUD = merge onto all; I = hide hands + closest Person head snap; P = Possess+Align+Select closest Person by head; O = unpossess all; C = cycle Female then Male Persons (uid), Edit + Selected Options + root control.
     public class MainUIButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
@@ -154,8 +154,6 @@ namespace geesp0t
         UIDynamicButton possessAlignSelectFemaleButton = null;
         UIDynamicButton possessAlignSelectMaleButton = null;
 
-        private JSONStorableBool _sceneEmotionAutoLoad;
-
         private static float _lastYDebugLogUnscaledTime = -1000f;
         private const float YDebugLogMinIntervalSeconds = 0.35f;
 
@@ -169,16 +167,10 @@ namespace geesp0t
             _refreshPluginToggleLabelsStatic = RefreshPluginToggleLabels;
         }
 
-        /// <summary>Bind plugin <see cref="JSONStorableBool"/> for “merge E-Motion on scene load” (scene logic only; HUD button merges manually).</summary>
-        public void BindSceneEmotionAutoLoad(JSONStorableBool sceneEmotionAutoLoad)
-        {
-            _sceneEmotionAutoLoad = sceneEmotionAutoLoad;
-        }
-
         /// <summary>
         /// Call from session plugin <c>Update</c>. <b>Ctrl+Shift+S</b> toggles Spankings (same as HUD <b>+/- Spankings</b>): removes when everyone has it; otherwise merges onto Persons that do not.
         /// <b>Y</b> logs look camera / HMD-related poses (debounced ~0.35s). With Oculus or OpenVR active, hold <b>Shift+Y</b> so the controller Y binding does not spam logs; <c>XRSettings.enabled</c> alone is not used for that gate (it often stays true with drivers while using the desktop keyboard).
-        /// <b>E</b> merges E-Motion onto every Person (same as HUD <b>E-Motion all</b>) and turns on “E-Motion on every scene”. <b>Shift+E</b> turns that off and removes E-Motion from every Person.
+        /// <b>E</b> merges full E-Motion onto every Person (same as HUD <b>E-Motion all</b>). <b>Shift+E</b> removes full E-Motion and EasyMotionLite from every Person.
         /// <b>O</b> stops auto-possess and <see cref="SuperController.ClearPossess"/>. <b>I</b> hides VR hand models then snaps the rig to the <b>closest Person head</b> to the look camera (same rules as <b>Snap F</b> for female, <b>Snap M</b> for male).
         /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD buttons on the <b>closest Person by head</b> to the look/center camera (not alphabetically first F/M).
         /// <b>C</b> (without Shift, Ctrl, or Alt) cycles visible Person atoms in order: all <b>female</b> then all <b>male</b> (by atom uid), switches to <b>Edit</b>, shows the main HUD, opens <b>Selected Options</b>, and selects each atom’s root <c>control</c> (or the first free controller if there is no <c>control</c>).
@@ -218,14 +210,11 @@ namespace geesp0t
             {
                 try
                 {
-                    if (_sceneEmotionAutoLoad != null)
-                        _sceneEmotionAutoLoad.val = false;
                     RemoveEmotionFromAllPersons();
-                    RefreshEmotionSceneLoadButtonLabel();
                 }
                 catch (Exception e)
                 {
-                    SuperController.LogError("Shift+E hotkey (disable E-Motion scene + remove): " + e);
+                    SuperController.LogError("Shift+E hotkey (remove E-Motion / EasyMotionLite from all): " + e);
                 }
 
                 return;
@@ -236,13 +225,10 @@ namespace geesp0t
                 try
                 {
                     MergeEmotionOnAllPersonsOnly();
-                    if (_sceneEmotionAutoLoad != null)
-                        _sceneEmotionAutoLoad.valNoCallback = true;
-                    RefreshEmotionSceneLoadButtonLabel();
                 }
                 catch (Exception e)
                 {
-                    SuperController.LogError("E hotkey (E-Motion merge all + enable scene load): " + e);
+                    SuperController.LogError("E hotkey (E-Motion merge all): " + e);
                 }
 
                 return;
@@ -530,7 +516,7 @@ namespace geesp0t
             ClearAllPossession(string.IsNullOrEmpty(logMessage) ? null : logMessage);
         }
 
-        /// <summary>Merges E-Motion only onto every Person (scene load when auto-load is on, plugin UI when enabling auto-load, HUD “E-Motion all”). Strips <see cref="PluginEasyMotionLite"/> first so full E-Motion replaces the path-rule lite.</summary>
+        /// <summary>Merges full E-Motion onto every Person. Strips <see cref="PluginEasyMotionLite"/> first so full E-Motion replaces the path-rule lite. HUD <b>E-Motion all</b>, keyboard <b>E</b>, and post–long-mocap merge use this.</summary>
         public void MergeEmotionOnAllPersonsOnly()
         {
             try
@@ -552,7 +538,7 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Removes full E-Motion from every Person, then merges <see cref="PluginEasyMotionLite"/> when missing. Used when <c>emotion_path_keywords.txt</c> matches (not “E-Motion on every scene”).</summary>
+        /// <summary>Removes full E-Motion from every Person, then merges <see cref="PluginEasyMotionLite"/> when missing. Used when <c>emotion_path_keywords.txt</c> matches the load path.</summary>
         public void MergeEasyMotionLiteForPathRuleOnAllPersonsOnly()
         {
             try
@@ -616,7 +602,7 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Removes full E-Motion and EasyMotionLite from every Person (when disabling auto-load or Shift+E).</summary>
+        /// <summary>Removes full E-Motion and EasyMotionLite from every Person (<b>Shift+E</b> hotkey).</summary>
         public void RemoveEmotionFromAllPersons()
         {
             try

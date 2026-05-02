@@ -80,9 +80,6 @@ namespace geesp0t
         /// </summary>
         public JSONStorableBool possessAutoUnpossessWhenFarFromFeet;
 
-        /// <summary>When true, merges E-Motion onto every Person shortly after each scene load (deferred so every Person’s plugin list has finished restoring). Default is off; enable in plugin settings, the HUD <b>E-Motion all</b> button, or keyboard <b>E</b>. Keyboard <b>Shift+E</b> turns this off and removes E-Motion from all Persons.</summary>
-        public JSONStorableBool loadEmotionOnSceneLoad;
-
         /// <summary>When true (default), after a non-looping scene mocap at least <see cref="longMocapMinSecondsForEmotionMerge"/> long finishes, merge E-Motion onto female Persons once (uses <see cref="SuperController.motionAnimationMaster"/>).</summary>
         public JSONStorableBool mergeEmotionWhenLongMocapEndsNoLoop;
 
@@ -130,10 +127,6 @@ namespace geesp0t
                 5f);
             RegisterFloat(possessAutoUnpossessFeetMaxHorizontalM);
 
-            loadEmotionOnSceneLoad = new JSONStorableBool("Load E-Motion on every scene", false, OnLoadEmotionOnSceneLoadChanged);
-            RegisterBool(loadEmotionOnSceneLoad);
-            mainUIButtons.BindSceneEmotionAutoLoad(loadEmotionOnSceneLoad);
-
             mergeEmotionWhenLongMocapEndsNoLoop = new JSONStorableBool("Merge E-Motion on females when long mocap ends (no loop)", true);
             RegisterBool(mergeEmotionWhenLongMocapEndsNoLoop);
 
@@ -169,17 +162,6 @@ namespace geesp0t
             {
                 _mergeSpankingsAfterGripCo = null;
             }
-        }
-
-        private void OnLoadEmotionOnSceneLoadChanged(bool v)
-        {
-            if (mainUIButtons == null)
-                return;
-            if (!v)
-                mainUIButtons.RemoveEmotionFromAllPersons();
-            else
-                mainUIButtons.MergeEmotionOnAllPersonsOnly();
-            mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
         }
 
         private void OnHeadProximityHideWithoutSnapChanged(bool v)
@@ -234,8 +216,8 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Person plugin lists can restore over several frames; merge E-Motion when "every scene" is on or when
-        /// emotion_path_keywords.txt matches the load path; clothing touch fall-off on everyone; refresh HUD.
+        /// Person plugin lists can restore over several frames; merge EasyMotionLite when
+        /// <c>emotion_path_keywords.txt</c> matches the load path; clothing touch fall-off on everyone; refresh HUD.
         /// </summary>
         private IEnumerator CoApplyEmotionAfterSceneSettles()
         {
@@ -254,20 +236,15 @@ namespace geesp0t
                 int elKeywordCount;
                 string elPathDetail;
                 bool pathRuleMerge = EvaluateEmotionPathRule(out elLoadDir, out elSaveDir, out elHaystack, out elKeywordCount, out elPathDetail);
-                bool everyScene = loadEmotionOnSceneLoad != null && loadEmotionOnSceneLoad.val;
-                bool mergeAnything = everyScene || pathRuleMerge;
 
                 SuperController.LogMessage(
                     "EasyMate emotion path keywords [scene load]: currentLoadDir=\""
                     + elLoadDir + "\" currentSaveDir=\"" + elSaveDir + "\" compareHaystack=\"" + elHaystack
-                    + "\" keywordCount=" + elKeywordCount + " loadEmotionEveryScene=" + everyScene + " pathRuleMatch="
+                    + "\" keywordCount=" + elKeywordCount + " pathRuleMatch="
                     + pathRuleMerge + " (" + elPathDetail + ") → apply: "
-                    + (!mergeAnything ? "none" : (everyScene ? "E-Motion all Persons" : "EasyMotionLite all Persons")) + " | "
-                    + (mergeAnything ? "YES" : "NO"));
+                    + (!pathRuleMerge ? "none (path rule)" : "EasyMotionLite all Persons") + " | clothing touch fall-off: YES");
 
-                if (everyScene)
-                    mainUIButtons.MergeEmotionOnAllPersonsOnly();
-                else if (pathRuleMerge)
+                if (pathRuleMerge)
                     mainUIButtons.MergeEasyMotionLiteForPathRuleOnAllPersonsOnly();
                 mainUIButtons.MergeClothingTouchFallOffOnAllPersonsOnly();
                 mainUIButtons.RefreshEmotionSceneLoadButtonLabel();

@@ -41,6 +41,9 @@ namespace geesp0t
         /// <summary>Relative to VaM install; substring match on lowercase haystack built from currentLoadDir, currentSaveDir, and (when uniquely inferable) the loaded scene .json path scanned under save dir or load dir.</summary>
         private const string EmotionPathKeywordsFileRelative = "Custom/Scripts/Easy Mate/emotion_path_keywords.txt";
 
+        /// <summary>Fingerprint inference reads every <c>*.json</c> under the scan folder; skip when the folder is huge (e.g. <c>Saves/scene</c> menus) to avoid multi-second loads.</summary>
+        private const int MaxJsonFilesForScenePathInference = 48;
+
         private Coroutine _pathRuleEmotionMergeCo;
 
         private Coroutine _mergeSpankingsAfterGripCo;
@@ -391,6 +394,22 @@ namespace geesp0t
 
             loadDir = sc.currentLoadDir != null ? sc.currentLoadDir : "";
             saveDir = sc.currentSaveDir != null ? sc.currentSaveDir : "";
+
+            string haystackMinimal = (loadDir + " " + saveDir).Replace('\\', '/').ToLowerInvariant();
+
+            if (keywordCount == 0)
+            {
+                haystack = haystackMinimal;
+                matchDetail = "no keywords in " + EmotionPathKeywordsFileRelative;
+                return false;
+            }
+
+            if (EvaluateEmotionPathKeywordsAgainstHaystack(keys, haystackMinimal, out matchDetail))
+            {
+                haystack = haystackMinimal;
+                return true;
+            }
+
             string loadedPath = TryInferLoadedSceneJsonRelativePath(sc);
             haystack = (loadDir + " " + saveDir + " " + loadedPath).Replace('\\', '/').ToLowerInvariant();
 
@@ -428,6 +447,9 @@ namespace geesp0t
             }
 
             if (files == null || files.Length == 0)
+                return "";
+
+            if (files.Length > MaxJsonFilesForScenePathInference)
                 return "";
 
             string hitPath = "";

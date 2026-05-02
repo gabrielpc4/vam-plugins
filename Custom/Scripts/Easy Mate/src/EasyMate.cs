@@ -86,6 +86,12 @@ namespace geesp0t
         /// <summary>Minimum longest <see cref="MotionAnimationClip.clipLength"/> in the scene (seconds) for end-of-mocap female E-Motion merge; avoids short clips.</summary>
         public JSONStorableFloat longMocapMinSecondsForEmotionMerge;
 
+        /// <summary>
+        /// When true (default), redraws VR controller laser beams during main-monitor mode after VaM clears them;
+        /// mirrors stock behavior when the monitor rig is off (hit dot still appears either way).
+        /// </summary>
+        public JSONStorableBool restoreMonitorModeControllerLaser;
+
         /// <summary>Horizontal distance threshold from look camera to feet midpoint for <see cref="possessAutoUnpossessWhenFarFromFeet"/>.</summary>
         public JSONStorableFloat possessAutoUnpossessFeetMaxHorizontalM;
 
@@ -132,6 +138,9 @@ namespace geesp0t
 
             longMocapMinSecondsForEmotionMerge = new JSONStorableFloat("Min mocap length (s) for end-of-clip E-Motion", 45f, 5f, 600f);
             RegisterFloat(longMocapMinSecondsForEmotionMerge);
+
+            restoreMonitorModeControllerLaser = new JSONStorableBool("Restore controller laser in monitor mode", true);
+            RegisterBool(restoreMonitorModeControllerLaser);
 
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
@@ -664,6 +673,9 @@ namespace geesp0t
             bool mocapEmotionEnd = mergeEmotionWhenLongMocapEndsNoLoop != null && mergeEmotionWhenLongMocapEndsNoLoop.val;
             float mocapMinSec = longMocapMinSecondsForEmotionMerge != null ? longMocapMinSecondsForEmotionMerge.val : 45f;
             EasyMateMotionAnimationEmotionEnd.LateTick(mocapEmotionEnd, mocapMinSec, mainUIButtons);
+
+            bool monitorLaser = restoreMonitorModeControllerLaser != null && restoreMonitorModeControllerLaser.val;
+            EasyMateMonitorModeLaserRestore.LateTick(monitorLaser);
         }
 
         void OnDestroy()
@@ -684,6 +696,7 @@ namespace geesp0t
             }
 
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
+            EasyMateMonitorModeLaserRestore.OnPluginDestroy();
             EasyMateHeadSnapPovRuntime.End();
             if (mainUIButtons != null) mainUIButtons.OnDestroy();
         }

@@ -4,10 +4,10 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// VaM clears controller laser lines whenever <see cref="SuperController"/>'s monitor rig is active
-    /// (<c>drawRayLine* = !MonitorRigActive</c>, and the VR-only branch that forces rays on skips monitor mode).
-    /// Selection dots still render; this restores the beam in <see cref="UnityEngine.LineRenderer"/> +
-    /// <see cref="LineDrawer"/> form after <see cref="SuperController.Update"/>.
+    /// VaM clears controller laser lines whenever the monitor rig is active. Selection dots still render.
+    /// Redraw uses VaM’s materials after <see cref="SuperController.Update"/> — scheduled from
+    /// <see cref="EasyMateMonitorLaserCameraHook.OnPreRender"/> so it cannot be undone by later
+    /// <see cref="LateUpdate"/> callbacks on other scripts.
     /// </summary>
     internal static class EasyMateMonitorModeLaserRestore
     {
@@ -15,35 +15,61 @@ namespace geesp0t
 
         private static LineDrawer _drawerRight;
 
-        public static void LateTick(bool enabled)
+        private static bool _featureEnabled;
+
+        private static Camera _hookCamera;
+
+        /// <summary>Attach to <see cref="SuperController.MonitorCenterCamera"/> when it exists; cheap after first success.</summary>
+        public static void EnsureMonitorCameraHook()
         {
-            if (!enabled)
-            {
-                CleanupDrawers();
+            SuperController sc = SuperController.singleton;
+            if (sc == null || sc.MonitorCenterCamera == null)
                 return;
+
+            Camera mc = sc.MonitorCenterCamera;
+            if (_hookCamera == mc && mc.GetComponent<EasyMateMonitorLaserCameraHook>() != null)
+                return;
+
+            if (_hookCamera != null && _hookCamera != mc)
+            {
+                EasyMateMonitorLaserCameraHook oldHook = _hookCamera.GetComponent<EasyMateMonitorLaserCameraHook>();
+                if (oldHook != null)
+                    Object.Destroy(oldHook);
             }
+
+            _hookCamera = mc;
+            if (mc.GetComponent<EasyMateMonitorLaserCameraHook>() == null)
+                mc.gameObject.AddComponent<EasyMateMonitorLaserCameraHook>();
+        }
+
+        /// <summary>Call from <see cref="EasyMate.LateUpdate"/>; tears down meshes when leaving monitor mode.</summary>
+        public static void NotifyEnabledAndCleanup(bool enabled)
+        {
+            _featureEnabled = enabled;
+            EnsureMonitorCameraHook();
+
+            SuperController sc = SuperController.singleton;
+            if (!enabled || sc == null || sc.MonitorRig == null || !sc.MonitorRig.gameObject.activeSelf)
+                CleanupDrawers();
+        }
+
+        /// <summary>Invoked from monitor camera immediately before it renders.</summary>
+        public static void BeforeMonitorCameraRender()
+        {
+            if (!_featureEnabled)
+                return;
 
             SuperController sc = SuperController.singleton;
             if (sc == null || sc.isLoading || sc.IsMonitorOnly)
-            {
-                CleanupDrawers();
                 return;
-            }
 
             if (!sc.isOVR && !sc.isOpenVR)
-            {
-                CleanupDrawers();
                 return;
-            }
 
             if (sc.MonitorRig == null || !sc.MonitorRig.gameObject.activeSelf)
-            {
-                CleanupDrawers();
                 return;
-            }
 
-            if (sc.mainHUD == null || !sc.mainHUD.gameObject.activeInHierarchy)
-                return;
+            // Do not gate on main HUD: ToggleMainMonitor() + HideMainHUD can leave mainHUD inactive while targeting runs.
 
             int layer = sc.gameObject.layer;
             float rayW = sc.rayLineWidth * sc.worldScale;
@@ -106,6 +132,13 @@ namespace geesp0t
         public static void OnPluginDestroy()
         {
             CleanupDrawers();
+            if (_hookCamera != null)
+            {
+                EasyMateMonitorLaserCameraHook hook = _hookCamera.GetComponent<EasyMateMonitorLaserCameraHook>();
+                if (hook != null)
+                    Object.Destroy(hook);
+                _hookCamera = null;
+            }
         }
 
         private static void CleanupDrawers()
@@ -121,6 +154,15 @@ namespace geesp0t
                 _drawerRight.Destroy();
                 _drawerRight = null;
             }
+        }
+    }
+
+    /// <summary>Bridge: <see cref="Camera.OnPreRender"/> for <see cref="SuperController.MonitorCenterCamera"/>.</summary>
+    public class EasyMateMonitorLaserCameraHook : MonoBehaviour
+    {
+        private void OnPreRender()
+        {
+            EasyMateMonitorModeLaserRestore.BeforeMonitorCameraRender();
         }
     }
 }

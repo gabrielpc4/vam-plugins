@@ -7,6 +7,8 @@ using SimpleJSON;
 
 namespace geesp0t
 {
+    /// <summary>Runs lifecycle callbacks late so monitor-mode laser redraw wins over other plugins’ <see cref="LateUpdate"/>.</summary>
+    [DefaultExecutionOrder(32000)]
     public class EasyMate : MVRScript
     {
         //Manage the EasyMate menu system, add Main Menu and other buttons to scenes which are loaded from a menu but don't have any return buttons
@@ -222,6 +224,8 @@ namespace geesp0t
 
             if (mainUIButtons != null)
                 mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
+
+            EasyMateMonitorModeLaserRestore.EnsureMonitorCameraHook();
         }
 
         /// <summary>
@@ -675,7 +679,7 @@ namespace geesp0t
             EasyMateMotionAnimationEmotionEnd.LateTick(mocapEmotionEnd, mocapMinSec, mainUIButtons);
 
             bool monitorLaser = restoreMonitorModeControllerLaser != null && restoreMonitorModeControllerLaser.val;
-            EasyMateMonitorModeLaserRestore.LateTick(monitorLaser);
+            EasyMateMonitorModeLaserRestore.NotifyEnabledAndCleanup(monitorLaser);
         }
 
         void OnDestroy()

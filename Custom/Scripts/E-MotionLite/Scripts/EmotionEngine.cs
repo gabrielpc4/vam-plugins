@@ -11,13 +11,17 @@ namespace VRAdultFun
     partial class EmotionEngine : MVRScript
     {
         #region Initilation Variables
-        /// <summary>E-MotionLite does not drive head or neck controllers.</summary>
-        private const bool EmotionLiteDisableHeadAndNeck = true;
         //private static Atom debugUI;
         //private static UITextControl debugUIControl;
 		private static float rollTimer = 0.0f;
 		private static float eyeMoveDist = 0.0f;
 		private static float blinkSpeed = 0.0f;
+		/// <summary>AutoMate "VaM Auto Blink" fork: when false, E-Motion does not drive torso/limb/pelvis joint targets or torso/belly/hand/shoulder morphs. Face, eyes, and head/neck (per UI) still run.</summary>
+		private const bool AllowTorsoAndLimbEffects = false;
+
+		/// <summary>E-MotionLite pack: scripted head/neck motion from gaze/state machine stays off regardless of presets or UI toggles.</summary>
+		private const bool EmotionLiteDisableHeadAndNeck = true;
+
 		private static bool allSetup = false;
 		private static float tempFloat = 0.0f;
 		private static float tempFloat2 = 0.0f;
@@ -97,20 +101,6 @@ namespace VRAdultFun
 		private static float randomBaseDistance = 0.0f;
 		private static float randomBaseHeight = 0.0f;
 		private static float randomBaseOffset = 0.0f;
-		private static float baseGloss = 0.0f;
-		private static float baseSpec = 0.0f;
-		private static float baseSpecBump = 0.0f;
-		private static bool materialCaptured = false;
-		private static float heatupValue = 0.0f;
-		private static bool soundsLoaded = false;
-		private static bool resetMorphs = false;
-		private static float headUsedLeftRight = 0.0f;
-		private static float headUsedUpDown = 0.0f;
-		private static float headLeftRight = 0.0f;
-		private static float headUpDown = 0.0f;
-		private static float headLastLeftRight = 0.0f;
-		private static float headLastLeftRightActual = 0.0f;
-		private static float headLastUpDown = 0.0f;
 		
 		
 		private static float interestPeakArousal = 0.0f;
@@ -136,24 +126,6 @@ namespace VRAdultFun
 		private static float lElbowY = 0.0f;
 		private static float rElbowX = 0.0f;
 		private static float rElbowY = 0.0f;
-		
-		
-		private static UIDynamicButton personalityButton;
-		private static UIDynamicButton targetButton;
-		private static UIDynamicButton gazeButton;
-		private static UIDynamicButton distanceButton;
-		private static UIDynamicButton featureButton;
-		private static UIDynamicButton idleButton;
-		private static UIDynamicButton eyeButton;
-		private static UIDynamicButton characterButton;
-		protected static bool uiShowingPersonality = false;
-		protected static bool uiShowingFeatures = false;
-		protected static bool uiShowingTarget = false;
-		protected static bool uiShowingGaze = false;
-		protected static bool uiShowingDistAngle = false;
-		protected static bool uiShowingIdleBreathing = false;
-		protected static bool uiShowingEye = false;
-		protected static bool uiShowingCharacter = false;
 
 		protected JSONStorableFloat uiExtraversion;
 		protected JSONStorableFloat uiAgreeableness;
@@ -222,7 +194,6 @@ namespace VRAdultFun
 		protected JSONStorableFloat triggerValence;
 		protected JSONStorableFloat uiIdleAmount;
 		protected JSONStorableFloat uiIdleArmAmount;
-		protected JSONStorableFloat uiIdleArmOffset;
 		protected JSONStorableFloat uiIdleChance;
 		protected JSONStorableFloat uiIdleSpeed;
 		protected JSONStorableBool uiSetupComplete;
@@ -240,23 +211,14 @@ namespace VRAdultFun
 		protected JSONStorableFloat uiRandomBaseHeight;
 		protected JSONStorableFloat uiRandomBaseDistance;
 		protected JSONStorableFloat uiRandomBaseOffset;
-		protected JSONStorableFloat uiDirectLookDelay;
-		protected JSONStorableBool uiEffectMaterial;
-		protected JSONStorableFloat uiMaterialMult;
-		protected JSONStorableFloat uiMouthOpenOffset;
-		protected JSONStorableFloat uiLipsCloseOffset;
-		protected JSONStorableFloat uiHeadAngleOffset;
-		
 		
 
 		private static Atom emTarget;
 		private static string emTargetName;
 		private static FreeControllerV3 emTargetController;
 		private static float emTargetDistance;
-		private static float emTargetPelvisDistance;
 		private static float emTargetDir;
 		private static float emTargetHeadDir;
-		private static Transform emTargetTransform;
 		//private static Vector3 emTargetPosPrev;
 		private static float interestEMTarget;
 		private static Vector3 lookAtPosition;
@@ -352,12 +314,41 @@ namespace VRAdultFun
 		private static Vector3 focusPos;
 		private static Quaternion focusRot;
 
-		
+		/// <summary>AutoMate fork: when true, eye <c>eyeTargetControl</c> is forced to the HMD/view camera every frame (breaks person2 gaze). When false, eyes use E-Motion look state + person2 overrides like the head.</summary>
+		private const bool AutoMateEyesOnlyTargetCamera = false;
+
+		private static void ApplyEmotionEyesCameraOnlyOverride()
+		{
+			if (!AutoMateEyesOnlyTargetCamera)
+				return;
+			SuperController sc = SuperController.singleton;
+			Transform camT = null;
+			if (CameraTarget.centerTarget != null && CameraTarget.centerTarget.targetCamera != null)
+				camT = CameraTarget.centerTarget.targetCamera.transform;
+			else if (sc != null && sc.lookCamera != null)
+				camT = sc.lookCamera.transform;
+			if (camT == null)
+				return;
+			focusPos = camT.position;
+			focusRot = camT.rotation;
+			saccadeOffset = new Vector3(0f, 0f, 0f);
+			curEyePosition = focusPos;
+			curEyeAngles = focusRot.eulerAngles;
+		}
+
+
 		protected Rigidbody lipTrigger;
 		private static float lipsTouchCount = 0.0f;
 		protected Rigidbody vagTrigger;
 		private static float vagTouchCount = 0.0f;
 		private static bool lipsOnly = false;
+
+		//EASY MATE 12/8/2019
+        protected Rigidbody deepVagTrigger;
+        private static float deepVagTouchCount = 0.0f;
+        private static bool deepVagTouch = false;
+        private static float lastDeepVagSound = 0;
+		//END EASY MATE
 		
         private static DAZMorph morphLBicepFlex;
         private static DAZMorph morphRBicepFlex;
@@ -483,18 +474,12 @@ namespace VRAdultFun
         private static DAZMorph morphLipsLipBite;
         private static float mLipBiteValue = 0.0f;
         private static float mLipBiteTarget = 0.0f;
-        private static DAZMorph morphLipBottomIn;
-        private static float mLipBottomInValue = 0.0f;
-        private static float mLipBottomInTarget = 0.0f;
         private static DAZMorph morphLipsLipsClose;
         private static float mLipsCloseValue = 0.0f;
         private static float mLipsCloseTarget = 0.0f;
         private static DAZMorph morphLipsLipsPart;
         private static float mLipsPartValue = 0.0f;
         private static float mLipsPartTarget = 0.0f;
-        private static DAZMorph morphLipsLipsPartCenter;
-        private static float mLipsCenterPartValue = 0.0f;
-        private static float mLipsCenterPartTarget = 0.0f;
         private static DAZMorph morphLipsPouty;
         private static float mLipsPoutyValue = 0.0f;
         private static float mLipsPoutyTarget = 0.0f;
@@ -527,11 +512,6 @@ namespace VRAdultFun
         private static DAZMorph morphTongueLength;
         private static float mTongueTongueLengthValue = 0.0f;
         private static float mTongueTongueLengthTarget = 0.0f;
-
-        private static DAZMorph morphBreastDroopLeft;
-        private static DAZMorph morphBreastDroopRight;
-        private static DAZMorph morphBreastHangLeft;
-        private static DAZMorph morphBreastHangRight;
 
         private static DAZMorph morphRibCageSize;
         private static float mRibCageSizeOrig = 0.0f;
@@ -598,40 +578,6 @@ namespace VRAdultFun
         private static float mShoulderFixRightValue = 0.0f;
         private static float mShoulderFixRightTarget = 0.0f;
 		
-		private static bool enableIntense = false;
-		private static bool enableInquisitive = false;
-		private static bool enableCasual = false;
-		private static bool enableBored = false;
-		private static bool enableDayDream = false;
-		private static bool enablePlayful = false;
-		private static bool enableFeel = false;
-		private static bool enableKissing = false;
-		private static bool enableSucking = false;
-		private static bool enableSex = false;
-		private static bool enableRaised = false;
-		private static bool enableLowered = false;
-		private static bool enableConcentrate = false;
-		private static bool enableOneRaise = false;
-		private static bool enableApprehensive = false;
-		private static bool enableBlink = false;
-		private static bool enableEyeOpen = false;
-		private static bool enableEyeClosed = false;
-		private static bool enableFocus = false;
-		private static bool enableSquint = false;
-		private static bool enableWide = false;
-		private static bool enableWink = false;
-		private static bool enableMouthOpen = false;
-		private static bool enableMouthClosed = false;
-		private static bool enableBiteLip = false;
-		private static bool enableSmile = false;
-		private static bool enableBigSmile = false;
-		private static bool enableSmirk = false;
-		private static bool enableSideways = false;
-		private static bool enableKiss = false;
-		private static bool enableSuck = false;
-		private static bool enableJoy = false;
-		private static bool enableOh = false;
-		
 
 
         private static bool usePerson2;
@@ -640,6 +586,7 @@ namespace VRAdultFun
         private static bool person2Usable;
         private static Atom person2;
 		private static bool person2IsMale = false;
+		private static bool useAutoPerson2CameraFallback = false;
 
         private static Transform player;
         public static Transform playerVRLHand = SuperController.singleton.leftHand;
@@ -652,6 +599,152 @@ namespace VRAdultFun
         private static FreeControllerV3 playerPelvisController;
         private static FreeControllerV3 playerTipController;
         private static FreeControllerV3 playerTipBaseController;
+
+		private static bool ShouldUsePerson2AsPrimaryTarget()
+		{
+			return (usePerson2 && person2Usable) || useAutoPerson2CameraFallback;
+		}
+
+		private static bool IsRandomInterest(string interest)
+		{
+			return interest == "RandomF" || interest == "RandomU" || interest == "RandomL" || interest == "RandomR";
+		}
+
+		private static string ChooseStructuredRandomInterest()
+		{
+			if (ShouldUsePerson2AsPrimaryTarget() && person2 != null)
+			{
+				int structuredIndex = Random.Range(0, 3);
+				if (structuredIndex == 0)
+					return "RandomF"; // other person's head
+				if (structuredIndex == 1)
+					return "RandomU"; // other person's chest
+				return "RandomL"; // other person's pelvis / hips
+			}
+
+			int freeIndex = Random.Range(0, 4);
+			if (freeIndex == 0)
+				return "RandomF";
+			if (freeIndex == 1)
+				return "RandomU";
+			if (freeIndex == 2)
+				return "RandomR";
+			return "RandomL";
+		}
+
+		private static Atom FindAutomaticOtherPersonTarget()
+		{
+			SuperController sc = SuperController.singleton;
+			if (sc == null || person == null)
+				return null;
+
+			Vector3 selfPos = person.transform.position;
+			FreeControllerV3 selfHead = person.GetStorableByID("headControl") as FreeControllerV3;
+			if (selfHead != null && selfHead.followWhenOff != null)
+				selfPos = selfHead.followWhenOff.position;
+
+			Atom best = null;
+			float bestSq = float.MaxValue;
+			foreach (Atom a in sc.GetAtoms())
+			{
+				if (a == null || a == person || a.type != "Person" || !a.gameObject.activeInHierarchy)
+					continue;
+
+				Vector3 otherPos = a.transform.position;
+				FreeControllerV3 otherHead = a.GetStorableByID("headControl") as FreeControllerV3;
+				if (otherHead != null && otherHead.followWhenOff != null)
+					otherPos = otherHead.followWhenOff.position;
+
+				float sq = (otherPos - selfPos).sqrMagnitude;
+				if (best == null || sq < bestSq)
+				{
+					best = a;
+					bestSq = sq;
+				}
+			}
+
+			return best;
+		}
+
+		private static bool CachePerson2ControllersFromAtom(Atom target)
+		{
+			person2 = target;
+			person2Usable = false;
+			if (target == null)
+				return false;
+
+			DAZCharacter ch = target.GetComponentInChildren<DAZCharacter>();
+			if (ch != null)
+				person2IsMale = ch.isMale;
+			else
+				person2IsMale = false;
+
+			playerHeadController = target.GetStorableByID("headControl") as FreeControllerV3;
+			playerChestController = target.GetStorableByID("chestControl") as FreeControllerV3;
+			playerLHandController = target.GetStorableByID("lHandControl") as FreeControllerV3;
+			playerRHandController = target.GetStorableByID("rHandControl") as FreeControllerV3;
+			playerPelvisController = target.GetStorableByID("pelvisControl") as FreeControllerV3;
+			playerTipController = target.GetStorableByID("penisTipControl") as FreeControllerV3;
+			playerTipBaseController = target.GetStorableByID("penisBaseControl") as FreeControllerV3;
+
+			person2Usable = playerHeadController != null;
+			return person2Usable;
+		}
+
+		private static void ResolveActivePerson2Target(string selectedTargetName)
+		{
+			useAutoPerson2CameraFallback = false;
+			person2 = null;
+			person2Usable = false;
+
+			if (usePerson2 && selectedTargetName != null && selectedTargetName != "" && selectedTargetName != "None")
+			{
+				Atom explicitTarget = SuperController.singleton.GetAtomByUid(selectedTargetName);
+				if (explicitTarget != null && explicitTarget != person && explicitTarget.type == "Person" && CachePerson2ControllersFromAtom(explicitTarget))
+					return;
+			}
+
+			Atom fallbackTarget = FindAutomaticOtherPersonTarget();
+			if (CachePerson2ControllersFromAtom(fallbackTarget))
+				useAutoPerson2CameraFallback = !usePerson2;
+		}
+
+		private static Vector3 GetFollowPositionOrFallback(FreeControllerV3 controller, Vector3 fallback)
+		{
+			if (controller != null && controller.followWhenOff != null)
+				return controller.followWhenOff.position;
+			return fallback;
+		}
+
+		private static Transform GetFollowTransformOrFallback(FreeControllerV3 controller, Transform fallback)
+		{
+			if (controller != null && controller.followWhenOff != null)
+				return controller.followWhenOff;
+			return fallback;
+		}
+
+		private static Vector3 GetStructuredRandomTargetPosition(string interest)
+		{
+			if (ShouldUsePerson2AsPrimaryTarget() && person2 != null)
+			{
+				if ((interest == "RandomF" || interest == "RandomR") && playerHeadTransform != null)
+					return playerHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f));
+				if (interest == "RandomU" && playerChestController != null && playerChestController.followWhenOff != null)
+					return playerChestController.followWhenOff.position;
+				if (interest == "RandomL" && playerPelvisController != null && playerPelvisController.followWhenOff != null)
+					return playerPelvisController.followWhenOff.position;
+				if (playerHeadTransform != null)
+					return playerHeadTransform.position;
+			}
+
+			if (interest == "RandomL")
+				return randomPointLeft;
+			if (interest == "RandomR")
+				return randomPointRight;
+			if (interest == "RandomU")
+				return randomPointUp;
+			return randomPointForward;
+		}
 
 
         private static Vector3 playerFace;
@@ -810,7 +903,32 @@ namespace VRAdultFun
 			}
             //SuperController.LogMessage(e.evtType + "(" + lipsTouchCount + ") =" + e.collider.transform.parent.name);
         }
-		
+
+		//EASY MATE 12/8/2019
+        static void ObserveDeepVagTrigger(object sender, TriggerEventArgs e)
+        {
+            //Do whatever you want here
+            if (e.evtType == "Entered")
+            {
+                deepVagTouchCount += 1.0f;
+                if (deepVagTouchCount > 0 && deepVagTouchCount < 2.0f) {
+                    deepVagTouch = true;
+                }                
+            }
+            else
+            {
+                deepVagTouchCount = Mathf.Clamp(deepVagTouchCount - 1.0f, 0.0f, 100.0f);
+                deepVagTouch = false;
+            }
+            //SuperController.LogMessage(e.evtType + "deepVagTouchCount (" + deepVagTouchCount + ") =" + e.collider.transform.parent.name);
+        }
+		//END EASY MATE
+
+		private bool HeadMotionAllowed()
+		{
+			return uiDoHead.val && !EmotionLiteDisableHeadAndNeck;
+		}
+
         public override void Init()
         {
 
@@ -827,6 +945,11 @@ namespace VRAdultFun
 
 			vagTrigger = containingAtom.rigidbodies.First(rb => rb.name == "VaginaTrigger");
 			vagTrigger.gameObject.AddComponent<TriggerCollide>().OnCollide += ObserveVagTrigger;
+
+			//EASY MATE 12/8/2019
+            deepVagTrigger = containingAtom.rigidbodies.First(rb => rb.name == "DeepVaginaTrigger");
+            deepVagTrigger.gameObject.AddComponent<TriggerCollide>().OnCollide += ObserveDeepVagTrigger;
+			//END EASY MATE
 			
             minHeadMotion = 0.005f;
             minHandMotion = 0.015f;
@@ -841,9 +964,669 @@ namespace VRAdultFun
             movementMaxTimeout = 15.0f;
             movementModifier = 0.085f;
             movementFalloff = 0.11f;
+
+			uiAgreeableness = new JSONStorableFloat("Personality Agreeableness", 50.0f, 1.0f, 99.0f, true, true);
+			RegisterFloat(uiAgreeableness);
+			CreateSlider(uiAgreeableness, false);
+
+			uiExtraversion = new JSONStorableFloat("Personality Extraversion", 50.0f, 1.0f, 99.0f, true, true);
+			RegisterFloat(uiExtraversion);
+			CreateSlider(uiExtraversion, false);
+
+			uiStableness = new JSONStorableFloat("Personality Stableness", 50.0f, 1.0f, 99.0f, true, true);
+			RegisterFloat(uiStableness);
+			CreateSlider(uiStableness, false);
+
+			UIDynamic spacerMatrix = CreateSpacer(false);
+			spacerMatrix.height = 59f;
+
+			uiInterestSpeed = new JSONStorableFloat("Main Change Delay Mult", 1.0f, 0.0f, 5.0f, true, true);
+			RegisterFloat(uiInterestSpeed);
+			CreateSlider(uiInterestSpeed, false);
+
+			uiInterestRate = new JSONStorableFloat("Interest Rate Mult", 1.0f, 0.0f, 10.0f, true, true);
+			RegisterFloat(uiInterestRate);
+			CreateSlider(uiInterestRate, false);
+
+			uiArousalSpeed = new JSONStorableFloat("Arousal Speed Mult", 1.0f, 0.0f, 10.0f, true, true);
+			RegisterFloat(uiArousalSpeed);
+			CreateSlider(uiArousalSpeed, false);
+
+			uiValenceSpeed = new JSONStorableFloat("Valence Speed Mult", 1.0f, 0.0f, 10.0f, true, true);
+			RegisterFloat(uiValenceSpeed);
+			CreateSlider(uiValenceSpeed, false);
+
+			uiMoodSpeed = new JSONStorableFloat("Mood Degrade Speed Mult", 1.0f, 0.0f, 10.0f, true, true);
+			RegisterFloat(uiMoodSpeed);
+			CreateSlider(uiMoodSpeed, false);
 			
-			RegisterUIElements();
-			CreateMainMenuUI();
+			uiExpressionChance = new JSONStorableFloat("Expression Change Chance", 20.0f, 0.0f, 100.0f, true, true);
+			RegisterFloat(uiExpressionChance);
+			CreateSlider(uiExpressionChance, false);
+
+			UIDynamic spacerAutos = CreateSpacer(false);
+			spacerAutos.height = 10f;
+
+			uiDoKiss = new JSONStorableBool("Auto Kissing", false);
+			RegisterBool(uiDoKiss);
+			CreateToggle(uiDoKiss, false);
+			
+			uiKissAmount = new JSONStorableFloat("Kissing Effect Mult", 1.0f, 0.0f, 1.5f, true, true);
+			RegisterFloat(uiKissAmount);
+			CreateSlider(uiKissAmount, false);
+
+			uiDoBlowjob = new JSONStorableBool("Auto Blowjob", false);
+			RegisterBool(uiDoBlowjob);
+			CreateToggle(uiDoBlowjob, false);
+			
+			uiBlowjobAmount = new JSONStorableFloat("Blowjob Effect Mult", 0.7f, 0.0f, 1.5f, true, true);
+			RegisterFloat(uiBlowjobAmount);
+			CreateSlider(uiBlowjobAmount, false);
+
+			uiDoSex = new JSONStorableBool("Auto Sex", false);
+			RegisterBool(uiDoSex);
+			CreateToggle(uiDoSex, false);
+
+			uiSexAmount = new JSONStorableFloat("Sex Effect Mult", 0.75f, 0.0f, 1.5f, true, true);
+			RegisterFloat(uiSexAmount);
+			CreateSlider(uiSexAmount, false);
+			
+			UIDynamic spacerGaze = CreateSpacer(false);
+			spacerGaze.height = 10f;
+			
+			uiGazeMaxUp = new JSONStorableFloat("Tracking Max Up Angle", 49.0f, 0.0f, 90.0f, true, true);
+			RegisterFloat(uiGazeMaxUp);
+			CreateSlider(uiGazeMaxUp, false);
+
+			uiGazeMaxDown = new JSONStorableFloat("Tracking Max Down Angle", 85.0f, 0.0f, 90.0f, true, true);
+			RegisterFloat(uiGazeMaxDown);
+			CreateSlider(uiGazeMaxDown, false);
+
+			uiGazeMaxSideways = new JSONStorableFloat("Tracking Max Side/Side Angle", 114.0f, 0.0f, 180.0f, true, true);
+			RegisterFloat(uiGazeMaxSideways);
+			CreateSlider(uiGazeMaxSideways, false);
+
+			uiGazeAvoid = new JSONStorableBool("Gaze Avoidance", false);
+			RegisterBool(uiGazeAvoid);
+			CreateToggle(uiGazeAvoid, false);
+
+			uiGazeLookTime = new JSONStorableFloat("Avoidance Eye Contact Time", 1.0f, 0.0f, 5.0f, true, true);
+			RegisterFloat(uiGazeLookTime);
+			CreateSlider(uiGazeLookTime, false);
+
+			uiGazeAvoidTime = new JSONStorableFloat("Avoidance Look Away Time", 1.0f, 0.0f, 5.0f, true, true);
+			RegisterFloat(uiGazeAvoidTime);
+			CreateSlider(uiGazeAvoidTime, false);
+
+			uiGazeGlance = new JSONStorableBool("Gaze Glancing", false);
+			RegisterBool(uiGazeGlance);
+			CreateToggle(uiGazeGlance, false);
+
+			uiGlanceTimeout = new JSONStorableFloat("Glance Timeout Mult", 1.0f, 0.0f, 5.0f, true, true);
+			RegisterFloat(uiGlanceTimeout);
+			CreateSlider(uiGlanceTimeout, false);
+
+			uiGazeSpeed = new JSONStorableFloat("Gaze Speed Mult", 2.0f, 0.0f, 7.0f, true, true);
+			RegisterFloat(uiGazeSpeed);
+			CreateSlider(uiGazeSpeed, false);
+
+			uiGazeVariation = new JSONStorableFloat("Gaze Variation Mult", 1.0f, 0.0f, 3.0f, true, true);
+			RegisterFloat(uiGazeVariation);
+			CreateSlider(uiGazeVariation, false);
+
+			uiRollChance = new JSONStorableFloat("Gaze Tilt Chance", 1.0f, 0.0f, 2.0f, true, true);
+			RegisterFloat(uiRollChance);
+			CreateSlider(uiRollChance, false);
+
+			uiMaxHeadRoll = new JSONStorableFloat("Gaze Max Tilt", 60.0f, 0.0f, 90.0f, true, true);
+			RegisterFloat(uiMaxHeadRoll);
+			CreateSlider(uiMaxHeadRoll, false);
+
+			uiRollSpeed = new JSONStorableFloat("Gaze Tilt Speed Mult", 1.0f, 0.0f, 3.0f, true, true);
+			RegisterFloat(uiRollSpeed);
+			CreateSlider(uiRollSpeed, false);
+			
+			UIDynamic spacerBreath = CreateSpacer(false);
+			spacerBreath.height = 10f;
+
+			uiBreatheSpeed = new JSONStorableFloat("Breath Speed Mult", 1.0f, 0.0f, 3.0f, true, true);
+			RegisterFloat(uiBreatheSpeed);
+			CreateSlider(uiBreatheSpeed, false);
+
+			uiChestHeightOffset = new JSONStorableFloat("Breath Upper Chest Offset", 0.0f, -1.0f, 1.0f, true, true);
+			RegisterFloat(uiChestHeightOffset);
+			CreateSlider(uiChestHeightOffset, false);
+
+			uiBreatheRaiseMultiplier = new JSONStorableFloat("Breath Raise Mult", 0.7f, 0.0f, 3.0f, true, true);
+			RegisterFloat(uiBreatheRaiseMultiplier);
+			CreateSlider(uiBreatheRaiseMultiplier, false);
+
+			uiBreatheExpandMultiplier = new JSONStorableFloat("Breath Expansion Mult", 0.7f, 0.0f, 3.0f, true, true);
+			RegisterFloat(uiBreatheExpandMultiplier);
+			CreateSlider(uiBreatheExpandMultiplier, false);
+
+			UIDynamic spacerEye = CreateSpacer(false);
+			spacerEye.height = 10f;
+
+			uiBlinkSpeed = new JSONStorableFloat("Blink Delay Mult", 1.0f, 0.0f, 5.0f, true, true);
+			RegisterFloat(uiBlinkSpeed);
+			CreateSlider(uiBlinkSpeed, false);
+
+			uiSaccadeSpeed = new JSONStorableFloat("Saccade Rate Mult", 1.0f, 0.0f, 5.0f, true, true);
+			RegisterFloat(uiSaccadeSpeed);
+			CreateSlider(uiSaccadeSpeed, false);
+			
+			uiSaccadeAmount = new JSONStorableFloat("Saccade Amount", 1.0f, 0.0f, 5.0f, true, true);
+			RegisterFloat(uiSaccadeAmount);
+			CreateSlider(uiSaccadeAmount, false);
+
+			uiSaccadeWanderMult = new JSONStorableFloat("Saccade Max Dist Mult", 1.0f, 0.0f, 5.0f, true, true);
+			RegisterFloat(uiSaccadeWanderMult);
+			CreateSlider(uiSaccadeWanderMult, false);
+
+			uiPupilDialation = new JSONStorableFloat("Eye Contact Pupil Dialation", 1.0f, 0.0f, 2.0f, true, true);
+			RegisterFloat(uiPupilDialation);
+			CreateSlider(uiPupilDialation, false);
+
+			uiPupilRate = new JSONStorableFloat("Pupil Dialation Speed Mult", 1.0f, 0.0f, 3.0f, true, true);
+			RegisterFloat(uiPupilRate);
+			CreateSlider(uiPupilRate, false);
+
+			uiEyeUpdate = new JSONStorableFloat("Eye Update Speed Mult", 0.3f, 0.0f, 0.5f, true, true);
+			RegisterFloat(uiEyeUpdate);
+			CreateSlider(uiEyeUpdate, false);
+			
+			uiShowStats = new JSONStorableBool("Show Stats on Message Log", false);
+			RegisterBool(uiShowStats);
+			CreateToggle(uiShowStats, true);
+
+			//uiLoadDefaults = new JSONStorableBool("Load Defaults", false);
+			//RegisterBool(uiLoadDefaults);
+			//CreateToggle(uiLoadDefaults, true);
+
+                CreateButton("Load Defaults", true).button.onClick.AddListener(() =>
+                {
+					loadDefaults();
+				});
+			//uiLoadPreset = new JSONStorableBool("Load Preset", false);
+			//RegisterBool(uiLoadPreset);
+			//CreateToggle(uiLoadPreset, true);
+
+                CreateButton("Load Preset", true).button.onClick.AddListener(() =>
+                {
+                    SuperController.singleton.fileBrowserUI.defaultPath = GetPluginPath() + "\\Presets\\";
+                    SuperController.singleton.fileBrowserUI.SetTextEntry(false);
+                    SuperController.singleton.fileBrowserUI.Show((path) =>
+                    {
+                        if (string.IsNullOrEmpty(path))
+                        {
+                            return;
+                        }
+						SimpleJSON.JSONNode loadedSettings = new SimpleJSON.JSONClass();
+						loadedSettings=SuperController.singleton.LoadJSON(path);
+						uiExtraversion.val = loadedSettings["Extraversion"].AsFloat;
+						uiAgreeableness.val = loadedSettings["Agreeableness"].AsFloat;
+						uiStableness.val = loadedSettings["Stableness"].AsFloat;
+						uiBreatheSpeed.val = loadedSettings["Breathing Speed"].AsFloat;
+						uiBreatheExpandMultiplier.val = loadedSettings["Breathe Morph Multiplier"].AsFloat;
+						uiBreatheRaiseMultiplier.val = loadedSettings["Breath Raise Mult"].AsFloat;
+						uiChestHeightOffset.val = loadedSettings["Breath Upper Chest Offset"].AsFloat;
+						uiGazeVariation.val = loadedSettings["Gaze Angle Variation"].AsFloat;
+						uiGazeSpeed.val = loadedSettings["Gaze Speed"].AsFloat;
+						uiGazeAvoid.val = loadedSettings["Gaze Avoidance Enable"].AsBool;
+						uiGazeLookTime.val = loadedSettings["Gaze Look At Time"].AsFloat;
+						uiGazeAvoidTime.val = loadedSettings["Gaze Avoid Look Time"].AsFloat;
+						uiGazeGlance.val = loadedSettings["Gaze Glance Enable"].AsBool;
+						uiRollSpeed.val = loadedSettings["Gaze Head Roll Speed"].AsFloat;
+						uiMaxHeadRoll.val = loadedSettings["Gaze Max Tilt"].AsFloat;
+						uiRollChance.val = loadedSettings["Gaze Tilt Chance"].AsFloat;
+						uiGlanceTimeout.val = loadedSettings["Glance Timeout Mult"].AsFloat;
+						uiSaccadeSpeed.val = loadedSettings["Eye Saccade Frequency"].AsFloat;
+						uiSaccadeAmount.val = loadedSettings["Eye Saccade Movement Scale"].AsFloat;
+						uiSaccadeWanderMult.val = loadedSettings["Eye Saccade Max Dist from Target Scale"].AsFloat;
+						uiBlinkSpeed.val = loadedSettings["Eye Blink Delay Scale"].AsFloat;
+						uiPupilDialation.val = loadedSettings["Eye Contact Pupil Dialation"].AsFloat;
+						uiPupilRate.val = loadedSettings["Pupil Dialation Speed Mult"].AsFloat;
+						uiArousalSpeed.val = loadedSettings["Mood Arousal Scale"].AsFloat;
+						uiValenceSpeed.val = loadedSettings["Mood Valence Scale"].AsFloat;
+						uiMoodSpeed.val = loadedSettings["Mood Change Scale"].AsFloat;
+						uiInterestSpeed.val = loadedSettings["Main Interest Switch Delay Scale"].AsFloat;
+						uiInterestRate.val = loadedSettings["Global Interest Rate Scale"].AsFloat;
+						uiDoHead.val = loadedSettings["Control Head and Neck Movements"].AsBool;
+						uiDoMorphs.val = loadedSettings["Control Breath and Expression Morphs"].AsBool;
+						uiAnimationSpeed.val = loadedSettings["Animation Speed Mult"].AsFloat;
+						uiDoShoulders.val = loadedSettings["Control Shoulder Movements"].AsBool;
+						uiDoChest.val = loadedSettings["Control Chest Movement"].AsBool;
+						uiDoSounds.val = loadedSettings["Play Emotion Sounds"].AsBool;
+						uiSoundVolume.val = loadedSettings["Sound Volume Scale"].AsFloat;
+						uiChestAmount.val = loadedSettings["Chest Movement Scale"].AsFloat;
+						uiDoHands.val = loadedSettings["Control Hand Morphs"].AsBool;
+						uiConfigHead.val = loadedSettings["Automatically Configure Head and Neck physics"].AsBool;
+						if (EmotionLiteDisableHeadAndNeck)
+						{
+							uiDoHead.val = false;
+							uiConfigHead.val = false;
+						}
+						uiUsePerson2.val = loadedSettings["Look At Target Person"].AsBool;
+						uiShowStats.val = loadedSettings["Show Debug Info on Message Log"].AsBool;
+						uiDoKiss.val = loadedSettings["Kissing Enable"].AsBool;
+						uiKissAmount.val = loadedSettings["Kissing Morph Scale"].AsFloat;
+						uiDoBlowjob.val = loadedSettings["Blowjob Enable"].AsBool;
+						uiBlowjobAmount.val = loadedSettings["Blowjob Morph Scale"].AsFloat;
+						uiDoSex.val = loadedSettings["Sex Enable"].AsBool;
+						uiSexAmount.val = loadedSettings["Sex Morph Scale"].AsFloat;
+						uiFocusTarget.val = loadedSettings["Current Focus Target"];
+						uiObjectTarget.val = loadedSettings["Current Object Target"];
+						uiTargetLook.val = loadedSettings["Object View Direction Enable"].AsBool;
+						uiPersonalSpace.val = loadedSettings["Personal Space Distance"].AsFloat;
+						uiDirectGaze.val = loadedSettings["Direct Viewing Angle"].AsFloat;
+						uiPeripheralGaze.val = loadedSettings["Peripheral Viewing Angle"].AsFloat;
+						uiOutOfGaze.val = loadedSettings["Maximum Viewing Angle"].AsFloat;
+						uiCloseToFaceDist.val = loadedSettings["Face Interaction Distance"].AsFloat;
+						uiKissingDist.val = loadedSettings["Kissing Activation Distance"].AsFloat;
+						uiInteractDist.val = loadedSettings["General Interaction Distance"].AsFloat;
+						uiMaxMorphSmile.val = loadedSettings["Maximum Allowed Value For Smile Morphs"].AsFloat;
+						uiEyeCloseMaxMorph.val = loadedSettings["Maximum Amount To Close Eyes"].AsFloat;
+						uiEyeUpdate.val = loadedSettings["Minimum Time Between Eye Target Movements Excl Saccades"].AsFloat;
+						uiHeadInterest.val = loadedSettings["Target Head Interest Rate Scale"].AsFloat;
+						uiLHandInterest.val = loadedSettings["Target Left Hand Interest Rate Scale"].AsFloat;
+						uiRHandInterest.val = loadedSettings["Target Right Hand Interest Rate Scale"].AsFloat;
+						uiPenisInterest.val = loadedSettings["Target Pelvis Interest Rate Scale"].AsFloat;
+						uiObjectInterest.val = loadedSettings["Target Object Interest Rate Scale"].AsFloat;
+						uiIdleAmount.val = loadedSettings["Idle Movement Mult"].AsFloat;
+						uiIdleArmAmount.val = loadedSettings["Idle Arm Movement Mult"].AsFloat;
+						uiIdleChance.val = loadedSettings["Idle Movement Chance"].AsFloat;
+						uiIdleSpeed.val = loadedSettings["Idle Movement Speed"].AsFloat;
+						uiShoulderAmount.val = loadedSettings["Shoulder Adjust Mult"].AsFloat;
+						uiShoulderHeight.val = loadedSettings["Shoulder Height Mult"].AsFloat;
+						uiShoulderBack.val = loadedSettings["Shoulders Back"].AsFloat;
+						uiExpressionChance.val = loadedSettings["Expression Chance"].AsFloat;
+						uiGazeMaxUp.val = loadedSettings["Tracking Max Up Angle"].AsFloat;
+						uiGazeMaxDown.val = loadedSettings["Tracking Max Down Angle"].AsFloat;
+						uiGazeMaxSideways.val = loadedSettings["Tracking Max Side/Side Angle"].AsFloat;
+						uiRandomBaseDistance.val = loadedSettings["Random Base Distance"].AsFloat;
+						uiRandomBaseHeight.val = loadedSettings["Random Base Height"].AsFloat;
+						uiRandomBaseOffset.val = loadedSettings["Random Base Center Offset"].AsFloat;
+						uiSetupComplete.val = loadedSettings["Setup Complete"].AsBool;
+						//uiLoadPreset.val = false;
+						if (uiObjectTarget.val != "None")
+						{
+							emTargetName = uiObjectTarget.val;
+							emTarget = SuperController.singleton.GetAtomByUid(uiObjectTarget.val);
+							if (emTarget != null)
+							{
+								if (emTarget.type == "Person")
+								{
+									emTargetController = emTarget.GetStorableByID("headControl") as FreeControllerV3;
+								}
+								else
+								{
+									emTargetController = emTarget.GetStorableByID("control") as FreeControllerV3;
+								}
+							}
+						}
+						else
+						{
+							emTargetName = "None";
+							emTarget = null;
+							emTargetController = null;
+						}
+						if (uiFocusTarget.val != "None" && uiUsePerson2.val)
+						{
+							person2 = SuperController.singleton.GetAtomByUid(uiFocusTarget.val);
+							if (person2 != null)
+							{
+								systemSM.Switch(sReselectPerson2);
+							}
+							else
+							{
+								uiFocusTarget.val = "None";
+								uiUsePerson2.val = false;
+								person2Usable = false;
+								usePerson2 = false;
+							}
+						}
+
+					});
+				});
+				
+				CreateButton("Save Preset", true).button.onClick.AddListener(() =>
+				{
+					SuperController.singleton.fileBrowserUI.defaultPath = GetPluginPath() + "\\Presets\\"; // or path to your plugin
+					SuperController.singleton.fileBrowserUI.SetTextEntry(true);
+
+					SuperController.singleton.fileBrowserUI.Show((path) =>
+					{
+						//  cancel or invalid
+						if (string.IsNullOrEmpty(path))
+						{
+							return;
+						}
+
+						//  ensure extension
+						if (!path.EndsWith(".json"))
+						{
+							path += ".json";
+						}
+						SimpleJSON.JSONClass mySettings = new SimpleJSON.JSONClass();
+
+						//Add some data                        
+						if (uiShowStats.val){mySettings["Show Debug Info on Message Log"] = "True";}else{mySettings["Show Debug Info on Message Log"] = "False";}
+						if (uiConfigHead.val){mySettings["Automatically Configure Head and Neck physics"] = "True";}else{mySettings["Automatically Configure Head and Neck physics"] = "False";}
+						if (uiDoHead.val){mySettings["Control Head and Neck Movements"] = "True";}else{mySettings["Control Head and Neck Movements"] = "False";}
+						if (uiDoHead.val){mySettings["Control Breath and Expression Morphs"] = "True";}else{mySettings["Control Breath and Expression Morphs"] = "False";}
+						mySettings.Add("Animation Speed Mult", new SimpleJSON.JSONData(uiAnimationSpeed.val));
+						if (uiDoShoulders.val){mySettings["Control Shoulder Movements"] = "True";}else{mySettings["Control Shoulder Movements"] = "False";}
+						mySettings.Add("Shoulder Movement Scale", new SimpleJSON.JSONData(uiShoulderAmount.val));
+						if (uiDoChest.val){mySettings["Control Chest Movement"] = "True";}else{mySettings["Control Chest Movement"] = "False";}
+						if (uiDoSounds.val){mySettings["Play Emotion Sounds"] = "True";}else{mySettings["Play Emotion Sounds"] = "False";}
+						mySettings.Add("Sound Volume Scale", new SimpleJSON.JSONData(uiSoundVolume.val));
+						mySettings.Add("Chest Movement Scale", new SimpleJSON.JSONData(uiChestAmount.val));
+						if (uiDoHands.val){mySettings["Control Hand Morphs"] = "True";}else{mySettings["Control Hand Morphs"] = "False";}
+						if (uiUsePerson2.val){mySettings["Look At Target Person"] = "True";}else{mySettings["Look At Target Person"] = "False";}
+						mySettings.Add("Current Focus Target", new SimpleJSON.JSONData(uiFocusTarget.val));
+						mySettings.Add("Current Object Target", new SimpleJSON.JSONData(uiObjectTarget.val));
+						if (uiTargetLook.val){mySettings["Object View Direction Enable"] = "True";}else{mySettings["Object View Direction Enable"] = "False";}
+						if (uiDoKiss.val){mySettings["Kissing Enable"] = "True";}else{mySettings["Kissing Enable"] = "False";}
+						mySettings.Add("Kissing Activation Distance", new SimpleJSON.JSONData(uiKissingDist.val));
+						mySettings.Add("Kissing Morph Scale", new SimpleJSON.JSONData(uiKissAmount.val));
+						if (uiDoBlowjob.val){mySettings["Blowjob Enable"] = "True";}else{mySettings["Blowjob Enable"] = "False";}
+						mySettings.Add("Blowjob Morph Scale", new SimpleJSON.JSONData(uiBlowjobAmount.val));
+						if (uiDoSex.val){mySettings["Sex Enable"] = "True";}else{mySettings["Sex Enable"] = "False";}
+						mySettings.Add("Sex Morph Scale", new SimpleJSON.JSONData(uiSexAmount.val));
+						mySettings.Add("Maximum Allowed Value For Smile Morphs", new SimpleJSON.JSONData(uiMaxMorphSmile.val));
+						mySettings.Add("Maximum Amount To Close Eyes", new SimpleJSON.JSONData(uiEyeCloseMaxMorph.val));
+						mySettings.Add("Minimum Time Between Eye Target Movements Excl Saccades", new SimpleJSON.JSONData(uiEyeUpdate.val));
+						mySettings.Add("Main Interest Switch Delay Scale", new SimpleJSON.JSONData(uiInterestSpeed.val));
+						mySettings.Add("Global Interest Rate Scale", new SimpleJSON.JSONData(uiInterestRate.val));
+						mySettings.Add("Extraversion", new SimpleJSON.JSONData(uiExtraversion.val));
+						mySettings.Add("Agreeableness", new SimpleJSON.JSONData(uiAgreeableness.val));
+						mySettings.Add("Stableness", new SimpleJSON.JSONData(uiStableness.val));
+						mySettings.Add("Mood Arousal Scale", new SimpleJSON.JSONData(uiArousalSpeed.val));
+						mySettings.Add("Mood Valence Scale", new SimpleJSON.JSONData(uiValenceSpeed.val));
+						mySettings.Add("Mood Change Scale", new SimpleJSON.JSONData(uiMoodSpeed.val));
+						mySettings.Add("Breathing Speed", new SimpleJSON.JSONData(uiBreatheSpeed.val));
+						mySettings.Add("Breath Upper Chest Offset", new SimpleJSON.JSONData(uiChestHeightOffset.val));
+						mySettings.Add("Breathe Morph Multiplier", new SimpleJSON.JSONData(uiBreatheExpandMultiplier.val));
+						mySettings.Add("Breath Raise Mult", new SimpleJSON.JSONData(uiBreatheRaiseMultiplier.val));
+						mySettings.Add("Gaze Speed", new SimpleJSON.JSONData(uiGazeSpeed.val));
+						mySettings.Add("Gaze Angle Variation", new SimpleJSON.JSONData(uiGazeVariation.val));
+						if (uiGazeAvoid.val){mySettings["Gaze Avoidance Enable"] = "True";}else{mySettings["Gaze Avoidance Enable"] = "False";}
+						mySettings.Add("Gaze Look At Time", new SimpleJSON.JSONData(uiGazeLookTime.val));
+						mySettings.Add("Gaze Avoid Look Time", new SimpleJSON.JSONData(uiGazeAvoidTime.val));
+						if (uiGazeGlance.val){mySettings["Gaze Glance Enable"] = "True";}else{mySettings["Gaze Glance Enable"] = "False";}
+						mySettings.Add("Glance Timeout Mult", new SimpleJSON.JSONData(uiGlanceTimeout.val));
+						mySettings.Add("Gaze Head Roll Speed", new SimpleJSON.JSONData(uiRollSpeed.val));
+						mySettings.Add("Gaze Max Tilt", new SimpleJSON.JSONData(uiMaxHeadRoll.val));
+						mySettings.Add("Gaze Tilt Chance", new SimpleJSON.JSONData(uiRollChance.val));
+						mySettings.Add("Eye Saccade Frequency", new SimpleJSON.JSONData(uiSaccadeSpeed.val));
+						mySettings.Add("Eye Saccade Movement Scale", new SimpleJSON.JSONData(uiSaccadeAmount.val));
+						mySettings.Add("Eye Saccade Max Dist from Target Scale", new SimpleJSON.JSONData(uiSaccadeWanderMult.val));
+						mySettings.Add("Eye Contact Pupil Dialation", new SimpleJSON.JSONData(uiPupilDialation.val));
+						mySettings.Add("Pupil Dialation Speed Mult", new SimpleJSON.JSONData(uiPupilRate.val));
+						mySettings.Add("Eye Blink Delay Scale", new SimpleJSON.JSONData(uiBlinkSpeed.val));
+						mySettings.Add("Direct Viewing Angle", new SimpleJSON.JSONData(uiDirectGaze.val));
+						mySettings.Add("Peripheral Viewing Angle", new SimpleJSON.JSONData(uiPeripheralGaze.val));
+						mySettings.Add("Maximum Viewing Angle", new SimpleJSON.JSONData(uiOutOfGaze.val));
+						mySettings.Add("Personal Space Distance", new SimpleJSON.JSONData(uiPersonalSpace.val));
+						mySettings.Add("Face Interaction Distance", new SimpleJSON.JSONData(uiCloseToFaceDist.val));
+						mySettings.Add("General Interaction Distance", new SimpleJSON.JSONData(uiInteractDist.val));
+						mySettings.Add("Target Head Interest Rate Scale", new SimpleJSON.JSONData(uiHeadInterest.val));
+						mySettings.Add("Target Left Hand Interest Rate Scale", new SimpleJSON.JSONData(uiLHandInterest.val));
+						mySettings.Add("Target Right Hand Interest Rate Scale", new SimpleJSON.JSONData(uiRHandInterest.val));
+						mySettings.Add("Target Pelvis Interest Rate Scale", new SimpleJSON.JSONData(uiPenisInterest.val));
+						mySettings.Add("Target Object Interest Rate Scale", new SimpleJSON.JSONData(uiObjectInterest.val));
+						mySettings.Add("Idle Movement Mult", new SimpleJSON.JSONData(uiIdleAmount.val));
+						mySettings.Add("Idle Arm Movement Mult", new SimpleJSON.JSONData(uiIdleArmAmount.val));
+						mySettings.Add("Idle Movement Chance", new SimpleJSON.JSONData(uiIdleChance.val));
+						mySettings.Add("Idle Movement Speed", new SimpleJSON.JSONData(uiIdleSpeed.val));
+						mySettings.Add("Shoulder Adjust Mult", new SimpleJSON.JSONData(uiShoulderAmount.val));
+						mySettings.Add("Shoulder Height Mult", new SimpleJSON.JSONData(uiShoulderHeight.val));
+						mySettings.Add("Shoulders Back", new SimpleJSON.JSONData(uiShoulderBack.val));
+						mySettings.Add("Expression Chance", new SimpleJSON.JSONData(uiExpressionChance.val));
+						mySettings.Add("Tracking Max Up Angle", new SimpleJSON.JSONData(uiGazeMaxUp.val));
+						mySettings.Add("Tracking Max Down Angle", new SimpleJSON.JSONData(uiGazeMaxDown.val));
+						mySettings.Add("Tracking Max Side/Side Angle", new SimpleJSON.JSONData(uiGazeMaxSideways.val));
+						mySettings.Add("Random Base Distance", new SimpleJSON.JSONData(uiRandomBaseDistance.val));
+						mySettings.Add("Random Base Height", new SimpleJSON.JSONData(uiRandomBaseHeight.val));
+						mySettings.Add("Random Base Center Offset", new SimpleJSON.JSONData(uiRandomBaseOffset.val));
+						if (uiSetupComplete.val){mySettings["Setup Complete"] = "True";}else{mySettings["Setup Complete"] = "False";}
+						SuperController.singleton.SaveJSON(mySettings,path);
+						//SuperController.singleton.SaveStringIntoFile(path, json.ToString(""));
+						//SuperController.LogMessage("Wrote settings file: " + path);
+					});
+
+					//  set default filename
+					if (SuperController.singleton.fileBrowserUI.fileEntryField != null)
+					{
+						SuperController.singleton.fileBrowserUI.fileEntryField.text = "EMotion_Preset" + ".json";
+						SuperController.singleton.fileBrowserUI.ActivateFileNameField();
+					}
+
+
+				});
+
+			//uiSavePreset = new JSONStorableBool("Save Preset", false);
+			//RegisterBool(uiSavePreset);
+			//CreateToggle(uiSavePreset, true);
+
+			uiConfigHead = new JSONStorableBool("Auto Config Head", false);
+			RegisterBool(uiConfigHead);
+			CreateToggle(uiConfigHead, true);
+
+			uiDoHead = new JSONStorableBool("Control Head", false);
+			RegisterBool(uiDoHead);
+			CreateToggle(uiDoHead, true);
+
+			uiDoMorphs = new JSONStorableBool("Control Morphs", false);
+			RegisterBool(uiDoMorphs);
+			CreateToggle(uiDoMorphs, true);
+
+			UIDynamic spacer = CreateSpacer(true);
+			spacer.height = 10f;
+
+			uiAnimationSpeed = new JSONStorableFloat("Animation Speed Mult", 1.00f, 0.0f, 5.0f, true, true);
+			RegisterFloat(uiAnimationSpeed);
+			CreateSlider(uiAnimationSpeed, true);
+
+			uiDoSounds = new JSONStorableBool("Play Sounds", false);
+			RegisterBool(uiDoSounds);
+			CreateToggle(uiDoSounds, true);
+
+			uiSoundVolume = new JSONStorableFloat("Sound Volume Mult", 1.50f, 0.0f, 100.0f, true, true);
+			RegisterFloat(uiSoundVolume);
+			CreateSlider(uiSoundVolume, true);
+
+			UIDynamic spacerTarget = CreateSpacer(true);
+			spacerTarget.height = 20f;
+
+			uiUsePerson2 = new JSONStorableBool("Look at selected Person", false);
+			RegisterBool(uiUsePerson2);
+			CreateToggle(uiUsePerson2, true);
+			
+			uiSetupComplete = new JSONStorableBool("Plugin has been Setup", false);
+			RegisterBool(uiSetupComplete);
+						
+			List<string> targetChoices = new List<string>();
+            foreach (string atomUID in SuperController.singleton.GetAtomUIDs())
+            {
+				currentAtom = SuperController.singleton.GetAtomByUid(atomUID);
+                if (currentAtom != containingAtom && atomUID != null && currentAtom.type == "Person")
+                {
+					targetChoices.Add(atomUID);
+				}
+			}
+			uiFocusTarget = new JSONStorableStringChooser("Target Selector", targetChoices, "None", "Choose Person");
+			//RegisterArray(targetChoices);
+			RegisterStringChooser(uiFocusTarget);
+			UIDynamicPopup udp = CreatePopup(uiFocusTarget, true);
+
+			List<string> objectChoices = new List<string>();
+			objectChoices.Add("None");
+            foreach (string atomUID in SuperController.singleton.GetAtomUIDs())
+            {
+				currentAtom = SuperController.singleton.GetAtomByUid(atomUID);
+                if (atomUID != null)
+                {
+						objectChoices.Add(atomUID);
+/*					if (currentAtom.type == "Person")
+					{
+						FreeControllerV3 tempController = currentAtom.GetStorableByID("headControl") as FreeControllerV3;
+						if (tempController != null)
+						{
+							objectChoices.Add(atomUID);
+						}
+					}
+					else
+					{
+					}
+					*/
+				}
+			}
+			uiObjectTarget = new JSONStorableStringChooser("Object Selector", objectChoices, "None", "Choose Object");
+			//RegisterArray(objectChoices);
+			RegisterStringChooser(uiObjectTarget);
+			UIDynamicPopup udp2 = CreatePopup(uiObjectTarget, true);
+
+			uiTargetLook = new JSONStorableBool("Object Can Look", false);
+			RegisterBool(uiTargetLook);
+			CreateToggle(uiTargetLook, true);
+
+			UIDynamic spacerIdle = CreateSpacer(true);
+			spacerIdle.height = 20f;
+
+			uiDoShoulders = new JSONStorableBool("Adjust Shoulders", false);
+			RegisterBool(uiDoShoulders);
+			CreateToggle(uiDoShoulders, true);
+
+			uiShoulderBack = new JSONStorableFloat("Shoulders Back", 0.00f, 0.0f, 1.0f, true, true);
+			RegisterFloat(uiShoulderBack);
+			CreateSlider(uiShoulderBack, true);
+
+			uiShoulderAmount = new JSONStorableFloat("Shoulder Adjust Mult", 1.00f, 0.0f, 10.0f, true, true);
+			RegisterFloat(uiShoulderAmount);
+			CreateSlider(uiShoulderAmount, true);
+
+			uiShoulderHeight = new JSONStorableFloat("Shoulder Height Mult", 1.00f, 0.0f, 2.0f, true, true);
+			RegisterFloat(uiShoulderHeight);
+			CreateSlider(uiShoulderHeight, true);
+
+
+			uiDoChest = new JSONStorableBool("Adjust Chest", false);
+			RegisterBool(uiDoChest);
+			CreateToggle(uiDoChest, true);
+
+			uiChestAmount = new JSONStorableFloat("Chest Adjust Mult", 1.00f, 0.0f, 10.0f, true, true);
+			RegisterFloat(uiChestAmount);
+			CreateSlider(uiChestAmount, true);
+
+			uiDoHands = new JSONStorableBool("Adjust Hands", false);
+			RegisterBool(uiDoHands);
+			CreateToggle(uiDoHands, true);
+
+			uiIdleAmount = new JSONStorableFloat("Idle Body Movement Mult", 1.00f, 0.0f, 10.0f, true, true);
+			RegisterFloat(uiIdleAmount);
+			CreateSlider(uiIdleAmount, true);
+
+			uiIdleArmAmount = new JSONStorableFloat("Idle Arm Movement Mult", 1.00f, 0.0f, 10.0f, true, true);
+			RegisterFloat(uiIdleArmAmount);
+			CreateSlider(uiIdleArmAmount, true);
+			
+			uiIdleChance = new JSONStorableFloat("Idle Movement Chance", 60.00f, 0.0f, 100.0f, true, true);
+			RegisterFloat(uiIdleChance);
+			CreateSlider(uiIdleChance, true);
+
+			uiIdleSpeed = new JSONStorableFloat("Idle Movement Speed", 1.00f, 0.0f, 5.0f, true, true);
+			RegisterFloat(uiIdleSpeed);
+			CreateSlider(uiIdleSpeed, true);
+
+			UIDynamic spacerMorph = CreateSpacer(true);
+			spacerMorph.height = 10f;
+
+			uiMaxMorphSmile = new JSONStorableFloat("Max Smile (Morphs)", 0.5f, 0.0f, 1.0f, true, true);
+			RegisterFloat(uiMaxMorphSmile);
+			CreateSlider(uiMaxMorphSmile, true);
+			
+			uiEyeCloseMaxMorph = new JSONStorableFloat("Max Eye Close (Morphs)", 1.1f, 0.0f, 1.5f, true, true);
+			RegisterFloat(uiEyeCloseMaxMorph);
+			CreateSlider(uiEyeCloseMaxMorph, true);
+
+			UIDynamic spacerDist = CreateSpacer(true);
+			spacerDist.height = 10f;
+
+			uiPersonalSpace = new JSONStorableFloat("Personal Space", 1.0f, 0.0f, 10.0f, true, true);
+			RegisterFloat(uiPersonalSpace);
+			CreateSlider(uiPersonalSpace, true);
+
+			uiInteractDist = new JSONStorableFloat("Interaction Distance", 0.15f, 0.0f, 0.5f, true, true);
+			RegisterFloat(uiInteractDist);
+			CreateSlider(uiInteractDist, true);
+
+			uiCloseToFaceDist = new JSONStorableFloat("Face Interact Dist", 0.15f, 0.0f, 0.5f, true, true);
+			RegisterFloat(uiCloseToFaceDist);
+			CreateSlider(uiCloseToFaceDist, true);
+
+			uiKissingDist = new JSONStorableFloat("Kissing Dist", 0.29f, 0.0f, 0.5f, true, true);
+			RegisterFloat(uiKissingDist);
+			CreateSlider(uiKissingDist, true);
+
+			UIDynamic spacerAngle = CreateSpacer(true);
+			spacerAngle.height = 10f;
+
+			uiDirectGaze = new JSONStorableFloat("Direct View Angle", 12.0f, 0.0f, 180.0f, true, true);
+			RegisterFloat(uiDirectGaze);
+			CreateSlider(uiDirectGaze, true);
+
+			uiPeripheralGaze = new JSONStorableFloat("Peripheral View Angle", 45.0f, 0.0f, 180.0f, true, true);
+			RegisterFloat(uiPeripheralGaze);
+			CreateSlider(uiPeripheralGaze, true);
+
+			uiOutOfGaze = new JSONStorableFloat("Out of View Angle", 90.0f, 0.0f, 180.0f, true, true);
+			RegisterFloat(uiOutOfGaze);
+			CreateSlider(uiOutOfGaze, true);
+
+			UIDynamic spacerInterest = CreateSpacer(true);
+			spacerInterest.height = 10f;
+
+			uiObjectInterest = new JSONStorableFloat("Object Interest Mult", 1.0f, 0.0f, 3.0f, true, true);
+			RegisterFloat(uiObjectInterest);
+			CreateSlider(uiObjectInterest, true);
+
+			uiHeadInterest = new JSONStorableFloat("Head Interest Mult", 1.0f, 0.0f, 3.0f, true, true);
+			RegisterFloat(uiHeadInterest);
+			CreateSlider(uiHeadInterest, true);
+
+			uiLHandInterest = new JSONStorableFloat("LHand Interest Mult", 1.0f, 0.0f, 3.0f, true, true);
+			RegisterFloat(uiLHandInterest);
+			CreateSlider(uiLHandInterest, true);
+
+			uiRHandInterest = new JSONStorableFloat("RHand Interest Mult", 1.0f, 0.0f, 3.0f, true, true);
+			RegisterFloat(uiRHandInterest);
+			CreateSlider(uiRHandInterest, true);
+
+			uiPenisInterest = new JSONStorableFloat("Penis Interest Mult", 1.0f, 0.0f, 3.0f, true, true);
+			RegisterFloat(uiPenisInterest);
+			CreateSlider(uiPenisInterest, true);
+			
+			UIDynamic spacerRandom = CreateSpacer(true);
+			spacerRandom.height = 10f;
+
+			uiRandomBaseDistance = new JSONStorableFloat("Random Base Distance", 1.0f, 0.0f, 5.0f, true, true);
+			RegisterFloat(uiRandomBaseDistance);
+			CreateSlider(uiRandomBaseDistance, true);
+
+			uiRandomBaseHeight = new JSONStorableFloat("Random Base Height", 1.0f, 0.0f, 5.0f, true, true);
+			RegisterFloat(uiRandomBaseHeight);
+			CreateSlider(uiRandomBaseHeight, true);
+
+			uiRandomBaseOffset = new JSONStorableFloat("Random Base Center Offset", 1.0f, 0.0f, 5.0f, true, true);
+			RegisterFloat(uiRandomBaseOffset);
+			CreateSlider(uiRandomBaseOffset, true);
+
+			triggerArousal = new JSONStorableFloat("Arousal", 1.00f, 0.0f, 10.0f, true, true);
+			RegisterFloat(triggerArousal);
+			triggerValence = new JSONStorableFloat("Valence", 1.00f, 0.0f, 10.0f, true, true);
+			RegisterFloat(triggerValence);
 
             lookDirectAngle = uiDirectGaze.val;// * (playerHeadToHead / personalSpaceDistance);
             lookPeripheralAngle = uiPeripheralGaze.val;
@@ -910,57 +1693,107 @@ namespace VRAdultFun
         public void Start()
 		{
 			headAudio = containingAtom.GetStorableByID("HeadAudioSource");
+			
+			headAudio.SetBoolParamValue("spatialize", false);
+			headAudio.SetFloatParamValue("volume", 5.0f);
+		
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_In1.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_In2.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_In3.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_In4.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_In5.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_In6.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_In_Fast1.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_In_Fast2.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_In_Fast3.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_In_Fast4.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Out1.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Out2.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Out3.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Out4.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Out5.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Nose_In_Long1.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Nose_In_Long2.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Nose_In_Med1.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Nose_In_Med2.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Nose_In_Med3.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Nose_Out_Long1.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Nose_Out_Long2.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Nose_Out_Long3.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Nose_Out_Long4.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah1.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah2.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah3.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah4.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah5.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah6.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah7.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah8.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah9.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah10.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah11.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah12.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah13.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah14.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah15.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Aah16.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh1.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh2.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh3.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh4.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh5.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh6.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh7.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh8.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh9.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh10.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh11.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh12.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh13.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh14.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Ooh15.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm1.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm2.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm3.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm4.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm5.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm6.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm7.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm8.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm9.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm10.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm11.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm12.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm13.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm14.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm15.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Mmm16.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Yeah1.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Yeah2.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Yeah3.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Yeah4.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Yeah5.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Yeah6.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Yeah7.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Breath_Mouth_Yeah8.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Kiss1.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Kiss2.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Kiss3.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Kiss4.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Kiss5.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Kiss6.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Kiss7.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Kiss8.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Kiss9.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Kiss10.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Kiss_Mmm1.wav");
+			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/Sounds/Kiss_Mmm2.wav");
+
 
             //SuperController.LogError("public void OnPostLoad()");
             //debugUI = Utils.GetAtom("debugText");
             //debugUIControl = debugUI.GetStorableByID("control") as UITextControl;
 			//emTarget = SuperController.singleton.GetAtomByUid("EMTarget");
-			
-			/*Object[] allObj = GameObject.FindObjectsOfType(typeof(MonoBehaviour));
-			string name = "";
-			foreach(Object go in allObj)
-			{
-				name = go.name;
-				if (name.Contains("Arm"))// && name.Contains("arm"))
-				{
-				//SuperController.LogError(go.name);
-				}
-			}*/
-			
-			/*
-			GameObject collider = GameObject.Find("AutoColliderFemaleAutoColliderschest6");
-			if (collider != null)
-			{
-				//SuperController.LogError("Collider Found");
-				AutoCollider ac = collider.GetComponent<AutoCollider>();
-				ac.autoRadiusBuffer = 0.06f;
-				ac.autoLengthBuffer = 0.02f;
-			}
-			collider = GameObject.Find("AutoColliderFemaleAutoColliderschest5");
-			if (collider != null)
-			{
-				//SuperController.LogError("Collider Found");
-				AutoCollider ac = collider.GetComponent<AutoCollider>();
-				ac.autoRadiusBuffer = 0.005f;
-				ac.autoLengthBuffer = 0.047f;
-			}
-			collider = GameObject.Find("AutoColliderFemaleAutoColliderschest4");
-			if (collider != null)
-			{
-				//SuperController.LogError("Collider Found");
-				AutoCollider ac = collider.GetComponent<AutoCollider>();
-				ac.autoRadiusBuffer = 0.05f;
-				ac.autoLengthBuffer = 0.06f;
-			}
-
-			collider = GameObject.Find("AutoColliderFemaleAutoColliderschest3");
-			if (collider != null)
-			{
-				//SuperController.LogError("Collider Found");
-				AutoCollider ac = collider.GetComponent<AutoCollider>();
-				ac.autoRadiusBuffer = 0.00f;
-				ac.autoLengthBuffer = 0.02f;
-			}*/
 
             person = containingAtom;//SuperController.singleton.GetAtomByUid("Person");
             if (person != null)
@@ -974,7 +1807,6 @@ namespace VRAdultFun
 				headController.RBMass = 10.0f;
                 headActual = person.GetStorableByID("head") as FreeControllerV3;
                 eyeController = person.GetStorableByID("eyeTargetControl") as FreeControllerV3;
-				eyeController.hidden = true;
                 neckController = person.GetStorableByID("neckControl") as FreeControllerV3;
                 chestController = person.GetStorableByID("chestControl") as FreeControllerV3;
 				chestControllerYAngle = chestController.transform.eulerAngles.y;
@@ -1018,11 +1850,7 @@ namespace VRAdultFun
 
                     morphBrowDown = morphUI.GetMorphByDisplayName("Brow Down");
                     morphBrowUp = morphUI.GetMorphByDisplayName("Brow Up");
-                    //morphBrowCenterUp = morphUI.GetMorphByDisplayName("AAsex_sqntwrry2sm1");
-					//if (morphBrowCenterUp == null)
-					//{
-						morphBrowCenterUp = morphUI.GetMorphByDisplayName("Brow Inner Up");
-					//}
+                    morphBrowCenterUp = morphUI.GetMorphByDisplayName("Brow Inner Up");
                     morphBrowOuterUpLeft = morphUI.GetMorphByDisplayName("Brow Outer Up Left");
                     morphBrowOuterUpRight = morphUI.GetMorphByDisplayName("Brow Outer Up Right");
 
@@ -1058,34 +1886,28 @@ namespace VRAdultFun
 					{
 						morphExpTakingIt = morphUI.GetMorphByDisplayName("Taking It");
 					}
-                    morphMouthMouthOpen = morphUI.GetMorphByDisplayName("Mouth Open");
+                    //morphMouthMouthOpen = morphUI.GetMorphByDisplayName("Mouth Open");
                     morphMouthMouthOpenWide = morphUI.GetMorphByDisplayName("AAsex_closetightsm1e");
-					if (morphMouthMouthOpenWide == null)
+					if (morphExpTakingIt == null)
 					{
-						morphMouthMouthOpenWide = morphUI.GetMorphByDisplayName("Mouth Open Wide");
+						morphExpTakingIt = morphUI.GetMorphByDisplayName("Mouth Open Wide");
 					}
                     morphMouthOpenWider = morphUI.GetMorphByDisplayName("Scream");
-                    morphMouthNarrow = morphUI.GetMorphByDisplayName("Mouth Narrow");
+                    //morphMouthNarrow = morphUI.GetMorphByDisplayName("Mouth Narrow");
                     morphMouthSideLeft = morphUI.GetMorphByDisplayName("Mouth Side-Side Left");
                     morphMouthSideRight = morphUI.GetMorphByDisplayName("Mouth Side-Side Right");
                     morphMouthSmileSimpleLeft = morphUI.GetMorphByDisplayName("Mouth Smile Simple Left");
                     morphMouthSmileSimpleRight = morphUI.GetMorphByDisplayName("Mouth Smile Simple Right");
-                    morphLipsLipsPucker = morphUI.GetMorphByDisplayName("Lips Pucker");
+                    //morphLipsLipsPucker = morphUI.GetMorphByDisplayName("Lips Pucker");
 					if (morphLipsLipsPucker == null)
 					{
 						morphLipsLipsPucker = morphUI.GetMorphByDisplayName("W");
 					}
                     morphLipsLipsPuckerWide = morphUI.GetMorphByDisplayName("Lips Pucker Wide");
-					morphLipsLipBite = morphUI.GetMorphByDisplayName("AAsex_wideFF8");
-					if (morphLipsLipBite == null)
-					{
-						morphLipsLipBite = morphUI.GetMorphByDisplayName("Lip Bite");
-					}
+                    morphLipsLipBite = morphUI.GetMorphByDisplayName("Lip Bite");
                     morphLipsLipsClose = morphUI.GetMorphByDisplayName("Lips Close");
                     morphLipsLipsPart = morphUI.GetMorphByDisplayName("Lips Part");
-                    morphLipsLipsPartCenter = morphUI.GetMorphByDisplayName("Lips Part Center");
                     morphLipsBottomDown = morphUI.GetMorphByDisplayName("Lip Bottom Down");
-                    morphLipBottomIn = morphUI.GetMorphByDisplayName("Lip Bottom In");
                     morphLipsPouty = morphUI.GetMorphByDisplayName("MouthPouty");
                     morphMouthSmileMuscle = morphUI.GetMorphByDisplayName("SmileMuscles");
                     morphVisF = morphUI.GetMorphByDisplayName("F");
@@ -1096,7 +1918,7 @@ namespace VRAdultFun
                     morphTongueInOut = morphUI.GetMorphByDisplayName("Tongue In-Out");
                     morphTongueSideSide = morphUI.GetMorphByDisplayName("Tongue Side-Side");
                     morphTongueBendTip = morphUI.GetMorphByDisplayName("Tongue Curl");
-                    morphTongueLength = morphUI.GetMorphByDisplayName("Tongue Length");
+                    //morphTongueLength = morphUI.GetMorphByDisplayName("Tongue Length");
 
                     morphRibCageSize = morphUI.GetMorphByDisplayName("Ribcage Size");
                     morphChestHeight = morphUI.GetMorphByDisplayName("Chest Height");
@@ -1116,12 +1938,8 @@ namespace VRAdultFun
 						morphBreastHeight = morphUI.GetMorphByDisplayName("Sternum Depth");
 						personIsMale = true;
 					}
-					morphBreastDroopLeft = morphUI.GetMorphByDisplayName("Breast droop left");
-					morphBreastDroopRight = morphUI.GetMorphByDisplayName("Breast droop right");
-					morphBreastHangLeft = morphUI.GetMorphByDisplayName("Breasts Hang Forward Left");
-					morphBreastHangRight = morphUI.GetMorphByDisplayName("Breasts Hang Forward Right");
 					morphBreath = morphUI.GetMorphByDisplayName("Breath1");
-                    //morphRibsDef = morphUI.GetMorphByDisplayName("Ribs Definition");
+                    morphRibsDef = morphUI.GetMorphByDisplayName("Ribs Definition");
                     morphSternumDepth = morphUI.GetMorphByDisplayName("Sternum Depth");
                     morphNipplesApply = morphUI.GetMorphByDisplayName("Nipples Apply");
                     morphDeepBulgeBellyBottom = morphUI.GetMorphByDisplayName("deepbulge_bot");
@@ -1140,10 +1958,6 @@ namespace VRAdultFun
 					//SuperController.LogError("Morphs Loaded");
 					
                 }
-				headLeftRight = Vector3.SignedAngle (chestController.followWhenOff.forward, headController.followWhenOff.forward, chestController.followWhenOff.up);
-				headUpDown = Vector3.SignedAngle (chestController.followWhenOff.forward, headController.followWhenOff.forward, -chestController.followWhenOff.right);
-				headLastLeftRight = headLeftRight;
-				headLastUpDown = headUpDown;
             }
             playerHandsUsable = false;
             person2Usable = false;
@@ -1160,26 +1974,9 @@ namespace VRAdultFun
 			{
 			aCubeController = aCube.GetStorableByID("control") as FreeControllerV3;
 			}
-            person2 = SuperController.singleton.GetAtomByUid(uiFocusTarget.val);
-            if (person2 != null)
-            {
-				person2IsMale = false;
-				
-				if (person2.gameObject.name == "Genesis2Male")//morphTemp == null)
-				{
-					person2IsMale = true;
-				}
-				//SuperController.LogError("Person2 Found");
-                person2Usable = true;
-                playerHeadController = person2.GetStorableByID("headControl") as FreeControllerV3;
-                playerChestController = person2.GetStorableByID("chestControl") as FreeControllerV3;
-                playerLHandController = person2.GetStorableByID("lHandControl") as FreeControllerV3;
-                playerRHandController = person2.GetStorableByID("rHandControl") as FreeControllerV3;
-                playerPelvisController = person2.GetStorableByID("pelvisControl") as FreeControllerV3;
-                playerTipController = person2.GetStorableByID("penisTipControl") as FreeControllerV3;
-                playerTipBaseController = person2.GetStorableByID("penisBaseControl") as FreeControllerV3;
-            }
-			else
+            currentAtomName = uiFocusTarget.val;
+            ResolveActivePerson2Target(currentAtomName);
+			if (person2 == null && usePerson2)
 			{
 				//SuperController.LogError("No Person2");
 				person2Usable = false;
@@ -1197,14 +1994,14 @@ namespace VRAdultFun
                 return;
             }
 
-            if (usePerson2 && person2Usable)
+            if (ShouldUsePerson2AsPrimaryTarget())
             {
 				//SuperController.LogError("Using Person2");
-                playerFace = playerHeadController.followWhenOff.position;
-                playerLHand = playerLHandController.followWhenOff.position;
-                playerRHand = playerRHandController.followWhenOff.position;
-                playerPelvis = playerPelvisController.followWhenOff.position;
-                playerTip = playerTipController.followWhenOff.position;
+                playerFace = GetFollowPositionOrFallback(playerHeadController, player.position);
+                playerLHand = GetFollowPositionOrFallback(playerLHandController, playerFace);
+                playerRHand = GetFollowPositionOrFallback(playerRHandController, playerFace);
+                playerPelvis = GetFollowPositionOrFallback(playerPelvisController, playerFace);
+                playerTip = GetFollowPositionOrFallback(playerTipController, playerFace);
             }
             else
             {
@@ -1244,9 +2041,9 @@ namespace VRAdultFun
 				}
             }
 
-            if (usePerson2 && person2 != null)
+            if (ShouldUsePerson2AsPrimaryTarget() && person2 != null)
             {
-                playerHeadTransform = playerHeadController.followWhenOff;
+                playerHeadTransform = GetFollowTransformOrFallback(playerHeadController, player);
                 closeFaceDistance = closeFaceDistance * 1.85f;
                 person2Usable = true;
             }
@@ -1272,58 +2069,29 @@ namespace VRAdultFun
 				//testString = "not Setup";
 			}
             systemSM.Switch(sUpdate);
-			//SuperController.LogError("Startup Complete");			
-			
-			loadStateConfig();
-			CreatePersonalityUI();
-			CreateTargetUI();
+			//SuperController.LogError("Startup Complete");
         }
 
                      
         public void FixedUpdate()
         {
-			bool testRun = false;
-			if (testRun)
-			{
-				if (lookAction == false)
-				{
-					lookSM.Switch(lSex);
-				}
-			}
-			
-			if (uiDoSounds.val)
-			{
-				if (soundsLoaded == false)
-				{
-					audioClip = URLAudioClipManager.singleton.GetClip("Breath_Nose_Out_Long1.wav");
-					if (audioClip == null)
-					{
-						LoadSounds();
-					}
-					else
-					{
-						soundsLoaded = true;
-					}
-				}
-				headAudio.SetBoolParamValue("spatialize", true);
-				headAudio.SetFloatParamValue("volume", 5.0f);
-			}
 			//audiosource.Play();
 			//SuperController.singleton.ClearErrors();
-			//player = CameraTarget.centerTarget.transform;
+			person = containingAtom;
+			player = CameraTarget.centerTarget.transform;
 			gHeadSpeed = 1.75f;
 			usePerson2 = uiUsePerson2.val;
 			oldEyePos = eyeController.transform.position;
-			personalSpaceDistance = uiPersonalSpace.val;//Mathf.Min(uiPersonalSpace.val,Mathf.Max(playerHeadToHead + 0.5f, closeFaceDistance*3.0f));
-			backgroundDistance = personalSpaceDistance * 1.5f;
-            lookDirectAngle = Mathf.Lerp(uiDirectGaze.val / 2.0f, uiDirectGaze.val * 2.0f,Mathf.Clamp(playerHeadToHead-kissingDistance,0.0f,personalSpaceDistance) / personalSpaceDistance);// * (playerHeadToHead / personalSpaceDistance);
+			personalSpaceDistance = Mathf.Min(uiPersonalSpace.val,Mathf.Max(playerHeadToHead + 0.5f, closeFaceDistance*3.0f));
+			backgroundDistance = personalSpaceDistance * 2.0f;
+            lookDirectAngle = Mathf.Lerp(uiDirectGaze.val * 2.0f, uiDirectGaze.val,Mathf.Clamp(playerHeadToHead-kissingDistance,0.0f,personalSpaceDistance) / personalSpaceDistance);// * (playerHeadToHead / personalSpaceDistance);
             lookPeripheralAngle = uiPeripheralGaze.val;
             lookNoAwarenessAngle = uiOutOfGaze.val;
 			eyesNonDirectAngle = lookDirectAngle / 2.0f;
 			closeFaceDistance = uiCloseToFaceDist.val;
 			interactionDistance = uiInteractDist.val;
 			interestMaxSmile = uiMaxMorphSmile.val;
-			doHands = uiDoHands.val;
+			doHands = AllowTorsoAndLimbEffects && uiDoHands.val;
 			kissingDistance = uiKissingDist.val;
 			eyeUpdateTime = uiEyeUpdate.val;
 			currentAtomName = uiFocusTarget.val;
@@ -1342,70 +2110,14 @@ namespace VRAdultFun
 			randomBaseDistance = uiRandomBaseDistance.val;
 			randomBaseHeight = uiRandomBaseHeight.val;
 			randomBaseOffset = uiRandomBaseOffset.val;
-			interestFaceBase = 60.0f * uiHeadInterest.val;
-			interestLHandBase = 45.0f * uiLHandInterest.val;
-			interestRHandBase = 45.0f * uiRHandInterest.val;
-			interestPelvisBase = 20.0f * uiPenisInterest.val;
-			interestTipBase = 30.0f * uiPenisInterest.val;
-			interestEMTargetBase = 20.0f * uiObjectInterest.val;
-			//energyAmount = 0.0f;
-			
 
-			Vector3 headForwardOnPelvis = Vector3.ProjectOnPlane(headController.followWhenOff.forward, pelvisController.followWhenOff.up);
-			headLeftRight = Vector3.SignedAngle(pelvisController.followWhenOff.forward, headForwardOnPelvis, pelvisController.followWhenOff.up);
-			Vector3 headUpOnChest = Vector3.ProjectOnPlane(headController.followWhenOff.forward, -chestController.followWhenOff.right);
-			headUpDown = Vector3.SignedAngle (chestController.followWhenOff.forward, headUpOnChest, -chestController.followWhenOff.right);
-						
+			//EASY MATE 12-9-2019
+            //for already having sex, high arousal all the time
+            if (interestArousal < 8) interestArousal = 8.0f;
+			//END EASY MATE
 			
-			if (uiEffectMaterial.val && materialCaptured == false)
+			if (interestArousal > 8.0f)
 			{
-				MaterialOptions[] mo = containingAtom.gameObject.GetComponentsInChildren<MaterialOptions>();
-				tempFloat = 0.0f;
-				if(mo!=null)
-				{
-					//SuperController.LogMessage("Materials found = " + mo.Length.ToString());
-					foreach (MaterialOptions m in mo)
-					{
-						//SuperController.LogMessage(m.name); //Show all the names
-						if (m.name == "female7" && tempFloat == 0.0f)
-						{
-							tempFloat = 1.0f;
-							baseGloss = m.GetFloatParamValue("Gloss");
-							baseSpec = m.GetFloatParamValue("Specular Intensity");
-							baseSpecBump = m.GetFloatParamValue("Specular Bumpiness");
-							materialCaptured = true;
-							//SuperController.LogMessage("Gloss : " + baseGloss + " Spec : " + baseSpec);
-						}
-					}
-				}
-			}
-			
-			if (uiEffectMaterial.val == false && materialCaptured)
-			{
-				MaterialOptions[] mo = containingAtom.gameObject.GetComponentsInChildren<MaterialOptions>();
-				tempFloat = 0.0f;
-				if(mo!=null)
-				{
-					//SuperController.LogMessage("Materials found = " + mo.Length.ToString());
-					foreach (MaterialOptions m in mo)
-					{
-						//SuperController.LogMessage(m.name); //Show all the names
-						if (m.name == "female7" && tempFloat == 0.0f)
-						{
-							tempFloat = 1.0f;
-							m.SetFloatParamValue("Gloss", baseGloss);
-							m.SetFloatParamValue("Specular Intensity", baseSpec);
-							m.SetFloatParamValue("Specular Bumpiness", baseSpecBump);
-							materialCaptured = false;
-							//SuperController.LogMessage("Gloss : " + (baseGloss + (interestArousal/2.0f)) + " Spec : " + (baseSpec + (interestArousal/30.0f)));
-						}
-					}
-				}
-			}
-			
-			if (interestArousal > 7.0f)
-			{
-				heatupValue += Time.fixedDeltaTime / 15.0f;
 				interestPeakArousalTimer += Time.fixedDeltaTime;
 				if (interestPeakArousalTimer > 1.0f)
 				{
@@ -1415,15 +2127,13 @@ namespace VRAdultFun
 			}
 			else
 			{
-				heatupValue -= Time.fixedDeltaTime / 20.0f;
 				interestPeakArousalTimer += Time.fixedDeltaTime;
-				if (interestPeakArousalTimer > 1.0f)
+				if (interestPeakArousalTimer > 2.0f)
 				{
 					interestPeakArousal = Mathf.Max(interestPeakArousal - 1.0f,1.0f);
 					interestPeakArousalTimer = 0.0f;
 				}
 			}
-			heatupValue = Mathf.Clamp(heatupValue, 0.0f, 10.0f);
 			if (interestValence > 8.0f)
 			{
 				interestPeakValenceTimer += Time.fixedDeltaTime;
@@ -1448,31 +2158,6 @@ namespace VRAdultFun
 				interestPeakArousal = 0.0f;
 				interestPeakValence = 0.0f;
 			}
-
-			if (uiEffectMaterial.val && materialCaptured)
-			{
-				MaterialOptions[] mo = containingAtom.gameObject.GetComponentsInChildren<MaterialOptions>();
-				tempFloat = 0.0f;
-				if(mo!=null)
-				{
-					//SuperController.LogMessage("Materials found = " + mo.Length.ToString());
-					foreach (MaterialOptions m in mo)
-					{
-						//SuperController.LogMessage(m.name); //Show all the names
-						if (m.name == "female7" && tempFloat == 0.0f)
-						{
-							tempFloat = 1.0f;
-							m.SetFloatParamValue("Gloss", baseGloss + (Mathf.Lerp(0.0f,3.0f,heatupValue) * uiMaterialMult.val));
-							m.SetFloatParamValue("Specular Intensity", baseSpec + (Mathf.Lerp(0.0f,0.3f,heatupValue) * uiMaterialMult.val));
-							m.SetFloatParamValue("Specular Bumpiness", baseSpecBump + (Mathf.Lerp(0.0f,0.1f,heatupValue)));
-							//SuperController.LogMessage("Gloss : " + (baseGloss + (interestArousal/2.0f)) + " Spec : " + (baseSpec + (interestArousal/30.0f)));
-						}
-					}
-				}
-			}
-
-
-
 			
 			if (blinkRepTimer > 4.0f * uiBlinkSpeed.val)
 			{
@@ -1489,16 +2174,7 @@ namespace VRAdultFun
 				twistActual = Mathf.Clamp(twistActual - twistSpeed, twistTarget, twistActual);
 			}
 
-			if (headLastLeftRightActual < headLastLeftRight)
-			{
-				headLastLeftRightActual = Mathf.Clamp(headLastLeftRightActual + twistSpeed, headLastLeftRightActual, headLastLeftRight);
-			}
-			if (headLastLeftRightActual > headLastLeftRight)
-			{
-				headLastLeftRightActual = Mathf.Clamp(headLastLeftRightActual - twistSpeed, headLastLeftRight, headLastLeftRightActual);
-			}
-
-			tempFloat = uiIdleSpeed.val / 5.0f;
+			tempFloat = uiIdleSpeed.val / 10.0f;
 			if (lElbowActual < lElbowTarget)
 			{
 				lElbowActual = Mathf.Clamp(lElbowActual + tempFloat, lElbowActual, lElbowTarget);
@@ -1532,6 +2208,9 @@ namespace VRAdultFun
 			//	loadDefaults();
 			//}
 			
+			personEyes.SetStringChooserParamValue("lookMode", "Target");
+			//personEyelids.SetBoolParamValue("blinkEnabled", false);
+			containingAtom.GetStorableByID("AutoExpressions").SetBoolParamValue("enabled", false);
 			//SuperController.LogError("Init");
 
 			if (uiFocusTarget.val == "None")
@@ -1543,8 +2222,10 @@ namespace VRAdultFun
 				uiTargetLook.val = false;
 			}
 			
-/*			if (uiObjectTarget.val != "None" && emTarget != null)
+			if (uiObjectTarget.val != "None")
 			{
+				emTargetName = uiObjectTarget.val;
+				emTarget = SuperController.singleton.GetAtomByUid(uiObjectTarget.val);
 				if (emTarget.type == "Person")
 				{
 					emTargetController = emTarget.GetStorableByID("headControl") as FreeControllerV3;
@@ -1553,63 +2234,17 @@ namespace VRAdultFun
 				{
 					emTargetController = emTarget.GetStorableByID("control") as FreeControllerV3;
 				}
-				if (uiObjectTarget.val == "[CameraRig]")
-				{
-					emTargetTransform = CameraTarget.centerTarget.transform;
-				}
-				else
-				{
-					emTargetTransform = emTargetController.transform;
-				}
 			}
 			else
 			{
 				emTargetName = "None";
 				emTarget = null;
 				emTargetController = null;
-			}*/
-						if (uiObjectTarget.val != "None" && emTargetName != uiObjectTarget.val)
-						{
-							emTargetName = uiObjectTarget.val;
-							emTarget = SuperController.singleton.GetAtomByUid(uiObjectTarget.val);
-							if (emTarget != null)
-							{
-								if (emTarget.type == "Person")
-								{
-									emTargetController = emTarget.GetStorableByID("headControl") as FreeControllerV3;
-								}
-								else
-								{
-									emTargetController = emTarget.GetStorableByID("control") as FreeControllerV3;
-								}
-								if (uiObjectTarget.val == "[CameraRig]")
-								{
-									emTargetTransform = CameraTarget.centerTarget.transform;
-								}
-								else
-								{
-									emTargetTransform = emTargetController.transform;
-								}
-							}
-							else
-							{
-								emTargetName = "None";
-								emTarget = null;
-								emTargetController = null;
-							}
-						}
-						else
-						{
-							emTargetName = "None";
-							emTarget = null;
-							emTargetController = null;
-						}
+			}
 			
-			//SuperController.LogError("Target Done");
 			currentAtom = SuperController.singleton.GetAtomByUid(currentAtomName);
-			if (currentAtom != person2 && currentAtom != null)
+			if (currentAtom != null && currentAtom != person2)
 			{
-				person2 = currentAtom;
 				systemSM.Switch(sReselectPerson2);
 			}
 
@@ -1632,12 +2267,10 @@ namespace VRAdultFun
 			
 			if (person != null)
 			{
-				if (!EmotionLiteDisableHeadAndNeck && uiConfigHead.val && uiDoHead.val)
+				if (uiConfigHead.val && HeadMotionAllowed())
 				{
 					//SuperController.LogError("Config Head");
 					//headController.currentPositionState = FreeControllerV3.PositionState.Off;
-					personEyes.SetStringChooserParamValue("lookMode", "Target");
-
 					headController.currentRotationState = FreeControllerV3.RotationState.On;
 					headController.jointRotationDriveSpring = 3;
 					headController.jointRotationDriveDamper = 2.9f;
@@ -1661,7 +2294,7 @@ namespace VRAdultFun
 					neckController.jointRotationDriveSpring = 70;
 					neckController.jointRotationDriveDamper = 40;
 					
-					neckController.jointRotationDriveXTarget = Mathf.Lerp(10.0f,-20.0f,Mathf.Clamp(playerHeadToHead, 0.0f, personalSpaceDistance)/personalSpaceDistance);
+					neckController.jointRotationDriveXTarget = Mathf.Lerp(10.0f,-20.0f,Mathf.Clamp(playerHeadToHead, 0.0f, 1.0f));
 					neckController.jointRotationDriveYTarget = 0.0f;
 					neckController.jointRotationDriveZTarget = 0.0f;
 					if (currentLook == "Sucking")
@@ -1689,30 +2322,30 @@ namespace VRAdultFun
 						}
 						else
 						{
-
-							if (currentLook == "Sex" && vagTouchCount > 0.0f && mainInterest == "Pelvis" && interestValence > 5.5f)
+							if (kissingAngle < 0.0f)
 							{
-								kissingAngle = Mathf.Clamp(kissingAngle + 0.15f,0.0f,20.0f);
+								kissingAngle = Mathf.Clamp(kissingAngle + 0.3f,-40.0f,00.0f);
+								neckController.jointRotationDriveXTarget = kissingAngle;
+							}
+
+							if (currentLook == "Sex" && vagTouchCount > 0.0f && mainInterest == "Pelvis" && interestValence > 9.5f)
+							{
+								kissingAngle = Mathf.Clamp(kissingAngle + 0.05f,0.0f,20.0f);
+								neckController.jointRotationDriveXTarget = kissingAngle;
 							}
 							else
 							{
-								kissingAngle = headUpDown / 5.0f;
+								//kissingAngle = Mathf.Clamp(kissingAngle - 0.2f,0.0f,20.0f);
 							}
-
-							if (kissingAngle < 0.0f && headUpDown < 0.0f)
-							{
-								kissingAngle = Mathf.Clamp(kissingAngle + 0.3f,-40.0f,00.0f);
-							}
-							neckController.jointRotationDriveXTarget = kissingAngle;
 						}
 					}
 					neckController.RBHoldRotationDamper = Mathf.Lerp(35,85,interestArousal/10.0f);
 				}
 				
-				if (uiDoChest.val)
+				if (AllowTorsoAndLimbEffects && uiDoChest.val)
 				{
 					//SuperController.LogError("Do Chest");
-					chestController.jointRotationDriveSpring = 100;
+					//chestController.jointRotationDriveSpring = 400;
 					chestController.jointRotationDriveDamper = 235;
 					chestController.jointRotationDriveXTarget = (Mathf.SmoothStep(-10.0f,Mathf.Lerp(10.0f,20.0f,interestArousal/10.0f), breathClock) * uiBreatheExpandMultiplier.val) * uiChestAmount.val;
 					if (currentLook == "Sucking")
@@ -1721,15 +2354,20 @@ namespace VRAdultFun
 					}
 					if (uiIdleAmount.val > 0.0f)
 					{
-						chestController.transform.eulerAngles = new Vector3(chestController.transform.eulerAngles.x, pelvisController.transform.eulerAngles.y + ((headLeftRight / 4.0f) * uiIdleAmount.val), chestController.transform.eulerAngles.z);
+						Vector3 cross = Vector3.Cross(chestController.followWhenOff.forward, headController.followWhenOff.forward);
+						chestController.transform.eulerAngles = new Vector3(chestController.transform.eulerAngles.x, chestControllerYAngle + (cross.y * 20.0f), chestController.transform.eulerAngles.z);
 					}
 					chestController.jointRotationDriveYTarget = (twistActual / 2.7f) * uiIdleAmount.val;
 					chestController.jointRotationDriveZTarget = (gHeadRoll * 4.0f) * uiIdleAmount.val;
 					abdomenController.jointRotationDriveYTarget = (twistActual / 2.0f) * uiIdleAmount.val;
 					abdomenController.jointRotationDriveZTarget = (gHeadRoll * 1.0f) * uiIdleAmount.val;
+					//Vector3 relative;
+					//relative = chestController.followWhenOff.InverseTransformDirection(headController.followWhenOff.forward);
+					//chestController.jointRotationDriveYTarget = 0.0f - Vector3.Angle(playerHeadTransform.position - headController.followWhenOff.position, chestController.followWhenOff.forward);
+
 				}
 				
-				if (uiDoShoulders.val)
+				if (AllowTorsoAndLimbEffects && uiDoShoulders.val)
 				{
 					//SuperController.LogError("Do Shoulders");
 					//lShoulderController.RBHoldRotationSpring = 10;
@@ -1761,68 +2399,37 @@ namespace VRAdultFun
 					//rShoulderController.jointRotationDriveZTarget += -sexActionNeckX * 2.0f;
 				}
 
-				if (uiIdleArmAmount.val > 0.0f)
+				if (AllowTorsoAndLimbEffects && (uiIdleAmount.val > 0.0f || uiIdleArmAmount.val > 0.0f))
 				{
-					lElbowController.jointRotationDriveSpring = 120.0f;
+
 					lElbowController.jointRotationDriveXTarget = lElbowActual * uiIdleArmAmount.val * (interestValence / 10.0f);
-					lArmController.jointRotationDriveSpring = 120.0f;
-					lArmController.jointRotationDriveYTarget = ((lElbowActual + 50.0f) * uiIdleArmAmount.val * (interestArousal / 10.0f)) + (headLastLeftRightActual/1.0f); //-twistActual;
-					lArmController.jointRotationDriveZTarget = ((interestArousal - 5.0f) * 5.0f * uiIdleArmAmount.val) + uiIdleArmOffset.val;
-					lArmController.jointRotationDriveXTarget = -50.0f - (headLastLeftRightActual/3.0f);//Mathf.Lerp(-55.0f, -70.0f, lElbowActual / 120.0f);//Mathf.Clamp(-30.0f + Mathf.Abs(lElbowActual) * uiIdleAmount.val,-70.0f, -35.0f);
+					lArmController.jointRotationDriveYTarget = (lElbowActual - 70.0f) * uiIdleArmAmount.val * (interestArousal / 10.0f); //-twistActual;
+					lArmController.jointRotationDriveZTarget = -(lElbowActual - 30.0f) * uiIdleArmAmount.val;
+					lArmController.jointRotationDriveXTarget = Mathf.Lerp(-55.0f, -70.0f, lElbowActual / 120.0f);//Mathf.Clamp(-30.0f + Mathf.Abs(lElbowActual) * uiIdleAmount.val,-70.0f, -35.0f);
 					
-					lHandController.jointRotationDriveSpring = 15.0f;
-					lHandController.jointRotationDriveDamper = 4.5f;
-					lHandController.jointRotationDriveXTarget = (lElbowActual * 0.3f) * uiIdleArmAmount.val;
-					lHandController.jointRotationDriveZTarget = (lElbowActual + 80.0f) * uiIdleArmAmount.val;
-					lHandController.jointRotationDriveYTarget = -(lElbowActual + 50.0f) * uiIdleArmAmount.val;
+					lHandController.jointRotationDriveXTarget = (lElbowActual / 20.0f) * uiIdleArmAmount.val;
+					lHandController.jointRotationDriveZTarget = (lElbowActual + 60.0f) * uiIdleArmAmount.val;
 					
-					rElbowController.jointRotationDriveSpring = 120.0f;
 					rElbowController.jointRotationDriveXTarget = rElbowActual * uiIdleArmAmount.val * (interestValence / 10.0f);
-					rArmController.jointRotationDriveSpring = 120.0f;
-					rArmController.jointRotationDriveYTarget = ((rElbowActual - 50.0f) * uiIdleArmAmount.val * (interestArousal / 10.0f)) + (headLastLeftRightActual/1.0f); //twistActual;
-					rArmController.jointRotationDriveZTarget = ((interestArousal - 5.0f) * 5.0f * uiIdleArmAmount.val) + uiIdleArmOffset.val;
-					rArmController.jointRotationDriveXTarget = 50.0f - (headLastLeftRightActual/3.0f);//Mathf.Lerp(55.0f, 70.0f, rElbowActual / 120.0f);//Mathf.Clamp(30.0f - Mathf.Abs(rElbowActual) * uiIdleAmount.val,70.0f, 35.0f);
+					rArmController.jointRotationDriveYTarget = (rElbowActual - 70.0f) * uiIdleArmAmount.val * (interestArousal / 10.0f); //twistActual;
+					rArmController.jointRotationDriveZTarget = -(rElbowActual - 30.0f) * uiIdleArmAmount.val;
+					rArmController.jointRotationDriveXTarget = Mathf.Lerp(55.0f, 70.0f, rElbowActual / 120.0f);//Mathf.Clamp(30.0f - Mathf.Abs(rElbowActual) * uiIdleAmount.val,70.0f, 35.0f);
 					
-					rHandController.jointRotationDriveSpring = 15.0f;
-					rHandController.jointRotationDriveDamper = 4.5f;
-					rHandController.jointRotationDriveXTarget = (rElbowActual * 0.3f) * uiIdleArmAmount.val;
-					rHandController.jointRotationDriveZTarget = (rElbowActual - 80.0f) * uiIdleArmAmount.val;
-					rHandController.jointRotationDriveYTarget = -(rElbowActual - 50.0f) * uiIdleArmAmount.val;
-				}
-				else
-				{
-					lElbowController.jointRotationDriveSpring = 5.0f;
-					lElbowController.jointRotationDriveDamper = 3.5f;
-					lArmController.jointRotationDriveSpring = 5.0f;
-					lArmController.jointRotationDriveDamper = 3.5f;
-					rElbowController.jointRotationDriveSpring = 5.0f;
-					rElbowController.jointRotationDriveDamper = 3.5f;
-					rArmController.jointRotationDriveSpring = 5.0f;
-					rArmController.jointRotationDriveDamper = 3.5f;
-				}
-				
-				if (uiIdleAmount.val > 0.0f)
-				{
-				
+					rHandController.jointRotationDriveXTarget = (rElbowActual / 20.0f) * uiIdleArmAmount.val;
+					rHandController.jointRotationDriveZTarget = (rElbowActual + 60.0f) * uiIdleArmAmount.val;
+					
 					pelvis2Controller.jointRotationDriveSpring = 175;
 					pelvis2Controller.jointRotationDriveDamper = 55;
 					pelvis2Controller.jointRotationDriveYTarget = (-twistActual * uiIdleAmount.val) / 4.6f;
 					pelvis2Controller.jointRotationDriveZTarget = (twistActual * uiIdleAmount.val) / 7.0f;
 					
 					//chestController.jointRotationDriveXTarget = twistActual * 2.0f * uiIdleAmount.val;
-					chestController.jointRotationDriveZTarget = -gHeadRoll * 0.5f * uiIdleAmount.val;
+					chestController.jointRotationDriveZTarget = -gHeadRoll * 1.0f * uiIdleAmount.val;
 
 					abdomenController.jointRotationDriveSpring = 275;
 					abdomenController.jointRotationDriveDamper = 135;
 					abdomenController.jointRotationDriveYTarget = (twistActual / 10.0f) * uiIdleAmount.val * (interestValence / 10.0f);
 					abdomenController.jointRotationDriveZTarget = gHeadRoll * 0.2f * uiIdleAmount.val * (interestValence / 10.0f);
-					if (vagTouchCount > 0.0f)
-					{
-					chestController.jointRotationDriveSpring = 400;
-					abdomenController.jointRotationDriveSpring = 475;
-					chestController.jointRotationDriveYTarget = (sexActionNeckX * 5.0f) + (Mathf.Max(interestArousal - 8.0f) * 5.0f);
-					abdomenController.jointRotationDriveYTarget = -sexActionNeckX * 5.0f;
-					}
 					
 					lKneeController.jointRotationDriveXTarget = 0.0f - (rElbowActual * 1.50f) * uiIdleAmount.val * (interestArousal / 10.0f);//Mathf.Clamp(rElbowActual * -1.5f, -20.0f, -150.0f);
 					rKneeController.jointRotationDriveXTarget = lElbowActual * 1.50f * uiIdleAmount.val * (interestArousal / 10.0f);//Mathf.Clamp(lElbowActual * 1.5f, -20.0f, -150.0f);
@@ -1830,32 +2437,70 @@ namespace VRAdultFun
 					lThighController.jointRotationDriveXTarget = -gHeadRoll * 3.0f * uiIdleAmount.val * (interestArousal / 10.0f);
 					rThighController.jointRotationDriveXTarget = gHeadRoll * 3.0f * uiIdleAmount.val * (interestArousal / 10.0f);
 				}
-				
-				if (morphBreastDroopLeft != null && morphBreastDroopRight != null)
+
+				/*tempFloat = 0.1f;
+				if (Random.Range(0.0f,100.0f) > 99.7234566f)
 				{
-					float diff = (chestController.followWhenOff.position.y - lElbowController.followWhenOff.position.y) * 1.5f;
-					//float tempval = Mathf.Lerp(0.0f,-0.25f,Mathf.Clamp(diff, 0.0f, 1.0f));
-					//testString = Mathf.Clamp(diff,-0.25f, 0.0f).ToString();
-					tempFloat = -0.7f;
-					morphBreastDroopLeft.SetValue(Round(Mathf.Clamp(diff,tempFloat, 0.0f)));
-					morphBreastHangLeft.SetValue(Round(Mathf.Clamp(diff,tempFloat, 0.0f)));
-					diff = (chestController.followWhenOff.position.y - rElbowController.followWhenOff.position.y) * 1.5f;
-					testString = diff.ToString();
-					//tempval = Mathf.Lerp(0.0f,-0.25f,Mathf.Clamp(diff, 0.0f, 1.0f));
-					morphBreastDroopRight.SetValue(Round(Mathf.Clamp(diff,tempFloat, 0.0f)));
-					morphBreastHangRight.SetValue(Round(Mathf.Clamp(diff,tempFloat, 0.0f)));
+					lArmController.jointRotationDriveXTarget = Random.Range(-30.0f,-70.0f) * tempFloat;
+					lArmController.jointRotationDriveYTarget = Random.Range(-80.0f,80.0f) * tempFloat;
 				}
+				if (Random.Range(0.0f,100.0f) > 99.7234566f)
+				{
+					rArmController.jointRotationDriveXTarget = Random.Range(30.0f,70.0f) * tempFloat;
+					rArmController.jointRotationDriveYTarget = Random.Range(-80.0f,80.0f) * tempFloat;
+				}
+
+				if (Random.Range(0.0f,100.0f) > 99.7234566f)
+				{
+					lElbowController.jointRotationDriveXTarget = Random.Range(0.0f,-100.0f) * tempFloat;
+				}
+				if (Random.Range(0.0f,100.0f) > 99.7234566f)
+				{
+					rElbowController.jointRotationDriveXTarget = Random.Range(0.0f,100.0f) * tempFloat;
+				}
+				if (Random.Range(0.0f,100.0f) > 99.7234566f)
+				{
+					pelvisController.jointRotationDriveXTarget = Random.Range(15.0f,-300.0f) * tempFloat;
+					pelvisController.jointRotationDriveYTarget = Random.Range(-15.0f,15.0f) * tempFloat;
+				}
+				if (Random.Range(0.0f,100.0f) > 99.7234566f)
+				{
+					abdomenController.jointRotationDriveXTarget = Random.Range(15.0f,-300.0f) * tempFloat;
+					abdomenController.jointRotationDriveYTarget = Random.Range(-15.0f,15.0f) * tempFloat;
+				}
+				
+				if (Random.Range(0.0f,100.0f) > 99.7234566f)
+				{
+					lThighController.jointRotationDriveXTarget = Random.Range(0.0f,100.0f) * tempFloat;
+					lThighController.jointRotationDriveYTarget = Random.Range(-50.0f,20.0f) * tempFloat;
+				}
+				if (Random.Range(0.0f,100.0f) > 99.7234566f)
+				{
+					rThighController.jointRotationDriveXTarget = Random.Range(0.0f,100.0f) * tempFloat;
+					rThighController.jointRotationDriveYTarget = Random.Range(-20.0f,50.0f) * tempFloat;
+				}
+
+				if (Random.Range(0.0f,100.0f) > 99.7234566f)
+				{
+					lKneeController.jointRotationDriveXTarget = Random.Range(0.0f,-140.0f) * tempFloat;
+				}
+				if (Random.Range(0.0f,100.0f) > 99.7234566f)
+				{
+					rKneeController.jointRotationDriveXTarget = Random.Range(0.0f,-140.0f) * tempFloat;
+				}*/
+
 			}
 			
 			
+			ResolveActivePerson2Target(currentAtomName);
 			//playerFace = player.position;
-			if (usePerson2 && person2Usable)
+			if (ShouldUsePerson2AsPrimaryTarget())
 			{
-				playerHeadTransform = playerHeadController.followWhenOff;
-				playerLHand = playerLHandController.followWhenOff.position;
-				playerRHand = playerRHandController.followWhenOff.position;
-				playerLHandTransform = playerLHandController.followWhenOff;
-				playerRHandTransform = playerRHandController.followWhenOff;
+				playerHeadTransform = GetFollowTransformOrFallback(playerHeadController, CameraTarget.centerTarget.transform);
+				playerLHand = GetFollowPositionOrFallback(playerLHandController, playerHeadTransform.position);
+				playerRHand = GetFollowPositionOrFallback(playerRHandController, playerHeadTransform.position);
+				playerLHandTransform = GetFollowTransformOrFallback(playerLHandController, playerHeadTransform);
+				playerRHandTransform = GetFollowTransformOrFallback(playerRHandController, playerHeadTransform);
 			}
 			else
 			{
@@ -1892,6 +2537,12 @@ namespace VRAdultFun
             string dbgPenis = "";
             string dbgObject = "";
 			
+			if (aCubeController != null)
+			{
+            aCubeController.transform.position = playerLHandTransform.TransformPoint(new Vector3(0.2f, -0.07f, 0.05f));
+			}
+            //neckController.jointRotationDriveSpring = 123.45f;
+            //debugUIControl.SetValue = "We have Control";
             if (lastBrowState != browSM.CurrentState && browSM.CurrentState != null)
             {
                 lastBrowState = browSM.CurrentState;
@@ -1960,8 +2611,6 @@ namespace VRAdultFun
 				mEyesPupilsTarget = 0.8f * uiPupilDialation.val;
 			}
 			
-			
-			
             breatheInSpeed = Mathf.Lerp(1.0f, 1.7f, interestArousal/10.0f) * uiBreatheSpeed.val;
             breatheOutSpeed = breatheInSpeed * Mathf.Lerp(0.5f,0.8f,interestArousal/10.0f);
             //breatheInSpeed = Mathf.Lerp(1.0f, 1.3f, interestArousal/10.0f) * uiBreatheSpeed.val;
@@ -2001,6 +2650,46 @@ namespace VRAdultFun
 				mLipsCloseTarget = 0.0f;
 			}
 			float tempRandom = -1.0f;
+
+			//EASY MATE 12/8/2019
+            //if we just penetrated, chance to overwrite with deep vag sound
+            if (uiDoSounds.val && deepVagTouch && interestArousal >= 7.0f && Time.timeSinceLevelLoad - lastDeepVagSound > 5.0f)
+            {
+                deepVagTouch = false;
+                lastDeepVagSound = Time.timeSinceLevelLoad;
+
+                //SuperController.LogMessage("Deep V Touch Count : " + deepVagTouchCount, false);
+				
+				tempRandom = Mathf.Round(Random.Range(0.0f, 1.0f));
+				if (tempRandom > 0.5f) {
+					//PLAY OOH
+					tempRandom = Mathf.Round(Random.Range(1.0f,15.0f));
+					while (tempRandom == lastRandomVoice)
+					{
+						tempRandom = Mathf.Round(Random.Range(1.0f,15.0f));
+					}
+					audioClip = URLAudioClipManager.singleton.GetClip(@"Breath_Mouth_Ooh" + tempRandom + ".wav");
+				} else {
+					//PLAY YEAH
+					tempRandom = Mathf.Round(Random.Range(1.0f, 8.0f));
+					while (tempRandom == lastRandomVoice)
+					{
+						tempRandom = Mathf.Round(Random.Range(1.0f, 8.0f));
+					}
+					audioClip = URLAudioClipManager.singleton.GetClip(@"Breath_Mouth_Yeah" + tempRandom + ".wav");
+				}
+				
+                voicePuckerAdjust = 0.2f;
+                voiceOpenAdjust = 0.2f;
+                mVisOWTarget = 0.3f;
+                mVisAATarget = 0.5f;
+
+
+                headAudio.SetFloatParamValue("minDistance", 0.2f * uiSoundVolume.val);
+                headAudio.CallAction("Queue", audioClip);
+                lastRandomVoice = tempRandom;
+            }
+			//END EASY MATE
 			
 			if (interestKissing && uiDoSounds.val && ((AudioSourceControl)headAudio).playingClip == null)// && lipsTouchCount > 0.0f)
 			{
@@ -2019,10 +2708,14 @@ namespace VRAdultFun
 						tempRandom = Mathf.Round(Random.Range(1.0f,16.0f));
 					}
 					audioClip = URLAudioClipManager.singleton.GetClip(@"Breath_Mouth_Mmm" + tempRandom + ".wav");
-					//energyAmount += 1.0f;
 				}
 				headAudio.SetFloatParamValue("minDistance", 0.01f * uiSoundVolume.val);
-				headAudio.CallAction("PlayNow", audioClip);
+				
+				//EASY MATE 12-9-2019
+				headAudio.CallAction("PlayIfClear", audioClip);
+				//headAudio.CallAction("PlayNow", audioClip);
+				//END EASY MATE
+
 				lastRandomVoice = tempRandom;
 			}
             float breathingRate = (Random.Range(0.1f, 0.35f) + (interestArousal / 15.0f)) * uiBreatheSpeed.val;
@@ -2056,11 +2749,10 @@ namespace VRAdultFun
 								mLipsCloseTarget = 0.1f;
 								headAudio.SetFloatParamValue("minDistance", 0.07f * uiSoundVolume.val);
 								voiceMoan = true;
-								if (Random.Range(0.0f,100.0f) > 50.0f && currentLook != "Feel" && currentLook != "Sex" && playerHeadToHead < personalSpaceDistance/2.0f && testRun == false)
+								if (Random.Range(0.0f,100.0f) > 50.0f && currentLook != "Feel" && currentLook != "Sex" && playerHeadToHead < personalSpaceDistance/2.0f)
 								{
 									lookSM.Switch(lFeel);
 								}
-								//energyAmount += 1.0f;
 							}
 							else
 							{
@@ -2094,7 +2786,6 @@ namespace VRAdultFun
 									audioClip = URLAudioClipManager.singleton.GetClip(@"Breath_Mouth_Ooh" + tempRandom + ".wav");
 									//breatheOutSpeed = breatheOutSpeed / 2.0f;
 									//voicePuckerAdjust = 0.2f;
-									//energyAmount += 1.0f;
 									mVisOWTarget = 0.3f;
 								}
 								else
@@ -2105,7 +2796,6 @@ namespace VRAdultFun
 										tempRandom = Mathf.Round(Random.Range(1.0f,16.0f));
 									}
 									audioClip = URLAudioClipManager.singleton.GetClip(@"Breath_Mouth_Aah" + tempRandom + ".wav");
-									//energyAmount += 1.0f;
 									mVisAATarget = 0.3f;
 									if ((vagTouchCount > 0.0f && Random.Range(0.0f,100.0f) > 50.0f) || Random.Range(0.0f,100.0f) > 90.0f)
 									{
@@ -2116,7 +2806,7 @@ namespace VRAdultFun
 										}
 										audioClip = URLAudioClipManager.singleton.GetClip(@"Breath_Mouth_Yeah" + tempRandom + ".wav");
 										voicePuckerAdjust = 0.2f;
-										voiceOpenAdjust = 0.4f;
+										voiceOpenAdjust = 0.2f;
 										mVisOWTarget = 0.3f;
 										mVisAATarget = 0.5f;
 									}
@@ -2125,14 +2815,14 @@ namespace VRAdultFun
 								headAudio.SetFloatParamValue("minDistance", 0.07f * uiSoundVolume.val);
 								if (mMouthOpenTarget < 0.4f)
 								{
-									voiceOpenAdjust = 0.4f;
+									voiceOpenAdjust = 0.2f;
 								}
 								if (mMouthOpenTarget < 0.0f)
 								{
-									voiceOpenAdjust = 0.6f;
+									voiceOpenAdjust = 0.3f;
 								}
 								voiceMoan = true;
-								if (Random.Range(0.0f,100.0f) > 50.0f && currentLook != "Feel" && currentLook != "Sex" && playerHeadToHead < personalSpaceDistance/2.0f && testRun == false)
+								if (Random.Range(0.0f,100.0f) > 50.0f && currentLook != "Feel" && currentLook != "Sex" && playerHeadToHead < personalSpaceDistance/2.0f)
 								{
 									lookSM.Switch(lFeel);
 								}
@@ -2151,7 +2841,12 @@ namespace VRAdultFun
 								voiceMoan = false;
 							}
 						}
-						headAudio.CallAction("PlayNow", audioClip);
+
+						//EASY MATE 12-9-2019
+						headAudio.CallAction("PlayIfClear", audioClip);
+						//headAudio.CallAction("PlayNow", audioClip);
+						//END EASY MATE
+
 						lastRandomVoice = tempRandom;
 					}
                 }
@@ -2196,7 +2891,12 @@ namespace VRAdultFun
 							}
 							voiceMoan = false;
 						}
-						headAudio.CallAction("PlayNow", audioClip);
+						
+						//EASY MATE 12-9-2019
+						headAudio.CallAction("PlayIfClear", audioClip);
+						//headAudio.CallAction("PlayNow", audioClip);
+						//END EASY MATE
+
 					}
                 }
             }
@@ -2208,10 +2908,9 @@ namespace VRAdultFun
 			
 			if (uiDoMorphs.val)
 			{
-				resetMorphs = false;
-				personEyelids.SetBoolParamValue("blinkEnabled", false);
-				containingAtom.GetStorableByID("AutoExpressions").SetBoolParamValue("enabled", false);
 				tempFloat = Mathf.Lerp(0.5f,1.0f,interestArousal/10.0f);
+				if (AllowTorsoAndLimbEffects)
+				{
 				if (morphRibCageSize != null)
 				{
 					morphRibCageSize.SetValue(Mathf.SmoothStep(0.0f, 0.23f * uiBreatheExpandMultiplier.val * tempFloat,breathClock));
@@ -2248,10 +2947,11 @@ namespace VRAdultFun
 				{
 					morphNipplesApply.SetValue(interestArousal/13.0f);
 				}
+				}
 				
 				
 				//SuperController.LogError("Breathing Morphs done");
-				if (morphDeepBulgeBellyBottom != null && morphDeepBulgeBellyMid != null && usePerson2 && uiDoSex.val)
+				if (AllowTorsoAndLimbEffects && morphDeepBulgeBellyBottom != null && morphDeepBulgeBellyMid != null && usePerson2 && uiDoSex.val)
 				{
 					tempFloat = Vector3.Distance(pelvisController.followWhenOff.position, playerTipController.followWhenOff.position);
 					if ( tempFloat < 0.15f)
@@ -2354,10 +3054,8 @@ namespace VRAdultFun
 					//SuperController.LogError("Hand Morphs Done");
 				}
 
-				tempFloat = -0.2f + (Mathf.Max(mSmileFullFaceValue,mSmileOpenFullFaceValue) + mTakingItValue) * 1.0f;
-				//tempFloat = tempFloat / 2.0f;
-				if (mBrowUpTarget + (interestValence / 30.0f) + tempFloat > mBrowUpValue + 0.2f) { mBrowUpValue = Mathf.Min(mBrowUpValue + ((Mathf.Abs(mBrowUpTarget - mBrowUpValue - tempFloat) / 25.0f) * browVariation * morphSpeed), mBrowUpTarget + (interestValence / 30.0f) + tempFloat); }
-				if (mBrowUpTarget + (interestValence / 30.0f) + tempFloat < mBrowUpValue - 0.2f) { mBrowUpValue = Mathf.Max(mBrowUpValue - ((Mathf.Abs(mBrowUpTarget - mBrowUpValue - tempFloat) / 65.0f) * browVariation * morphSpeed), mBrowUpTarget + (interestValence / 30.0f) + tempFloat); }
+				if (mBrowUpTarget + (interestValence / 30.0f) > mBrowUpValue + 0.2f) { mBrowUpValue = Mathf.Min(mBrowUpValue + ((Mathf.Abs(mBrowUpTarget - mBrowUpValue) / 25.0f) * browVariation * morphSpeed), mBrowUpTarget + (interestValence / 30.0f)); }
+				if (mBrowUpTarget + (interestValence / 30.0f) < mBrowUpValue - 0.2f) { mBrowUpValue = Mathf.Max(mBrowUpValue - ((Mathf.Abs(mBrowUpTarget - mBrowUpValue) / 65.0f) * browVariation * morphSpeed), mBrowUpTarget + (interestValence / 30.0f)); }
 				morphBrowUp.SetValue(Round(Mathf.Clamp(mBrowUpValue, 0.0f, 1.0f)));
 				
 				if (mBrowDownTarget > mBrowDownValue + 0.02f) { mBrowDownValue = Mathf.Min(mBrowDownValue + ((Mathf.Abs(mBrowDownTarget - mBrowDownValue) / 65.0f) * browVariation * morphSpeed), mBrowDownTarget); }
@@ -2366,64 +3064,31 @@ namespace VRAdultFun
 				if (mExcitementTarget > mExcitementValue + 0.1f) { mExcitementValue = Mathf.Min(mExcitementValue + ((Mathf.Abs(mExcitementTarget - mExcitementValue) / 65.0f) * browVariation * morphSpeed), mExcitementTarget); }
 				if (mExcitementTarget < mExcitementValue - 0.1f) { mExcitementValue = Mathf.Max(mExcitementValue - ((Mathf.Abs(mExcitementTarget - mExcitementValue) / 55.0f) * browVariation * morphSpeed), mExcitementTarget); }
 				morphExpExcitement.SetValue(Round(mExcitementValue));
-
-				tempFloat = -0.2f + (Mathf.Max(mSmileFullFaceValue,mSmileOpenFullFaceValue) + mSmileSimpleLeftValue) * 1.5f;
-				if (mBrowOuterUpLeftTarget + tempFloat > mBrowOuterUpLeftValue + 0.2f) { mBrowOuterUpLeftValue = Mathf.Min(mBrowOuterUpLeftValue + ((Mathf.Abs(mBrowOuterUpLeftTarget - mBrowOuterUpLeftValue - tempFloat) / 35.0f) * browVariation * morphSpeed), mBrowOuterUpLeftTarget + tempFloat); }
-				if (mBrowOuterUpLeftTarget + tempFloat < mBrowOuterUpLeftValue - 0.2f) { mBrowOuterUpLeftValue = Mathf.Max(mBrowOuterUpLeftValue - ((Mathf.Abs(mBrowOuterUpLeftTarget - mBrowOuterUpLeftValue - tempFloat) / 65.0f) * browVariation * morphSpeed), mBrowOuterUpLeftTarget + tempFloat); }
+				if (mBrowOuterUpLeftTarget > mBrowOuterUpLeftValue + 0.2f) { mBrowOuterUpLeftValue = Mathf.Min(mBrowOuterUpLeftValue + ((Mathf.Abs(mBrowOuterUpLeftTarget - mBrowOuterUpLeftValue) / 35.0f) * browVariation * morphSpeed), mBrowOuterUpLeftTarget); }
+				if (mBrowOuterUpLeftTarget < mBrowOuterUpLeftValue - 0.2f) { mBrowOuterUpLeftValue = Mathf.Max(mBrowOuterUpLeftValue - ((Mathf.Abs(mBrowOuterUpLeftTarget - mBrowOuterUpLeftValue) / 65.0f) * browVariation * morphSpeed), mBrowOuterUpLeftTarget); }
 				morphBrowOuterUpLeft.SetValue(Round(mBrowOuterUpLeftValue));
-
-				tempFloat = -0.2f + (Mathf.Max(mSmileFullFaceValue,mSmileOpenFullFaceValue) + mSmileSimpleRightValue) * 1.5f;
-				if (mBrowOuterUpRightTarget + tempFloat > mBrowOuterUpRightValue + 0.2f) { mBrowOuterUpRightValue = Mathf.Min(mBrowOuterUpRightValue + ((Mathf.Abs(mBrowOuterUpRightTarget - mBrowOuterUpRightValue - tempFloat) / 35.0f) * browVariation * morphSpeed), mBrowOuterUpRightTarget + tempFloat); }
-				if (mBrowOuterUpRightTarget + tempFloat < mBrowOuterUpRightValue - 0.2f) { mBrowOuterUpRightValue = Mathf.Max(mBrowOuterUpRightValue - ((Mathf.Abs(mBrowOuterUpRightTarget - mBrowOuterUpRightValue - tempFloat) / 65.0f) * browVariation * morphSpeed), mBrowOuterUpRightTarget + tempFloat); }
+				if (mBrowOuterUpRightTarget > mBrowOuterUpRightValue + 0.2f) { mBrowOuterUpRightValue = Mathf.Min(mBrowOuterUpRightValue + ((Mathf.Abs(mBrowOuterUpRightTarget - mBrowOuterUpRightValue) / 35.0f) * browVariation * morphSpeed), mBrowOuterUpRightTarget); }
+				if (mBrowOuterUpRightTarget < mBrowOuterUpRightValue - 0.2f) { mBrowOuterUpRightValue = Mathf.Max(mBrowOuterUpRightValue - ((Mathf.Abs(mBrowOuterUpRightTarget - mBrowOuterUpRightValue) / 65.0f) * browVariation * morphSpeed), mBrowOuterUpRightTarget); }
 				morphBrowOuterUpRight.SetValue(Round(mBrowOuterUpRightValue));
-				
-				
 				if (mBrowCenterUpTarget + (interestArousal / 20.0f) > mBrowCenterUpValue + 0.1) { mBrowCenterUpValue = Mathf.Min(mBrowCenterUpValue + ((Mathf.Abs(mBrowCenterUpTarget - mBrowCenterUpValue) / 75.0f) * browVariation * morphSpeed), mBrowCenterUpTarget + (interestArousal / 20.0f)); }
 				if (mBrowCenterUpTarget + (interestArousal / 20.0f) < mBrowCenterUpValue - 0.1) { mBrowCenterUpValue = Mathf.Max(mBrowCenterUpValue - ((Mathf.Abs(mBrowCenterUpTarget - mBrowCenterUpValue) / 135.0f) * browVariation * morphSpeed), mBrowCenterUpTarget + (interestArousal / 20.0f)); }
 				morphBrowCenterUp.SetValue(Round(Mathf.Clamp(mBrowCenterUpValue, -0.3f, 1.3f)));
 				//SuperController.LogError("Brow Morphs Done");
 
-				tempFloat = Mathf.Max(0.0f, mSmileSimpleLeftValue / 2.0f, mSmileSimpleRightValue / 2.0f) + mSmileFullFaceValue + (mSmileOpenFullFaceValue / 1.5f) + mHappyValue;
-				tempFloat = Mathf.Clamp((tempFloat / 1.5f) - mEyesSquintTarget, 0.0f, 1.0f);
-				if (mEyesSquintTarget + tempFloat > mEyesSquintValue + 0.01) { mEyesSquintValue = Mathf.Min(mEyesSquintValue + (0.04f * eyeVariation * morphSpeed), mEyesSquintTarget + tempFloat); }
-				if (mEyesSquintTarget + tempFloat < mEyesSquintValue - 0.01) { mEyesSquintValue = Mathf.Max(mEyesSquintValue - (0.01f * eyeVariation * morphSpeed), mEyesSquintTarget + tempFloat); }
-				morphEyesSquint.SetValue(Round(Mathf.Clamp(mEyesSquintValue - mEyesClosedLeftValue + mTakingItValue - (Mathf.Max(mSmileOpenFullFaceValue, mSmileFullFaceValue)/2.0f) - (mHappyValue/2.0f), -0.3f, 1.0f)));
-
 				float lidLower = 0.25f;
 				float lidRaise = 0.4f;
 				tempFloat = Random.Range(-0.05f, 0.05f);
-				tempFloat = eyeCloseMaxMorph - Mathf.Lerp(0.0f,0.2f,mEyesSquintValue) - Mathf.Lerp(0.0f,0.3f,mTakingItValue) - Mathf.Lerp(0.0f,0.2f,mDeserveItValue) - Mathf.Lerp(0.0f,0.2f,mSmileOpenFullFaceValue);//Mathf.Clamp(1.25f - Mathf.Lerp(0.0f,0.3f,mEyesSquintValue),0.0f, eyeCloseMaxMorph);
+				tempFloat = eyeCloseMaxMorph - Mathf.Lerp(0.0f,0.2f,mEyesSquintValue);//Mathf.Clamp(1.25f - Mathf.Lerp(0.0f,0.3f,mEyesSquintValue),0.0f, eyeCloseMaxMorph);
 				tempFloat2 = 0.0f;
 				if (amGlancing)
 				{
 					tempFloat2 = -0.1f;
 				}
 				
-				if (morphBlinking)
-				{
-					lidLower = 0.53f + Random.Range(-0.05f, 0.05f);;
-					lidRaise = 0.1f + Random.Range(-0.05f, 0.05f);;
-					if (mEyesClosedLeftTarget > mEyesClosedLeftValue) { mEyesClosedLeftValue = Mathf.Min(mEyesClosedLeftValue + lidLower, mEyesClosedLeftTarget); }
-					if (mEyesClosedLeftTarget < mEyesClosedLeftValue) { mEyesClosedLeftValue = Mathf.Max(mEyesClosedLeftValue - lidRaise, mEyesClosedLeftTarget); }
-					morphEyesClosedLeft.SetValue(Round(Mathf.Clamp(mEyesClosedLeftValue, -0.2f, tempFloat)));
-					if (mEyesClosedRightTarget > mEyesClosedRightValue) { mEyesClosedRightValue = Mathf.Min(mEyesClosedRightValue + lidLower, mEyesClosedRightTarget); }
-					if (mEyesClosedRightTarget < mEyesClosedRightValue) { mEyesClosedRightValue = Mathf.Max(mEyesClosedRightValue - lidRaise, mEyesClosedRightTarget); }
-					morphEyesClosedRight.SetValue(Round(Mathf.Clamp(mEyesClosedRightValue, -0.2f, tempFloat)));
-				}
-				else
-				{
-					if (mEyesClosedLeftTarget + tempFloat2 > mEyesClosedLeftValue + 0.005f) { mEyesClosedLeftValue = Mathf.Min(mEyesClosedLeftValue + (lidLower * eyeVariation * morphSpeed), mEyesClosedLeftTarget); }
-					if (mEyesClosedLeftTarget + tempFloat2 < mEyesClosedLeftValue - 0.005f) { mEyesClosedLeftValue = Mathf.Max(mEyesClosedLeftValue - (lidRaise * eyeVariation * morphSpeed), mEyesClosedLeftTarget); }
-					morphEyesClosedLeft.SetValue(Mathf.SmoothStep(0.0f,1.0f,Round(Mathf.Clamp(mEyesClosedLeftValue, -0.5f, tempFloat))));
-					if (mEyesClosedRightTarget + tempFloat2 > mEyesClosedRightValue + 0.005f) { mEyesClosedRightValue = Mathf.Min(mEyesClosedRightValue + (lidLower * eyeVariation * morphSpeed), mEyesClosedRightTarget); }
-					if (mEyesClosedRightTarget + tempFloat2 < mEyesClosedRightValue - 0.005f) { mEyesClosedRightValue = Mathf.Max(mEyesClosedRightValue - (lidRaise * eyeVariation * morphSpeed), mEyesClosedRightTarget); }
-					morphEyesClosedRight.SetValue(Mathf.SmoothStep(0.0f,1.0f,Round(Mathf.Clamp(mEyesClosedRightValue, -0.5f, tempFloat))));
-				}
 
-				if (morphBlinking && mEyesClosedRightValue <= 0.1f && mEyesClosedLeftValue <= 0.1f)
-				{
-					morphBlinking = false;
-				}
+				if (mEyesSquintTarget > mEyesSquintValue + 0.01) { mEyesSquintValue = Mathf.Min(mEyesSquintValue + (0.04f * eyeVariation * morphSpeed), mEyesSquintTarget); }
+				if (mEyesSquintTarget < mEyesSquintValue - 0.01) { mEyesSquintValue = Mathf.Max(mEyesSquintValue - (0.01f * eyeVariation * morphSpeed), mEyesSquintTarget); }
+				morphEyesSquint.SetValue(Round(Mathf.Clamp(mEyesSquintValue - mEyesClosedLeftValue + mTakingItValue - (Mathf.Max(mSmileOpenFullFaceValue, mSmileFullFaceValue)/2.0f) - (mHappyValue/2.0f), -0.3f, 1.0f)));
 
 				tempFloat = Mathf.Lerp(0.0f,0.15f, interestArousal / 10.0f) * (breathClock) * uiBreatheExpandMultiplier.val;
 				mNoseFlareTarget = 0.2f;
@@ -2471,24 +3136,23 @@ namespace VRAdultFun
 				
 				if (morphMouthMouthOpen != null)
 				{
-					tempFloat = 0.35f;
+					mMouthOpenTarget = Mathf.Clamp(mMouthOpenTarget, -0.15f, 0.6f);
 					if (mouthCanOpen == false || currentMouth == "Closed")
 					{
-						//mMouthOpenTarget = -0.1f + (((interestArousal+interestValence)/2.0f) / 20.0f);
-						tempFloat = 0.0f;
+						mMouthOpenTarget = -0.1f + (((interestArousal+interestValence)/2.0f) / 20.0f);
+						//tempFloat = 0.0f;
 						//if (currentMouth == "Idle")
 						//{
-						//tempFloat = Mathf.Clamp(0.0f + (interestArousal/20.0f) - mSmileOpenFullFaceValue - mHappyValue - mLipBiteValue - mMouthSideLeftValue - mMouthSideRightValue - mLipsPuckerValue,0.0f,1.0f);
+						tempFloat = Mathf.Clamp(0.0f + (interestArousal/20.0f) - mSmileOpenFullFaceValue - mHappyValue - mLipBiteValue - mMouthSideLeftValue - mMouthSideRightValue - mLipsPuckerValue,0.0f,1.0f);
 						//}
-						//voiceOpenAdjust = 0.0f;
+						voiceOpenAdjust = 0.0f;
 					}
-					tempFloat = tempFloat - mSmileFullFaceValue - Mathf.Max(mSmileOpenFullFaceValue,0.0f) - Mathf.Max(0.0f, mSmileSimpleLeftValue, mSmileSimpleRightValue) - mLipsPartValue - (mLipBiteTarget*2.0f) - mHappyValue;
 					if (currentMouth != "Big Smile" && currentMouth != "Sideways" && currentMouth != "Smile")// && currentMouth != "Closed")
 					{
 						//mMouthOpenTarget = mMouthOpenTarget / 2.0f;
 						if (mouthCanOpen == false)
 						{
-						//tempFloat = 0.0f - Mathf.Lerp(0.2f,0.0f,mouthOpenTimer);
+						tempFloat = 0.0f - Mathf.Lerp(0.2f,0.0f,mouthOpenTimer);
 						}
 					}
 					else
@@ -2497,29 +3161,17 @@ namespace VRAdultFun
 						{
 							mMouthOpenTarget = 0.0f;
 							tempFloat = 0.0f;
-							//voiceOpenAdjust = 0.0f;
+							voiceOpenAdjust = 0.0f;
 						}
 						else
 						{
-							//mMouthOpenTarget = Mathf.Lerp(-0.2f,0.4f,Mathf.Max((interestArousal/10.0f)-0.5f,0.0f));
+							mMouthOpenTarget = -0.2f;
+							tempFloat = 0.0f - mSmileFullFaceValue - mSmileOpenFullFaceValue - Mathf.Max(mSmileSimpleLeftValue, mSmileSimpleRightValue) + mLipsPartValue;
 						}
 					}
-					if (currentMouth == "Open")
-					{
-						tempFloat += 0.1f;
-					}
-					mMouthOpenTarget = Mathf.Clamp(mMouthOpenTarget, -0.15f, 0.6f);
 					if (mMouthOpenTarget + tempFloat + voiceOpenAdjust > mMouthOpenValue + 0.2f) { mMouthOpenValue = Mathf.Min(mMouthOpenValue + ((Mathf.Abs(mMouthOpenTarget - mMouthOpenValue) / 75.0f) * tempFloat2 * morphSpeed), mMouthOpenTarget + tempFloat + voiceOpenAdjust); }
 					if (mMouthOpenTarget + tempFloat + voiceOpenAdjust < mMouthOpenValue - 0.2f) { mMouthOpenValue = Mathf.Max(mMouthOpenValue - ((Mathf.Abs(mMouthOpenTarget - mMouthOpenValue) / 35.0f) * mouthVariation * morphSpeed), mMouthOpenTarget + tempFloat + voiceOpenAdjust); }
-					mMouthOpenValue = Mathf.Clamp(mMouthOpenValue, -0.2f,1.0f);
-					if (person2IsMale)
-					{
-						morphMouthMouthOpen.SetValue(Round(mMouthOpenValue/ 2.0f) + uiMouthOpenOffset.val);//Mathf.SmoothStep(0.0f,1.0f,Round(Mathf.Clamp(mMouthOpenValue / 2.0f, 0.0f, 0.5f))));
-					}
-					else
-					{
-						morphMouthMouthOpen.SetValue(Round(mMouthOpenValue) + uiMouthOpenOffset.val);//Mathf.SmoothStep(0.0f,1.0f,Round(Mathf.Clamp(mMouthOpenValue / 2.0f, 0.0f, 0.5f))));
-					}
+					morphMouthMouthOpen.SetValue(Round(mMouthOpenValue));//Mathf.SmoothStep(0.0f,1.0f,Round(Mathf.Clamp(mMouthOpenValue / 2.0f, 0.0f, 0.5f))));
 				}
 				if (morphNoseFlare != null)
 				{
@@ -2571,14 +3223,14 @@ namespace VRAdultFun
 						{
 							mLipsCloseTarget = 0.0f ;
 						}
-						if (lipsTouchCount <= 1.0f && voiceMoan == false)
-						{
-							mLipsCloseTarget = 0.0f;
-						}					
-						if (mouthCanOpen == false)
-						{
-							mMouthOpenWiderTarget = 0.0f;
-						}
+					}
+					if (lipsTouchCount <= 1.0f && voiceMoan == false)
+					{
+						mLipsCloseTarget = 0.0f;
+					}					
+					if (mouthCanOpen == false)
+					{
+						mMouthOpenWiderTarget = 0.0f;
 					}
 					if (mMouthOpenWiderTarget > mMouthOpenWiderValue + 0.01f) { mMouthOpenWiderValue = Mathf.Min(mMouthOpenWiderValue + (0.02f * tempFloat2 * morphSpeed), mMouthOpenWiderTarget); }
 					if (mMouthOpenWiderTarget < mMouthOpenWiderValue - 0.01f) { mMouthOpenWiderValue = Mathf.Max(mMouthOpenWiderValue - (0.005f * tempFloat2 * morphSpeed), mMouthOpenWiderTarget); }
@@ -2586,66 +3238,47 @@ namespace VRAdultFun
 				}
 				if (morphLipsLipsPart != null && morphLipsPouty != null)
 				{
-					if (currentMouth != "Open" && currentMouth != "Demure")
-					{
-					mLipsPartTarget = Mathf.Clamp(0.0f + ((interestArousal- 3.0f)/20.0f) - (Mathf.Max(mSmileSimpleLeftValue / 1.5f,mSmileSimpleRightValue / 1.5f, mSmileOpenFullFaceValue * 2.0f, mSmileFullFaceValue)) - mHappyValue - mLipsPuckerValue - mMouthOpenValue - (mTakingItValue * 2.0f) - mLipsBottomDownValue,0.0f,1.0f);
-					mLipsPoutyTarget = Mathf.Round(Mathf.Clamp(mLipsPartValue,0.0f,1.0f) * 50.0f) / 50.0f;
-					}
-					else
-					{
-						mLipsPoutyTarget = 0.0f;
-					}
+					mLipsPartTarget = Mathf.Clamp(0.0f + ((interestArousal- 3.0f)/10.0f) - (Mathf.Max(mSmileSimpleLeftValue / 2.0f,mSmileSimpleRightValue / 2.0f, mSmileOpenFullFaceValue * 2.0f, mSmileFullFaceValue)) - mHappyValue - mLipsPuckerValue - mMouthOpenValue,0.0f,1.0f);
 					if (mLipsPartTarget > mLipsPartValue + 0.01f) { mLipsPartValue = Mathf.Min(mLipsPartValue + (0.002f * morphSpeed), mLipsPartTarget); }
-					if (mLipsPartTarget < mLipsPartValue - 0.01f) { mLipsPartValue = Mathf.Max(mLipsPartValue - (0.01f * morphSpeed), mLipsPartTarget); }
+					if (mLipsPartTarget < mLipsPartValue - 0.01f) { mLipsPartValue = Mathf.Max(mLipsPartValue - (0.05f * morphSpeed), mLipsPartTarget); }
 					morphLipsLipsPart.SetValue(Mathf.Round(Mathf.Clamp(mLipsPartValue,0.0f,1.0f) * 50.0f) / 50.0f);
-					if (mLipsPoutyTarget > mLipsPoutyValue + 0.01f) { mLipsPoutyValue = Mathf.Min(mLipsPoutyValue + (0.002f * morphSpeed), mLipsPoutyTarget); }
-					if (mLipsPoutyTarget < mLipsPoutyValue - 0.01f) { mLipsPoutyValue = Mathf.Max(mLipsPoutyValue - (0.01f * morphSpeed), mLipsPoutyTarget); }
+					mLipsPoutyValue = Mathf.Round(Mathf.Clamp(mLipsPartValue,0.0f,1.0f) * 50.0f) / 50.0f;
 					morphLipsPouty.SetValue(mLipsPoutyValue);
-				}
-				if (morphLipsLipsPartCenter != null)
-				{
-					if (mLipsCenterPartTarget > mLipsCenterPartValue + 0.01f) { mLipsCenterPartValue = Mathf.Min(mLipsCenterPartValue + (0.002f * morphSpeed), mLipsCenterPartTarget); }
-					if (mLipsCenterPartTarget < mLipsCenterPartValue - 0.01f) { mLipsCenterPartValue = Mathf.Max(mLipsCenterPartValue - (0.05f * morphSpeed), mLipsCenterPartTarget); }
-					morphLipsLipsPartCenter.SetValue(Mathf.Round(Mathf.Clamp(mLipsCenterPartValue,0.0f,1.0f) * 50.0f) / 50.0f);
 				}
 				//
 				if (morphMouthSmileMuscle != null)
 				{
-					mSmileMuscleTarget = Mathf.Max(mSmileSimpleLeftValue / 3.0f,mSmileSimpleRightValue / 3.0f, mSmileOpenFullFaceValue * 2.0f, mSmileFullFaceValue) * uiMaxMorphSmile.val;
+					mSmileMuscleTarget = Mathf.Max(mSmileSimpleLeftValue / 2.0f,mSmileSimpleRightValue / 2.0f, mSmileOpenFullFaceValue * 2.0f, mSmileFullFaceValue);
 					if (mSmileMuscleTarget > mSmileMuscleValue + 0.01f) { mSmileMuscleValue = Mathf.Min(mSmileMuscleValue + (0.002f * morphSpeed), mSmileMuscleTarget); }
 					if (mSmileMuscleTarget < mSmileMuscleValue - 0.01f) { mSmileMuscleValue = Mathf.Max(mSmileMuscleValue - (0.05f * morphSpeed), mSmileMuscleTarget); }
 					morphMouthSmileMuscle.SetValue(Mathf.Round(Mathf.Clamp(mSmileMuscleValue,0.0f,1.0f) * 50.0f) / 50.0f);
 				}
 				if (morphLipsBottomDown != null)
 				{
-					mLipsBottomDownValue = (Mathf.Round(Mathf.Clamp(Mathf.Max(mSmileSimpleLeftValue / 2.0f,mSmileSimpleRightValue / 2.0f, mSmileFullFaceValue / 2.0f) - Mathf.Max(mMouthOpenValue,0.0f),0.0f,0.2f) * 50.0f) / 50.0f)  * uiMaxMorphSmile.val;
+					mLipsBottomDownValue = Mathf.Round(Mathf.Clamp(Mathf.Max(mSmileSimpleLeftValue / 2.0f,mSmileSimpleRightValue / 2.0f, mSmileFullFaceValue) - mMouthOpenValue,0.0f,0.4f) * 50.0f) / 50.0f;
 					morphLipsBottomDown.SetValue(mLipsBottomDownValue);
 				}
 				
 				if (morphLipsLipsClose != null)
 				{
-					if (currentMouth == "Demure")
-					{
-						//mLipsCloseTarget = -0.4f;
-					}
-					if (currentMouth == "Sideways") //currentMouth == "Pout" || 
+					if (currentMouth == "Demure" || currentMouth == "Pout" || currentMouth == "Sideways")
 					{
 						mLipsCloseTarget = 0.2f;
 					}
-					tempFloat = 0.0f - (mSmileFullFaceValue/10.0f);
+					tempFloat = 0.0f;
+						tempFloat = mLipsPartValue / 2.0f;
 					if (currentMouth == "Idle" || currentMouth == "Open" || currentMouth == "Closed")
 					{
-						tempFloat = (mLipsPartValue / 2.0f) - (mSmileFullFaceValue/10.0f);
 					}
 					if (mLipsCloseTarget - tempFloat > mLipsCloseValue + 0.005f) { mLipsCloseValue = Mathf.Min(mLipsCloseValue + ((Mathf.Abs(mLipsCloseTarget - mLipsCloseValue) / 55.0f) * morphSpeed), mLipsCloseTarget - tempFloat); }
 					if (mLipsCloseTarget - tempFloat < mLipsCloseValue - 0.005f) { mLipsCloseValue = Mathf.Max(mLipsCloseValue - ((Mathf.Abs(mLipsCloseTarget - mLipsCloseValue) / 25.0f) * morphSpeed), mLipsCloseTarget - tempFloat); }
-					morphLipsLipsClose.SetValue(Round(Mathf.Clamp(mLipsCloseValue,-0.2f,1.0f) + uiLipsCloseOffset.val));
+					morphLipsLipsClose.SetValue(Round(Mathf.Clamp(mLipsCloseValue,-0.2f,1.0f)));
 				}
 				if (morphLipsLipsPucker != null && morphLipsLipsPuckerWide != null)
 				{
-					if (mLipsPuckerTarget + mLipsPoutyValue + voicePuckerAdjust > mLipsPuckerValue + 0.2f) { mLipsPuckerValue = Mathf.Min(mLipsPuckerValue + ((Mathf.Abs(mLipsPuckerTarget - mLipsPuckerValue) / 65.0f) * mouthVariation * morphSpeed), mLipsPuckerTarget + mLipsPoutyValue + voicePuckerAdjust ); }
-					if (mLipsPuckerTarget + mLipsPoutyValue + voicePuckerAdjust  < mLipsPuckerValue - 0.2f) { mLipsPuckerValue = Mathf.Max(mLipsPuckerValue - ((Mathf.Abs(mLipsPuckerTarget - mLipsPuckerValue) / 120.0f) * mouthVariation * morphSpeed), mLipsPuckerTarget + mLipsPoutyValue + voicePuckerAdjust ); }
-					morphLipsLipsPucker.SetValue(Mathf.SmoothStep(0.0f,1.0f,Round(Mathf.Clamp(mLipsPuckerValue - mSmileFullFaceValue - Mathf.Max(mSmileSimpleLeftValue / 2.0f, mSmileSimpleRightValue / 2.0f),0.0f,1.0f))));
+					if (mLipsPuckerTarget + voicePuckerAdjust > mLipsPuckerValue + 0.2f) { mLipsPuckerValue = Mathf.Min(mLipsPuckerValue + ((Mathf.Abs(mLipsPuckerTarget - mLipsPuckerValue) / 35.0f) * mouthVariation * morphSpeed), mLipsPuckerTarget + voicePuckerAdjust ); }
+					if (mLipsPuckerTarget + voicePuckerAdjust  < mLipsPuckerValue - 0.2f) { mLipsPuckerValue = Mathf.Max(mLipsPuckerValue - ((Mathf.Abs(mLipsPuckerTarget - mLipsPuckerValue) / 20.0f) * mouthVariation * morphSpeed), mLipsPuckerTarget + voicePuckerAdjust ); }
+					morphLipsLipsPucker.SetValue(Mathf.SmoothStep(0.0f,1.0f,Round(Mathf.Clamp(mLipsPuckerValue,0.0f,1.0f))));
 					if (mLipsPuckerWideTarget > mLipsPuckerWideValue + 0.1f) { mLipsPuckerWideValue = Mathf.Min(mLipsPuckerWideValue + (0.01f * mouthVariation * morphSpeed), mLipsPuckerWideTarget); }
 					if (mLipsPuckerWideTarget < mLipsPuckerWideValue - 0.1f) { mLipsPuckerWideValue = Mathf.Max(mLipsPuckerWideValue - (0.007f * mouthVariation * morphSpeed), mLipsPuckerWideTarget); }
 					morphLipsLipsPuckerWide.SetValue(Mathf.SmoothStep(0.0f,1.0f,Round(Mathf.Clamp(mLipsPuckerWideValue,0.0f,1.0f))));
@@ -2655,14 +3288,6 @@ namespace VRAdultFun
 					if (mLipBiteTarget > mLipBiteValue + 0.05f) { mLipBiteValue = Mathf.Min(mLipBiteValue + ((Mathf.Abs(mLipBiteTarget - mLipBiteValue) / 25.0f) * mouthVariation * morphSpeed), mLipBiteTarget ); }
 					if (mLipBiteTarget < mLipBiteValue - 0.05f) { mLipBiteValue = Mathf.Max(mLipBiteValue - ((Mathf.Abs(mLipBiteTarget - mLipBiteValue) / 35.0f) * mouthVariation * morphSpeed), mLipBiteTarget ); }
 					morphLipsLipBite.SetValue(Mathf.SmoothStep(0.0f,1.0f,Round(mLipBiteValue)));
-					mLipBottomInTarget = Mathf.Clamp(mLipBiteValue,0.0f,0.3f);
-				}
-				if (morphLipBottomIn != null)
-				{
-					mLipBottomInValue = morphLipBottomIn.morphValue;
-					if (mLipBottomInTarget > mLipBottomInValue + 0.05f) { mLipBottomInValue = Mathf.Min(mLipBottomInValue + ((Mathf.Abs(mLipBottomInTarget - mLipBottomInValue) / 25.0f) * mouthVariation * morphSpeed), mLipBottomInTarget ); }
-					if (mLipBottomInTarget < mLipBottomInValue - 0.05f) { mLipBottomInValue = Mathf.Max(mLipBottomInValue - ((Mathf.Abs(mLipBottomInTarget - mLipBottomInValue) / 35.0f) * mouthVariation * morphSpeed), mLipBottomInTarget ); }
-					//morphLipBottomIn.SetValue(Round(mLipBottomInValue));
 				}
 				if (morphExpFlirting != null)
 				{
@@ -2672,55 +3297,35 @@ namespace VRAdultFun
 				}
 				if (morphExpDeserveIt != null)
 				{
-					if (Round(mTakingItValue) <= 0.1f)
-					{
-						if (mDeserveItTarget > mDeserveItValue + 0.01f) { mDeserveItValue = Mathf.Min(mDeserveItValue + ((Mathf.Abs(mDeserveItTarget - mDeserveItValue) / 85.0f) * mouthVariation * tempFloat2 * morphSpeed), mDeserveItTarget); }
-						morphExpDeserveIt.SetValue(Round(mDeserveItValue));
-					}
-					else
-					{
-						if (Round(mDeserveItValue) > 0.1f)
-						{
-							mTakingItTarget = 0.0f;
-						}
-					}
-					if (mDeserveItTarget < mDeserveItValue - 0.01f) { mDeserveItValue = Mathf.Max(mDeserveItValue - ((Mathf.Abs(mDeserveItTarget - mDeserveItValue) / 125.0f) * mouthVariation * tempFloat2 * morphSpeed), mDeserveItTarget); }
+					if (mDeserveItTarget > mDeserveItValue + 0.01f) { mDeserveItValue = Mathf.Min(mDeserveItValue + (0.06f * mouthVariation * tempFloat2 * morphSpeed), mDeserveItTarget); }
+					if (mDeserveItTarget < mDeserveItValue - 0.01f) { mDeserveItValue = Mathf.Max(mDeserveItValue - (0.015f * mouthVariation * tempFloat2 * morphSpeed), mDeserveItTarget); }
+					morphExpDeserveIt.SetValue(Round(mDeserveItValue));
 				}
 				if (morphExpTakingIt != null)
 				{
-					if (Round(mDeserveItValue) <= 0.1f)
-					{
-						if (mTakingItTarget > mTakingItValue + 0.01f) { mTakingItValue = Mathf.Min(mTakingItValue + ((Mathf.Abs(mTakingItTarget - mTakingItValue) / 75.0f) * mouthVariation * tempFloat2 * morphSpeed), mTakingItTarget); }
-						morphExpTakingIt.SetValue(Round(mTakingItValue));
-					}
-					else
-					{
-						if (Round(mTakingItValue) > 0.1f)
-						{
-							mDeserveItTarget = 0.0f;
-						}
-					}
-					if (mTakingItTarget < mTakingItValue - 0.01f) { mTakingItValue = Mathf.Max(mTakingItValue - ((Mathf.Abs(mTakingItTarget - mTakingItValue) / 105.0f) * mouthVariation * tempFloat2 * morphSpeed), mTakingItTarget); }
+					if (mTakingItTarget > mTakingItValue + 0.01f) { mTakingItValue = Mathf.Min(mTakingItValue + ((Mathf.Abs(mTakingItTarget - mTakingItValue) / 35.0f) * mouthVariation * tempFloat2 * morphSpeed), mTakingItTarget); }
+					if (mTakingItTarget < mTakingItValue - 0.01f) { mTakingItValue = Mathf.Max(mTakingItValue - ((Mathf.Abs(mTakingItTarget - mTakingItValue) / 75.0f) * mouthVariation * tempFloat2 * morphSpeed), mTakingItTarget); }
+					morphExpTakingIt.SetValue(Round(mTakingItValue));
 				}
 				if (morphExpHappy != null)
 				{
 					if (mHappyTarget > mHappyValue + 0.02f) { mHappyValue = Mathf.Min(mHappyValue + ((Mathf.Abs(mHappyTarget - mHappyValue) / 75.0f) * mouthVariation * morphSpeed), mHappyTarget); }
-					if (mHappyTarget < mHappyValue - 0.02f) { mHappyValue = Mathf.Max(mHappyValue - ((Mathf.Abs(mHappyTarget - mHappyValue) / 185.0f) * mouthVariation * morphSpeed), mHappyTarget); }
+					if (mHappyTarget < mHappyValue - 0.02f) { mHappyValue = Mathf.Max(mHappyValue - ((Mathf.Abs(mHappyTarget - mHappyValue) / 85.0f) * mouthVariation * morphSpeed), mHappyTarget); }
 					morphExpHappy.SetValue(Round(mHappyValue));
 				}
 				if (morphExpSmileFullFace != null && morphExpSmileOpenFullFace != null)
 				{
-					if (mouthCanOpen == false && currentMouth != "Big Smile")
+					if (mouthCanOpen == false)
 					{
 						mSmileFullFaceTarget = -1.0f;
 						mSmileOpenFullFaceTarget = -1.0f;
 					}
 					if (mSmileOpenFullFaceTarget + Mathf.Min(voiceOpenAdjust,0.0f) > mSmileOpenFullFaceValue + 0.1f) { mSmileOpenFullFaceValue = Mathf.Min(mSmileOpenFullFaceValue + ((Mathf.Abs(mSmileOpenFullFaceTarget - mSmileOpenFullFaceValue) / 45.0f) * mouthVariation * morphSpeed), mSmileOpenFullFaceTarget + Mathf.Min(voiceOpenAdjust,0.0f)); }
 					if (mSmileOpenFullFaceTarget + Mathf.Min(voiceOpenAdjust,0.0f) < mSmileOpenFullFaceValue - 0.1f) { mSmileOpenFullFaceValue = Mathf.Max(mSmileOpenFullFaceValue - ((Mathf.Abs(mSmileOpenFullFaceTarget - mSmileOpenFullFaceValue) / 125.0f) * mouthVariation * morphSpeed), mSmileOpenFullFaceTarget + Mathf.Min(voiceOpenAdjust,0.0f)); }
-					morphExpSmileOpenFullFace.SetValue(Mathf.SmoothStep(0.0f,1.0f,Round(mSmileOpenFullFaceValue) * uiMaxMorphSmile.val));
+					morphExpSmileOpenFullFace.SetValue(Mathf.SmoothStep(0.0f,1.0f,Round(mSmileOpenFullFaceValue)));
 					if (Mathf.Clamp((interestValence / Mathf.Lerp(30.0f, 15.0f,pExtraversion/100.0f)) + mSmileFullFaceTarget, 0.0f, interestMaxSmile) > mSmileFullFaceValue + 0.1f) { mSmileFullFaceValue = Mathf.Min(mSmileFullFaceValue + ((Mathf.Abs(mSmileFullFaceTarget - mSmileFullFaceValue) / 35.0f) * mouthVariation * morphSpeed), Mathf.Clamp((interestValence / Mathf.Lerp(30.0f, 15.0f,pExtraversion/100.0f)) + mSmileFullFaceTarget, 0.0f, interestMaxSmile)); }
-					if (Mathf.Clamp((interestValence / Mathf.Lerp(30.0f, 15.0f,pExtraversion/100.0f)) + mSmileFullFaceTarget, 0.0f, interestMaxSmile) < mSmileFullFaceValue - 0.1f) { mSmileFullFaceValue = Mathf.Max(mSmileFullFaceValue - ((Mathf.Abs(mSmileFullFaceTarget - mSmileFullFaceValue) / 190.0f) * mouthVariation * morphSpeed), Mathf.Clamp((interestValence / Mathf.Lerp(30.0f, 15.0f,pExtraversion/100.0f)) + mSmileFullFaceTarget, 0.0f, interestMaxSmile)); }
-					morphExpSmileFullFace.SetValue((Round(Mathf.Max(mSmileFullFaceValue - (mSmileOpenFullFaceValue / 3.0f), 0.0f)) * uiMaxMorphSmile.val));
+					if (Mathf.Clamp((interestValence / Mathf.Lerp(30.0f, 15.0f,pExtraversion/100.0f)) + mSmileFullFaceTarget, 0.0f, interestMaxSmile) < mSmileFullFaceValue - 0.1f) { mSmileFullFaceValue = Mathf.Max(mSmileFullFaceValue - ((Mathf.Abs(mSmileFullFaceTarget - mSmileFullFaceValue) / 90.0f) * mouthVariation * morphSpeed), Mathf.Clamp((interestValence / Mathf.Lerp(30.0f, 15.0f,pExtraversion/100.0f)) + mSmileFullFaceTarget, 0.0f, interestMaxSmile)); }
+					morphExpSmileFullFace.SetValue((Round(Mathf.Max(mSmileFullFaceValue - (mSmileOpenFullFaceValue / 3.0f), 0.0f))));
 				}
 				if (morphVisF != null)
 				{
@@ -2749,12 +3354,12 @@ namespace VRAdultFun
 
 				if (morphMouthSmileSimpleLeft != null && morphMouthSmileSimpleRight != null)
 				{
-					if (Mathf.Clamp((interestValence / 50.0f) + mSmileSimpleLeftTarget - mMouthNarrowValue - mSmileFullFaceValue, 0.0f, interestMaxSmile) > mSmileSimpleLeftValue + 0.02f) { mSmileSimpleLeftValue = Mathf.Min(mSmileSimpleLeftValue + ((Mathf.Abs(mSmileSimpleLeftTarget - mSmileSimpleLeftValue) / 135.0f) * mouthVariation * morphSpeed), Mathf.Clamp((interestValence / 50.0f) + mSmileSimpleLeftTarget - mMouthNarrowValue - mSmileFullFaceValue, 0.0f, interestMaxSmile)); }
-					if (Mathf.Clamp((interestValence / 50.0f) + mSmileSimpleLeftTarget - mMouthNarrowValue - mSmileFullFaceValue, 0.0f, interestMaxSmile) < mSmileSimpleLeftValue - 0.02f) { mSmileSimpleLeftValue = Mathf.Max(mSmileSimpleLeftValue - ((Mathf.Abs(mSmileSimpleLeftTarget - mSmileSimpleLeftValue) / 150.0f) * mouthVariation * morphSpeed), Mathf.Clamp((interestValence / 50.0f) + mSmileSimpleLeftTarget - mMouthNarrowValue - mSmileFullFaceValue, 0.0f, interestMaxSmile)); }
-					morphMouthSmileSimpleLeft.SetValue(Round(Mathf.Max(mSmileSimpleLeftValue - mSmileOpenFullFaceValue, 0.0f)) * uiMaxMorphSmile.val);
-					if (Mathf.Clamp((interestValence / 50.0f) + mSmileSimpleRightTarget - mMouthNarrowValue, 0.0f, interestMaxSmile) > mSmileSimpleRightValue + 0.02f) { mSmileSimpleRightValue = Mathf.Min(mSmileSimpleRightValue + ((Mathf.Abs(mSmileSimpleRightTarget - mSmileSimpleRightValue) / 135.0f) * mouthVariation * morphSpeed), Mathf.Clamp((interestValence / 50.0f) + mSmileSimpleRightTarget - mMouthNarrowValue, 0.0f, interestMaxSmile)); }
-					if (Mathf.Clamp((interestValence / 50.0f) + mSmileSimpleRightTarget - mMouthNarrowValue, 0.0f, interestMaxSmile) < mSmileSimpleRightValue - 0.02f) { mSmileSimpleRightValue = Mathf.Max(mSmileSimpleRightValue - ((Mathf.Abs(mSmileSimpleRightTarget - mSmileSimpleRightValue) / 150.0f) * mouthVariation * morphSpeed), Mathf.Clamp((interestValence / 50.0f) + mSmileSimpleRightTarget - mMouthNarrowValue, 0.0f, interestMaxSmile)); }
-					morphMouthSmileSimpleRight.SetValue(Round(Mathf.Max(mSmileSimpleRightValue - mSmileOpenFullFaceValue, 0.0f)) * uiMaxMorphSmile.val);
+					if (Mathf.Clamp((interestValence / 30.0f) + mSmileSimpleLeftTarget - mMouthNarrowValue, 0.0f, interestMaxSmile) > mSmileSimpleLeftValue + 0.02f) { mSmileSimpleLeftValue = Mathf.Min(mSmileSimpleLeftValue + ((Mathf.Abs(mSmileSimpleLeftTarget - mSmileSimpleLeftValue) / 135.0f) * mouthVariation * morphSpeed), Mathf.Clamp((interestValence / 30.0f) + mSmileSimpleLeftTarget - mMouthNarrowValue, 0.0f, interestMaxSmile)); }
+					if (Mathf.Clamp((interestValence / 30.0f) + mSmileSimpleLeftTarget - mMouthNarrowValue, 0.0f, interestMaxSmile) < mSmileSimpleLeftValue - 0.02f) { mSmileSimpleLeftValue = Mathf.Max(mSmileSimpleLeftValue - ((Mathf.Abs(mSmileSimpleLeftTarget - mSmileSimpleLeftValue) / 150.0f) * mouthVariation * morphSpeed), Mathf.Clamp((interestValence / 30.0f) + mSmileSimpleLeftTarget - mMouthNarrowValue, 0.0f, interestMaxSmile)); }
+					morphMouthSmileSimpleLeft.SetValue(Round(mSmileSimpleLeftValue));
+					if (Mathf.Clamp((interestValence / 30.0f) + mSmileSimpleRightTarget - mMouthNarrowValue, 0.0f, interestMaxSmile) > mSmileSimpleRightValue + 0.02f) { mSmileSimpleRightValue = Mathf.Min(mSmileSimpleRightValue + ((Mathf.Abs(mSmileSimpleRightTarget - mSmileSimpleRightValue) / 135.0f) * mouthVariation * morphSpeed), Mathf.Clamp((interestValence / 30.0f) + mSmileSimpleRightTarget - mMouthNarrowValue, 0.0f, interestMaxSmile)); }
+					if (Mathf.Clamp((interestValence / 30.0f) + mSmileSimpleRightTarget - mMouthNarrowValue, 0.0f, interestMaxSmile) < mSmileSimpleRightValue - 0.02f) { mSmileSimpleRightValue = Mathf.Max(mSmileSimpleRightValue - ((Mathf.Abs(mSmileSimpleRightTarget - mSmileSimpleRightValue) / 150.0f) * mouthVariation * morphSpeed), Mathf.Clamp((interestValence / 30.0f) + mSmileSimpleRightTarget - mMouthNarrowValue, 0.0f, interestMaxSmile)); }
+					morphMouthSmileSimpleRight.SetValue(Round(mSmileSimpleRightValue));
 				}
 
 				if (morphMouthSideLeft != null && morphMouthSideRight != null)
@@ -2770,7 +3375,7 @@ namespace VRAdultFun
 				
 				if (mTongueInOutTarget > mTongueInOutValue + 0.01f) { mTongueInOutValue = Mathf.Min(mTongueInOutValue + (0.08f * mouthVariation * morphSpeed), mTongueInOutTarget); }
 				if (mTongueInOutTarget < mTongueInOutValue - 0.01f) { mTongueInOutValue = Mathf.Max(mTongueInOutValue - (0.05f * mouthVariation * morphSpeed), mTongueInOutTarget); }
-				morphTongueInOut.SetValue(Round(mTongueInOutValue));
+				morphTongueInOut.SetValue(Mathf.Round(mTongueInOutValue * 10.0f) / 10.0f);
 				if (mTongueSideSideTarget > mTongueSideSideValue + 0.01f) { mTongueSideSideValue = Mathf.Min(mTongueSideSideValue + (0.084f * mouthVariation * morphSpeed), mTongueSideSideTarget); }
 				if (mTongueSideSideTarget < mTongueSideSideValue - 0.01f) { mTongueSideSideValue = Mathf.Max(mTongueSideSideValue - (0.017f * mouthVariation * morphSpeed), mTongueSideSideTarget); }
 				morphTongueSideSide.SetValue(Round(mTongueSideSideValue));
@@ -2779,20 +3384,15 @@ namespace VRAdultFun
 				morphTongueBendTip.SetValue(Round(mTongueBendTipValue));
 				//SuperController.LogError("Tongue Morphs Done");
 
-				if (morphShoulderFixLeftF != null)
+				if (AllowTorsoAndLimbEffects && morphShoulderFixLeftF != null)
 				{
 					
 					tempFloat = Vector3.Distance(lElbowController.followWhenOff.position, abdomenController.followWhenOff.position);
 					//testString = "|" + ((Mathf.Clamp(tempFloat, 0.18f, 0.3f) - 0.12f) * 8.33f);
-					
-					//Vector3 tempplane = Vector3.ProjectOnPlane(lArmController.followWhenOff.right, pelvisController.followWhenOff.forward);
-					//float tempangle = Vector3.SignedAngle(chestController.followWhenOff.forward, lArmController.followWhenOff.right, chestController.followWhenOff.forward);
-					//testString = tempangle.ToString();
-					
-					mShoulderFixLeftTarget = 1.0f - ((Mathf.Clamp(tempFloat, 0.18f, 0.3f) - 0.12f) * 18.33f) * 100.0f;
+					mShoulderFixLeftTarget = 1.0f - ((Mathf.Clamp(tempFloat, 0.18f, 0.3f) - 0.12f) * 8.33f) * 100.0f;
 					
 					tempFloat = Vector3.Distance(rElbowController.followWhenOff.position, abdomenController.followWhenOff.position);
-					mShoulderFixRightTarget = 1.0f - ((Mathf.Clamp(tempFloat, 0.18f, 0.3f) - 0.12f) * 18.33f) * 100.0f;
+					mShoulderFixRightTarget = 1.0f - ((Mathf.Clamp(tempFloat, 0.18f, 0.3f) - 0.12f) * 8.33f) * 100.0f;
 					
 					if (mShoulderFixLeftTarget > mShoulderFixLeftValue + 0.01f) { mShoulderFixLeftValue = Mathf.Min(mShoulderFixLeftValue + (0.1f), mShoulderFixLeftTarget); }
 					if (mShoulderFixLeftTarget < mShoulderFixLeftValue - 0.01f) { mShoulderFixLeftValue = Mathf.Max(mShoulderFixLeftValue - (0.1f), mShoulderFixLeftTarget); }
@@ -2804,91 +3404,6 @@ namespace VRAdultFun
 					morphShoulderFixRightR.SetValue(Round(Mathf.Lerp(0.0f, 1.0f, mShoulderFixRightValue)));
 				}
 
-			}
-			else
-			{
-				if (resetMorphs == false)
-				{
-					resetMorphs = true;
-					morphLHandFist.SetValue(0.0f);
-					morphRHandFist.SetValue(0.0f);
-					morphLHandStraighten.SetValue(0.0f);
-					morphRHandStraighten.SetValue(0.0f);
-
-					morphBrowDown.SetValue(0.0f);
-					morphBrowUp.SetValue(0.0f);
-					morphBrowCenterUp.SetValue(0.0f);
-					morphBrowOuterUpLeft.SetValue(0.0f);
-					morphBrowOuterUpRight.SetValue(0.0f);
-
-					morphEyesClosedLeft.SetValue(0.0f);
-					morphEyesClosedRight.SetValue(0.0f);
-					morphEyesSquint.SetValue(0.0f);
-					morphEyesPupils.SetValue(0.0f);
-					morphNoseFlare.SetValue(0.0f);
-
-					morphExpSmileFullFace.SetValue(0.0f);
-					morphExpSmileOpenFullFace.SetValue(0.0f);
-					morphExpGlare.SetValue(0.0f);
-					morphExpExcitement.SetValue(0.0f);
-					morphExpHappy.SetValue(0.0f);
-					morphExpFlirting.SetValue(0.0f);
-					morphExpDeserveIt.SetValue(0.0f);
-					morphExpTakingIt.SetValue(0.0f);
-
-					morphMouthMouthOpen.SetValue(0.0f);
-					morphMouthMouthOpenWide.SetValue(0.0f);
-					morphMouthOpenWider.SetValue(0.0f);
-					morphMouthNarrow.SetValue(0.0f);
-					morphMouthSideLeft.SetValue(0.0f);
-					morphMouthSideRight.SetValue(0.0f);
-					morphMouthSmileSimpleLeft.SetValue(0.0f);
-					morphMouthSmileSimpleRight.SetValue(0.0f);
-
-					morphLipsLipsPucker.SetValue(0.0f);
-					morphLipsLipsPuckerWide.SetValue(0.0f);
-					morphLipsLipBite.SetValue(0.0f);
-					morphLipsLipsClose.SetValue(0.0f);
-					morphLipsLipsPart.SetValue(0.0f);
-					morphLipsLipsPartCenter.SetValue(0.0f);
-					morphLipsBottomDown.SetValue(0.0f);
-					morphLipBottomIn.SetValue(0.0f);
-					morphLipsPouty.SetValue(0.0f);
-					morphMouthSmileMuscle.SetValue(0.0f);
-					morphVisF.SetValue(0.0f);
-					morphVisM.SetValue(0.0f);
-					morphVisOW.SetValue(0.0f);
-					morphVisAA.SetValue(0.0f);
-
-					morphTongueInOut.SetValue(1.0f);
-					morphTongueSideSide.SetValue(0.0f);
-					morphTongueBendTip.SetValue(0.0f);
-					morphTongueLength.SetValue(0.0f);
-					morphRibCageSize.SetValue(0.0f);
-					morphChestHeight.SetValue(0.0f);
-					morphBreastHeight.SetValue(0.0f);
-					morphBreastDroopLeft.SetValue(0.0f);
-					morphBreastDroopRight.SetValue(0.0f);
-					morphBreastHangLeft.SetValue(0.0f);
-					morphBreastHangRight.SetValue(0.0f);
-					morphBreath.SetValue(0.0f);
-					//morphRibsDef.SetValue(0.0f);
-					morphSternumDepth.SetValue(0.0f);
-					morphNipplesApply.SetValue(0.0f);
-					morphDeepBulgeBellyBottom.SetValue(0.0f);
-					morphDeepBulgeBellyMid.SetValue(0.0f);
-					morphDeepThroat.SetValue(0.0f);
-					morphBlowjobLips.SetValue(0.0f);
-					morphCheekSink.SetValue(0.0f);
-
-					if (morphShoulderFixRightR != null)
-					{
-						morphShoulderFixLeftF.SetValue(0.0f);
-						morphShoulderFixLeftR.SetValue(0.0f);
-						morphShoulderFixRightF.SetValue(0.0f);
-						morphShoulderFixRightR.SetValue(0.0f);
-					}
-				}
 			}
 			
 			if (mMouthOpenValue > 0.12f || mMouthOpenWideValue > 0.15f || mMouthOpenWiderValue > 0.15f || mSmileOpenFullFaceValue > 0.34f || mLipsBottomDownValue > 0.3f || mMouthOpenValue + mMouthOpenWideValue + mMouthOpenWiderValue + mSmileOpenFullFaceValue > 0.7f)
@@ -2905,7 +3420,7 @@ namespace VRAdultFun
 						mouthCanOpen = true;
 					}
 				}
-				if (mouthOpenTimer > 5.0f)
+				if (mouthOpenTimer > 1.0f)
 				{
 					mouthCanOpen = false;
 				}
@@ -2921,7 +3436,7 @@ namespace VRAdultFun
 			}
 
 			
-            if (saccadeClock <= 0.0f && mEyesClosedLeftValue < 0.7f && interestKissing == false)
+            if (saccadeClock <= 0.0f && mEyesClosedLeftValue < 0.7f && Random.Range(0.0f,100.0f) > Mathf.Lerp(59.0f, 39.0f, interestArousal/10.0f) && interestKissing == false)
             {
 				//SuperController.LogError("Saccade Start");
 				tempFloat2 = Mathf.Clamp(Vector3.Distance(headController.followWhenOff.position, eyeController.transform.position) - (closeFaceDistance * 1.0f),0.0f,1.0f);
@@ -2942,7 +3457,7 @@ namespace VRAdultFun
 				{
 					saccadeOffsetCounter += 1.0f;
 				}
-				if ((Mathf.Abs(saccadeOffset.x) > 12.5f * uiSaccadeWanderMult.val * tempFloat2 || saccadeOffset.y > 2.5f * uiSaccadeWanderMult.val * tempFloat2 || saccadeOffset.y < Mathf.Lerp(-7.5f, -22.5f, interestArousal/10.0f) * uiSaccadeWanderMult.val * tempFloat2) || Random.Range(0.0f,100.0f) > Mathf.Lerp(99655.0f,99989.0f,pExtraversion/100.0f) / 1000.0f || saccadeOffsetCounter > 5.0f || Random.Range(0.0f,100.0f) > Mathf.Lerp(59.0f, 39.0f, interestArousal/10.0f))
+				if ((Mathf.Abs(saccadeOffset.x) > 12.5f * uiSaccadeWanderMult.val * tempFloat2 || saccadeOffset.y > 2.5f * uiSaccadeWanderMult.val * tempFloat2 || saccadeOffset.y < Mathf.Lerp(-7.5f, -22.5f, interestArousal/10.0f) * uiSaccadeWanderMult.val * tempFloat2) || Random.Range(0.0f,100.0f) > Mathf.Lerp(99655.0f,99989.0f,pExtraversion/100.0f) / 1000.0f || saccadeOffsetCounter > 5.0f)
 				{
 					if (gAvoid == 0.0f)
 					{
@@ -3026,7 +3541,7 @@ namespace VRAdultFun
 					{
 						if (currentEye != "Closed")
 						{
-						eyesSM.Switch(eBlink);
+						//eyesSM.Switch(eBlink);
 						eyeClock = 0.0f;
 						debugString += " Sml Blnk ";
 						}
@@ -3037,7 +3552,7 @@ namespace VRAdultFun
 						{
 							if (currentEye != "Closed")
 							{
-							eyesSM.Switch(eBlink);
+							//eyesSM.Switch(eBlink);
 							eyeClock = 0.0f;
 							debugString += " Big Blnk";
 							}
@@ -3155,22 +3670,20 @@ namespace VRAdultFun
                 {
                     glanceClock = 0.0f;
                     amGlancing = false;
-					eyeUpdateClock = eyeUpdateTime + 1.0f;
 					if (eyeClock >  1.5f * uiBlinkSpeed.val && currentEye != "Closed")
 					{
 						eyeClock = 0.0f;
-						eyesSM.Switch(eBlink);
+						//eyesSM.Switch(eBlink);
 					}
                 }
 				//SuperController.LogError("amGlancing clock done");
-				//energyAmount += 1.0f;
             }
 
             if (playerHeadToHead < kissingDistance &&  uiDoKiss.val) //interestKissing == false &&
             {
                 interestClock -= Time.fixedDeltaTime * 5.0f;
             }
-            if (playerHeadToHead > kissingDistance && interestKissing && testRun == false)
+            if (playerHeadToHead > kissingDistance && interestKissing)
             {
                 lookSM.Switch(lPlayful);
                 mouthSM.Switch(mClosed);
@@ -3227,8 +3740,6 @@ namespace VRAdultFun
 					}
 				}
 				interestArousal += 0.002f * uiArousalSpeed.val;
-				lHandActivityBoost = lHandActivityBoost * 0.8f;
-				rHandActivityBoost = rHandActivityBoost * 0.8f;
 				if (interestValence > 5.0f)
 				{
 					interestArousal += 0.0004f * uiArousalSpeed.val;
@@ -3241,13 +3752,12 @@ namespace VRAdultFun
 			{
 				interestFace -= 0.06f * uiInterestRate.val;
 			}
-			if (playerHeadToHead < kissingDistance && interestKissing == false && headToFaceRot < lookDirectAngle && playerHeadToFaceRot < lookDirectAngle && uiDoKiss.val && testRun == false)// && lipsTouchCount > 0.0f)
+			if (playerHeadToHead < kissingDistance && interestKissing == false && headToFaceRot < lookDirectAngle && playerHeadToFaceRot < lookDirectAngle && uiDoKiss.val)// && lipsTouchCount > 0.0f)
 			{
 				lookSM.Switch(lKissing);
 				interestFace += 0.08f * uiInterestRate.val;
 				interestArousal += 0.005f * uiArousalSpeed.val;
 				interestValence += 0.007f * uiValenceSpeed.val;
-				//energyAmount += 1.0f;
 				dbgHead += "+WantKiss ";
 			}
 			if (interestKissing)
@@ -3255,7 +3765,6 @@ namespace VRAdultFun
 				interestFace += 0.3f * uiInterestRate.val;
 				interestArousal += 0.015f * uiArousalSpeed.val;
 				interestValence += 0.011f * uiValenceSpeed.val;
-				//energyAmount += 1.0f;
 				dbgHead += "+Kissing ";
 			}
             //if (headToEyeController < 10.0f && headToFaceRot < lookDirectAngle && playerHeadToFaceRot < lookDirectAngle && gAvoid == 0.0f && amGlancing == false && Vector3.Distance(new Vector3(0.0f,0.0f,0.0f),saccadeOffset) < 10.0f)
@@ -3264,9 +3773,6 @@ namespace VRAdultFun
 				interestFace += 0.08f * uiInterestRate.val;
 				interestArousal += 0.005f * uiArousalSpeed.val;
 				interestValence += 0.007f * uiValenceSpeed.val;
-				lHandActivityBoost = lHandActivityBoost * 0.8f;
-				rHandActivityBoost = rHandActivityBoost * 0.8f;
-				//energyAmount += 1.0f;
 				dbgHead += "+EyeToEye ";
 			}
             if (headToFaceRot < lookDirectAngle && mainInterest == "Face")
@@ -3283,7 +3789,6 @@ namespace VRAdultFun
 				}
 				interestValence += 0.0008f * uiValenceSpeed.val;
                 if (mainInterest == "Face"){fuzzyLock = 1.5f;}
-				//energyAmount += 1.0f;
 				dbgHead += "+LookAt ";
             }
 			else
@@ -3306,7 +3811,6 @@ namespace VRAdultFun
                 interestValence += 0.0002f * uiValenceSpeed.val;
                 if (mainInterest == "Face"){fuzzyLock = 07.0f;}
 				playerHeadInteract = true;
-				//energyAmount += 1.0f;
 				dbgHead += "+Interact ";
             }
             if (playerHeadMovement && headToFaceRot < lookPeripheralAngle)
@@ -3370,7 +3874,6 @@ namespace VRAdultFun
 					interestFace -= 0.01f * uiInterestRate.val;
                     interestArousal += 0.00005f * uiArousalSpeed.val;
                     interestValence += 0.00015f * uiValenceSpeed.val;
-					//energyAmount += 1.0f;
                     dbgLHand += "+FaceContact ";
                 }
 				if (playerHeadToFaceRot < lookDirectAngle && headToFaceRot < lookDirectAngle && playerHeadToHead < personalSpaceDistance && interestLHand + lHandActivityBoost > 40.0f)
@@ -3380,7 +3883,7 @@ namespace VRAdultFun
 				}
 				if (playerHeadToFaceRot < eyesNonDirectAngle)
 				{
-					interestLHand -= 1.00f * uiInterestRate.val;
+					interestLHand -= 0.12f * uiInterestRate.val;
 					dbgLHand += "-PLookFace ";
 				}
 
@@ -3396,7 +3899,7 @@ namespace VRAdultFun
 					{
                     interestLHand -= 0.05f;
 					}
-					if (playerLHandToPelvis < interactionDistance * 1.3f && vagTouchCount > 0.0f && testRun == false)
+					if (playerLHandToPelvis < interactionDistance * 1.3f && vagTouchCount > 0.0f)
 					{
 						dbgLHand += "+Sex ";
 						interestArousal += 0.01f * uiArousalSpeed.val;
@@ -3415,7 +3918,6 @@ namespace VRAdultFun
                     if (mainInterest == "LHand"){fuzzyLock = 3.5f;}
 					gHeadSpeed = 0.5f;
 					playerLHandInteract = true;
-					//energyAmount += 1.0f;
                     dbgLHand += "+Interact ";
                 }
                 if (playerLHandToLHand < interactionDistance)
@@ -3441,9 +3943,9 @@ namespace VRAdultFun
                     interestLHand -= 0.035f * (1.0f - (playerLHandTimeout / movementMaxTimeout)) * uiInterestRate.val;
                     dbgLHand += "-NoMove ";
                 }
-                if (playerToPLHand < lookDirectAngle && headToLHandRot < lookNoAwarenessAngle)
+                if (playerToPLHand < lookDirectAngle && headToLHandRot < lookPeripheralAngle)
                 {
-                    interestLHand += 0.33f * uiInterestRate.val;
+                    interestLHand += 0.03f * uiInterestRate.val;
                     if (mainInterest == "LHand"){fuzzyLock = 0.5f;}
                     dbgLHand += "+PLookAt ";
                 }
@@ -3514,7 +4016,6 @@ namespace VRAdultFun
 					interestFace -= 0.01f * uiInterestRate.val;
                     interestArousal += 0.00005f * uiArousalSpeed.val;
                     interestValence += 0.00015f * uiValenceSpeed.val;
-					//energyAmount += 1.0f;
                     dbgRHand += "+FaceContact ";
                 }
 				if (playerHeadToFaceRot < lookDirectAngle && headToFaceRot < lookDirectAngle && playerHeadToHead < personalSpaceDistance && interestRHand + rHandActivityBoost > 40.0f)
@@ -3524,7 +4025,7 @@ namespace VRAdultFun
 				}
 				if (playerHeadToFaceRot < eyesNonDirectAngle)
 				{
-					interestRHand -= 1.00f * uiInterestRate.val;
+					interestRHand -= 0.12f * uiInterestRate.val;
 					dbgRHand += "-PLookFace ";
 				}
 
@@ -3544,7 +4045,7 @@ namespace VRAdultFun
 					{
 						dbgRHand += "+Sex ";
 						interestArousal += 0.01f * uiArousalSpeed.val;
-						if (playerRHandMovement && interestArousal > 5.0f && currentLook != "Feel" && currentLook != "Sex" && testRun == false)
+						if (playerRHandMovement && interestArousal > 5.0f && currentLook != "Feel" && currentLook != "Sex")
 						{
 							lookSM.Switch(lFeel);
 						}
@@ -3558,7 +4059,6 @@ namespace VRAdultFun
                     if (mainInterest == "RHand"){fuzzyLock = 3.5f;}
 					gHeadSpeed = 0.5f;
 					playerRHandInteract = true;
-					//energyAmount += 1.0f;
                     dbgRHand += "+Interact ";
                 }
                 if (playerRHandToRHand < interactionDistance)
@@ -3584,9 +4084,9 @@ namespace VRAdultFun
                     interestRHand -= 0.035f * (1.0f - (playerRHandTimeout / movementMaxTimeout)) * uiInterestRate.val;
                     dbgRHand += "-NoMove ";
                 }
-                if (playerToPRHand < lookDirectAngle && headToRHandRot < lookNoAwarenessAngle)
+                if (playerToPRHand < lookDirectAngle && headToRHandRot < lookPeripheralAngle)
                 {
-                    interestRHand += 0.33f * uiInterestRate.val;
+                    interestRHand += 0.03f * uiInterestRate.val;
                     if (mainInterest == "RHand"){fuzzyLock = 0.5f;}
                     dbgRHand += "+PLookAt ";
                 }
@@ -3675,7 +4175,6 @@ namespace VRAdultFun
                     interestPelvis += 0.02f * uiInterestRate.val;
                     //interestArousal += 2.0f;
 					playerPenisInteract = true;
-					//energyAmount += 1.0f;
                     if (mainInterest == "Pelvis"){fuzzyLock = 0.5f;}
 					dbgPenis += "+FaceInteract ";
                 }
@@ -3691,7 +4190,6 @@ namespace VRAdultFun
                     interestPelvis += 0.1f * uiInterestRate.val;
                     interestTip += 0.1f * uiInterestRate.val;
                     if (mainInterest == "Pelvis"){fuzzyLock = 2.5f;}
-					//energyAmount += 1.0f;
 					dbgPenis += "+SexActPelvis ";
                 }
                 if (playerPelvisToHead < personalSpaceDistance)
@@ -3744,7 +4242,6 @@ namespace VRAdultFun
 					interestArousal += 0.01f;
                     if (mainInterest == "Penis"){fuzzyLock = 0.25f;}
 					playerPenisInteract = true;
-					//energyAmount += 1.0f;
 					dbgPenis += "+Interact ";
                 }
                 if (playerTipMovement && headToFaceRot > lookPeripheralAngle)
@@ -3771,7 +4268,6 @@ namespace VRAdultFun
                     interestRHand -= 0.03f * uiInterestRate.val;
 					interestArousal += 0.03f;
                     if (mainInterest == "Penis"){fuzzyLock = 0.5f;}
-					//energyAmount += 1.0f;
 					dbgPenis += "+SexAction ";
                 }
                 if (playerTipToHead > personalSpaceDistance && playerTipToHead < backgroundDistance)
@@ -3803,7 +4299,6 @@ namespace VRAdultFun
                     interestPelvis += 0.3f * uiInterestRate.val;
 					interestArousal += 0.03f;
                     if (mainInterest == "Penis"){fuzzyLock = 0.5f;}
-					//energyAmount += 1.0f;
 					dbgPenis += "+SexInteract ";
                 }
                 else
@@ -3840,7 +4335,8 @@ namespace VRAdultFun
 				}
 				else
 				{
-					interestEMTarget -= 0.1f * uiInterestRate.val;
+					if (emTargetName != "[CameraRig]")
+						interestEMTarget -= 0.1f * uiInterestRate.val;
 				}
 				if (emTargetDistance < closeFaceDistance * 2.0f)
 				{
@@ -3853,7 +4349,8 @@ namespace VRAdultFun
 				}
 				else
 				{
-					interestEMTarget -= 0.1f * uiInterestRate.val;
+					if (emTargetName != "[CameraRig]")
+						interestEMTarget -= 0.1f * uiInterestRate.val;
 				}
 				if (emTargetDir < lookPeripheralAngle)
 				{
@@ -3862,13 +4359,8 @@ namespace VRAdultFun
 				}
 				else
 				{
-					interestEMTarget -= 0.01f * uiInterestRate.val;
-				}
-				if (emTargetPelvisDistance < interactionDistance && vagTouchCount > 0.0f)
-				{
-					interestEMTarget += 0.1f * uiInterestRate.val;
-					//energyAmount += 1.0f;
-					dbgObject += "+Sex ";
+					if (emTargetName != "[CameraRig]")
+						interestEMTarget -= 0.01f * uiInterestRate.val;
 				}
 				if (emTargetHeadDir < eyesNonDirectAngle && uiTargetLook.val)
 				{
@@ -3881,21 +4373,26 @@ namespace VRAdultFun
 				}
 				else
 				{
-					interestEMTarget -= 0.01f * uiInterestRate.val;
+					if (emTargetName != "[CameraRig]")
+						interestEMTarget -= 0.01f * uiInterestRate.val;
 				}
 				if (mainOld == "Target")
 				{
-					interestEMTarget -= 0.03f * uiInterestRate.val;
+					if (emTargetName != "[CameraRig]")
+						interestEMTarget -= 0.03f * uiInterestRate.val;
 					dbgObject += "+Previous ";
 				}
 				if (headToFaceRot < lookDirectAngle)
 				{
-					interestEMTarget -= 0.05f * uiInterestRate.val;
-					dbgObject += "-LookingAtPlayer ";
-					if (playerHeadToFaceRot < lookDirectAngle && amGlancing == false && gAvoid == 0.0f)
+					if (emTargetName != "[CameraRig]")
 					{
-						interestEMTarget -= 0.3f * uiInterestRate.val;
-						dbgObject += "-EyeToEye ";
+						interestEMTarget -= 0.2f * uiInterestRate.val;
+						dbgObject += "-LookingAtPlayer ";
+						if (playerHeadToFaceRot < lookDirectAngle && amGlancing == false && gAvoid == 0.0f)
+						{
+							interestEMTarget -= 0.3f * uiInterestRate.val;
+							dbgObject += "-EyeToEye ";
+						}
 					}
 				}
 			}
@@ -3919,29 +4416,35 @@ namespace VRAdultFun
 				interestRHand = Mathf.Clamp(interestRHand, (interestRHandBase/2.0f) * uiRHandInterest.val, (maxInterestLevel - 1.0f) * uiRHandInterest.val);
 				interestPelvis = Mathf.Clamp(interestPelvis, (interestPelvisBase/2.0f) * uiPenisInterest.val, (maxInterestLevel + 1.0f) * uiPenisInterest.val);
 				interestTip = Mathf.Clamp(interestTip, (interestTipBase/2.0f) * uiPenisInterest.val, (maxInterestLevel + 4.0f) * uiPenisInterest.val);
+			if (emTargetName == "[CameraRig]")
+			{
+				float rateCam = Mathf.Max(0.25f, uiInterestRate.val);
+				interestEMTarget += 0.06f * rateCam;
+				if (Random.Range(0f, 100f) < 8f)
+					interestEMTarget += 4.5f * rateCam;
+			}
 				interestEMTarget = Mathf.Clamp(interestEMTarget, (interestEMTargetBase/2.0f) * uiObjectInterest.val, (maxInterestLevel + 5.0f) * uiObjectInterest.val);
 				
 				
-			
 			//SuperController.LogError("Interest Calc Done");
+			
 			
             if (interestClock <= 0.0f && amGlancing == false)
             {
 
 				eyesNonDirectClock = 0.0f;
 				twistTarget = Random.Range(-30.0f,30.0f);
-				//Vector3 cross = Vector3.Cross(chestController.followWhenOff.forward, headController.followWhenOff.forward);
-				//float leftright = Vector3.SignedAngle (chestController.followWhenOff.forward, headController.followWhenOff.forward, chestController.followWhenOff.up);
+				Vector3 cross = Vector3.Cross(chestController.followWhenOff.forward, headController.followWhenOff.forward);
 				
-				if (headLeftRight > lookDirectAngle)
+				if (cross.y > 0.0f)
 				{
 					twistTarget = Random.Range(10.0f,-70.0f);
 				}
-				if (headLeftRight < -lookDirectAngle)
+				if (cross.y < 0.0f)
 				{
 					twistTarget = Random.Range(-10.0f,70.0f);
 				}
-				if (Random.Range(0.0f,100.0f) < uiIdleChance.val || (Mathf.Abs(lElbowActual) < -40.0f && Random.Range(0.0f,100.0f) < uiIdleChance.val * 2.0f))
+				if (Random.Range(0.0f,100.0f) < uiIdleChance.val || (Mathf.Abs(lElbowActual) > 40.0f && Random.Range(0.0f,100.0f) < uiIdleChance.val * 2.0f))
 				{
 					lElbowTarget = Random.Range(10.0f,-120.0f);
 				}
@@ -3949,22 +4452,6 @@ namespace VRAdultFun
 				{
 					rElbowTarget = Random.Range(-10.0f,120.0f);
 				}
-				
-				headLastUpDown = headUpDown;
-				headLastLeftRight = headLeftRight;
-				
-				if (currentLook == "Bored" || currentLook == "BlowJob" || currentLook == "Kissing")
-				{
-					twistTarget = 0.0f;
-					lElbowTarget = 0.0f;
-					rElbowTarget = 0.0f;
-				}
-				if (currentLook == "Intense")
-				{
-					lElbowTarget = Random.Range(10.0f,-20.0f);
-					rElbowTarget = Random.Range(-10.0f,20.0f);
-				}
-				
 				float rand = Random.Range(0.0f, 100.0f);
 				if (rand > 33.0f)
                 {
@@ -3989,7 +4476,7 @@ namespace VRAdultFun
 					}
                 }
 
-				//SuperController.LogError("Idle Movement Done");
+				
 				/*if (Random.Range(0.0f,100.0f) > 50.0f)
 				{
 					lElbowX = -130.0f;
@@ -4059,7 +4546,6 @@ namespace VRAdultFun
                     interestUpdate = interestEMTarget;
                     //interestEMTarget = interestEMTarget - (10.0f * (mainClock / 5.0f));
                 }
-				//SuperController.LogError("Interest Update Set");
 
 				interestRepeating = false;
 				if (Random.Range(0.0f,100.0f) > 85.0f + interestRepeat)
@@ -4071,10 +4557,10 @@ namespace VRAdultFun
 				{
 					//interestRepeat = 0.0f;
 				}
-				//SuperController.LogError("Main Interest Start");
 				string oldInterest = currentInterest;
 				if (interestRepeating == false)
 				{
+					//SuperController.LogError("Main Interest Start");
 					mainValue = 0.0f;
 					secondValue = 0.0f;
 					tempFloat = 0.0f;
@@ -4138,7 +4624,7 @@ namespace VRAdultFun
 						{
 							if (interestLHand + lHandActivityBoost > mainValue)
 							{
-								if (interestLHand + lHandActivityBoost > 27.0f && interestLHand + lHandActivityBoost > interestFace - 10.0f)
+								if (interestLHand + lHandActivityBoost > 23.0f && interestLHand + lHandActivityBoost > interestFace - 10.0f)
 								{
 									if ((Random.Range(0.0f, 100.0f) <= 100.0f - interestRepeat && oldInterest == "LHand") || oldInterest != "LHand")
 									{
@@ -4147,7 +4633,7 @@ namespace VRAdultFun
 											mainOld = mainInterest;
 											mainSwitch = true;
 											interestRepeat = 0.0f;
-											if (morphBrowAction == false && testRun == false)
+											if (morphBrowAction == false)
 											{
 												browSM.Switch(bRaised);
 											}
@@ -4167,7 +4653,7 @@ namespace VRAdultFun
 								{
 									secondOld = secondInterest;
 									secondSwitch = true;
-									if (interestArousal < 5.0f && morphBrowAction == false && Random.Range(0.0f,100.0f) > 97.0f && testRun == false)
+									if (interestArousal < 5.0f && morphBrowAction == false && Random.Range(0.0f,100.0f) > 97.0f)
 									{
 										browSM.Switch(bOneRaise);
 									}
@@ -4183,7 +4669,7 @@ namespace VRAdultFun
 						{
 							if (interestRHand + rHandActivityBoost > mainValue)
 							{
-								if (interestRHand + rHandActivityBoost > 27.0f && interestRHand + rHandActivityBoost > interestFace - 10.0f)
+								if (interestRHand + rHandActivityBoost > 23.0f && interestRHand + rHandActivityBoost > interestFace - 10.0f)
 								{
 									if ((Random.Range(0.0f, 100.0f) <= 100.0f - interestRepeat && oldInterest == "RHand") || oldInterest != "RHand")
 									{
@@ -4192,7 +4678,7 @@ namespace VRAdultFun
 											mainOld = mainInterest;
 											mainSwitch = true;
 											interestRepeat = 0.0f;
-											if (morphBrowAction == false && testRun == false)
+											if (morphBrowAction == false)
 											{
 												browSM.Switch(bRaised);
 											}
@@ -4212,7 +4698,7 @@ namespace VRAdultFun
 								{
 									secondOld = secondInterest;
 									secondSwitch = true;
-									if (interestArousal < 5.0f && morphBrowAction == false && Random.Range(0.0f,100.0f) > 97.0f && testRun == false)
+									if (interestArousal < 5.0f && morphBrowAction == false && Random.Range(0.0f,100.0f) > 97.0f)
 									{
 										browSM.Switch(bOneRaise);
 									}
@@ -4231,7 +4717,7 @@ namespace VRAdultFun
 								mainOld = mainInterest;
 								mainSwitch = true;
 								interestRepeat = 0.0f;
-								if (interestArousal > 5.0f && lookAction == false && testRun == false)
+								if (interestArousal > 5.0f && lookAction == false)
 								{
 									lookSM.Switch(lPlayful);
 								}
@@ -4245,7 +4731,7 @@ namespace VRAdultFun
 							{
 								secondOld = secondInterest;
 								secondSwitch = true;
-								if (lookAction == false && testRun == false)
+								if (lookAction == false)
 								{
 									lookSM.Switch(lInquisitive);
 								}
@@ -4290,7 +4776,7 @@ namespace VRAdultFun
 								mainOld = mainInterest;
 								mainSwitch = true;
 								interestRepeat = 0.0f;
-								if (interestArousal > 5.0f && lookAction == false && testRun == false)
+								if (interestArousal > 5.0f && lookAction == false)
 								{
 									lookSM.Switch(lPlayful);
 								}
@@ -4304,7 +4790,7 @@ namespace VRAdultFun
 							{
 								secondOld = secondInterest;
 								secondSwitch = true;
-								if (lookAction == false && testRun == false)
+								if (lookAction == false)
 								{
 									lookSM.Switch(lInquisitive);
 								}
@@ -4362,53 +4848,25 @@ namespace VRAdultFun
 							secondValue = 60;
 						}
 						
-					if (secondInterest == "RandomR" || secondInterest == "RandomL" || secondInterest == "RandomF" || secondInterest == "RandomU")
+					if (IsRandomInterest(secondInterest))
 					{
 						if (Random.Range(0.0f,100.0f) > 85.0f)
 						{
-							if (Random.Range(0.0f,100.0f) > 90.0f)
-							{
-								secondInterest = "RandomF";
-							}
-							else
-							{
-								if (Random.Range(0.0f,100.0f) > 50.0f)
-								{
-								secondInterest = "RandomL";
-								}
-								else
-								{
-								secondInterest = "RandomR";
-								}
-							}
+							secondInterest = ChooseStructuredRandomInterest();
 						}
 					}
 					
 					if (secondInterest == "RHand" && interestRHand + rHandActivityBoost < 10.0f)
 					{
-						if (Random.Range(0.0f,100.0f) > 5.0f)
-						{
-							secondInterest = "RandomR";
-						}
-						else
-						{
-							secondInterest = "RandomF";
-						}
+						secondInterest = ChooseStructuredRandomInterest();
 					}
 					
 					if (secondInterest == "LHand" && interestLHand + lHandActivityBoost < 10.0f)
 					{
-						if (Random.Range(0.0f,100.0f) > 5.0f)
-						{
-							secondInterest = "RandomL";
-						}
-						else
-						{
-							secondInterest = "RandomF";
-						}
+						secondInterest = ChooseStructuredRandomInterest();
 					}
 					
-					if ((mainOld == "RandomR" || mainOld == "RandomL" || mainOld == "RandomF") && mainInterest == "Face")
+					if (IsRandomInterest(mainOld) && mainInterest == "Face")
 					{
 						if (playerHeadToHead > personalSpaceDistance && interestValence < 5.0f && Random.Range(0.0f,100.0f) > 95.0f)
 						{
@@ -4426,10 +4884,10 @@ namespace VRAdultFun
 					
 					if (vagTouchCount > 0.0f && currentLook == "Sex" && currentEye != "Closed")
 					{
-						if ((mainOld == "Face" || mainOld == "Pelvis") && Random.Range(0.0f,100.0f) > 20.0f)
+						if ((mainOld == "Face" || mainOld == "Pelvis") && Random.Range(0.0f,100.0f) > 50.0f)
 						{
 							mainOld = mainInterest;
-							mainInterest = "RandomU";
+							mainInterest = ChooseStructuredRandomInterest();
 						}
 						else
 						{
@@ -4456,7 +4914,7 @@ namespace VRAdultFun
 						currentInterest = "Pelvis";
 						currentInterestLevel = interestPelvis;
 						playerInterest += 2.0f;
-						if (lookAction == false && testRun == false)
+						if (lookAction == false)
 						{
 							if (interestArousal + interestValence < 5)
 							{
@@ -4500,19 +4958,19 @@ namespace VRAdultFun
 						playerInterest += 5.0f;
 						if (lookAction == false)
 						{
-							if (playerTipToPelvis < interactionDistance * 1.5f && playerHeadToHead > personalSpaceDistance/2.0f && vagTouchCount > 0.0f && uiDoSex.val && testRun == false)
+							if (playerTipToPelvis < interactionDistance * 1.5f && playerHeadToHead > personalSpaceDistance/2.0f && vagTouchCount > 0.0f && uiDoSex.val)
 							{
 								lookSM.Switch(lSex);
 							}
 							else
 							{
-								if (playerTipToHead < interactionDistance && uiDoBlowjob.val && lipsTouchCount > 0.0f && testRun == false)
+								if (playerTipToHead < interactionDistance && uiDoBlowjob.val && lipsTouchCount > 0.0f)
 								{
 									lookSM.Switch(lSucking);
 								}
 								else
 								{
-									if (lookAction == false && testRun == false)
+									if (lookAction == false)
 									{
 										if (interestArousal + interestValence < 5)
 										{
@@ -4557,7 +5015,7 @@ namespace VRAdultFun
 						currentInterest = "RHand";
 						currentInterestLevel = interestRHand;
 						playerInterest += 1.0f;
-						if (lookAction == false && (mainInterest != mainOld || Random.Range(0.0f,100.0f) < uiExpressionChance.val) && testRun == false)
+						if (lookAction == false && (mainInterest != mainOld || Random.Range(0.0f,100.0f) < uiExpressionChance.val))
 						{
 							if (playerRHandToHead < interactionDistance || playerRHandToLBreast < interactionDistance || playerRHandToRBreast < interactionDistance || playerRHandToPelvis < interactionDistance * 1.3f)
 							{
@@ -4587,7 +5045,7 @@ namespace VRAdultFun
 						currentInterest = "LHand";
 						currentInterestLevel = interestLHand;
 						playerInterest += 1.0f;
-						if (lookAction == false && (mainInterest != mainOld || Random.Range(0.0f,100.0f) < uiExpressionChance.val) && testRun == false)
+						if (lookAction == false && (mainInterest != mainOld || Random.Range(0.0f,100.0f) < uiExpressionChance.val))
 						{
 							if (playerLHandToHead < interactionDistance || playerLHandToLBreast < interactionDistance || playerLHandToRBreast < interactionDistance || playerLHandToPelvis < interactionDistance * 2.0f)
 							{
@@ -4665,7 +5123,7 @@ namespace VRAdultFun
 							currentInterest = "Target";
 							currentInterestLevel = interestEMTarget;
 						}
-						if (lookAction == false && (mainInterest != mainOld || Random.Range(0.0f,100.0f) < uiExpressionChance.val) && testRun == false)
+						if (lookAction == false && (mainInterest != mainOld || Random.Range(0.0f,100.0f) < uiExpressionChance.val))
 						{
 							if (playerHeadToPelvis < interactionDistance && playerHeadMovement && mainInterest == "Face" && playerHeadToHead > personalSpaceDistance/2.0f && uiDoSex.val)
 							{
@@ -4749,7 +5207,7 @@ namespace VRAdultFun
 					{
 						interestArousal -= (0.2f * (0.1f + ((100.0f - pStableness) / 100.0f))) / uiArousalSpeed.val;
 						interestValence -= (0.065f * (0.1f + ((100.0f - pAgreeableness) / 100.0f))) / uiValenceSpeed.val;
-						if ((currentLook == "Bored" || currentLook == "Daydream") && interestArousal > 5.5f && testRun == false)
+						if ((currentLook == "Bored" || currentLook == "Daydream") && interestArousal > 5.5f)
 						{
 							lookSM.SwitchRandom(new State[] {
 											lPlayful,
@@ -4759,7 +5217,7 @@ namespace VRAdultFun
 						}
 						else
 						{
-							if (lookAction == false && playerHeadToHead > personalSpaceDistance && interestValence < 5.0f && playerInterest < 50.0f && testRun == false)
+							if (lookAction == false && playerHeadToHead > personalSpaceDistance && interestValence < 5.0f && playerInterest < 50.0f)
 							{
 								lookSM.SwitchRandom(new State[] {
 												lBored,
@@ -4770,43 +5228,40 @@ namespace VRAdultFun
 											});
 							}
 						}
-						if (Random.Range(0.0f, 100.0f) < 1.0f + (interestFace + headActivityBoost / 10.0f) && currentLook != "Sex")
-						{
-							currentInterest = "Face";
+						//if ((mainInterest == "RandomF" || mainInterest == "RandomU" || mainInterest == "RandomL" || mainInterest == "RandomR") && Random.Range(0.0f,100.0f) > 10.0f * uiInterestSpeed.val)
+						//{
+						//	currentInterest = mainInterest;
+						//}
+						//else
+						//{
+							if (Random.Range(0.0f, 100.0f) < 1.0f + (interestFace + headActivityBoost / 10.0f) && currentLook != "Sex")
+							{
+								currentInterest = "Face";
+							}
+							else
+							{
+								playerInterest -= 10.5f;
+								//if (currentInterest == "RandomR" || currentInterest == "RandomL" || currentInterest == "RandomF")
+								//{
+									//currentInterest = currentInterest;
+								//}
+								//else
+								//{
+									currentInterest = ChooseStructuredRandomInterest();
+								//}
+							}
+							if (mainInterest != currentInterest)
+							{
+								mainOld = mainInterest;
+							}
+							if (secondInterest != currentInterest)
+							{
+								//secondOld = secondInterest;
+							}
 							mainInterest = currentInterest;
-						}
-						else
-						{
-							playerInterest -= 10.5f;
-								if (Random.Range(0.0f, 100.0f) < 5.0f)
-								{
-									currentInterest = "RandomF";
-								}
-								else
-								{
-									if (Random.Range(0.0f, 100.0f) < 10.0f)
-									{
-										currentInterest = "RandomU";
-									}
-									else
-									{
-										if (Random.Range(0.0f, 100.0f) > 50.0f)
-										{
-											currentInterest = "RandomR";
-										}
-										else
-										{
-											currentInterest = "RandomL";
-										}
-									}
-								}
-								mainInterest = currentInterest;
-						}
-						if (mainInterest != currentInterest)
-						{
-							mainOld = mainInterest;
-						}
-						mainInterest = currentInterest;
+							//secondInterest = currentInterest;
+							//currentInterestLevel = 60.0f;
+						//}
 					}
 				}
 				if (oldInterest == currentInterest)
@@ -4818,7 +5273,7 @@ namespace VRAdultFun
                 {
 					if (morphEyeAction == false)
 					{
-						eyesSM.Switch(eBlink);
+						//eyesSM.Switch(eBlink);
 						eyeClock = 0.0f;
 					}
                 }
@@ -4827,13 +5282,13 @@ namespace VRAdultFun
 				{
 					//gAvoid = 1.0f;
 					mainOld = mainInterest;
-					mainInterest = "RandomF";
-					currentInterest = "RandomF";
+					mainInterest = ChooseStructuredRandomInterest();
+					currentInterest = mainInterest;
 					//SuperController.LogError("Out of view");
 				}
 
 				
-                if (playerHeadToHead < kissingDistance && interestKissing == false && headToFaceRot < lookDirectAngle && playerHeadToFaceRot < eyesNonDirectAngle && uiDoKiss.val && (lipsTouchCount > 0.0f || playerHeadController.possessed) && testRun == false)
+                if (playerHeadToHead < kissingDistance && interestKissing == false && headToFaceRot < lookDirectAngle && playerHeadToFaceRot < eyesNonDirectAngle && uiDoKiss.val && (lipsTouchCount > 0.0f || playerHeadController.possessed))
                 {
                     lookSM.Switch(lKissing);
                 }
@@ -4851,7 +5306,6 @@ namespace VRAdultFun
             }
             else
             {
-				//SuperController.LogError("Interest Clock Running");
 				if (interestClock > -1.0f)
 				{
 					interestClock -= Time.fixedDeltaTime;
@@ -4863,8 +5317,8 @@ namespace VRAdultFun
 					{
 						if (interestClock == -1.0f)
 						{
-							mainInterest = "RandomF";
-							currentInterest = "RandomF";
+							mainInterest = ChooseStructuredRandomInterest();
+							currentInterest = mainInterest;
 						}
 						interestClock = -1.0f;
 					}
@@ -4873,8 +5327,8 @@ namespace VRAdultFun
 					{
 						if (interestClock == -1.0f)
 						{
-							mainInterest = "RandomF";
-							currentInterest = "RandomF";
+							mainInterest = ChooseStructuredRandomInterest();
+							currentInterest = mainInterest;
 						}
 						interestClock = -1.0f;
 					}
@@ -4884,21 +5338,21 @@ namespace VRAdultFun
 					{
 						if (interestClock == -1.0f)
 						{
-							mainInterest = "RandomF";
-							currentInterest = "RandomF";
+							mainInterest = ChooseStructuredRandomInterest();
+							currentInterest = mainInterest;
 						}
 						interestClock = -1.0f;
 					}
 
 					if (uiObjectTarget.val != "None")
 					{
-						tempFloat = Mathf.Abs(Vector3.Angle(emTargetTransform.position - headController.followWhenOff.position, headController.followWhenOff.forward));
+						tempFloat = Mathf.Abs(Vector3.Angle(emTargetController.transform.position - headController.followWhenOff.position, headController.followWhenOff.forward));
 						if (mainInterest == "Target" && tempFloat > lookPeripheralAngle)
 						{
 							if (interestClock == -1.0f)
 							{
-								mainInterest = "RandomF";
-							currentInterest = "RandomF";
+								mainInterest = ChooseStructuredRandomInterest();
+							currentInterest = mainInterest;
 							}
 							interestClock = -1.0f;
 						}
@@ -4906,7 +5360,6 @@ namespace VRAdultFun
 				}
 				//SuperController.LogError("Interest Clock Counting");
             }
-			//SuperController.LogError("Interest Clock Complete");
 						
 			if (playerHeadToFaceRot < lookDirectAngle && (playerHeadToHead < personalSpaceDistance || pExtraversion < 35.0f) && uiGazeAvoid.val)
 			{
@@ -4997,10 +5450,9 @@ namespace VRAdultFun
 						gAvoid = 0.0f;
 						gAvoidanceClock = 0.0f;
 						gAvoidingClock = 0.0f;
-						eyeUpdateClock = eyeUpdateTime + 1.0f;
 						if (eyeClock > 0.7f * uiBlinkSpeed.val && currentEye != "Closed")
 						{
-							eyesSM.Switch(eBlink);
+							//eyesSM.Switch(eBlink);
 							eyeClock = 0.0f;
 						}
 						if (mainInterest != gAvoidInterest)
@@ -5033,7 +5485,7 @@ namespace VRAdultFun
 						gAvoidInterest = mainInterest;
 						gAvoidingClock = Mathf.Lerp(4.0f * uiGazeAvoidTime.val, 0.5f * uiGazeAvoidTime.val, interestValence/10.0f) * Mathf.Lerp(2.0f,0.75f,pExtraversion/100.0f);
 						//eyesSM.Switch(eClosed);
-						if (morphMouthAction == false && testRun == false)
+						if (morphMouthAction == false)
 						{
 							if (interestValence > 5.0f)
 							{
@@ -5062,7 +5514,7 @@ namespace VRAdultFun
 							{
 								if (lookAwaySide == "right")
 								{
-									eyesSM.Switch(eBlink);
+									//eyesSM.Switch(eBlink);
 									eyeClock = 0.0f;
 								}
 								lookAwaySide = "left";
@@ -5071,7 +5523,7 @@ namespace VRAdultFun
 							{
 								if (lookAwaySide == "left")
 								{
-									eyesSM.Switch(eBlink);
+									//eyesSM.Switch(eBlink);
 									eyeClock = 0.0f;
 								}
 								lookAwaySide = "right";
@@ -5083,7 +5535,7 @@ namespace VRAdultFun
 							{
 								if (lookAwaySide == "right")
 								{
-									eyesSM.Switch(eBlink);
+									//eyesSM.Switch(eBlink);
 									eyeClock = 0.0f;
 								}
 								lookAwaySide = "left";
@@ -5092,7 +5544,7 @@ namespace VRAdultFun
 							{
 								if (lookAwaySide == "left")
 								{
-									eyesSM.Switch(eBlink);
+									//eyesSM.Switch(eBlink);
 									eyeClock = 0.0f;
 								}
 								lookAwaySide = "right";
@@ -5109,25 +5561,25 @@ namespace VRAdultFun
 				gAvoidingClock = 0.0f;
 			}
 			
-			if (((playerLHandToPelvis < interactionDistance * 1.5f) || (playerRHandToPelvis < interactionDistance * 1.5f) || playerHeadToPelvis < interactionDistance * 1.5f || emTargetPelvisDistance < interactionDistance * 1.5f) && vagTouchCount > 0 && uiDoSex.val)
+			if (((playerLHandToPelvis < interactionDistance * 1.5f) || (playerRHandToPelvis < interactionDistance * 1.5f) || playerHeadToPelvis < interactionDistance * 1.5f) && vagTouchCount > 0 && uiDoSex.val)
 			{
 				interestArousal += 0.15f;
 				if (interestArousal > 6.0f)
 				{
-					if (currentLook != "Sex" && lookAction == false && testRun == false)
+					if (currentLook != "Sex" && lookAction == false)
 					{
 						lookSM.Switch(lSex);
 					}
 				}
 				else
 				{
-					if (currentLook != "Sex" && lookAction == false && interestArousal > 8.0f && testRun == false)
+					if (currentLook != "Sex" && lookAction == false && interestArousal > 8.0f)
 					{
 						lookSM.Switch(lSex);
 					}
 					else
 					{
-						if (currentLook != "Feel" && lookAction == false && currentLook != "Sex" && testRun == false)
+						if (currentLook != "Feel" && lookAction == false && currentLook != "Sex")
 						{
 							lookSM.Switch(lFeel);
 						}
@@ -5139,9 +5591,10 @@ namespace VRAdultFun
 			if ((playerLHandToHead < closeFaceDistance || playerRHandToHead < closeFaceDistance) && lipsTouchCount > 0.0f)
 			{
 				lipsOnly = true;
-				if (currentMouth != "Kissing" && testRun == false)
+				if (currentMouth != "Kissing")
 				{
 					mouthSM.Switch(mKiss);
+					
 				}
 			}
 			else
@@ -5150,20 +5603,20 @@ namespace VRAdultFun
 			}
 
 			//SuperController.LogError("Checking for face Idle");
-			if (lookAction == false && Random.Range(0.0f,100.0f) > Mathf.Lerp(99.99f,98.0f,interestArousal/10.0f) && currentLook != "Sex" && currentLook != "Sucking" && currentLook != "Kissing" && testRun == false)
+			if (lookAction == false && Random.Range(0.0f,100.0f) > Mathf.Lerp(99.99f,98.0f,interestArousal/10.0f) && currentLook != "Sex" && currentLook != "Sucking" && currentLook != "Kissing")
 			{
 				if (amGlancing == false && gAvoid == 0.0f && playerPenisInteract && playerHeadToHead > personalSpaceDistance/2.0f)
 				{
 					if (playerTipToHead < interactionDistance && lipsTouchCount > 0.0f)
 					{
-						if (uiDoBlowjob.val && testRun == false)
+						if (uiDoBlowjob.val)
 						{
 							lookSM.Switch(lSucking);
 						}
 					}
 					else
 					{
-						if (uiDoSex.val && testRun == false)
+						if (uiDoSex.val)
 						{
 							lookSM.Switch(lSex);
 						}
@@ -5256,7 +5709,7 @@ namespace VRAdultFun
 			}
 			
 			//SuperController.LogError("Checking for motion interact");
-			if (lookAction == false && interestArousal >= Mathf.Lerp(6.5f, 9.3f, pExtraversion/100.0f) && interestValence > Mathf.Lerp(8.5f, 6.0f, pAgreeableness/100.0f) && currentLook != "Feel" && currentLook != "Sex" && currentLook != "Sucking" && currentLook != "Kissing" && testRun == false)
+			if (lookAction == false && interestArousal >= 8.5f && interestValence > 6.0f && currentLook != "Feel" && currentLook != "Sex" && currentLook != "Sucking" && currentLook != "Kissing")
 			{
 				if ((playerLHandInteract && playerLHandMovement) || (playerRHandInteract && playerRHandMovement) || (playerHeadInteract && playerHeadMovement) || (playerPenisInteract && playerTipMovement))
 				{
@@ -5264,7 +5717,7 @@ namespace VRAdultFun
 				}
 			}
 			
-			if (playerLHandToPelvis < interactionDistance * 1.3f && vagTouchCount > 0.0f && uiDoSex.val && testRun == false)
+			if (playerLHandToPelvis < interactionDistance * 1.3f && vagTouchCount > 0.0f && uiDoSex.val)
 			{
 				if (playerLHandMovement)
 				{
@@ -5301,7 +5754,7 @@ namespace VRAdultFun
 					}
 				}
 			}
-			if (playerRHandToPelvis < interactionDistance * 1.3f && vagTouchCount > 0.0f && uiDoSex.val && testRun == false)
+			if (playerRHandToPelvis < interactionDistance * 1.3f && vagTouchCount > 0.0f && uiDoSex.val)
 			{
 				if (playerRHandMovement)
 				{
@@ -5402,92 +5855,45 @@ namespace VRAdultFun
 					}
 				}
 			}
-			
-			if ((playerLHandInteract && playerRHandInteract) || playerHeadInteract)
-			{
-				if (playerHeadToFaceRot > lookDirectAngle && playerHeadToHead > closeFaceDistance * 1.2f)// && (playerLHandMovement || playerRHandMovement))
-				{
-					if (currentLook != "Intense")
-					{
-						//gAvoid = 1.0f;
-						
-						if ((playerLHandToLBreast < interactionDistance || playerLHandToRBreast < interactionDistance) && (playerRHandToLBreast < interactionDistance || playerRHandToRBreast < interactionDistance))
-						{
-							currentInterest = "RandomU";
-						}
-						else
-						{
-							if (Vector3.Angle(playerHeadTransform.position - headController.followWhenOff.position, headController.followWhenOff.forward) < lookPeripheralAngle)
-							{
-								currentInterest = "Face";
-							}
-							else
-							{
-								gAvoid = 1.0f;
-							}
-						}
-					}
-				}
-			}
-
 
 
 			//SuperController.LogError("Look Position start");
-            if (currentInterest == "RandomF")
+            if (IsRandomInterest(currentInterest))
             {
-                //headController.transform.LookAt(randomPointForward);
-                lookAtPosition = randomPointForward;
-                eyeController.transform.position = randomPointForward;
+                lookAtPosition = GetStructuredRandomTargetPosition(currentInterest);
+                eyeController.transform.position = lookAtPosition;
 				focusPos = eyeController.transform.position;
 				focusRot = eyeController.transform.rotation;
+				fuzzyLock = 2.0f;
             }
             if (currentInterest == "Target")
             {
                 //headController.transform.LookAt(randomPointForward);
 				if (emTargetName == "[CameraRig]")
 				{
-					lookAtPosition = CameraTarget.centerTarget.transform.position;
-					eyeController.transform.position = CameraTarget.centerTarget.transform.position;
+					if (CameraTarget.centerTarget != null && CameraTarget.centerTarget.transform != null)
+						lookAtPosition = CameraTarget.centerTarget.transform.position;
+					else if (SuperController.singleton != null && SuperController.singleton.lookCamera != null)
+						lookAtPosition = SuperController.singleton.lookCamera.transform.position;
+					else
+						lookAtPosition = eyeController.transform.position;
+					eyeController.transform.position = lookAtPosition;
 					focusPos = eyeController.transform.position;
 					focusRot = eyeController.transform.rotation;
 				}
 				else
 				{
-					lookAtPosition = emTargetTransform.position;
-					eyeController.transform.position = emTargetTransform.position;
+					lookAtPosition = emTargetController.transform.position;
+					eyeController.transform.position = emTargetController.transform.position;
 					focusPos = eyeController.transform.position;
 				focusRot = eyeController.transform.rotation;
 				}
-            }
-            if (currentInterest == "RandomL")
-            {
-                //headController.transform.LookAt(randomPointLeft);
-                lookAtPosition = randomPointLeft;
-                eyeController.transform.position = randomPointLeft;
-				focusPos = eyeController.transform.position;
-				focusRot = eyeController.transform.rotation;
-            }
-            if (currentInterest == "RandomR")
-            {
-                //headController.transform.LookAt(randomPointRight);
-                lookAtPosition = randomPointRight;
-                eyeController.transform.position = randomPointRight;
-				focusPos = eyeController.transform.position;
-				focusRot = eyeController.transform.rotation;
-            }
-            if (currentInterest == "RandomU")
-            {
-                //headController.transform.LookAt(randomPointUp);
-                lookAtPosition = randomPointUp;
-                eyeController.transform.position = randomPointUp;
-				focusPos = eyeController.transform.position;
-				focusRot = eyeController.transform.rotation;
             }
             if (currentInterest == "Face")
             {
 				if (playerHeadToHead > personalSpaceDistance)
 				{
-					if (usePerson2 && person2Usable)
+					if (ShouldUsePerson2AsPrimaryTarget())
 					{
 						lookAtPosition = playerHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f));
 					}
@@ -5498,7 +5904,7 @@ namespace VRAdultFun
 				}
 				else
 				{
-					if (usePerson2 && person2Usable)
+					if (ShouldUsePerson2AsPrimaryTarget())
 					{
 						lookAtPosition = playerHeadTransform.TransformPoint(new Vector3(0.0f, Mathf.Lerp(0.0f,0.04f,Mathf.Clamp((playerHeadToHead-kissingDistance)/personalSpaceDistance,0.0f,1.0f)), 0.07f));
 					}
@@ -5509,23 +5915,23 @@ namespace VRAdultFun
 				}
 				fuzzyLock = 1.0f;
             }
-            if (currentInterest == "Chest" && usePerson2 && person2Usable)
+            if (currentInterest == "Chest" && ShouldUsePerson2AsPrimaryTarget())
             {
                 lookAtPosition = playerChestController.followWhenOff.TransformPoint(new Vector3(0.0f, 0.0f, 0.0f));
                 eyeController.transform.position = lookAtPosition;
                 fuzzyLock = 2.0f;
             }
-            if (currentInterest == "Pelvis" && usePerson2 && person2Usable)
+            if (currentInterest == "Pelvis" && ShouldUsePerson2AsPrimaryTarget())
             {
                 lookAtPosition = playerPelvisController.followWhenOff.TransformPoint(new Vector3(0.0f, 0.0f, 0.0f));
                 fuzzyLock = 2.0f;
             }
-            if (currentInterest == "LHand" && (usePerson2 || playerHandsUsable))
+            if (currentInterest == "LHand" && (ShouldUsePerson2AsPrimaryTarget() || playerHandsUsable))
             {
 				if (playerLHandToHead < closeFaceDistance)
 				{
 //					lookAtPosition = playerLHandTransform.TransformPoint(new Vector3(0.2f, 0.0f, 0.2f));
-					if (usePerson2 == false)
+					if (!ShouldUsePerson2AsPrimaryTarget())
 					{
 						lookAtPosition = playerLHandTransform.TransformPoint(new Vector3(0.07f, 0.05f, -0.2f));
 					}
@@ -5535,7 +5941,7 @@ namespace VRAdultFun
 						
 					}
 					lookAtPosition.y = playerHeadController.followWhenOff.position.y;
-					if (!EmotionLiteDisableHeadAndNeck && uiDoHead.val)
+					if (HeadMotionAllowed())
 					{
 						headController.RBHoldRotationSpring = Mathf.Lerp(05,15,interestValence/10.0f);
 						headController.RBHoldRotationDamper = Mathf.Lerp(4,13,interestArousal/10.0f);
@@ -5548,11 +5954,11 @@ namespace VRAdultFun
                 fuzzyLock = 5.0f;
             }
 			
-            if (currentInterest == "RHand" && (usePerson2 || playerHandsUsable))
+            if (currentInterest == "RHand" && (ShouldUsePerson2AsPrimaryTarget() || playerHandsUsable))
             {
 				if (playerRHandToHead < closeFaceDistance)
 				{
-					if (usePerson2 == false)
+					if (!ShouldUsePerson2AsPrimaryTarget())
 					{
 						lookAtPosition = playerRHandTransform.TransformPoint(new Vector3(-0.07f, 0.05f, -0.2f));
 					}
@@ -5561,7 +5967,7 @@ namespace VRAdultFun
 						lookAtPosition = playerRHandTransform.TransformPoint(new Vector3(-0.2f, -0.07f, 0.05f));
 					}
 					lookAtPosition.y = playerHeadController.followWhenOff.position.y;
-					if (!EmotionLiteDisableHeadAndNeck && uiDoHead.val)
+					if (HeadMotionAllowed())
 					{
 						headController.RBHoldRotationSpring = Mathf.Lerp(05,15,interestValence/10.0f);
 						headController.RBHoldRotationDamper = Mathf.Lerp(4,13,interestArousal/10.0f);
@@ -5573,7 +5979,7 @@ namespace VRAdultFun
 				}
                 fuzzyLock = 5.0f;
             }
-            if (currentInterest == "Tip" && usePerson2 && person2Usable)
+            if (currentInterest == "Tip" && ShouldUsePerson2AsPrimaryTarget())
             {
                 if (playerTipToHead < personalSpaceDistance)// && Random.Range(0.0f,100.0f) > pExtraversion + 25.0f)
                 {
@@ -5604,7 +6010,6 @@ namespace VRAdultFun
             if (secondClock <= 0.0f && amGlancing)
             {
                 amGlancing = false;
-				eyeUpdateClock = eyeUpdateTime + 1.0f;
             }
 			
 			if (interestKissing && uiDoKiss.val)
@@ -5638,7 +6043,7 @@ namespace VRAdultFun
 			}
 			
 			//SuperController.LogError("BlowJob / Sex Check");
-			if (amGlancing == false && gAvoid == 0.0f && playerPenisInteract && lookAction == false && playerHeadToHead > personalSpaceDistance/2.0f && testRun == false)
+			if (amGlancing == false && gAvoid == 0.0f && playerPenisInteract && lookAction == false && playerHeadToHead > personalSpaceDistance/2.0f)
 			{
 				if (playerTipToHead < interactionDistance)
 				{
@@ -5674,7 +6079,14 @@ namespace VRAdultFun
 				//SuperController.LogError("Glancing at Second");
 				if (mainInterest == secondInterest)
 				{
-					if (lookAwaySide == "left")
+					if (IsRandomInterest(secondInterest))
+					{
+						eyeController.transform.position = GetStructuredRandomTargetPosition(ChooseStructuredRandomInterest());
+						focusPos = eyeController.transform.position;
+						focusRot = eyeController.transform.rotation;
+						amGlancing = true;
+					}
+					else if (lookAwaySide == "left")
 					{
 						eyeController.transform.position = randomPointLeft;
 						eyeController.transform.rotation = chestController.followWhenOff.rotation;
@@ -5703,66 +6115,33 @@ namespace VRAdultFun
 						amGlancing = true;
 					}
 					focusPos = eyeController.transform.position;
-					focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
 				}
 				
-                if (secondInterest == "RandomL")
+                if (IsRandomInterest(secondInterest))
                 {
-                    //lookAtPosition = playerPelvisController.transform.TransformPoint(new Vector3(0.0f,0.0f,0.0f));
-                    eyeController.transform.position = randomPointLeft;
-					eyeController.transform.rotation = chestController.followWhenOff.rotation;
-					eyeController.transform.Translate(0.0f, -1.0f, 0.0f);
+                    eyeController.transform.position = GetStructuredRandomTargetPosition(secondInterest);
 					focusPos = eyeController.transform.position;
-					focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
                     amGlancing = true;
-                    //fuzzyLock = 3.5f;
-                }
-                if (secondInterest == "RandomR")
-                {
-                    //lookAtPosition = playerPelvisController.transform.TransformPoint(new Vector3(0.0f,0.0f,0.0f));
-                    eyeController.transform.position = randomPointRight;
-					eyeController.transform.rotation = chestController.followWhenOff.rotation;
-					eyeController.transform.Translate(0.0f, -1.0f, 0.0f);
-					focusPos = eyeController.transform.position;
-					focusRot = eyeController.transform.rotation;
-                    amGlancing = true;
-                    //fuzzyLock = 3.5f;
-                }
-                if (secondInterest == "RandomU")
-                {
-                    //lookAtPosition = playerPelvisController.transform.TransformPoint(new Vector3(0.0f,0.0f,0.0f));
-                    eyeController.transform.position = playerPelvisController.followWhenOff.position;
-					focusPos = eyeController.transform.position;
-					focusRot = eyeController.transform.rotation;
-                    amGlancing = true;
-                    //fuzzyLock = 3.5f;
-                }
-                if (secondInterest == "RandomF")
-                {
-                    //lookAtPosition = playerPelvisController.transform.TransformPoint(new Vector3(0.0f,0.0f,0.0f));
-                    eyeController.transform.position = randomPointForward;
-					eyeController.transform.rotation = chestController.followWhenOff.rotation;
-					eyeController.transform.Translate(0.0f, -1.0f, 0.0f);
-					focusPos = eyeController.transform.position;
-					focusRot = eyeController.transform.rotation;
-                    amGlancing = true;
-                    //fuzzyLock = 3.5f;
                 }
 				if (secondInterest == secondOld && secondInterest != "RandomF")
 				{
-                    eyeController.transform.position = randomPointForward;
+                    eyeController.transform.position = IsRandomInterest(secondInterest)
+						? GetStructuredRandomTargetPosition(secondInterest)
+						: randomPointForward;
 					focusPos = eyeController.transform.position;
-					focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
                     amGlancing = true;
 				}
-                if (secondInterest == "Face" && interestFace+headActivityBoost > interestFaceBase*0.75f)
+                if (secondInterest == "Face")
                 {
                     //if (gAvoid == 0.0f)
                     //{
                     //lookAtPosition = playerHeadController.transform.TransformPoint(new Vector3(0.0f,0.0f,0.0f));
                     //}
 
-					if (person2Usable && usePerson2)
+					if (person2Usable)
 					{
 						eyeController.transform.position = playerHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f));
 						eyeController.transform.rotation = playerHeadTransform.rotation;
@@ -5779,7 +6158,7 @@ namespace VRAdultFun
                     amGlancing = true;
                     //fuzzyLock = 1.5f;
                 }
-                if ((secondInterest == "LHand" && interestLHand + lHandActivityBoost > interestLHandBase*0.75f) || (secondInterest == "RandomL" && interestLHand + lHandActivityBoost > interestLHandBase*0.6f))
+                if (secondInterest == "LHand" && interestLHand + lHandActivityBoost > 20.0f)
                 {
                     //lookAtPosition = playerLHandController.transform.TransformPoint(new Vector3(0.0f,0.0f,0.0f));
 					eyeController.transform.position = playerLHandTransform.TransformPoint(new Vector3(-0.1f, 0.0f, 0.0f));
@@ -5788,42 +6167,42 @@ namespace VRAdultFun
                     amGlancing = true;
                     //fuzzyLock = 2.5f;
                 }
-                if ((secondInterest == "RHand" && interestRHand + rHandActivityBoost > interestRHandBase*0.75f) || (secondInterest == "RandomR" && interestRHand + rHandActivityBoost > interestRHandBase*0.6f))
+                if (secondInterest == "RHand" && interestRHand + rHandActivityBoost > 20.0f)
                 {
                     //lookAtPosition = playerRHandController.transform.TransformPoint(new Vector3(0.0f,0.0f,0.0f));
                     eyeController.transform.position = playerRHandTransform.TransformPoint(new Vector3(0.1f, 0.0f, 0.0f));
 					focusPos = eyeController.transform.position;
-					focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
 
                     amGlancing = true;
                     //fuzzyLock = 2.5f;
                 }
-                if (secondInterest == "Pelvis" && usePerson2 && interestPelvis > interestPelvisBase*0.75f)
+                if (secondInterest == "Pelvis" && usePerson2)
                 {
                     //lookAtPosition = playerPelvisController.transform.TransformPoint(new Vector3(0.0f,0.0f,0.0f));
                     eyeController.transform.position = playerPelvis;
                     eyeController.transform.rotation = chestController.followWhenOff.rotation;
                     eyeController.transform.Translate(0.0f, 0.0f, 1.0f);
 					focusPos = eyeController.transform.position;
-					focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
                     amGlancing = true;
                     //fuzzyLock = 3.5f;
                 }
-                if (secondInterest == "Tip" && headToTipRot < lookNoAwarenessAngle && usePerson2 && interestTip > interestTipBase*0.75f)
+                if (secondInterest == "Tip" && headToTipRot < lookNoAwarenessAngle && usePerson2)
                 {
                     //lookAtPosition = playerTipController.transform.TransformPoint(new Vector3(0.0f,0.0f,0.0f));
                     eyeController.transform.position = playerTip;
                     eyeController.transform.rotation = chestController.followWhenOff.rotation;
                     eyeController.transform.Translate(0.0f, 0.0f, 1.0f);
 					focusPos = eyeController.transform.position;
-					focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
                     amGlancing = true;
                     //fuzzyLock = 3.5f;
                 }
-                if (secondInterest == "Target" && interestEMTarget > interestEMTargetBase * 0.75f)
+                if (secondInterest == "Target")
                 {
                     //lookAtPosition = playerTipController.transform.TransformPoint(new Vector3(0.0f,0.0f,0.0f));
-					eyeController.transform.position = emTargetTransform.position;
+					eyeController.transform.position = emTargetController.transform.position;
 					focusPos = eyeController.transform.position;
 					focusRot = eyeController.transform.rotation;
                     amGlancing = true;
@@ -5841,13 +6220,13 @@ namespace VRAdultFun
 							eyeController.transform.rotation = playerHeadTransform.rotation;
 							eyeController.transform.Translate(0.0f, 0.03f, 0.07f);
 							focusPos = eyeController.transform.position;
-							focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
 						}
 						else
 						{
 							eyeController.transform.position = playerHeadTransform.position;
 							focusPos = eyeController.transform.position;
-							focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
 						}
 						amGlancing = true;
 					}
@@ -5859,13 +6238,13 @@ namespace VRAdultFun
 							eyeController.transform.rotation = playerHeadTransform.rotation;
 							eyeController.transform.Translate(0.0f, 0.03f, 0.07f);
 							focusPos = eyeController.transform.position;
-							focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
 						}
 						else
 						{
 							eyeController.transform.position = playerHeadTransform.position;
 							focusPos = eyeController.transform.position;
-							focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
 						}
 						amGlancing = true;
 					}
@@ -5873,21 +6252,21 @@ namespace VRAdultFun
 					{
 						eyeController.transform.position = playerLHandTransform.TransformPoint(new Vector3(-0.1f, 0.0f, 0.0f));
 						focusPos = eyeController.transform.position;
-						focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
 						amGlancing = true;
 					}
 					if (gAvoidInterest == "RHand")
 					{
 						eyeController.transform.position = playerRHandTransform.TransformPoint(new Vector3(0.1f, 0.0f, 0.0f));
 						focusPos = eyeController.transform.position;
-						focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
 						amGlancing = true;
 					}
 					if ((gAvoidInterest == "Pelvis" || gAvoidInterest == "Tip") && usePerson2)
 					{
 						eyeController.transform.position = playerPelvis;
 						focusPos = eyeController.transform.position;
-						focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
 						amGlancing = true;
 					}
 				}
@@ -5904,7 +6283,7 @@ namespace VRAdultFun
                 {
 					if (tempFloat == 1.0f && eyeClock > (1.25f * uiBlinkSpeed.val) && currentEye != "Closed")
 					{
-						eyesSM.Switch(eBlink);
+						//eyesSM.Switch(eBlink);
 						eyeClock = 0.0f;
 					}
 					gHeadSpeed = 2.0f;
@@ -5914,7 +6293,7 @@ namespace VRAdultFun
             else
             {
 				//SuperController.LogError("Looking at main");
-                gHeadSpeed = 1.0f;
+                gHeadSpeed = 1.25f;
                 if (mainInterest == "Face" && (gAvoid != 1.0f || Random.Range(0.0f, 1.00f) < interestArousal / 10.0f))
                 {
 					if (person2Usable)
@@ -5927,7 +6306,7 @@ namespace VRAdultFun
 					}
                     eyeController.transform.rotation = playerHeadTransform.rotation;
 					focusPos = eyeController.transform.position;
-					focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
 
                 }
                 if (mainInterest == "Pelvis" && usePerson2 && person2Usable)
@@ -5958,13 +6337,13 @@ namespace VRAdultFun
                             eyeController.transform.position = playerPelvis;
                         }
 						focusPos = eyeController.transform.position;
-						focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
                     }
                     else
                     {
                         eyeController.transform.position = playerPelvis;
 						focusPos = eyeController.transform.position;
-						focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
                     }
                     
                 }
@@ -5981,7 +6360,7 @@ namespace VRAdultFun
                         eyeController.transform.position = playerLHandTransform.TransformPoint(new Vector3(-0.1f, 0.0f, 0.0f));
                         eyeController.transform.rotation = playerLHandTransform.rotation;
 						focusPos = eyeController.transform.position;
-						focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
                         //eyeController.transform.Translate(-0.1f, 0.0f, 0.0f);
                     //}
                 }
@@ -5998,7 +6377,7 @@ namespace VRAdultFun
                         eyeController.transform.position = playerRHandTransform.TransformPoint(new Vector3(0.1f, 0.0f, 0.0f));
                         eyeController.transform.rotation = playerRHandTransform.rotation;
 						focusPos = eyeController.transform.position;
-						focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
                         //eyeController.transform.Translate(0.1f, 0.0f, 0.0f);
                     //}
                 }
@@ -6010,14 +6389,14 @@ namespace VRAdultFun
                         {
                             eyeController.transform.rotation = playerHeadTransform.rotation;
                             eyeController.transform.position = playerHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f));
-							focusPos = eyeController.transform.position;
-							focusRot = eyeController.transform.rotation;
+						focusPos = eyeController.transform.position;
+				focusRot = eyeController.transform.rotation;
                         }
                         else
                         {
                             eyeController.transform.position = playerTip;
-							focusPos = eyeController.transform.position;
-							focusRot = eyeController.transform.rotation;
+						focusPos = eyeController.transform.position;
+				focusRot = eyeController.transform.rotation;
                             //eyeController.transform.rotation = playerTipController.followWhenOff.rotation;
                             //eyeController.transform.Translate(0.0f, 0.05f, -0.17f);
                         }
@@ -6026,195 +6405,10 @@ namespace VRAdultFun
                     {
                         eyeController.transform.position = playerTip;
 						focusPos = eyeController.transform.position;
-						focusRot = eyeController.transform.rotation;
+				focusRot = eyeController.transform.rotation;
                     }
                 }
             }
-			
-			bool redoEyePos = false;
-			float lookAngle = Vector3.Angle(eyeController.transform.position - headController.followWhenOff.position, headController.followWhenOff.forward);
-			float lookdist = Vector3.Distance(eyeController.transform.position, headController.followWhenOff.position);
-			
-			if (lookdist < closeFaceDistance * 1.5f)
-			{
-				if (lookAngle < lookPeripheralAngle)
-				{
-					redoEyePos = true;
-					saccadeOffset = new Vector3(0.0f,0.0f,0.0f);
-				}
-			}
-
-			float headToLook = Vector3.Angle(lookAtPosition - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-			
-			float headToMain = 999.0f;
-			Vector3 mainPos = new Vector3(0.0f,0.0f,0.0f);
-			if (mainInterest == "Face")
-			{
-				if (person2Usable && usePerson2)
-				{
-					headToMain = Vector3.Angle(playerHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f)) - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-					mainPos = playerHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f));
-				}
-				else
-				{
-					headToMain = Vector3.Angle(playerHeadTransform.position - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-					mainPos = playerHeadTransform.position;
-				}
-			}
-			if (mainInterest == "LHand")
-			{
-				headToMain = Vector3.Angle(playerLHandTransform.position - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-				mainPos = playerLHandTransform.position;
-			}
-			if (mainInterest == "RHand")
-			{
-				headToMain = Vector3.Angle(playerRHandTransform.position - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-				mainPos = playerRHandTransform.position;
-			}
-			if ((mainInterest == "Pelvis" || mainInterest == "Penis") && usePerson2 && person2Usable)
-			{
-				headToMain = Vector3.Angle(playerPelvis - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-				mainPos = playerPelvis;
-			}
-			if (mainInterest == "Target" && emTargetName != "None")
-			{
-				headToMain = Vector3.Angle(emTargetTransform.position - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-				mainPos = emTargetTransform.position;
-			}
-			
-			float headToSecond = 999.0f;
-			Vector3 secondPos = new Vector3(0.0f,0.0f,0.0f);
-			if (secondInterest == "Face")
-			{
-				if (person2Usable && usePerson2)
-				{
-					headToSecond = Vector3.Angle(playerHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f)) - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-					secondPos = playerHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f));
-				}
-				else
-				{
-					headToSecond = Vector3.Angle(playerHeadTransform.position - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-					secondPos = playerHeadTransform.position;
-				}
-			}
-			if (secondInterest == "LHand")
-			{
-				headToSecond = Vector3.Angle(playerLHandTransform.position - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-				secondPos = playerLHandTransform.position;
-			}
-			if (secondInterest == "RHand")
-			{
-				headToSecond = Vector3.Angle(playerRHandTransform.position - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-				secondPos = playerRHandTransform.position;
-			}
-			if (secondInterest == "Pelvis" || secondInterest == "Penis")
-			{
-				headToSecond = Vector3.Angle(playerPelvis - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-				secondPos = playerPelvis;
-			}
-			if (secondInterest == "Target" && emTargetName != "None")
-			{
-				headToSecond = Vector3.Angle(emTargetTransform.position - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-				secondPos = emTargetTransform.position;
-			}
-
-			float headToLeft = Vector3.Angle(randomPointLeft - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-			float headToRight = Vector3.Angle(randomPointLeft - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-			float headToUp = Vector3.Angle(randomPointLeft - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-			float headToForward = Vector3.Angle(randomPointForward - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-			float headToTarget = 999.0f;
-			if (emTargetName != "None")
-			{
-				headToTarget = Vector3.Angle(emTargetTransform.position - headController.followWhenOff.position, abdomenController.followWhenOff.forward);
-			}
-			
-			if (amGlancing == false)
-			{
-				if (headToLook > lookNoAwarenessAngle)
-				{
-					if (headToMain < lookPeripheralAngle)
-					{
-						lookAtPosition = mainPos;
-						currentInterest = mainInterest;
-						if (redoEyePos)
-						{
-							eyeController.transform.position = lookAtPosition;
-							focusPos = eyeController.transform.position;
-						}
-					}
-					else
-					{
-						if (headToSecond < lookPeripheralAngle)
-						{
-							lookAtPosition = secondPos;
-							currentInterest = secondInterest;
-							if (redoEyePos)
-							{
-								eyeController.transform.position = lookAtPosition;
-								focusPos = eyeController.transform.position;
-							}
-						}
-						else
-						{
-							if (headToTarget < lookPeripheralAngle)
-							{
-								lookAtPosition = emTargetTransform.position;
-								currentInterest = "Target";
-								if (redoEyePos)
-								{
-									eyeController.transform.position = lookAtPosition;
-									focusPos = eyeController.transform.position;
-								}
-							}
-							else
-							{
-								if (headToLeft < lookPeripheralAngle && headToLeft < headToRight)
-								{
-									lookAtPosition = randomPointLeft;
-									currentInterest = "RandomL";
-								}
-								else
-								{
-									if (headToRight < lookPeripheralAngle && headToRight < headToUp)
-									{
-										lookAtPosition = randomPointRight;
-										currentInterest = "RandomR";
-										if (redoEyePos)
-										{
-											eyeController.transform.position = lookAtPosition;
-											focusPos = eyeController.transform.position;
-										}
-									}
-									else
-									{
-										if (headToUp < lookPeripheralAngle && headToUp < headToForward)
-										{
-											lookAtPosition = randomPointUp;
-											currentInterest = "RandomU";
-											if (redoEyePos)
-											{
-												eyeController.transform.position = lookAtPosition;
-												focusPos = eyeController.transform.position;
-											}
-										}
-										else
-										{
-											lookAtPosition = randomPointForward;
-											currentInterest = "RandomF";
-											if (redoEyePos)
-											{
-												eyeController.transform.position = lookAtPosition;
-												focusPos = eyeController.transform.position;
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-			
 				
             Vector3 centrePoint = chestController.followWhenOff.position;
             Vector3 eyePoint = eyeController.transform.position;
@@ -6224,7 +6418,7 @@ namespace VRAdultFun
             float c2eDist = Vector3.Distance(centrePoint, eyePoint);
             if (c2eDist < closeFaceDistance * 3.0f && mainInterest != "Face")
             {
-                eyeController.transform.position = eyeController.transform.position + (abdomenController.followWhenOff.forward * 0.1f);
+                eyeController.transform.position = eyeController.transform.position + (chestController.followWhenOff.forward * 0.1f);
             }
 
             secondClock = Mathf.Clamp(secondClock - Time.fixedDeltaTime, 0.0f, 10.0f);
@@ -6241,6 +6435,16 @@ namespace VRAdultFun
 
 
 			
+			if ((playerLHandInteract && playerRHandInteract) || playerHeadInteract)
+			{
+				if (playerHeadToFaceRot > eyesNonDirectAngle && playerHeadToHead > closeFaceDistance * 1.2f)// && (playerLHandMovement || playerRHandMovement))
+				{
+					if (currentLook != "Intense")
+					{
+						gAvoid = 1.0f;
+					}
+				}
+			}
 			//SuperController.LogError("Eye Position Done");
 			
 			if (gAvoid == 1.0f && interestKissing == false)
@@ -6251,13 +6455,12 @@ namespace VRAdultFun
 				//saccadeOffset = new Vector3(0.0f, 0.0f, 0.0f);
 				if (lookAwaySide == "right")
 				{
-					//mainOld = mainInterest;
-					mainInterest = "RandomR";
-					lookAtPosition = randomPointRight;//playerRHandTransform.TransformPoint(new Vector3(0.0f, 0.0f, 0.0f));
+					mainInterest = ChooseStructuredRandomInterest();
+					lookAtPosition = GetStructuredRandomTargetPosition(mainInterest);
 					fuzzyLock = 2.0f;
 					if (amGlancing == false)
 					{
-						eyeController.transform.position = randomPointRight;//playerRHandTransform.position;
+						eyeController.transform.position = lookAtPosition;
 						focusPos = eyeController.transform.position;
 						focusRot = eyeController.transform.rotation;
 					}
@@ -6265,13 +6468,12 @@ namespace VRAdultFun
 				}
 				else
 				{
-					//mainOld = mainInterest;
-					mainInterest = "RandomL";
-					lookAtPosition = randomPointLeft;//playerLHandTransform.TransformPoint(new Vector3(0.0f, 0.0f, 0.0f));
+					mainInterest = ChooseStructuredRandomInterest();
+					lookAtPosition = GetStructuredRandomTargetPosition(mainInterest);
 					fuzzyLock = 2.0f;
 					if (amGlancing == false)
 					{
-						eyeController.transform.position = randomPointLeft;//playerLHandTransform.position;
+						eyeController.transform.position = lookAtPosition;
 						focusPos = eyeController.transform.position;
 						focusRot = eyeController.transform.rotation;
 					}
@@ -6314,7 +6516,7 @@ namespace VRAdultFun
 				if (tempFloat > 180.0f){tempFloat -= 360.0f;}
 				if (tempFloat < -180.0f){tempFloat += 360.0f;}
 
-				//gHeadRollTarget = Mathf.Clamp(tempFloat + Random.Range(-25.0f,25.0f),-40.0f,40.0f);
+				gHeadRollTarget = Mathf.Clamp(tempFloat + Random.Range(-25.0f,25.0f),-40.0f,40.0f);
 			}
 			//SuperController.LogError("Blink calculation");
 			
@@ -6329,7 +6531,7 @@ namespace VRAdultFun
 			{
 				if (currentEye != "Closed" && currentEye != "Blink" && interestKissing == false)
 				{
-                    eyesSM.Switch(eBlink);
+                    //eyesSM.Switch(eBlink);
                     eyeClock = 0.0f;
 				}
 			}
@@ -6338,10 +6540,10 @@ namespace VRAdultFun
             {
                 //if (((Random.Range(0.0f, (((15.0f - (10.0f - interestArousal)) / (2.0f * (interestArousal))) * (1.0f / Random.Range(1.333f, 2.5f))) * Time.fixedDeltaTime) / 300.0f) - (Mathf.Max(eyeClock - 1.0f, 0.0f) / 5000000.0f) <= 0.0f) && eyeClock > 1.0f)
                 //if (((Random.Range(0.0f,(1.0f / Random.Range(1.333f,3.5f)) * Time.fixedDeltaTime) / 10.0f) - (Mathf.Max(eyeClock-1.0f,0.0f) / 5000000.0f) <= 0.0f) && eyeClock > 0.5f)
-                if (eyeClock > 2.0f * uiBlinkSpeed.val && Random.Range(0.0f,100.0f) > Mathf.Lerp(99.4f - (interestValence / 100.0f),99.7f - (interestArousal / 100.0f),pExtraversion / 100.0f)) 
+                if (eyeClock > 2.0f * uiBlinkSpeed.val && Random.Range(0.0f,100.0f) > Mathf.Lerp(99.4f - (interestValence / 100.0f),99.7f - (interestArousal / 100.0f),pExtraversion)) 
 				{
                     eyeClock = 0.0f;
-                    eyesSM.Switch(eBlink);
+                    //eyesSM.Switch(eBlink);
                 }
             }
 			if (eyeClock > 0.3f && morphBlinking && currentEye != "Closed")
@@ -6363,7 +6565,7 @@ namespace VRAdultFun
 			tempFloat = 0.0f;
 			if ((currentLook == "Intense" || currentLook == "Playful") && mainInterest == "Face" && gAvoid == 0.0f && amGlancing == false)
 			{
-				tempFloat = Mathf.Lerp(0.05f, 0.15f, Mathf.Clamp(playerHeadToHead - (closeFaceDistance*3.0f), 0.0f, 1.0f));
+				tempFloat = Mathf.Lerp(0.0f, 0.25f, Mathf.Clamp(playerHeadToHead - (closeFaceDistance*3.0f), 0.0f, 1.0f));
 			}
             Vector3 targetDir = (lookAtPosition - new Vector3(0.0f,Mathf.Lerp(0.0f,tempFloat,interestArousal/10.0f),0.0f)) - head.position;
             targetDir.Normalize();
@@ -6383,7 +6585,7 @@ namespace VRAdultFun
 
 
             headToEyeController = Mathf.Abs(Vector3.Angle(eyeController.transform.position - headController.followWhenOff.position, headController.followWhenOff.forward));
-            if (headToEyeController > lookDirectAngle || (playerHeadToHead < personalSpaceDistance/2.0f && headToEyeController > eyesNonDirectAngle) || Vector3.Distance(new Vector3(0.0f,0.0f,0.0f), saccadeOffset) > 15.0f)
+            if (headToEyeController > eyesNonDirectAngle || (playerHeadToHead < personalSpaceDistance/2.0f && headToEyeController > eyesNonDirectAngle / 10.0f) || Vector3.Distance(new Vector3(0.0f,0.0f,0.0f), saccadeOffset) > 15.0f)
             {
 				if (gAvoid == 0.0f && amGlancing == false)
 				{
@@ -6397,29 +6599,21 @@ namespace VRAdultFun
 					eyesNonDirectClock = 0.0f;
 				}
             }
-			if (headToEyeController > lookNoAwarenessAngle && amGlancing == false)
+			if (headToEyeController > 70.0f && amGlancing == false)
 			{
-				eyesSM.Switch(eClosed);
+				//eyesSM.Switch(eClosed);
 			}
 
 			
 			//10.0f - ((100.0f - pExtraversion) / 10.0f) - eyesNonDirectClock < 0.0f
-            if (( Mathf.Lerp(7.0f * uiDirectLookDelay.val, 3.0f * uiDirectLookDelay.val, interestArousal/10.0f) - eyesNonDirectClock < 0.0f || headDelayTimer > 10.0f * uiDirectLookDelay.val) && interestKissing == false && gAvoid == 0.0f)// || playerHeadToHead < closeFaceDistance * 2.0f)
+            if (( Mathf.Lerp(5.0f, 1.0f, interestArousal/10.0f) - eyesNonDirectClock < 0.0f || currentLook == "Intense") && interestKissing == false && gAvoid == 0.0f)// || playerHeadToHead < closeFaceDistance * 2.0f)
             {
 				
 				peronalityAdjustH = peronalityAdjustH * 0.605f;
 				peronalityAdjustV = peronalityAdjustV * 0.795f;
-				//SuperController.LogError("Reducing Adjustment");
                 fuzzyLock = fuzzyLock * 0.75f;
 				//eyesNonDirectClock = 0.0f;
-				
             }
-			
-			if (Mathf.Abs(gHeadRoll - gHeadRollTarget) > 20.0f)
-			{
-				peronalityAdjustH = 0.0f;
-				peronalityAdjustV = 0.0f;				
-			}
 			
 			if (currentLook == "Sucking")
 			{
@@ -6436,81 +6630,34 @@ namespace VRAdultFun
 			
             // adjust angles
 			
-			tempFloat = 0.0015f * uiGazeSpeed.val;
+			tempFloat = 0.001f * uiGazeSpeed.val;
 			if (playerHeadToHead < personalSpaceDistance/2.0f)
 			{
-				tempFloat = 0.003f * uiGazeSpeed.val;
+				tempFloat = 0.01f * uiGazeSpeed.val;
 			}
-			
-			
-			
-			tempFloat2 = Mathf.Clamp(peronalityAdjustH, -20.0f * uiGazeVariation.val, 20.0f * uiGazeVariation.val);
-			if (endAdjustH < tempFloat2)
+			if (endAdjustH < peronalityAdjustH)
 			{
-				endAdjustH = Mathf.Clamp(endAdjustH + tempFloat, endAdjustH, tempFloat2);
+				endAdjustH = Mathf.Clamp(endAdjustH + tempFloat, endAdjustH, peronalityAdjustH);
 			}
 			else
 			{
-				endAdjustH = Mathf.Clamp(endAdjustH - tempFloat, tempFloat2, endAdjustH);
+				endAdjustH = Mathf.Clamp(endAdjustH - tempFloat, peronalityAdjustH, endAdjustH);
 			}
-			
-			tempFloat2 = Mathf.Clamp(peronalityAdjustV, -5.0f * uiGazeVariation.val, 20.0f * uiGazeVariation.val);
-			if (endAdjustV < tempFloat2)
+			if (endAdjustV < peronalityAdjustV)
 			{
-				endAdjustV = Mathf.Clamp(endAdjustV + tempFloat, endAdjustV, tempFloat2);
+				//endAdjustV = Mathf.Clamp(endAdjustV + tempFloat, endAdjustV, peronalityAdjustV);
 			}
 			else
 			{
-				endAdjustV = Mathf.Clamp(endAdjustV - tempFloat, tempFloat2, endAdjustV);
+				//endAdjustV = Mathf.Clamp(endAdjustV - tempFloat, peronalityAdjustV, endAdjustV);
 			}
 			
-			if (targetH * Mathf.Rad2Deg < -15.0f && endAdjustH * Mathf.Rad2Deg < -15.0f)
-			{
-				endAdjustH = Mathf.Min(endAdjustH + tempFloat, 0.0f);
-			}				
-			if (targetH * Mathf.Rad2Deg > 15.0f && endAdjustH * Mathf.Rad2Deg > 15.0f)
-			{
-				endAdjustH = Mathf.Max(endAdjustH - tempFloat, 0.0f);
-			}				
-			
-			if ((currentInterest == "Face" && playerHeadMovement) || gAvoid == 1.0f || amGlancing)
-			{
-				tempFloat = 0.01f;
-				if (endAdjustH < 0.0f)
-				{
-					endAdjustH = Mathf.Min(endAdjustH + tempFloat, 0.0f);
-				}
-				else
-				{
-					endAdjustH = Mathf.Max(endAdjustH - tempFloat, 0.0f);
-				}
-				if (endAdjustV < 0.0f)
-				{
-					endAdjustV = Mathf.Min(endAdjustV + tempFloat/3.0f, 0.0f);
-				}
-				else
-				{
-					endAdjustV = Mathf.Max(endAdjustV - tempFloat/3.0f, 0.0f);
-				}
-			}
-			
-			if (endAdjustV > 0.0f)
-			{
-				endAdjustV = Mathf.Max(0.0f, endAdjustV - Mathf.Lerp(0.0f, 0.01f, interestArousal/10.0f));
-			}
 			headToEyeController = Mathf.Abs(Vector3.Angle(eyeController.transform.position - headController.followWhenOff.position, headController.followWhenOff.forward));
-			if (!EmotionLiteDisableHeadAndNeck && uiDoHead.val)
+			if (HeadMotionAllowed())
 			{
 				
 				//SuperController.LogError("Adjusting head rotation");
-				if (targetH < 0.0f)
-				{
-					endAdjustH = Mathf.Clamp(endAdjustH,(-uiGazeMaxSideways.val * Mathf.Deg2Rad) - targetH,uiGazeMaxSideways.val * Mathf.Deg2Rad);
-				}
-				else
-				{
-					endAdjustH = Mathf.Clamp(endAdjustH,-uiGazeMaxSideways.val * Mathf.Deg2Rad,(uiGazeMaxSideways.val * Mathf.Deg2Rad) - targetH);
-				}
+				endAdjustH = Mathf.Clamp(endAdjustH,-uiGazeMaxSideways.val * Mathf.Deg2Rad,uiGazeMaxSideways.val * Mathf.Deg2Rad);
 				endAdjustV = Mathf.Clamp(endAdjustV,-uiGazeMaxDown.val * Mathf.Deg2Rad,uiGazeMaxUp.val * Mathf.Deg2Rad);
 				
 				tempFloat = endAdjustH;
@@ -6536,22 +6683,15 @@ namespace VRAdultFun
 				}
 				if (gAvoid == 1.0f)
 				{
-					adjustedSpeed = adjustedSpeed * 1.2f;
+					adjustedSpeed = adjustedSpeed * 2.0f;
 				}
 				if (mainInterest == "RandomR" || mainInterest == "RandomL" || mainInterest == "RandomU" || mainInterest == "RandomF")
 				{
-					if (currentLook == "Bored" || currentLook == "Daydream")
-					{
-						adjustedSpeed = adjustedSpeed / 2.0f;
-					}
-					else
-					{
-						adjustedSpeed = adjustedSpeed * 6.0f;
-					}
+					adjustedSpeed = adjustedSpeed * 6.0f;
 				}
 				if ((mainOld == "RandomR" || mainOld == "RandomL" || mainOld == "RandomU" || mainOld == "RandomF") && playerHeadToHead > personalSpaceDistance)
 				{
-					adjustedSpeed = adjustedSpeed / 2.0f;
+					adjustedSpeed = adjustedSpeed * 3.0f;
 				}
 				if (lipsTouchCount > 0.0f && playerHeadToHead > kissingDistance * 1.1f && (playerLHandToHead < closeFaceDistance || playerRHandToHead < closeFaceDistance))
 				{
@@ -6568,7 +6708,7 @@ namespace VRAdultFun
 				}*/
 				velocityH = Mathf.Clamp(velocityH, -1.0f, 1.0f);
 				velocityV = Mathf.Clamp(velocityV, -2.0f, 2.0f);
-				if (gAvoid == 1.0f)
+				if (gAvoid == 1.0f || amGlancing)
 				{
 					headDelayTimer = 0.0f;
 				}
@@ -6576,58 +6716,42 @@ namespace VRAdultFun
 				{
 					if (headToEyeController > lookPeripheralAngle)
 					{
-						headDelayTimer += Time.fixedDeltaTime * 5.0f;
-						
+						headDelayTimer += Time.fixedDeltaTime * 2.0f;
 					}
 					else
 					{
-						headDelayTimer += Time.fixedDeltaTime * Mathf.Lerp(0.5f,5.0f, Mathf.Clamp(headToEyeController - lookDirectAngle, 0.0f, lookPeripheralAngle) / lookPeripheralAngle);
+						headDelayTimer += Time.fixedDeltaTime;
 					}
 				}
-					if (Mathf.Abs(actualH - targetH) < (lookDirectAngle / 2.0f) * Mathf.Deg2Rad && Mathf.Abs(actualV - targetV) < (lookDirectAngle / 2.0f) * Mathf.Deg2Rad && headDelayTimer > Mathf.Lerp(5.0f, 3.0f, interestValence/10.0f))
-					{
-						headDelayTimer = 0.0f;
-
-					}
-				//Vector3 cross = Vector3.Cross(chestController.followWhenOff.forward, headController.followWhenOff.forward);
-				//float updown = Vector3.SignedAngle (chestController.followWhenOff.forward, headController.followWhenOff.forward, -chestController.followWhenOff.right);
-
-				if ((currentLook == "Sex" || currentLook == "Intense" || currentLook == "Inquisitive" || currentLook == "Kissing" || headToEyeController > Mathf.Lerp(lookDirectAngle, lookPeripheralAngle, interestArousal/10.0f) || gAvoid == 1.0f || headDelayTimer > Mathf.Lerp(5.0f * uiDirectLookDelay.val, 3.0f * uiDirectLookDelay.val, interestValence/10.0f) || Mathf.Abs(targetV - actualV) > 10.0f) && (headUpDown > -27.0f || targetV > actualV)) //|| headDelayTimer > Mathf.Lerp(4.0f, 1.0f, interestValence/10.0f) * pExtraversion/100.0f
+				if (headToEyeController > lookDirectAngle || gAvoid == 1.0f || amGlancing == true || headDelayTimer > Mathf.Lerp(5.0f, 1.0f, interestValence/10.0f)) //|| headDelayTimer > Mathf.Lerp(4.0f, 1.0f, interestValence/10.0f) * pExtraversion/100.0f
 				{
 					//fuzzyLock = 0.0f;
-					//energyAmount += 1.0f;
 					tempFloat2 = Mathf.Clamp(playerHeadToHead - 0.1f, 0.0f, 1.0f);
 					tempFloat = Mathf.Lerp(uiGazeMaxSideways.val * 0.75f,uiGazeMaxSideways.val, tempFloat2);
 					targetH = Mathf.Clamp(targetH + (endAdjustH * uiGazeVariation.val), -tempFloat * Mathf.Deg2Rad, tempFloat * Mathf.Deg2Rad);
 					tempFloat = Mathf.Lerp(85.00f,69.0f, tempFloat2);
 					targetV = Mathf.Clamp(targetV + (endAdjustV * uiGazeVariation.val), -Mathf.Lerp(uiGazeMaxDown.val,uiGazeMaxDown.val * 0.75f, tempFloat2) * Mathf.Deg2Rad, Mathf.Lerp(uiGazeMaxUp.val,uiGazeMaxUp.val * 0.75f, tempFloat2) * Mathf.Deg2Rad);
-					
-					if (Mathf.Abs(actualH - targetH) > 15.0f * Mathf.Deg2Rad || Mathf.Abs(actualV - targetV) > 10.0f * Mathf.Deg2Rad)
+					if (Mathf.Abs(actualH - targetH) < 0.1f && Mathf.Abs(actualV - targetV) < 0.1f)
 					{
-						if (Mathf.Abs(gHeadRoll) > 1.0f)
-						{
-							gHeadRollTarget = gHeadRollTarget * 0.55f;
-						}
+						headDelayTimer = 0.0f;
 					}
-					//adjustedSpeed = Mathf.Lerp(adjustedSpeed*10.0f, adjustedSpeed, Mathf.Clamp(Mathf.Abs(velocityH) * 10.0f, 0.0f, 1.0f));
-					adjustedSpeed = Mathf.Lerp(adjustedSpeed, adjustedSpeed / 3.0f, headDelayTimer / 50.0f);
 					
-					if (Mathf.Abs(actualH - targetH) > ((30.0f * uiGazeVariation.val) * (pAgreeableness / 100.0f) * Mathf.Lerp(fuzzyLock, 0.0f, Mathf.Clamp(headDelayTimer, 0.0f, Mathf.Lerp(5.0f, 3.0f, interestValence/10.0f)) / Mathf.Lerp(5.0f, 3.0f, interestValence/10.0f))) * Mathf.Deg2Rad)// || (Mathf.Abs(actualH - targetH) > 65.0f * Mathf.Deg2Rad && Mathf.Abs(actualH) < Mathf.Abs(targetH)))// || eyesSM.CurrentState == eClosed)
+					//adjustedSpeed = Mathf.Lerp(adjustedSpeed*10.0f, adjustedSpeed, Mathf.Clamp(Mathf.Abs(velocityH) * 10.0f, 0.0f, 1.0f));
+					if (Mathf.Abs(actualH - targetH) > ((15.0f * uiGazeVariation.val) * (pAgreeableness / 100.0f) * fuzzyLock) * Mathf.Deg2Rad)// || (Mathf.Abs(actualH - targetH) > 65.0f * Mathf.Deg2Rad && Mathf.Abs(actualH) < Mathf.Abs(targetH)))// || eyesSM.CurrentState == eClosed)
 					{
 						actualH = Mathf.SmoothDamp(actualH, targetH, ref velocityH, Mathf.Lerp(adjustedSpeed, adjustedSpeed/10.0f,Mathf.Abs(actualH - targetH)), Mathf.Infinity, Time.fixedDeltaTime);
 					}
-					if (Mathf.Abs(actualV - targetV) > ((15.0f * uiGazeVariation.val) * (pExtraversion / 100.0f) * Mathf.Lerp(fuzzyLock, 0.0f, Mathf.Clamp(headDelayTimer, 0.0f, Mathf.Lerp(5.0f * uiDirectLookDelay.val, 3.0f * uiDirectLookDelay.val, interestValence/10.0f)) / Mathf.Lerp(5.0f * uiDirectLookDelay.val, 3.0f * uiDirectLookDelay.val, interestValence/10.0f))) * Mathf.Deg2Rad)// || (Mathf.Abs(actualV - targetV) > 55.0f * Mathf.Deg2Rad && Mathf.Abs(actualV) < Mathf.Abs(targetV)))// || eyesSM.CurrentState == eClosed)
+					if (Mathf.Abs(actualV - targetV) > ((3.0f * uiGazeVariation.val) * (pExtraversion / 100.0f) * fuzzyLock) * Mathf.Deg2Rad)// || (Mathf.Abs(actualV - targetV) > 55.0f * Mathf.Deg2Rad && Mathf.Abs(actualV) < Mathf.Abs(targetV)))// || eyesSM.CurrentState == eClosed)
 					{
-						actualV = Mathf.SmoothDamp(actualV, targetV + (uiHeadAngleOffset.val * Mathf.Deg2Rad), ref velocityV, adjustedSpeed * 0.75f, Mathf.Infinity, Time.fixedDeltaTime);
+						actualV = Mathf.SmoothDamp(actualV, targetV, ref velocityV, adjustedSpeed * 0.75f, Mathf.Infinity, Time.fixedDeltaTime);
 					}
 					else
 					{
 						velocityV = velocityV * 0.9f;
-						actualV = Mathf.SmoothDamp(actualV, targetV + (uiHeadAngleOffset.val * Mathf.Deg2Rad), ref velocityV, adjustedSpeed * 0.75f, Mathf.Infinity, Time.fixedDeltaTime);
 					}
-					//testString = "Ver " + actualV + "/" + targetV + "/" + velocityV + "/" + ((3.0f * uiGazeVariation.val) * (pExtraversion / 100.0f) * fuzzyLock);
-					actualH = Mathf.Clamp(actualH,-uiGazeMaxSideways.val * Mathf.Deg2Rad,uiGazeMaxSideways.val * Mathf.Deg2Rad);
-					actualV = Mathf.Clamp(actualV,-uiGazeMaxDown.val * Mathf.Deg2Rad,uiGazeMaxUp.val * Mathf.Deg2Rad);
+					testString = "Ver " + actualV + "/" + targetV + "/" + velocityV + "/" + ((3.0f * uiGazeVariation.val) * (pExtraversion / 100.0f) * fuzzyLock);
+					Mathf.Clamp(actualH,-65.0f * Mathf.Rad2Deg,65.0f * Mathf.Rad2Deg);
+					Mathf.Clamp(actualV,-90.0f * Mathf.Rad2Deg,90.0f * Mathf.Rad2Deg);
 				}
 				
 				
@@ -6640,7 +6764,7 @@ namespace VRAdultFun
 				//head.eulerAngles.z = curRotation.z;
 				head.transform.LookAt(head.transform.position + actualDir, headController.followWhenOff.position - chestController.followWhenOff.position);
 				
-				tempFloat = 50.0f;//(150.0f / uiRollSpeed.val) / (Mathf.Max(Mathf.Abs(gHeadRollTarget - gHeadRoll) / 30.0f, 1.0f) / 10.0f);
+				tempFloat = (150.0f / uiRollSpeed.val) / (Mathf.Max(Mathf.Abs(gHeadRollTarget - gHeadRoll), 1.0f) / 10.0f);
 				//tempFloat2 = Mathf.Clamp(gHeadRoll, -uiMaxHeadRoll.val, uiMaxHeadRoll.val);
 				if (interestKissing || currentMouth == "Sucking")
 				{
@@ -6654,12 +6778,12 @@ namespace VRAdultFun
 				
 				if (gHeadRoll < gHeadRollTarget)
 				{
-					gHeadRoll = Mathf.Min(gHeadRoll + (((gHeadRollTarget) - gHeadRoll) / tempFloat), uiMaxHeadRoll.val);
+					gHeadRoll = Mathf.Min(gHeadRoll + (((gHeadRollTarget) - gHeadRoll) / tempFloat), 45.0f);
 				}
 				
 				if (gHeadRoll > gHeadRollTarget)
 				{
-					gHeadRoll = Mathf.Max(gHeadRoll - ((gHeadRoll - (gHeadRollTarget)) / tempFloat), -uiMaxHeadRoll.val); // * (interestValence/10.0f)
+					gHeadRoll = Mathf.Max(gHeadRoll - ((gHeadRoll - (gHeadRollTarget)) / tempFloat), -45.0f); // * (interestValence/10.0f)
 				}
 				gHeadRoll = Mathf.Clamp(gHeadRoll, -uiMaxHeadRoll.val, uiMaxHeadRoll.val);
 				
@@ -6670,17 +6794,15 @@ namespace VRAdultFun
 
 				// apply roll
 				Vector3 eulerAngles = head.transform.localEulerAngles;
-				//testString = (cross.x * Mathf.Rad2Deg) + "/" + (cross.y * Mathf.Rad2Deg) + "/" + (cross.z * Mathf.Rad2Deg);
-				eulerAngles.z += gHeadRoll;
-				/*
-				if ((cross.y * Mathf.Rad2Deg < -lookPeripheralAngle && gHeadRoll < -10.0f) || (cross.y * Mathf.Rad2Deg > lookPeripheralAngle && gHeadRoll > 10.0f))
+				Vector3 cross = Vector3.Cross(chestController.followWhenOff.forward, headController.followWhenOff.forward);
+				if ((cross.x < -20.0f && gHeadRoll < -10.0f) || (cross.x > 20.0f && gHeadRoll > 10.0f))
 				{
-					eulerAngles.z += gHeadRoll * ((5.0f - Mathf.Min(rollTimer,5.0f)) / 5.0f);
+					eulerAngles.z += gHeadRoll * ((2.0f - Mathf.Min(rollTimer,2.0f)) / 2.0f);
 				}
 				else
 				{
 					eulerAngles.z += gHeadRoll * ((15.0f - Mathf.Min(rollTimer,15.0f)) / 15.0f);
-				}*/
+				}
 				head.transform.localEulerAngles = eulerAngles;
 
 				//SuperController.LogError("Adjusting neck rotation");
@@ -6689,11 +6811,18 @@ namespace VRAdultFun
 				Vector3 forwardEuler = chestController.transform.eulerAngles;
 				Vector3 difference = forwardEuler - eulerAngles;
 
+				//neckController.transform.localEulerAngles = difference;
+				//neckController.transform.eulerAngles = eulerAngles;
+				//Vector3 newDir = Vector3.RotateTowards(neckController.transform.forward, headController.followWhenOff.forward, Mathf.Lerp(0.1f,2.5f,interestValence/10.0f) / 1000.0f, 0.0f);
+				//neckController.transform.rotation = Quaternion.LookRotation(newDir);
+				//neckController.transform.Rotate((sexActionNeckX / 2.0f) * Time.deltaTime,0.0f,0.0f);
 				Vector3 newDir = Vector3.RotateTowards(neckController.transform.forward, headController.followWhenOff.forward, Mathf.Lerp(1.1f,70.5f,interestValence/10.0f) / 100.0f, 0.0f);
 				neckController.transform.rotation = Quaternion.LookRotation(newDir);
 				
 				neckController.transform.eulerAngles = eulerAngles;
 				eulerAngles = neckController.transform.localEulerAngles;
+				//eulerAngles.z = eulerAngles.z / 2.0f;
+				//eulerAngles.x = eulerAngles.x / 2.0f;
 				eulerAngles.x += sexActionNeckX / 5.0f;
 				if (interestKissing)
 				{
@@ -6703,7 +6832,14 @@ namespace VRAdultFun
 				{
 				eulerAngles.z -= gHeadRoll * Mathf.Lerp(0.6f,0.2f,interestValence/10.0f) * ((15.0f - Mathf.Min(rollTimer,15.0f)) / 15.0f);
 				}
+				//testString = lElbowActual.ToString() + "/" + rElbowActual.ToString();
 				neckController.transform.localEulerAngles = eulerAngles;
+				//eulerAngles = neckController.transform.eulerAngles;
+				//neckController.transform.eulerAngles = eulerAngles;
+				
+			   // eulerAngles = headController.transform.eulerAngles;
+			   // eulerAngles.x += sexActionNeckX / 5.0f;
+			   // headController.transform.eulerAngles = eulerAngles;
 			}
 			else
 			{
@@ -6721,6 +6857,7 @@ namespace VRAdultFun
 					}
 			
 			
+			ApplyEmotionEyesCameraOnlyOverride();
 			eyeController.transform.position = focusPos;
 			eyeController.transform.rotation = focusRot;
 			eyeController.transform.Translate(saccadeOffset * (Vector3.Distance(headController.followWhenOff.position, eyeController.transform.position) / 100.0f));
@@ -6731,27 +6868,24 @@ namespace VRAdultFun
 				{
 					if (currentEye != "Blink")
 					{
-						eyesSM.Switch(eBlink);
+						//eyesSM.Switch(eBlink);
 						blinkRepeat = blinkRepeat / 2.0f;
 						//SuperController.LogError("Blinking  " + Vector3.Distance(curEyePosition, eyeController.transform.position));
 					}
 				}
 			}
-			if (mEyesClosedLeftValue < 0.7f)
-			{
-				if (eyeUpdateClock >= eyeUpdateTime || (mainInterest == "Face" && playerHeadMovement && playerHeadToHead > personalSpaceDistance / 2.0f) || (mainInterest == "LHand" && playerLHandMovement) || (mainInterest == "RHand" && playerRHandMovement))
-				{
-					curEyePosition = eyeController.transform.position;
-					curEyeAngles = eyeController.transform.eulerAngles;
-					eyeUpdateClock = 0.0f;
-				}
-				else
-				{
-					eyeUpdateClock += Time.fixedDeltaTime;
-					eyeController.transform.position = curEyePosition;
-					eyeController.transform.eulerAngles = curEyeAngles;
-				}
-			}
+            if (eyeUpdateClock >= eyeUpdateTime || (mainInterest == "Face" && playerHeadMovement && playerHeadToHead > personalSpaceDistance / 2.0f) || (mainInterest == "LHand" && playerLHandMovement) || (mainInterest == "RHand" && playerRHandMovement))
+            {
+                curEyePosition = eyeController.transform.position;
+                curEyeAngles = eyeController.transform.eulerAngles;
+                eyeUpdateClock = 0.0f;
+            }
+            else
+            {
+                eyeUpdateClock += Time.fixedDeltaTime;
+                eyeController.transform.position = curEyePosition;
+                eyeController.transform.eulerAngles = curEyeAngles;
+            }
 
 			if (morphMouthAction == false)
 			{
@@ -6776,36 +6910,15 @@ namespace VRAdultFun
 			}
 			//SuperController.LogError("Fixed Update Complete");
 			
-			if (currentLook == "Idle" && currentMouth == "Idle" && interestValence > 8.0f && testRun == false)
-			{
-				mouthSM.Switch(mBigSmile);
-			}
-						
-			//Vector3 tempvector = chestController.followWhenOff.forward;
-			//Vector3 temp2vector = headController.followWhenOff.forward;
-			//float vecfloat = Vector3.Angle(new Vector3(temp2vector.x, tempvector.y, tempvector.z), tempvector);
 			
-			//float leftright2 = Vector3.SignedAngle (chestController.followWhenOff.forward, headController.followWhenOff.forward, chestController.followWhenOff.up);
-			//float updown2 = Vector3.SignedAngle (chestController.followWhenOff.forward, headController.followWhenOff.forward, -chestController.followWhenOff.right);
-			//testString = "Left/Right : " + headLeftRight + "  Up/Down : " + headUpDown;
-			//testString = vecfloat.ToString();
 			if (uiShowStats.val)
 			{
 			//SuperController.LogError("Doing Message Stats");
 			SuperController.singleton.ClearMessages();
 			Vector3 tempAngles = playerHeadTransform.eulerAngles;
-			//SuperController.LogMessage(energyAmount.ToString());
+			//SuperController.LogMessage(testString);
 			SuperController.LogMessage("Arousal / Happiness : " + Round(interestArousal) + "(" + interestPeakArousal + ")" + "/" + Round(interestValence) + "(" + interestPeakValence+ ")", false);
-			testString = "";
-			if (amGlancing)
-			{
-				testString = " (Glancing)";
-			}
-			if (gAvoid == 1.0f)
-			{
-				testString = " (Avoiding)";
-			}
-			SuperController.LogMessage("Current Emotion :" + currentLook + testString, false);
+			SuperController.LogMessage("Current Emotion :" + currentLook, false);
 			SuperController.LogMessage("Brow :" + currentBrow + "| Eye :" + currentEye + "| Mouth :" + currentMouth, false);
 			SuperController.LogMessage("", false);
 			SuperController.LogMessage("Interest Clock : " + Round(interestClock) + "(" + Mathf.Round(interestRepeat) + ")", false);
@@ -6867,10 +6980,11 @@ namespace VRAdultFun
 					}
 				}
 			}
-			SuperController.LogMessage("Gaze Variation H/V : " + Round(endAdjustH * Mathf.Rad2Deg) + "/" + Round(endAdjustV * Mathf.Rad2Deg), false);
+//			SuperController.LogMessage("Gaze Variation Horizontal : " + Round(endAdjustH * Mathf.Rad2Deg), false);
+//			SuperController.LogMessage("Gaze Variation Vertical : " + Round(endAdjustV * Mathf.Rad2Deg), false);
 			SuperController.LogMessage("Gaze Head Roll / Target / Timer : " + Round(gHeadRoll) + " /" + Round(gHeadRollTarget) + " /" + Round(rollTimer), false);
-			SuperController.LogMessage("Gaze Neck Adjust : " + Round(sexActionNeckX), false);
-			SuperController.LogMessage("Gaze Fuzzy Lock / Delay Timer : " + Round(fuzzyLock) + "/" + Round(headDelayTimer) + "(" + Round(Mathf.Abs(actualH - targetH) * Mathf.Rad2Deg) + "/" + Round(Mathf.Abs(actualV - targetV) * Mathf.Rad2Deg) + ")", false);
+//			SuperController.LogMessage("Gaze Neck Adjust : " + Round(sexActionNeckX), false);
+			SuperController.LogMessage("Gaze Fuzzy Lock / Delay Timer : " + Round(fuzzyLock) + "/" + Round(headDelayTimer) + "(" + Round(Mathf.Abs(actualH - targetH)) + "/" + Round(Mathf.Abs(actualV - targetV)) + ")", false);
 			SuperController.LogMessage("Hor Fuzz : " + Round(((15.0f * uiGazeVariation.val) * (pAgreeableness / 100.0f) * fuzzyLock) * Mathf.Deg2Rad) + " Vert Fuzz : " + Round(((3.0f * uiGazeVariation.val) * (pExtraversion / 100.0f) * fuzzyLock) * Mathf.Deg2Rad));
 			SuperController.LogMessage("Target Vert : " + Round(targetV * Mathf.Rad2Deg) + "| Hor : " + Round(targetH * Mathf.Rad2Deg) + "| Speed : " + Round(adjustedSpeed), false);
 			SuperController.LogMessage("Actual Vert : " + Round(actualV * Mathf.Rad2Deg) + "| Hor : " + Round(actualH * Mathf.Rad2Deg) + "| H Speed : " + Round(velocityH) + "| V Speed : " + Round(velocityV), false);
@@ -6889,15 +7003,12 @@ namespace VRAdultFun
 			SuperController.LogMessage("", false);
 			SuperController.LogMessage("Lips Touch Count : " + lipsTouchCount, false);
 			SuperController.LogMessage("V Touch Count : " + vagTouchCount, false);
+
+			//EASY MATE 12/8/2019
+			SuperController.LogMessage("Deep V Touch Count : " + deepVagTouchCount, false);
+			//END EASY MATE
+
 			SuperController.LogMessage("", false);
-			if (person2IsMale)
-			{
-				SuperController.LogMessage("Character is Male", false);
-			}
-			else
-			{
-				SuperController.LogMessage("Character is Female", false);
-			}
 			SuperController.LogMessage("Flirt Morph : " + Round(mFlirtingValue), false);
 			SuperController.LogMessage("Happy Morph : " + Round(mHappyValue), false);
 			SuperController.LogMessage("Excitement Morph : " + Round(mExcitementValue), false);
@@ -6932,9 +7043,6 @@ namespace VRAdultFun
 			SuperController.LogMessage("Lips Part Morph : " + Round(mLipsPartValue), false);
 			SuperController.LogMessage("Lips Pouty Morph : " + Round(mLipsPoutyValue), false);
 			SuperController.LogMessage("Lip Bite Morph : " + Round(mLipBiteValue), false);
-			SuperController.LogMessage("Tongue In/Out Morph : " + Round(mTongueInOutValue), false);
-			SuperController.LogMessage("Tongue Bend Tip Morph : " + Round(mTongueBendTipValue), false);
-			SuperController.LogMessage("Tongue SideSide Morph : " + Round(mTongueSideSideValue), false);
 			SuperController.LogMessage("Bottom Lip Down Morph : " + Round(mLipsBottomDownValue), false);
 			SuperController.LogMessage("Cheeks Sink Morph : " + Round(mCheekSinkValue), false);
 			SuperController.LogMessage("Nipples Apply Morph : " + Round(mNipplesApplyValue), false);
@@ -7017,11 +7125,11 @@ namespace VRAdultFun
                 Duration = 0.05f;
                 //Vector3 perp = Vector3.Cross(chestController.followWhenOff.eulerAngles, refAngle);
                 //float dir = Vector3.Dot(perp, chestController.followWhenOff.up);
-				tempFloat = Mathf.Abs(Vector3.Angle(refAngle, abdomenController.followWhenOff.forward));
+				tempFloat = Mathf.Abs(Vector3.Angle(refAngle, chestController.followWhenOff.forward));
                 if (Mathf.Abs(tempFloat) > 60.0f || allSetup == false)
                 {
                     randomResetDir = true;
-                    refAngle = abdomenController.followWhenOff.forward;
+                    refAngle = chestController.followWhenOff.forward;
                 }
 				tempFloat = Random.Range(-4.0f,1.0f);
 				if (playerHeadToHead < personalSpaceDistance)
@@ -7110,7 +7218,7 @@ namespace VRAdultFun
                 //Person to Player/Person2 update
                 personHeadTransform = headController.followWhenOff; //headController.transform;
 
-				if (usePerson2 && person2Usable)
+				if (ShouldUsePerson2AsPrimaryTarget())
 				{
 					headToFaceRot = Mathf.Abs(Vector3.Angle(playerHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f)) - personHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f)), personHeadTransform.forward));
 					playerHeadToFaceRot = Mathf.Abs(Vector3.Angle(personHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f)) - playerHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f)), playerHeadTransform.forward));
@@ -7123,19 +7231,20 @@ namespace VRAdultFun
                 headToChestRot = Mathf.Abs(Vector3.Angle(playerChest - personHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f)), personHeadTransform.forward));
 				if (emTargetName == "[CameraRig]")
 				{
-					emTargetDir = Mathf.Abs(Vector3.Angle(CameraTarget.centerTarget.transform.position - personHeadTransform.position, personHeadTransform.forward));
-					emTargetHeadDir = Mathf.Abs(Vector3.Angle(personHeadTransform.position - CameraTarget.centerTarget.transform.position, CameraTarget.centerTarget.transform.forward));
-					emTargetDistance = Vector3.Distance(personHeadTransform.position, CameraTarget.centerTarget.transform.position);
-					emTargetPelvisDistance = Vector3.Distance(pelvisController.transform.position, CameraTarget.centerTarget.transform.position);
+					Vector3 emTargetPos = (ShouldUsePerson2AsPrimaryTarget() && person2 != null)
+						? GetStructuredRandomTargetPosition("RandomF")
+						: CameraTarget.centerTarget.transform.position;
+					emTargetDir = Mathf.Abs(Vector3.Angle(emTargetPos - personHeadTransform.position, personHeadTransform.forward));
+					emTargetHeadDir = Mathf.Abs(Vector3.Angle(personHeadTransform.position - emTargetPos, playerHeadTransform.forward));
+					emTargetDistance = Vector3.Distance(personHeadTransform.position, emTargetPos);
 				}
 				else
 				{
 					if (emTarget != null)
 					{
-						emTargetDir = Mathf.Abs(Vector3.Angle(emTargetTransform.position - personHeadTransform.position, personHeadTransform.forward));
-						emTargetHeadDir = Mathf.Abs(Vector3.Angle(personHeadTransform.position - emTargetTransform.position, emTargetTransform.forward));
-						emTargetDistance = Vector3.Distance(personHeadTransform.position, emTargetTransform.position);
-						emTargetPelvisDistance = Vector3.Distance(pelvisController.transform.position, emTargetTransform.position);
+						emTargetDir = Mathf.Abs(Vector3.Angle(emTargetController.transform.position - personHeadTransform.position, personHeadTransform.forward));
+						emTargetHeadDir = Mathf.Abs(Vector3.Angle(personHeadTransform.position - emTargetController.transform.position, emTargetController.transform.forward));
+						emTargetDistance = Vector3.Distance(personHeadTransform.position, emTargetController.transform.position);
 					}
 				}
 				
@@ -7188,21 +7297,21 @@ namespace VRAdultFun
             public override void OnEnter()
             {
                 Duration = 0.05f;
-                if (usePerson2 && person2Usable)
+                if (ShouldUsePerson2AsPrimaryTarget())
                 {
                     playerFacePrev = playerFace;
                     playerFace = playerHeadTransform.position;
                     playerFaceRotPrev = playerFaceRot;
                     playerFaceRot = playerHeadTransform.eulerAngles;
-                    playerChest = playerChestController.followWhenOff.position;
+                    playerChest = GetFollowPositionOrFallback(playerChestController, playerFace);
                     playerLHandPrev = playerLHand;
-                    playerLHand = playerLHandController.followWhenOff.position;
+                    playerLHand = GetFollowPositionOrFallback(playerLHandController, playerFace);
                     playerRHandPrev = playerRHand;
-                    playerRHand = playerRHandController.followWhenOff.position;
-                    playerPelvis = playerPelvisController.followWhenOff.position;
+                    playerRHand = GetFollowPositionOrFallback(playerRHandController, playerFace);
+                    playerPelvis = GetFollowPositionOrFallback(playerPelvisController, playerFace);
                     //playerTipPrev = playerTip;
-                    playerTip = playerTipController.followWhenOff.position;
-                    playerTipBase = playerTipBaseController.followWhenOff.position;
+                    playerTip = GetFollowPositionOrFallback(playerTipController, playerFace);
+                    playerTipBase = GetFollowPositionOrFallback(playerTipBaseController, playerFace);
                 }
                 else
                 {
@@ -7228,12 +7337,12 @@ namespace VRAdultFun
                         playerLHand = playerFace;
                         playerRHand = playerFace;
                     }
-                    if (person2Usable && usePerson2)
+                    if (ShouldUsePerson2AsPrimaryTarget())
                     {
-                        playerPelvis = playerPelvisController.followWhenOff.position;
+                        playerPelvis = GetFollowPositionOrFallback(playerPelvisController, playerFace);
                         //playerTipPrev = playerTip;
-                        playerTip = playerTipController.followWhenOff.position;
-                        playerTipBase = playerTipBaseController.followWhenOff.position;
+                        playerTip = GetFollowPositionOrFallback(playerTipController, playerFace);
+                        playerTipBase = GetFollowPositionOrFallback(playerTipBaseController, playerFace);
                     }
 					else
 					{
@@ -7259,9 +7368,10 @@ namespace VRAdultFun
             {
                 Duration = 0.05f;
                 //Player/Person2 to Person update
-                if (usePerson2 && person2 != null)
+                ResolveActivePerson2Target(currentAtomName);
+                if (ShouldUsePerson2AsPrimaryTarget() && person2 != null)
                 {
-                    playerHeadTransform = playerHeadController.followWhenOff;
+                    playerHeadTransform = GetFollowTransformOrFallback(playerHeadController, CameraTarget.centerTarget.transform);
 					person2Usable = true;
                 }
                 else
@@ -7370,17 +7480,17 @@ namespace VRAdultFun
                 Duration = 0.05f;
                 //Player/Person2 hands to Person update
 
-                if (playerHandsUsable || (person2Usable && usePerson2))
+                if (playerHandsUsable || ShouldUsePerson2AsPrimaryTarget())
                 {
                     if (playerHandsUsable)
                     {
                         playerLHandTransform = playerVRLHand;
                         playerRHandTransform = playerVRRHand;
                     }
-                    if (usePerson2 || (playerHandsUsable == false && person2Usable))
+                    if (ShouldUsePerson2AsPrimaryTarget() || (playerHandsUsable == false && person2Usable))
                     {
-                        playerLHandTransform = playerLHandController.followWhenOff;
-                        playerRHandTransform = playerRHandController.followWhenOff;
+                        playerLHandTransform = GetFollowTransformOrFallback(playerLHandController, playerHeadTransform);
+                        playerRHandTransform = GetFollowTransformOrFallback(playerRHandController, playerHeadTransform);
                     }
                     if (person2Usable == false && playerHandsUsable == false)
                     {
@@ -7446,52 +7556,21 @@ namespace VRAdultFun
             public override void OnEnter()
             {
 				Duration = 0.1f;
-				person2Usable = false;
-				
-				if (person2 != null)
-				{
-					//JSONStorable js = person2.GetStorableByID("geometry");
-					//DAZCharacterSelector dcs = js as DAZCharacterSelector;
-					//GenerateDAZMorphsControlUI morphUI = dcs.morphsControlUI;
-					//if (morphUI != null)
-					//{
-						//DAZMorph morphTemp = morphUI.GetMorphByDisplayName("Breast Height");
-						person2IsMale = false;
-						if (person2.gameObject.name == "Genesis2Male")//morphTemp == null)
-						{
-							person2IsMale = true;
-						}
-					//}
-					person2Usable = true;
-					playerHeadController = person2.GetStorableByID("headControl") as FreeControllerV3;
-					playerChestController = person2.GetStorableByID("chestControl") as FreeControllerV3;
-					playerLHandController = person2.GetStorableByID("lHandControl") as FreeControllerV3;
-					playerRHandController = person2.GetStorableByID("rHandControl") as FreeControllerV3;
-					playerPelvisController = person2.GetStorableByID("pelvisControl") as FreeControllerV3;
-					playerTipController = person2.GetStorableByID("penisTipControl") as FreeControllerV3;
-					playerTipBaseController = person2.GetStorableByID("penisBaseControl") as FreeControllerV3;
-					//SuperController.LogError("New Person " + currentAtomName + " Found");
-				}
-				else
+				ResolveActivePerson2Target(currentAtomName);
+				if (person2 == null && usePerson2)
 				{
 					//SuperController.LogError("New Person " + currentAtomName + " Not Found");
 					person2Usable = false;
 					usePerson2 = false;
 				}
 				
-				if (person2.GetStorableByID("geometry") == null)
+				if (ShouldUsePerson2AsPrimaryTarget())
 				{
-					person2Usable = false;
-					usePerson2 = false;
-				}
-				
-				if (usePerson2 && person2Usable)
-				{
-					playerFace = playerHeadController.followWhenOff.position;
-					playerLHand = playerLHandController.followWhenOff.position;
-					playerRHand = playerRHandController.followWhenOff.position;
-					playerPelvis = playerPelvisController.followWhenOff.position;
-					playerTip = playerTipController.followWhenOff.position;
+					playerFace = GetFollowPositionOrFallback(playerHeadController, player.position);
+					playerLHand = GetFollowPositionOrFallback(playerLHandController, playerFace);
+					playerRHand = GetFollowPositionOrFallback(playerRHandController, playerFace);
+					playerPelvis = GetFollowPositionOrFallback(playerPelvisController, playerFace);
+					playerTip = GetFollowPositionOrFallback(playerTipController, playerFace);
 				}
 				else
 				{
@@ -7530,9 +7609,9 @@ namespace VRAdultFun
 					}
 				}
 				
-				if (usePerson2 && person2 != null)
+				if (ShouldUsePerson2AsPrimaryTarget() && person2 != null)
 				{
-					playerHeadTransform = playerHeadController.followWhenOff;
+					playerHeadTransform = GetFollowTransformOrFallback(playerHeadController, player);
 					closeFaceDistance = closeFaceDistance * 1.85f;
 				}
 				else
@@ -7557,46 +7636,6 @@ namespace VRAdultFun
                 Mathf.Cos(angleH) * cosV
             );
         }
-		
-		private void loadStateConfig()
-		{
-			SimpleJSON.JSONNode loadedSettings = new SimpleJSON.JSONClass();
-			string tempPath = GetPluginPath();
-			loadedSettings=SuperController.singleton.LoadJSON(tempPath + "\\Config\\FaceStateControl.json");
-			enableIntense = loadedSettings["Look : Intense"].AsBool;
-			enableInquisitive = loadedSettings["Look : Inquisitive"].AsBool;
-			enableCasual = loadedSettings["Look : Casual"].AsBool;
-			enableBored = loadedSettings["Look : Bored"].AsBool;
-			enableDayDream = loadedSettings["Look : DayDream"].AsBool;
-			enablePlayful = loadedSettings["Look : Playful"].AsBool;
-			enableFeel = loadedSettings["Look : Feel"].AsBool;
-			enableKissing = loadedSettings["Look : Kissing"].AsBool;
-			enableSucking = loadedSettings["Look : Sucking"].AsBool;
-			enableSex = loadedSettings["Look : Sex"].AsBool;
-			enableRaised = loadedSettings["EyeBrow : Raised"].AsBool;
-			enableLowered = loadedSettings["EyeBrow : Lowered"].AsBool;
-			enableConcentrate = loadedSettings["EyeBrow : Concentrate"].AsBool;
-			enableOneRaise = loadedSettings["EyeBrow : One Raise"].AsBool;
-			enableApprehensive = loadedSettings["EyeBrow : Apprehensive"].AsBool;
-			enableBlink = loadedSettings["Eye : Blink"].AsBool;
-			enableEyeOpen = loadedSettings["Eye : Open"].AsBool;
-			enableEyeClosed = loadedSettings["Eye : Closed"].AsBool;
-			enableFocus = loadedSettings["Eye : Focus"].AsBool;
-			enableSquint = loadedSettings["Eye : Squint"].AsBool;
-			enableWide = loadedSettings["Eye : Wide"].AsBool;
-			enableWink = loadedSettings["Eye : Wink"].AsBool;
-			enableMouthOpen = loadedSettings["Mouth : Open"].AsBool;
-			enableMouthClosed = loadedSettings["Mouth : Closed"].AsBool;
-			enableBiteLip = loadedSettings["Mouth : Bite Lip / Demure"].AsBool;
-			enableSmile = loadedSettings["Mouth : Smile"].AsBool;
-			enableBigSmile = loadedSettings["Mouth : Big Smile"].AsBool;
-			enableSmirk = loadedSettings["Mouth : Smirk / Pout"].AsBool;
-			enableSideways = loadedSettings["Mouth : Side Ways"].AsBool;
-			enableKiss = loadedSettings["Mouth : Kiss"].AsBool;
-			enableSuck = loadedSettings["Mouth : Suck"].AsBool;
-			enableJoy = loadedSettings["Mouth : Joy"].AsBool;
-			enableOh = loadedSettings["Mouth : Oh"].AsBool;
-		}
 		
 		private void loadDefaults()
 		{
@@ -7688,9 +7727,6 @@ namespace VRAdultFun
 				uiRandomBaseDistance.val = loadedSettings["Random Base Distance"].AsFloat;
 				uiRandomBaseHeight.val = loadedSettings["Random Base Height"].AsFloat;
 				uiRandomBaseOffset.val = loadedSettings["Random Base Center Offset"].AsFloat;
-				uiDirectLookDelay.val = loadedSettings["Gaze Direct Delay Mult"].AsFloat;
-				uiMaterialMult.val = loadedSettings["Arousal Gloss Mult"].AsFloat;
-				uiEffectMaterial.val = loadedSettings["Arousal Effects Gloss"].AsBool;
 				uiSetupComplete.val = loadedSettings["Setup Complete"].AsBool;
 				if (uiFocusTarget.val != "None" && uiUsePerson2.val)
 				{
@@ -7725,1082 +7761,5 @@ namespace VRAdultFun
             string pathToScriptFolder = pathToScriptFile.Substring(0, pathToScriptFile.LastIndexOfAny(new char[] { '/', '\\' }));
             return pathToScriptFolder;
         }
-		
-		public void LoadSounds()
-		{
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_In1.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_In2.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_In3.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_In4.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_In5.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_In6.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_In_Fast1.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_In_Fast2.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_In_Fast3.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_In_Fast4.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Out1.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Out2.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Out3.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Out4.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Out5.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Nose_In_Long1.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Nose_In_Long2.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Nose_In_Med1.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Nose_In_Med2.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Nose_In_Med3.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Nose_Out_Long1.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Nose_Out_Long2.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Nose_Out_Long3.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Nose_Out_Long4.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah1.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah2.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah3.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah4.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah5.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah6.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah7.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah8.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah9.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah10.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah11.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah12.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah13.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah14.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah15.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Aah16.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh1.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh2.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh3.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh4.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh5.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh6.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh7.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh8.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh9.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh10.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh11.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh12.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh13.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh14.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Ooh15.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm1.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm2.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm3.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm4.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm5.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm6.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm7.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm8.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm9.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm10.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm11.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm12.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm13.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm14.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm15.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Mmm16.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Yeah1.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Yeah2.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Yeah3.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Yeah4.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Yeah5.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Yeah6.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Yeah7.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Breath_Mouth_Yeah8.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Kiss1.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Kiss2.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Kiss3.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Kiss4.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Kiss5.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Kiss6.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Kiss7.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Kiss8.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Kiss9.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Kiss10.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Kiss_Mmm1.wav");
-			URLAudioClipManager.singleton.QueueClip(@"file:///Custom/scripts/E-Motion/Sounds/Kiss_Mmm2.wav");
-			soundsLoaded = true;
-		}
-
-		public void RegisterUIElements()
-		{
-			uiAgreeableness = new JSONStorableFloat("Personality Agreeableness", 50.0f, 1.0f, 99.0f, true, true);
-			RegisterFloat(uiAgreeableness);
-
-			uiExtraversion = new JSONStorableFloat("Personality Extraversion", 50.0f, 1.0f, 99.0f, true, true);
-			RegisterFloat(uiExtraversion);
-
-			uiStableness = new JSONStorableFloat("Personality Stableness", 50.0f, 1.0f, 99.0f, true, true);
-			RegisterFloat(uiStableness);
-
-			uiShowStats = new JSONStorableBool("Show Stats on Message Log", false);
-			RegisterBool(uiShowStats);
-				
-			uiConfigHead = new JSONStorableBool("Auto Config Head", false);
-			RegisterBool(uiConfigHead);
-
-			uiDoHead = new JSONStorableBool("Control Head", false);
-			RegisterBool(uiDoHead);
-
-			uiDoMorphs = new JSONStorableBool("Control Morphs", true);
-			RegisterBool(uiDoMorphs);
-
-			uiUsePerson2 = new JSONStorableBool("Look at selected Person", false);
-			RegisterBool(uiUsePerson2);
-			
-						
-			List<string> targetChoices = new List<string>();
-            foreach (string atomUID in SuperController.singleton.GetAtomUIDs())
-            {
-				currentAtom = SuperController.singleton.GetAtomByUid(atomUID);
-                if (currentAtom != containingAtom && atomUID != null && currentAtom.type == "Person")
-                {
-					targetChoices.Add(atomUID);
-				}
-			}
-			uiFocusTarget = new JSONStorableStringChooser("Target Selector", targetChoices, "None", "Choose Person");
-			RegisterStringChooser(uiFocusTarget);
-
-			List<string> objectChoices = new List<string>();
-			objectChoices.Add("None");
-            foreach (string atomUID in SuperController.singleton.GetAtomUIDs())
-            {
-				currentAtom = SuperController.singleton.GetAtomByUid(atomUID);
-                if (atomUID != null)
-                {
-						objectChoices.Add(atomUID);
-				}
-			}
-			uiObjectTarget = new JSONStorableStringChooser("Object Selector", objectChoices, "None", "Choose Object");
-			RegisterStringChooser(uiObjectTarget);
-
-			uiTargetLook = new JSONStorableBool("Object Can Look", false);
-			RegisterBool(uiTargetLook);
-
-			uiDoSounds = new JSONStorableBool("Play Sounds", false);
-			RegisterBool(uiDoSounds);
-
-			uiSoundVolume = new JSONStorableFloat("Sound Volume Mult", 1.50f, 0.0f, 100.0f, true, true);
-			RegisterFloat(uiSoundVolume);
-
-			uiEffectMaterial = new JSONStorableBool("Arousal Effects Gloss", false);
-			RegisterBool(uiEffectMaterial);
-
-			uiMaterialMult = new JSONStorableFloat("Arousal Gloss Mult", 1.00f, 0.0f, 10.0f, true, true);
-			RegisterFloat(uiMaterialMult);
-
-			uiDoHands = new JSONStorableBool("Adjust Hands", false);
-			RegisterBool(uiDoHands);
-
-			uiDoKiss = new JSONStorableBool("Auto Kissing", false);
-			RegisterBool(uiDoKiss);
-			
-			uiKissAmount = new JSONStorableFloat("Kissing Effect Mult", 1.0f, 0.0f, 1.5f, true, true);
-			RegisterFloat(uiKissAmount);
-
-			uiDoBlowjob = new JSONStorableBool("Auto Blowjob", false);
-			RegisterBool(uiDoBlowjob);
-			
-			uiBlowjobAmount = new JSONStorableFloat("Blowjob Effect Mult", 0.7f, 0.0f, 1.5f, true, true);
-			RegisterFloat(uiBlowjobAmount);
-
-			uiDoSex = new JSONStorableBool("Auto Sex", false);
-			RegisterBool(uiDoSex);
-
-			uiSexAmount = new JSONStorableFloat("Sex Effect Mult", 0.75f, 0.0f, 1.5f, true, true);
-			RegisterFloat(uiSexAmount);
-			
-			uiGazeAvoid = new JSONStorableBool("Gaze Avoidance", false);
-			RegisterBool(uiGazeAvoid);
-
-			uiGazeLookTime = new JSONStorableFloat("Avoidance Eye Contact Time", 1.0f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiGazeLookTime);
-
-			uiGazeAvoidTime = new JSONStorableFloat("Avoidance Look Away Time", 1.0f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiGazeAvoidTime);
-
-			uiGazeGlance = new JSONStorableBool("Gaze Glancing", false);
-			RegisterBool(uiGazeGlance);
-
-			uiGlanceTimeout = new JSONStorableFloat("Glance Timeout Mult", 1.0f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiGlanceTimeout);
-
-			uiDirectLookDelay = new JSONStorableFloat("Gaze Direct Delay Mult", 1.0f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiDirectLookDelay);
-
-			uiGazeSpeed = new JSONStorableFloat("Gaze Speed Mult", 2.0f, 0.0f, 7.0f, true, true);
-			RegisterFloat(uiGazeSpeed);
-
-			uiGazeVariation = new JSONStorableFloat("Gaze Variation Mult", 1.0f, 0.0f, 3.0f, true, true);
-			RegisterFloat(uiGazeVariation);
-
-			uiRollChance = new JSONStorableFloat("Gaze Tilt Chance", 1.0f, 0.0f, 2.0f, true, true);
-			RegisterFloat(uiRollChance);
-
-			uiMaxHeadRoll = new JSONStorableFloat("Gaze Max Tilt", 60.0f, 0.0f, 90.0f, true, true);
-			RegisterFloat(uiMaxHeadRoll);
-
-			uiRollSpeed = new JSONStorableFloat("Gaze Tilt Speed Mult", 1.0f, 0.0f, 3.0f, true, true);
-			RegisterFloat(uiRollSpeed);
-
-			uiBreatheSpeed = new JSONStorableFloat("Breath Speed Mult", 1.0f, 0.0f, 3.0f, true, true);
-			RegisterFloat(uiBreatheSpeed);
-
-			uiChestHeightOffset = new JSONStorableFloat("Breath Upper Chest Offset", 0.0f, -1.0f, 1.0f, true, true);
-			RegisterFloat(uiChestHeightOffset);
-
-			uiBreatheRaiseMultiplier = new JSONStorableFloat("Breath Raise Mult", 0.7f, 0.0f, 3.0f, true, true);
-			RegisterFloat(uiBreatheRaiseMultiplier);
-
-			uiBreatheExpandMultiplier = new JSONStorableFloat("Breath Expansion Mult", 0.7f, 0.0f, 3.0f, true, true);
-			RegisterFloat(uiBreatheExpandMultiplier);
-
-			uiDoShoulders = new JSONStorableBool("Adjust Shoulders", false);
-			RegisterBool(uiDoShoulders);
-
-			uiShoulderBack = new JSONStorableFloat("Shoulders Back", 0.00f, 0.0f, 1.0f, true, true);
-			RegisterFloat(uiShoulderBack);
-
-			uiShoulderAmount = new JSONStorableFloat("Shoulder Adjust Mult", 1.00f, 0.0f, 10.0f, true, true);
-			RegisterFloat(uiShoulderAmount);
-
-			uiShoulderHeight = new JSONStorableFloat("Shoulder Height Mult", 1.00f, 0.0f, 2.0f, true, true);
-			RegisterFloat(uiShoulderHeight);
-
-
-			uiDoChest = new JSONStorableBool("Adjust Chest", false);
-			RegisterBool(uiDoChest);
-
-			uiChestAmount = new JSONStorableFloat("Chest Adjust Mult", 1.00f, 0.0f, 10.0f, true, true);
-			RegisterFloat(uiChestAmount);
-
-			uiDoHands = new JSONStorableBool("Adjust Hands", false);
-			RegisterBool(uiDoHands);
-
-			uiIdleAmount = new JSONStorableFloat("Idle Body Movement Mult", 1.00f, 0.0f, 10.0f, true, true);
-			RegisterFloat(uiIdleAmount);
-
-			uiIdleArmAmount = new JSONStorableFloat("Idle Arm Movement Mult", 1.00f, 0.0f, 10.0f, true, true);
-			RegisterFloat(uiIdleArmAmount);
-			
-			uiIdleArmOffset = new JSONStorableFloat("Idle Arm Pos Offset", 0.00f, -100.0f, 100.0f, true, true);
-			RegisterFloat(uiIdleArmOffset);
-			
-			
-			uiIdleChance = new JSONStorableFloat("Idle Movement Chance", 60.00f, 0.0f, 100.0f, true, true);
-			RegisterFloat(uiIdleChance);
-
-			uiIdleSpeed = new JSONStorableFloat("Idle Movement Speed", 1.00f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiIdleSpeed);
-
-			uiPersonalSpace = new JSONStorableFloat("Personal Space", 1.0f, 0.0f, 10.0f, true, true);
-			RegisterFloat(uiPersonalSpace);
-
-			uiInteractDist = new JSONStorableFloat("Interaction Distance", 0.15f, 0.0f, 0.5f, true, true);
-			RegisterFloat(uiInteractDist);
-
-			uiCloseToFaceDist = new JSONStorableFloat("Face Interact Dist", 0.15f, 0.0f, 0.5f, true, true);
-			RegisterFloat(uiCloseToFaceDist);
-
-			uiKissingDist = new JSONStorableFloat("Kissing Dist", 0.29f, 0.0f, 0.5f, true, true);
-			RegisterFloat(uiKissingDist);
-			
-			uiDirectGaze = new JSONStorableFloat("Direct View Angle", 12.0f, 0.0f, 180.0f, true, true);
-			RegisterFloat(uiDirectGaze);
-
-			uiPeripheralGaze = new JSONStorableFloat("Peripheral View Angle", 45.0f, 0.0f, 180.0f, true, true);
-			RegisterFloat(uiPeripheralGaze);
-
-			uiOutOfGaze = new JSONStorableFloat("Out of View Angle", 90.0f, 0.0f, 180.0f, true, true);
-			RegisterFloat(uiOutOfGaze);
-
-			uiInterestSpeed = new JSONStorableFloat("Main Change Delay Mult", 1.0f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiInterestSpeed);
-
-			uiInterestRate = new JSONStorableFloat("Interest Rate Mult", 1.0f, 0.0f, 10.0f, true, true);
-			RegisterFloat(uiInterestRate);
-
-			uiArousalSpeed = new JSONStorableFloat("Arousal Speed Mult", 1.0f, 0.0f, 10.0f, true, true);
-			RegisterFloat(uiArousalSpeed);
-
-			uiValenceSpeed = new JSONStorableFloat("Valence Speed Mult", 1.0f, 0.0f, 10.0f, true, true);
-			RegisterFloat(uiValenceSpeed);
-
-			uiMoodSpeed = new JSONStorableFloat("Mood Degrade Speed Mult", 1.0f, 0.0f, 10.0f, true, true);
-			RegisterFloat(uiMoodSpeed);
-			
-			uiExpressionChance = new JSONStorableFloat("Expression Change Chance", 20.0f, 0.0f, 100.0f, true, true);
-			RegisterFloat(uiExpressionChance);
-
-			uiGazeMaxUp = new JSONStorableFloat("Tracking Max Up Angle", 49.0f, 0.0f, 90.0f, true, true);
-			RegisterFloat(uiGazeMaxUp);
-
-			uiGazeMaxDown = new JSONStorableFloat("Tracking Max Down Angle", 85.0f, 0.0f, 90.0f, true, true);
-			RegisterFloat(uiGazeMaxDown);
-
-			uiGazeMaxSideways = new JSONStorableFloat("Tracking Max Side/Side Angle", 114.0f, 0.0f, 180.0f, true, true);
-			RegisterFloat(uiGazeMaxSideways);
-
-			uiBlinkSpeed = new JSONStorableFloat("Blink Delay Mult", 1.0f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiBlinkSpeed);
-
-			uiSaccadeSpeed = new JSONStorableFloat("Saccade Rate Mult", 1.0f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiSaccadeSpeed);
-			
-			uiSaccadeAmount = new JSONStorableFloat("Saccade Amount", 1.0f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiSaccadeAmount);
-
-			uiSaccadeWanderMult = new JSONStorableFloat("Saccade Max Dist Mult", 1.0f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiSaccadeWanderMult);
-
-			uiPupilDialation = new JSONStorableFloat("Eye Contact Pupil Dialation", 1.0f, 0.0f, 2.0f, true, true);
-			RegisterFloat(uiPupilDialation);
-
-			uiPupilRate = new JSONStorableFloat("Pupil Dialation Speed Mult", 1.0f, 0.0f, 3.0f, true, true);
-			RegisterFloat(uiPupilRate);
-
-			uiEyeUpdate = new JSONStorableFloat("Eye Update Speed Mult", 0.3f, 0.0f, 3.0f, true, true);
-			RegisterFloat(uiEyeUpdate);
-
-			uiAnimationSpeed = new JSONStorableFloat("Animation Speed Mult", 1.00f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiAnimationSpeed);
-
-			uiMouthOpenOffset = new JSONStorableFloat("Morph Mouth Open Offset", 0.0f, -1.0f, 1.0f, true, true);
-			RegisterFloat(uiMouthOpenOffset);
-
-			uiLipsCloseOffset = new JSONStorableFloat("Morph Lips Closed Offset", 0.0f, -1.0f, 1.0f, true, true);
-			RegisterFloat(uiLipsCloseOffset);
-
-			uiMaxMorphSmile = new JSONStorableFloat("Max Smile (Morphs)", 0.5f, 0.0f, 1.0f, true, true);
-			RegisterFloat(uiMaxMorphSmile);
-			
-			uiEyeCloseMaxMorph = new JSONStorableFloat("Max Eye Close (Morphs)", 1.1f, 0.0f, 1.5f, true, true);
-			RegisterFloat(uiEyeCloseMaxMorph);
-
-			uiHeadAngleOffset = new JSONStorableFloat("Head Base Angle Offset", 0.0f, -45.0f, 45.0f, true, true);
-			RegisterFloat(uiHeadAngleOffset);
-
-			uiObjectInterest = new JSONStorableFloat("Object Interest Mult", 1.0f, 0.0f, 3.0f, true, true);
-			RegisterFloat(uiObjectInterest);
-
-			uiHeadInterest = new JSONStorableFloat("Head Interest Mult", 1.0f, 0.0f, 3.0f, true, true);
-			RegisterFloat(uiHeadInterest);
-
-			uiLHandInterest = new JSONStorableFloat("LHand Interest Mult", 1.0f, 0.0f, 3.0f, true, true);
-			RegisterFloat(uiLHandInterest);
-
-			uiRHandInterest = new JSONStorableFloat("RHand Interest Mult", 1.0f, 0.0f, 3.0f, true, true);
-			RegisterFloat(uiRHandInterest);
-
-			uiPenisInterest = new JSONStorableFloat("Penis Interest Mult", 1.0f, 0.0f, 3.0f, true, true);
-			RegisterFloat(uiPenisInterest);
-
-			uiRandomBaseDistance = new JSONStorableFloat("Random Base Distance", 1.0f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiRandomBaseDistance);
-
-			uiRandomBaseHeight = new JSONStorableFloat("Random Base Height", 1.0f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiRandomBaseHeight);
-
-			uiRandomBaseOffset = new JSONStorableFloat("Random Base Center Offset", 1.0f, 0.0f, 5.0f, true, true);
-			RegisterFloat(uiRandomBaseOffset);
-
-			triggerArousal = new JSONStorableFloat("Arousal", 1.00f, 0.0f, 10.0f, true, true);
-			RegisterFloat(triggerArousal);
-			triggerValence = new JSONStorableFloat("Valence", 1.00f, 0.0f, 10.0f, true, true);
-			RegisterFloat(triggerValence);
-
-			uiSetupComplete = new JSONStorableBool("Plugin has been Setup", false);
-			RegisterBool(uiSetupComplete);
-		}
-
-		public void CreateMainMenuUI()
-		{
-			CreateToggle(uiShowStats, true);
-			CreateButton("Load Defaults", false).button.onClick.AddListener(() =>
-			{
-				loadDefaults();
-			});
-			CreateButton("Load Preset", false).button.onClick.AddListener(() =>
-			{
-				SuperController.singleton.fileBrowserUI.defaultPath = GetPluginPath() + "\\Presets\\";
-				SuperController.singleton.fileBrowserUI.SetTextEntry(false);
-				SuperController.singleton.fileBrowserUI.Show((path) =>
-				{
-					if (string.IsNullOrEmpty(path))
-					{
-						return;
-					}
-					SimpleJSON.JSONNode loadedSettings = new SimpleJSON.JSONClass();
-					loadedSettings=SuperController.singleton.LoadJSON(path);
-					uiExtraversion.val = loadedSettings["Extraversion"].AsFloat;
-					uiAgreeableness.val = loadedSettings["Agreeableness"].AsFloat;
-					uiStableness.val = loadedSettings["Stableness"].AsFloat;
-					uiBreatheSpeed.val = loadedSettings["Breathing Speed"].AsFloat;
-					uiBreatheExpandMultiplier.val = loadedSettings["Breathe Morph Multiplier"].AsFloat;
-					uiBreatheRaiseMultiplier.val = loadedSettings["Breath Raise Mult"].AsFloat;
-					uiChestHeightOffset.val = loadedSettings["Breath Upper Chest Offset"].AsFloat;
-					uiGazeVariation.val = loadedSettings["Gaze Angle Variation"].AsFloat;
-					uiGazeSpeed.val = loadedSettings["Gaze Speed"].AsFloat;
-					uiGazeAvoid.val = loadedSettings["Gaze Avoidance Enable"].AsBool;
-					uiGazeLookTime.val = loadedSettings["Gaze Look At Time"].AsFloat;
-					uiGazeAvoidTime.val = loadedSettings["Gaze Avoid Look Time"].AsFloat;
-					uiGazeGlance.val = loadedSettings["Gaze Glance Enable"].AsBool;
-					uiRollSpeed.val = loadedSettings["Gaze Head Roll Speed"].AsFloat;
-					uiMaxHeadRoll.val = loadedSettings["Gaze Max Tilt"].AsFloat;
-					uiRollChance.val = loadedSettings["Gaze Tilt Chance"].AsFloat;
-					uiGlanceTimeout.val = loadedSettings["Glance Timeout Mult"].AsFloat;
-					uiSaccadeSpeed.val = loadedSettings["Eye Saccade Frequency"].AsFloat;
-					uiSaccadeAmount.val = loadedSettings["Eye Saccade Movement Scale"].AsFloat;
-					uiSaccadeWanderMult.val = loadedSettings["Eye Saccade Max Dist from Target Scale"].AsFloat;
-					uiBlinkSpeed.val = loadedSettings["Eye Blink Delay Scale"].AsFloat;
-					uiPupilDialation.val = loadedSettings["Eye Contact Pupil Dialation"].AsFloat;
-					uiPupilRate.val = loadedSettings["Pupil Dialation Speed Mult"].AsFloat;
-					uiArousalSpeed.val = loadedSettings["Mood Arousal Scale"].AsFloat;
-					uiValenceSpeed.val = loadedSettings["Mood Valence Scale"].AsFloat;
-					uiMoodSpeed.val = loadedSettings["Mood Change Scale"].AsFloat;
-					uiInterestSpeed.val = loadedSettings["Main Interest Switch Delay Scale"].AsFloat;
-					uiInterestRate.val = loadedSettings["Global Interest Rate Scale"].AsFloat;
-					uiDoHead.val = loadedSettings["Control Head and Neck Movements"].AsBool;
-					uiDoMorphs.val = loadedSettings["Control Breath and Expression Morphs"].AsBool;
-					uiAnimationSpeed.val = loadedSettings["Animation Speed Mult"].AsFloat;
-					uiDoShoulders.val = loadedSettings["Control Shoulder Movements"].AsBool;
-					uiDoChest.val = loadedSettings["Control Chest Movement"].AsBool;
-					uiDoSounds.val = loadedSettings["Play Emotion Sounds"].AsBool;
-					uiSoundVolume.val = loadedSettings["Sound Volume Scale"].AsFloat;
-					uiChestAmount.val = loadedSettings["Chest Movement Scale"].AsFloat;
-					uiDoHands.val = loadedSettings["Control Hand Morphs"].AsBool;
-					uiConfigHead.val = loadedSettings["Automatically Configure Head and Neck physics"].AsBool;
-					if (EmotionLiteDisableHeadAndNeck)
-					{
-						uiDoHead.val = false;
-						uiConfigHead.val = false;
-					}
-					uiUsePerson2.val = loadedSettings["Look At Target Person"].AsBool;
-					uiShowStats.val = loadedSettings["Show Debug Info on Message Log"].AsBool;
-					uiDoKiss.val = loadedSettings["Kissing Enable"].AsBool;
-					uiKissAmount.val = loadedSettings["Kissing Morph Scale"].AsFloat;
-					uiDoBlowjob.val = loadedSettings["Blowjob Enable"].AsBool;
-					uiBlowjobAmount.val = loadedSettings["Blowjob Morph Scale"].AsFloat;
-					uiDoSex.val = loadedSettings["Sex Enable"].AsBool;
-					uiSexAmount.val = loadedSettings["Sex Morph Scale"].AsFloat;
-					uiFocusTarget.val = loadedSettings["Current Focus Target"];
-					uiObjectTarget.val = loadedSettings["Current Object Target"];
-					uiTargetLook.val = loadedSettings["Object View Direction Enable"].AsBool;
-					uiPersonalSpace.val = loadedSettings["Personal Space Distance"].AsFloat;
-					uiDirectGaze.val = loadedSettings["Direct Viewing Angle"].AsFloat;
-					uiPeripheralGaze.val = loadedSettings["Peripheral Viewing Angle"].AsFloat;
-					uiOutOfGaze.val = loadedSettings["Maximum Viewing Angle"].AsFloat;
-					uiCloseToFaceDist.val = loadedSettings["Face Interaction Distance"].AsFloat;
-					uiKissingDist.val = loadedSettings["Kissing Activation Distance"].AsFloat;
-					uiInteractDist.val = loadedSettings["General Interaction Distance"].AsFloat;
-					uiMaxMorphSmile.val = loadedSettings["Maximum Allowed Value For Smile Morphs"].AsFloat;
-					uiEyeCloseMaxMorph.val = loadedSettings["Maximum Amount To Close Eyes"].AsFloat;
-					uiEyeUpdate.val = loadedSettings["Minimum Time Between Eye Target Movements Excl Saccades"].AsFloat;
-					uiHeadInterest.val = loadedSettings["Target Head Interest Rate Scale"].AsFloat;
-					uiLHandInterest.val = loadedSettings["Target Left Hand Interest Rate Scale"].AsFloat;
-					uiRHandInterest.val = loadedSettings["Target Right Hand Interest Rate Scale"].AsFloat;
-					uiPenisInterest.val = loadedSettings["Target Pelvis Interest Rate Scale"].AsFloat;
-					uiObjectInterest.val = loadedSettings["Target Object Interest Rate Scale"].AsFloat;
-					uiIdleAmount.val = loadedSettings["Idle Movement Mult"].AsFloat;
-					uiIdleArmAmount.val = loadedSettings["Idle Arm Movement Mult"].AsFloat;
-					uiIdleChance.val = loadedSettings["Idle Movement Chance"].AsFloat;
-					uiIdleSpeed.val = loadedSettings["Idle Movement Speed"].AsFloat;
-					uiShoulderAmount.val = loadedSettings["Shoulder Adjust Mult"].AsFloat;
-					uiShoulderHeight.val = loadedSettings["Shoulder Height Mult"].AsFloat;
-					uiShoulderBack.val = loadedSettings["Shoulders Back"].AsFloat;
-					uiExpressionChance.val = loadedSettings["Expression Chance"].AsFloat;
-					uiGazeMaxUp.val = loadedSettings["Tracking Max Up Angle"].AsFloat;
-					uiGazeMaxDown.val = loadedSettings["Tracking Max Down Angle"].AsFloat;
-					uiGazeMaxSideways.val = loadedSettings["Tracking Max Side/Side Angle"].AsFloat;
-					uiRandomBaseDistance.val = loadedSettings["Random Base Distance"].AsFloat;
-					uiRandomBaseHeight.val = loadedSettings["Random Base Height"].AsFloat;
-					uiRandomBaseOffset.val = loadedSettings["Random Base Center Offset"].AsFloat;
-					uiDirectLookDelay.val = loadedSettings["Gaze Direct Delay Mult"].AsFloat;
-					uiMaterialMult.val = loadedSettings["Arousal Gloss Mult"].AsFloat;
-					uiEffectMaterial.val = loadedSettings["Arousal Effects Gloss"].AsBool;
-					uiSetupComplete.val = loadedSettings["Setup Complete"].AsBool;
-
-					uiHeadAngleOffset.val = loadedSettings["Head Base Angle Offset"].AsFloat;
-					uiMouthOpenOffset.val = loadedSettings["Morph Mouth Open Offset"].AsFloat;
-					uiLipsCloseOffset.val = loadedSettings["Morph Lips Closed Offset"].AsFloat;
-
-					//uiLoadPreset.val = false;
-					if (uiObjectTarget.val != "None")
-					{
-						emTargetName = uiObjectTarget.val;
-						emTarget = SuperController.singleton.GetAtomByUid(uiObjectTarget.val);
-						if (emTarget != null)
-						{
-							if (emTarget.type == "Person")
-							{
-								emTargetController = emTarget.GetStorableByID("headControl") as FreeControllerV3;
-							}
-							else
-							{
-								emTargetController = emTarget.GetStorableByID("control") as FreeControllerV3;
-							}
-							if (uiObjectTarget.val == "[CameraRig]")
-							{
-								emTargetTransform = CameraTarget.centerTarget.transform;
-							}
-							else
-							{
-								emTargetTransform = emTargetController.transform;
-							}
-						}
-					}
-					else
-					{
-						emTargetName = "None";
-						emTarget = null;
-						emTargetController = null;
-					}
-					if (uiFocusTarget.val != "None" && uiUsePerson2.val)
-					{
-						person2 = SuperController.singleton.GetAtomByUid(uiFocusTarget.val);
-						if (person2 != null)
-						{
-							systemSM.Switch(sReselectPerson2);
-						}
-						else
-						{
-							uiFocusTarget.val = "None";
-							uiUsePerson2.val = false;
-							person2Usable = false;
-							usePerson2 = false;
-						}
-					}
-
-				});
-			});
-			CreateButton("Save Preset", true).button.onClick.AddListener(() =>
-			{
-				SuperController.singleton.fileBrowserUI.defaultPath = GetPluginPath() + "\\Presets\\"; // or path to your plugin
-				SuperController.singleton.fileBrowserUI.SetTextEntry(true);
-
-				SuperController.singleton.fileBrowserUI.Show((path) =>
-				{
-					//  cancel or invalid
-					if (string.IsNullOrEmpty(path))
-					{
-						return;
-					}
-
-					//  ensure extension
-					if (!path.EndsWith(".json"))
-					{
-						path += ".json";
-					}
-					SimpleJSON.JSONClass mySettings = new SimpleJSON.JSONClass();
-
-					//Add some data                        
-					if (uiShowStats.val){mySettings["Show Debug Info on Message Log"] = "True";}else{mySettings["Show Debug Info on Message Log"] = "False";}
-					if (!EmotionLiteDisableHeadAndNeck && uiConfigHead.val){mySettings["Automatically Configure Head and Neck physics"] = "True";}else{mySettings["Automatically Configure Head and Neck physics"] = "False";}
-					if (!EmotionLiteDisableHeadAndNeck && uiDoHead.val){mySettings["Control Head and Neck Movements"] = "True";}else{mySettings["Control Head and Neck Movements"] = "False";}
-					if (uiDoMorphs.val){mySettings["Control Breath and Expression Morphs"] = "True";}else{mySettings["Control Breath and Expression Morphs"] = "False";}
-					mySettings.Add("Animation Speed Mult", new SimpleJSON.JSONData(uiAnimationSpeed.val));
-					if (uiDoShoulders.val){mySettings["Control Shoulder Movements"] = "True";}else{mySettings["Control Shoulder Movements"] = "False";}
-					mySettings.Add("Shoulder Movement Scale", new SimpleJSON.JSONData(uiShoulderAmount.val));
-					if (uiDoChest.val){mySettings["Control Chest Movement"] = "True";}else{mySettings["Control Chest Movement"] = "False";}
-					if (uiDoSounds.val){mySettings["Play Emotion Sounds"] = "True";}else{mySettings["Play Emotion Sounds"] = "False";}
-					mySettings.Add("Sound Volume Scale", new SimpleJSON.JSONData(uiSoundVolume.val));
-					mySettings.Add("Chest Movement Scale", new SimpleJSON.JSONData(uiChestAmount.val));
-					if (uiDoHands.val){mySettings["Control Hand Morphs"] = "True";}else{mySettings["Control Hand Morphs"] = "False";}
-					if (uiUsePerson2.val){mySettings["Look At Target Person"] = "True";}else{mySettings["Look At Target Person"] = "False";}
-					mySettings.Add("Current Focus Target", new SimpleJSON.JSONData(uiFocusTarget.val));
-					mySettings.Add("Current Object Target", new SimpleJSON.JSONData(uiObjectTarget.val));
-					if (uiTargetLook.val){mySettings["Object View Direction Enable"] = "True";}else{mySettings["Object View Direction Enable"] = "False";}
-					if (uiDoKiss.val){mySettings["Kissing Enable"] = "True";}else{mySettings["Kissing Enable"] = "False";}
-					mySettings.Add("Kissing Activation Distance", new SimpleJSON.JSONData(uiKissingDist.val));
-					mySettings.Add("Kissing Morph Scale", new SimpleJSON.JSONData(uiKissAmount.val));
-					if (uiDoBlowjob.val){mySettings["Blowjob Enable"] = "True";}else{mySettings["Blowjob Enable"] = "False";}
-					mySettings.Add("Blowjob Morph Scale", new SimpleJSON.JSONData(uiBlowjobAmount.val));
-					if (uiDoSex.val){mySettings["Sex Enable"] = "True";}else{mySettings["Sex Enable"] = "False";}
-					mySettings.Add("Sex Morph Scale", new SimpleJSON.JSONData(uiSexAmount.val));
-					mySettings.Add("Minimum Time Between Eye Target Movements Excl Saccades", new SimpleJSON.JSONData(uiEyeUpdate.val));
-					mySettings.Add("Main Interest Switch Delay Scale", new SimpleJSON.JSONData(uiInterestSpeed.val));
-					mySettings.Add("Global Interest Rate Scale", new SimpleJSON.JSONData(uiInterestRate.val));
-					mySettings.Add("Extraversion", new SimpleJSON.JSONData(uiExtraversion.val));
-					mySettings.Add("Agreeableness", new SimpleJSON.JSONData(uiAgreeableness.val));
-					mySettings.Add("Stableness", new SimpleJSON.JSONData(uiStableness.val));
-					mySettings.Add("Mood Arousal Scale", new SimpleJSON.JSONData(uiArousalSpeed.val));
-					mySettings.Add("Mood Valence Scale", new SimpleJSON.JSONData(uiValenceSpeed.val));
-					mySettings.Add("Mood Change Scale", new SimpleJSON.JSONData(uiMoodSpeed.val));
-					mySettings.Add("Breathing Speed", new SimpleJSON.JSONData(uiBreatheSpeed.val));
-					mySettings.Add("Breath Upper Chest Offset", new SimpleJSON.JSONData(uiChestHeightOffset.val));
-					mySettings.Add("Breathe Morph Multiplier", new SimpleJSON.JSONData(uiBreatheExpandMultiplier.val));
-					mySettings.Add("Breath Raise Mult", new SimpleJSON.JSONData(uiBreatheRaiseMultiplier.val));
-					mySettings.Add("Gaze Speed", new SimpleJSON.JSONData(uiGazeSpeed.val));
-					mySettings.Add("Gaze Angle Variation", new SimpleJSON.JSONData(uiGazeVariation.val));
-					if (uiGazeAvoid.val){mySettings["Gaze Avoidance Enable"] = "True";}else{mySettings["Gaze Avoidance Enable"] = "False";}
-					mySettings.Add("Gaze Look At Time", new SimpleJSON.JSONData(uiGazeLookTime.val));
-					mySettings.Add("Gaze Avoid Look Time", new SimpleJSON.JSONData(uiGazeAvoidTime.val));
-					if (uiGazeGlance.val){mySettings["Gaze Glance Enable"] = "True";}else{mySettings["Gaze Glance Enable"] = "False";}
-					mySettings.Add("Glance Timeout Mult", new SimpleJSON.JSONData(uiGlanceTimeout.val));
-					mySettings.Add("Gaze Head Roll Speed", new SimpleJSON.JSONData(uiRollSpeed.val));
-					mySettings.Add("Gaze Max Tilt", new SimpleJSON.JSONData(uiMaxHeadRoll.val));
-					mySettings.Add("Gaze Tilt Chance", new SimpleJSON.JSONData(uiRollChance.val));
-					mySettings.Add("Eye Saccade Frequency", new SimpleJSON.JSONData(uiSaccadeSpeed.val));
-					mySettings.Add("Eye Saccade Movement Scale", new SimpleJSON.JSONData(uiSaccadeAmount.val));
-					mySettings.Add("Eye Saccade Max Dist from Target Scale", new SimpleJSON.JSONData(uiSaccadeWanderMult.val));
-					mySettings.Add("Eye Contact Pupil Dialation", new SimpleJSON.JSONData(uiPupilDialation.val));
-					mySettings.Add("Pupil Dialation Speed Mult", new SimpleJSON.JSONData(uiPupilRate.val));
-					mySettings.Add("Eye Blink Delay Scale", new SimpleJSON.JSONData(uiBlinkSpeed.val));
-					mySettings.Add("Direct Viewing Angle", new SimpleJSON.JSONData(uiDirectGaze.val));
-					mySettings.Add("Peripheral Viewing Angle", new SimpleJSON.JSONData(uiPeripheralGaze.val));
-					mySettings.Add("Maximum Viewing Angle", new SimpleJSON.JSONData(uiOutOfGaze.val));
-					mySettings.Add("Personal Space Distance", new SimpleJSON.JSONData(uiPersonalSpace.val));
-					mySettings.Add("Face Interaction Distance", new SimpleJSON.JSONData(uiCloseToFaceDist.val));
-					mySettings.Add("General Interaction Distance", new SimpleJSON.JSONData(uiInteractDist.val));
-					mySettings.Add("Target Head Interest Rate Scale", new SimpleJSON.JSONData(uiHeadInterest.val));
-					mySettings.Add("Target Left Hand Interest Rate Scale", new SimpleJSON.JSONData(uiLHandInterest.val));
-					mySettings.Add("Target Right Hand Interest Rate Scale", new SimpleJSON.JSONData(uiRHandInterest.val));
-					mySettings.Add("Target Pelvis Interest Rate Scale", new SimpleJSON.JSONData(uiPenisInterest.val));
-					mySettings.Add("Target Object Interest Rate Scale", new SimpleJSON.JSONData(uiObjectInterest.val));
-					mySettings.Add("Idle Movement Mult", new SimpleJSON.JSONData(uiIdleAmount.val));
-					mySettings.Add("Idle Arm Movement Mult", new SimpleJSON.JSONData(uiIdleArmAmount.val));
-					mySettings.Add("Idle Movement Chance", new SimpleJSON.JSONData(uiIdleChance.val));
-					mySettings.Add("Idle Movement Speed", new SimpleJSON.JSONData(uiIdleSpeed.val));
-					mySettings.Add("Shoulder Adjust Mult", new SimpleJSON.JSONData(uiShoulderAmount.val));
-					mySettings.Add("Shoulder Height Mult", new SimpleJSON.JSONData(uiShoulderHeight.val));
-					mySettings.Add("Shoulders Back", new SimpleJSON.JSONData(uiShoulderBack.val));
-					mySettings.Add("Expression Chance", new SimpleJSON.JSONData(uiExpressionChance.val));
-					mySettings.Add("Tracking Max Up Angle", new SimpleJSON.JSONData(uiGazeMaxUp.val));
-					mySettings.Add("Tracking Max Down Angle", new SimpleJSON.JSONData(uiGazeMaxDown.val));
-					mySettings.Add("Tracking Max Side/Side Angle", new SimpleJSON.JSONData(uiGazeMaxSideways.val));
-					mySettings.Add("Random Base Distance", new SimpleJSON.JSONData(uiRandomBaseDistance.val));
-					mySettings.Add("Random Base Height", new SimpleJSON.JSONData(uiRandomBaseHeight.val));
-					mySettings.Add("Random Base Center Offset", new SimpleJSON.JSONData(uiRandomBaseOffset.val));
-					mySettings.Add("Gaze Direct Delay Mult", new SimpleJSON.JSONData(uiDirectLookDelay.val));
-					mySettings.Add("Arousal Gloss Mult", new SimpleJSON.JSONData(uiMaterialMult.val));
-					mySettings.Add("Head Base Angle Offset", new SimpleJSON.JSONData(uiHeadAngleOffset.val));
-					mySettings.Add("Morph Mouth Open Offset", new SimpleJSON.JSONData(uiMouthOpenOffset.val));
-					mySettings.Add("Morph Lips Closed Offset", new SimpleJSON.JSONData(uiLipsCloseOffset.val));
-					mySettings.Add("Maximum Allowed Value For Smile Morphs", new SimpleJSON.JSONData(uiMaxMorphSmile.val));
-					mySettings.Add("Maximum Amount To Close Eyes", new SimpleJSON.JSONData(uiEyeCloseMaxMorph.val));
-					
-					if (uiEffectMaterial.val){mySettings["Arousal Effects Gloss"] = "True";}else{mySettings["Arousal Effects Gloss"] = "False";}
-					if (uiSetupComplete.val){mySettings["Setup Complete"] = "True";}else{mySettings["Setup Complete"] = "False";}
-					SuperController.singleton.SaveJSON(mySettings,path);
-					//SuperController.singleton.SaveStringIntoFile(path, json.ToString(""));
-					//SuperController.LogMessage("Wrote settings file: " + path);
-				});
-
-				//  set default filename
-				if (SuperController.singleton.fileBrowserUI.fileEntryField != null)
-				{
-					SuperController.singleton.fileBrowserUI.fileEntryField.text = "EMotion_Preset" + ".json";
-					SuperController.singleton.fileBrowserUI.ActivateFileNameField();
-				}
-
-
-			});
-			CreateButtons();
-			ColorButtons();
-		}
-
-		public void CreateButtons()
-		{
-			featureButton = CreateButton("Feature Controls", false);
-			featureButton.button.onClick.AddListener(() => 
-				{
-					if (uiShowingFeatures)
-					{
-						RemoveFeatureControlUI();
-					}
-					else
-					{
-						CreateFeatureControlUI();
-					}
-				});
-
-			distanceButton = CreateButton("Distances and Angles", true);
-			distanceButton.button.onClick.AddListener(() => 
-				{
-					if (uiShowingDistAngle)
-					{
-						RemoveDistAngleUI();
-					}
-					else
-					{
-						CreateDistAngleUI();
-					}
-				});
-
-			characterButton = CreateButton("Look Adjustments", false);
-			characterButton.button.onClick.AddListener(() => 
-				{
-					if (uiShowingCharacter)
-					{
-						RemoveCharacterControl();
-					}
-					else
-					{
-						CreateCharacterControl();
-					}
-				});
-
-			gazeButton = CreateButton("Gaze Controls", true);
-			gazeButton.button.onClick.AddListener(() => 
-				{
-					if (uiShowingGaze)
-					{
-						RemoveGazeUI();
-					}
-					else
-					{
-						CreateGazeUI();
-					}
-				});
-
-			eyeButton = CreateButton("Eye Controls", false);
-			eyeButton.button.onClick.AddListener(() => 
-				{
-					if (uiShowingEye)
-					{
-						RemoveEyeControls();
-					}
-					else
-					{
-						CreateEyeControls();
-					}
-				});
-
-			idleButton = CreateButton("Body Movement Settings", true);
-			idleButton.button.onClick.AddListener(() => 
-				{
-					if (uiShowingIdleBreathing)
-					{
-						RemoveIdleBeathingUI();
-					}
-					else
-					{
-						CreateIdleBeathingUI();
-					}
-				});
-
-			personalityButton = CreateButton("Personality Settings", false);
-			personalityButton.button.onClick.AddListener(() => 
-				{
-					if (uiShowingPersonality)
-					{
-						RemovePersonalityUI();
-					}
-					else
-					{
-						CreatePersonalityUI();
-					}
-				});
-
-			targetButton = CreateButton("Target Settings", true);
-			targetButton.button.onClick.AddListener(() => 
-				{
-					if (uiShowingTarget)
-					{
-						RemoveTargetUI();
-					}
-					else
-					{
-						CreateTargetUI();
-					}
-				});
-		}
-		
-		public void ColorButtons()
-		{
-			if (uiShowingFeatures)
-			{featureButton.buttonColor = Color.green;}
-			else
-			{featureButton.buttonColor = Color.gray;}
-			if (uiShowingDistAngle)
-			{distanceButton.buttonColor = Color.green;}
-			else
-			{distanceButton.buttonColor = Color.gray;}
-			if (uiShowingCharacter)
-			{characterButton.buttonColor = Color.green;}
-			else
-			{characterButton.buttonColor = Color.gray;}
-			if (uiShowingGaze)
-			{gazeButton.buttonColor = Color.green;}
-			else
-			{gazeButton.buttonColor = Color.gray;}
-			if (uiShowingEye)
-			{eyeButton.buttonColor = Color.green;}
-			else
-			{eyeButton.buttonColor = Color.gray;}
-			if (uiShowingTarget)
-			{targetButton.buttonColor = Color.green;}
-			else
-			{targetButton.buttonColor = Color.gray;}
-			if (uiShowingPersonality)
-			{personalityButton.buttonColor = Color.green;}
-			else
-			{personalityButton.buttonColor = Color.gray;}
-			if (uiShowingIdleBreathing)
-			{idleButton.buttonColor = Color.green;}
-			else
-			{idleButton.buttonColor = Color.gray;}
-		}
-
-		public void CreatePersonalityUI()
-		{
-			CreateSlider(uiAgreeableness, false);
-			CreateSlider(uiExtraversion, false);
-			CreateSlider(uiStableness, false);
-			CreateSlider(uiInterestSpeed, false);
-			CreateSlider(uiInterestRate, false);
-			CreateSlider(uiArousalSpeed, false);
-			CreateSlider(uiValenceSpeed, false);
-			CreateSlider(uiMoodSpeed, false);
-			CreateSlider(uiExpressionChance, false);
-			CreateSlider(uiAnimationSpeed, false);
-			uiShowingPersonality = true;
-			ColorButtons();
-		}
-		public void RemovePersonalityUI()
-		{
-			RemoveSlider(uiAgreeableness);
-			RemoveSlider(uiExtraversion);
-			RemoveSlider(uiStableness);
-			RemoveSlider(uiInterestSpeed);
-			RemoveSlider(uiInterestRate);
-			RemoveSlider(uiArousalSpeed);
-			RemoveSlider(uiValenceSpeed);
-			RemoveSlider(uiMoodSpeed);
-			RemoveSlider(uiExpressionChance);
-			RemoveSlider(uiAnimationSpeed);
-			uiShowingPersonality = false;
-			ColorButtons();
-		}
-		
-		public void CreateTargetUI()
-		{
-			CreateToggle(uiUsePerson2, true);
-			UIDynamicPopup udp = CreatePopup(uiFocusTarget, true);
-
-			UIDynamicPopup udp2 = CreatePopup(uiObjectTarget, true);
-			CreateToggle(uiTargetLook, true);
-			CreateSlider(uiObjectInterest, true);
-			CreateSlider(uiHeadInterest, true);
-			CreateSlider(uiLHandInterest, true);
-			CreateSlider(uiRHandInterest, true);
-			CreateSlider(uiPenisInterest, true);
-			uiShowingTarget = true;
-			ColorButtons();
-		}
-		public void RemoveTargetUI()
-		{
-			RemoveToggle(uiUsePerson2);
-			RemovePopup(uiFocusTarget);
-			RemovePopup(uiObjectTarget);
-			RemoveToggle(uiTargetLook);
-			RemoveSlider(uiObjectInterest);
-			RemoveSlider(uiHeadInterest);
-			RemoveSlider(uiLHandInterest);
-			RemoveSlider(uiRHandInterest);
-			RemoveSlider(uiPenisInterest);
-			uiShowingTarget = false;
-			ColorButtons();
-		}
-
-		public void CreateFeatureControlUI()
-		{
-			if (!EmotionLiteDisableHeadAndNeck)
-			{
-				CreateToggle(uiConfigHead, false);
-				CreateToggle(uiDoHead, false);
-			}
-			CreateToggle(uiDoMorphs, false);
-			CreateToggle(uiDoSounds, false);
-			CreateSlider(uiSoundVolume, false);
-			CreateToggle(uiEffectMaterial, false);
-			CreateSlider(uiMaterialMult, false);
-			CreateToggle(uiDoKiss, false);
-			CreateSlider(uiKissAmount, false);
-			CreateToggle(uiDoBlowjob, false);
-			CreateSlider(uiBlowjobAmount, false);
-			CreateToggle(uiDoSex, false);
-			CreateSlider(uiSexAmount, false);
-			uiShowingFeatures = true;
-			ColorButtons();
-		}
-		public void RemoveFeatureControlUI()
-		{
-			if (!EmotionLiteDisableHeadAndNeck)
-			{
-				RemoveToggle(uiConfigHead);
-				RemoveToggle(uiDoHead);
-			}
-			RemoveToggle(uiDoMorphs);
-			RemoveToggle(uiDoSounds);
-			RemoveSlider(uiSoundVolume);
-			RemoveToggle(uiEffectMaterial);
-			RemoveSlider(uiMaterialMult);
-			RemoveToggle(uiDoKiss);
-			RemoveSlider(uiKissAmount);
-			RemoveToggle(uiDoBlowjob);
-			RemoveSlider(uiBlowjobAmount);
-			RemoveToggle(uiDoSex);
-			RemoveSlider(uiSexAmount);
-			uiShowingFeatures = false;
-			ColorButtons();
-		}
-
-		public void CreateGazeUI()
-		{
-			CreateToggle(uiGazeAvoid, true);
-			CreateSlider(uiGazeLookTime, true);
-			CreateSlider(uiGazeAvoidTime, true);
-			CreateToggle(uiGazeGlance, true);
-			CreateSlider(uiGlanceTimeout, true);
-			CreateSlider(uiDirectLookDelay, true);
-			CreateSlider(uiGazeSpeed, true);
-			CreateSlider(uiGazeVariation, true);
-			CreateSlider(uiRollChance, true);
-			CreateSlider(uiMaxHeadRoll, true);
-			CreateSlider(uiRollSpeed, true);
-			uiShowingGaze = true;
-			ColorButtons();
-		}
-		public void RemoveGazeUI()
-		{
-			RemoveToggle(uiGazeAvoid);
-			RemoveSlider(uiGazeLookTime);
-			RemoveSlider(uiGazeAvoidTime);
-			RemoveToggle(uiGazeGlance);
-			RemoveSlider(uiGlanceTimeout);
-			RemoveSlider(uiDirectLookDelay);
-			RemoveSlider(uiGazeSpeed);
-			RemoveSlider(uiGazeVariation);
-			RemoveSlider(uiRollChance);
-			RemoveSlider(uiMaxHeadRoll);
-			RemoveSlider(uiRollSpeed);
-			uiShowingGaze = false;
-			ColorButtons();
-		}
-
-		public void CreateIdleBeathingUI()
-		{
-			CreateSlider(uiBreatheSpeed, true);
-			CreateSlider(uiChestHeightOffset, true);
-			CreateSlider(uiBreatheRaiseMultiplier, true);
-			CreateSlider(uiBreatheExpandMultiplier, true);
-			CreateToggle(uiDoShoulders, true);
-			CreateSlider(uiShoulderBack, true);
-			CreateSlider(uiShoulderAmount, true);
-			CreateSlider(uiShoulderHeight, true);
-			CreateToggle(uiDoChest, true);
-			CreateSlider(uiChestAmount, true);
-			CreateToggle(uiDoHands, true);
-			CreateSlider(uiIdleAmount, true);
-			CreateSlider(uiIdleArmAmount, true);
-			CreateSlider(uiIdleArmOffset, true);
-			CreateSlider(uiIdleChance, true);
-			CreateSlider(uiIdleSpeed, true);
-			uiShowingIdleBreathing = true;
-			ColorButtons();
-		}
-		public void RemoveIdleBeathingUI()
-		{
-			RemoveSlider(uiBreatheSpeed);
-			RemoveSlider(uiChestHeightOffset);
-			RemoveSlider(uiBreatheRaiseMultiplier);
-			RemoveSlider(uiBreatheExpandMultiplier);
-			RemoveToggle(uiDoShoulders);
-			RemoveSlider(uiShoulderBack);
-			RemoveSlider(uiShoulderAmount);
-			RemoveSlider(uiShoulderHeight);
-			RemoveToggle(uiDoChest);
-			RemoveSlider(uiChestAmount);
-			RemoveToggle(uiDoHands);
-			RemoveSlider(uiIdleAmount);
-			RemoveSlider(uiIdleArmAmount);
-			RemoveSlider(uiIdleArmOffset);
-			RemoveSlider(uiIdleChance);
-			RemoveSlider(uiIdleSpeed);
-			uiShowingIdleBreathing = false;
-			ColorButtons();
-		}
-
-		public void CreateDistAngleUI()
-		{
-			CreateSlider(uiPersonalSpace, true);
-			CreateSlider(uiInteractDist, true);
-			CreateSlider(uiCloseToFaceDist, true);
-			CreateSlider(uiKissingDist, true);
-			CreateSlider(uiDirectGaze, true);
-			CreateSlider(uiPeripheralGaze, true);
-			CreateSlider(uiOutOfGaze, true);
-			CreateSlider(uiGazeMaxUp, true);
-			CreateSlider(uiGazeMaxDown, true);
-			CreateSlider(uiGazeMaxSideways, true);
-			CreateSlider(uiRandomBaseDistance, true);
-			CreateSlider(uiRandomBaseHeight, true);
-			CreateSlider(uiRandomBaseOffset, true);
-			uiShowingDistAngle = true;
-			ColorButtons();
-		}
-		public void RemoveDistAngleUI()
-		{
-			RemoveSlider(uiPersonalSpace);
-			RemoveSlider(uiInteractDist);
-			RemoveSlider(uiCloseToFaceDist);
-			RemoveSlider(uiKissingDist);
-			RemoveSlider(uiDirectGaze);
-			RemoveSlider(uiPeripheralGaze);
-			RemoveSlider(uiOutOfGaze);
-			RemoveSlider(uiGazeMaxUp);
-			RemoveSlider(uiGazeMaxDown);
-			RemoveSlider(uiGazeMaxSideways);
-			RemoveSlider(uiRandomBaseDistance);
-			RemoveSlider(uiRandomBaseHeight);
-			RemoveSlider(uiRandomBaseOffset);
-			uiShowingDistAngle = false;
-			ColorButtons();
-		}
-		public void CreateEyeControls()
-		{
-			CreateSlider(uiBlinkSpeed, false);
-			CreateSlider(uiSaccadeSpeed, false);
-			CreateSlider(uiSaccadeAmount, false);
-			CreateSlider(uiSaccadeWanderMult, false);
-			CreateSlider(uiPupilDialation, false);
-			CreateSlider(uiPupilRate, false);
-			CreateSlider(uiEyeUpdate, false);
-			uiShowingEye = true;
-			ColorButtons();
-		}
-		public void RemoveEyeControls()
-		{
-			RemoveSlider(uiBlinkSpeed);
-			RemoveSlider(uiSaccadeSpeed);
-			RemoveSlider(uiSaccadeAmount);
-			RemoveSlider(uiSaccadeWanderMult);
-			RemoveSlider(uiPupilDialation);
-			RemoveSlider(uiPupilRate);
-			RemoveSlider(uiEyeUpdate);
-			uiShowingEye = false;
-			ColorButtons();
-		}
-		private void CreateCharacterControl()
-		{
-			uiShowingCharacter = true;
-			ColorButtons();
-			CreateSlider(uiMouthOpenOffset, false);
-			CreateSlider(uiLipsCloseOffset, false);
-			CreateSlider(uiMaxMorphSmile, false);
-			CreateSlider(uiEyeCloseMaxMorph, false);
-			CreateSlider(uiHeadAngleOffset, false);
-		}
-		private void RemoveCharacterControl()
-		{
-			RemoveSlider(uiMouthOpenOffset);
-			RemoveSlider(uiLipsCloseOffset);
-			RemoveSlider(uiMaxMorphSmile);
-			RemoveSlider(uiEyeCloseMaxMorph);
-			RemoveSlider(uiHeadAngleOffset);
-			uiShowingCharacter = false;
-			ColorButtons();
-		}
 	}
 }

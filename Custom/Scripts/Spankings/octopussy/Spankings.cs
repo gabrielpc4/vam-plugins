@@ -104,25 +104,6 @@ namespace octopussy
         /// <summary>When true, moan/voice folders are not loaded, expressions are not loaded, and only spank + cheek + hit audio run.</summary>
         private bool _isMalePerson;
 
-        private static List<NamedAudioClip> RemoveClipsWithBreathInName(List<NamedAudioClip> clips)
-        {
-            if (clips == null || clips.Count == 0)
-                return clips ?? new List<NamedAudioClip>();
-
-            List<NamedAudioClip> kept = new List<NamedAudioClip>();
-            foreach (NamedAudioClip n in clips)
-            {
-                if (n == null || n.clipToPlay == null)
-                    continue;
-                string nm = n.clipToPlay.name;
-                if (nm != null && nm.ToLowerInvariant().Contains("breath"))
-                    continue;
-                kept.Add(n);
-            }
-            return kept;
-        }
-
-        private bool CanPlaySoftMoan()
         {
             return !_isMalePerson && softVoiceAudioclips != null && softVoiceAudioclips.Count > 0;
         }
@@ -276,8 +257,8 @@ namespace octopussy
                     }
                     else
                     {
-                        softVoiceAudioclips = RemoveClipsWithBreathInName(AudioBulk.LoadFolder(SOFT_VOICE_AUDIO_DIR));
-                        loudVoiceAudioclips = RemoveClipsWithBreathInName(AudioBulk.LoadFolder(LOUD_VOICE_AUDIO_DIR));
+                        softVoiceAudioclips = AudioBulk.LoadFolderSkippingLeafNameSubstring(SOFT_VOICE_AUDIO_DIR, "", "breath");
+                        loudVoiceAudioclips = AudioBulk.LoadFolderSkippingLeafNameSubstring(LOUD_VOICE_AUDIO_DIR, "", "breath");
                     }
                 }
                 catch (Exception e)// fallback to the local folder
@@ -296,8 +277,8 @@ namespace octopussy
                     }
                     else
                     {
-                        softVoiceAudioclips = RemoveClipsWithBreathInName(AudioBulk.LoadFolder(SOFT_VOICE_AUDIO_DIR));
-                        loudVoiceAudioclips = RemoveClipsWithBreathInName(AudioBulk.LoadFolder(LOUD_VOICE_AUDIO_DIR));
+                        softVoiceAudioclips = AudioBulk.LoadFolderSkippingLeafNameSubstring(SOFT_VOICE_AUDIO_DIR, "", "breath");
+                        loudVoiceAudioclips = AudioBulk.LoadFolderSkippingLeafNameSubstring(LOUD_VOICE_AUDIO_DIR, "", "breath");
                     }
                 }
 

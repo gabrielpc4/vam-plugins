@@ -7611,9 +7611,12 @@ namespace VRAdultFun
 		
 		private void loadStateConfig()
 		{
-			SimpleJSON.JSONNode loadedSettings = new SimpleJSON.JSONClass();
 			string tempPath = GetPluginPath();
-			loadedSettings=SuperController.singleton.LoadJSON(tempPath + "\\Config\\FaceStateControl.json");
+			SimpleJSON.JSONNode loadedSettings = SuperController.singleton.LoadJSON(tempPath + "\\Config\\FaceStateControl.json");
+			if (loadedSettings == null)
+			{
+				return;
+			}
 			enableIntense = loadedSettings["Look : Intense"].AsBool;
 			enableInquisitive = loadedSettings["Look : Inquisitive"].AsBool;
 			enableCasual = loadedSettings["Look : Casual"].AsBool;

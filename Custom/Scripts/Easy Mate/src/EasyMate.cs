@@ -42,6 +42,11 @@ namespace geesp0t
 
         private Coroutine _applyEmotionAfterSceneCo;
 
+        /// <summary>Merge-substring keywords for <see cref="ShouldMergeEmotionForCurrentScenePath"/> (one per line or comma/semicolon-separated; # starts a comment line).</summary>
+        public JSONStorableString emotionAutoLoadPathKeywords;
+
+        private Coroutine _pathRuleEmotionMergeCo;
+
         public JSONStorableAction hideUI;
         public JSONStorableAction showUI;
 
@@ -125,6 +130,15 @@ namespace geesp0t
             loadEmotionOnSceneLoad = new JSONStorableBool("Load E-Motion on every scene", false, OnLoadEmotionOnSceneLoadChanged);
             RegisterBool(loadEmotionOnSceneLoad);
             mainUIButtons.BindSceneEmotionAutoLoad(loadEmotionOnSceneLoad);
+
+            // Substring match against lowercase SuperController.currentLoadDir + currentSaveDir (see ShouldMergeEmotionForCurrentScenePath). One keyword per line or comma/semicolon; trim; lines starting with # ignored.
+            emotionAutoLoadPathKeywords = new JSONStorableString("E-Motion path keywords (load/save dir substring)", "");
+            RegisterString(emotionAutoLoadPathKeywords);
+            UIDynamicTextField kwField = CreateTextField(emotionAutoLoadPathKeywords, true);
+            kwField.height = 220f;
+
+            SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
+            SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
 
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(OnMergeSpankingsAfterFirstVrGripToArticulated);
         }
@@ -212,6 +226,8 @@ namespace geesp0t
 
                 if (loadEmotionOnSceneLoad != null && loadEmotionOnSceneLoad.val)
                     mainUIButtons.MergeEmotionOnAllPersonsOnly();
+                else if (ShouldMergeEmotionForCurrentScenePath())
+                    mainUIButtons.MergeEmotionOnAllPersonsOnly();
                 mainUIButtons.MergeClothingTouchFallOffOnAllPersonsOnly();
                 mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
                 mainUIButtons.RefreshPluginToggleLabels();
@@ -220,6 +236,129 @@ namespace geesp0t
             {
                 _applyEmotionAfterSceneCo = null;
             }
+        }
+
+        private void OnAtomUIDsChangedPathRuleEmotion(List<string> atomUids)
+        {
+            try
+            {
+                if (atomUids == null || atomUids.Count == 0)
+                    return;
+                if (!ShouldMergeEmotionForCurrentScenePath())
+                    return;
+
+                SuperController sc = SuperController.singleton;
+                if (sc == null || sc.isLoading)
+                    return;
+
+                bool sawPerson = false;
+                for (int i = 0; i < atomUids.Count; i++)
+                {
+                    Atom a = sc.GetAtomByUid(atomUids[i]);
+                    if (a != null && a.type == "Person")
+                    {
+                        sawPerson = true;
+                        break;
+                    }
+                }
+
+                if (!sawPerson)
+                    return;
+
+                StartPathRuleEmotionMergeDeferred();
+            }
+            catch (Exception e)
+            {
+                LogError("EasyMate path-rule E-Motion (atom UID change): " + e.Message);
+            }
+        }
+
+        private void StartPathRuleEmotionMergeDeferred()
+        {
+            if (!ShouldMergeEmotionForCurrentScenePath())
+                return;
+            if (_pathRuleEmotionMergeCo != null)
+            {
+                StopCoroutine(_pathRuleEmotionMergeCo);
+                _pathRuleEmotionMergeCo = null;
+            }
+            _pathRuleEmotionMergeCo = StartCoroutine(CoPathRuleEmotionMergeDeferred());
+        }
+
+        private IEnumerator CoPathRuleEmotionMergeDeferred()
+        {
+            try
+            {
+                SuperController sc = SuperController.singleton;
+                while (sc != null && sc.isLoading)
+                    yield return null;
+
+                yield return null;
+                yield return null;
+                yield return new WaitForSecondsRealtime(0.35f);
+
+                if (sc == null || mainUIButtons == null)
+                    yield break;
+                if (!ShouldMergeEmotionForCurrentScenePath())
+                    yield break;
+
+                mainUIButtons.MergeEmotionOnAllPersonsOnly();
+                mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
+                mainUIButtons.RefreshPluginToggleLabels();
+            }
+            finally
+            {
+                _pathRuleEmotionMergeCo = null;
+            }
+        }
+
+        private bool ShouldMergeEmotionForCurrentScenePath()
+        {
+            List<string> keys = GetParsedEmotionPathKeywords();
+            if (keys == null || keys.Count == 0)
+                return false;
+
+            SuperController sc = SuperController.singleton;
+            if (sc == null)
+                return false;
+
+            string loadDir = sc.currentLoadDir;
+            string saveDir = sc.currentSaveDir;
+            string haystack = ((loadDir != null ? loadDir : "") + " " + (saveDir != null ? saveDir : ""))
+                .Replace('\\', '/').ToLowerInvariant();
+
+            for (int i = 0; i < keys.Count; i++)
+            {
+                string k = keys[i];
+                if (k == null || k.Length == 0)
+                    continue;
+                if (haystack.IndexOf(k, StringComparison.Ordinal) >= 0)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private List<string> GetParsedEmotionPathKeywords()
+        {
+            List<string> result = new List<string>();
+            if (emotionAutoLoadPathKeywords == null || string.IsNullOrEmpty(emotionAutoLoadPathKeywords.val))
+                return result;
+
+            string raw = emotionAutoLoadPathKeywords.val;
+            char[] seps = new char[] { '\r', '\n', ',', ';' };
+            string[] parts = raw.Split(seps);
+            for (int p = 0; p < parts.Length; p++)
+            {
+                string t = parts[p].Trim();
+                if (t.Length == 0)
+                    continue;
+                if (t[0] == '#')
+                    continue;
+                result.Add(t.ToLowerInvariant());
+            }
+
+            return result;
         }
 
         private IEnumerator CreateResetVROrientationAtom()
@@ -477,6 +616,15 @@ namespace geesp0t
 
         void OnDestroy()
         {
+            if (SuperController.singleton != null)
+                SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
+
+            if (_pathRuleEmotionMergeCo != null)
+            {
+                StopCoroutine(_pathRuleEmotionMergeCo);
+                _pathRuleEmotionMergeCo = null;
+            }
+
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
             EasyMateHeadSnapPovRuntime.End();
             if (mainUIButtons != null) mainUIButtons.OnDestroy();

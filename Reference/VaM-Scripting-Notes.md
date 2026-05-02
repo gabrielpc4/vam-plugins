@@ -56,7 +56,7 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
 
 - `Custom/Scripts/Easy Mate/src/MainUIButtons.cs`
   - Builds a world-space HUD canvas attached to `SuperController.singleton.mainHUD`.
-  - **Plugin toggles** (2×2): RealGaze Looker/Target, E-Motion, Spankings — label **`+ `** / **`- `** by whether every `Person` already has that plugin filename; click merge-adds or removes from all `Person` atoms.
+  - **Plugin toggles / E‑Motion column:** **Spankings** — label **`+ `** / **`- `** by whether every `Person` already has that plugin filename. **E‑Motion** — a **single column** of four buttons (**E‑Motion Lite**, **E‑Motion Original**, **E‑Motion Final**, **Remove E‑Motion**): each merge uses **`TryReplaceEmotionFamilyWithExactPath`** so only one pack is active per `Person`; **Remove** strips all three family basenames.
   - **Clothing** (row 2): **Strip all** — `EnableUndressAllClothingItems()` then deactivate every `DAZClothingItem` on each `Person`. **Underwear** — same undress unlock, then deactivates items with `exclusiveRegion` **UnderChest** / **UnderHip**, or name/tags heuristics (bra, panty, thong, …), while skipping name/tag hints for skirts/dresses/gowns and similar outer pieces (see `LooksLikeSkirtDressOuterGarment`).
   - **One-shot snap** (row 3): **Snap F1** — first female `Person` by stable **`uid`** sort. **Snap M** — first male by `uid` (scenes with 0 males log and no-op; if multiple males exist, the lowest-`uid` male is used). Uses `centerCameraTarget` **`Possessor.autoSnapPoint`**, snap target **`head.control`** **+ 0.15 m** along **possess up** and **+ 0.05 m** along **−possess forward** (back; head-relative). **Horizontal yaw** aligns **`navigationRig`** so **`lookCamera.forward`** matches the snapped person’s **possess forward** on the **`navigationRig.up`** plane (same idea as `AlignRigAndController`, **`SignedAngle`** yaw). Then `playerHeightAdjust` peel, **`MonitorCenterCamera`** looks along **head + possess forward**. Does **not** call built-in **`HeadPossess`**; skips if **`headControl.possessed`**. On success, starts **`EasyMateHeadSnapPovRuntime`** (in-head hide + optional **HMD↔head** physics link while inside the cylinder). **Debug:** console + append **`Custom/Scripts/Easy Mate/HMD_snap_debug.log`**: session banner, then **one start line at +1 s**; further presses of **Right controller A** (OVR `Button.One`) or **Space** (desktop) run the plugin **`JSONStorableStringChooser`** **`EasyMatePostSnapRightAOrSpaceAction`** (default **Snap F1**; choices **Snap F1**, **Snap M**, **Log HMD sample**, **None**). HUD row-4 button **A/Space: …** cycles that setting.
   - Shared plugin path: `GetJSON` → normalize paths → `LateRestoreFromJSON`; empty plugin set uses empty `PluginManager` JSON.
@@ -65,16 +65,16 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
 
 #### E-Motion (full), E-MotionLite, E-Motion Final, and path-keyword merge
 
-- **Full E-Motion** (HUD **E‑Motion all** merge target / hotkey **E** — see `MainUIButtons.cs`):
+- **Full E-Motion / AutoMate original** (HUD **E‑Motion Original** — see `MainUIButtons.cs`):
   - Typical plugin path: **`Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist`** (`PluginEMotion`).
   - VRAdultFun **`EmotionEngine`** partial stack: facial morphs, gaze/state-machine logic, optional scripted **head/neck** movement when UI storables enable it. In the AutoMate-bundled sources, **`AllowTorsoAndLimbEffects`** is **`false`**, so torso/limb joint/morph drivers stay off while face/eyes/head (and remaining systems) still run.
 
-- **E-MotionLite** (merged onto every **`Person`** only when the path rule matches — never replaces the AutoMate tree on disk):
+- **E-MotionLite** (HUD **E‑Motion Lite** button, or merged onto every **`Person`** when the path rule matches — never replaces the AutoMate tree on disk):
   - **`Custom/Scripts/E-MotionLite/E-Motion_AddThisONLY.cslist`** (`PluginEMotionLite`).
   - Uses the **same cslist file name** as full E‑Motion (`E-Motion_AddThisONLY.cslist`). Easy Mate **`TryReplaceEmotionFamilyWithExactPath`** removes every known pack basename (`E-Motion_AddThisONLY.cslist`, **`E-Motion_Final_AddThisONLY.cslist`**) then adds the desired **full path**, so lite vs full vs Final never stack on the same atom when Easy Mate performs a merge.
   - Lite-only behavior lives in **`Custom/Scripts/E-MotionLite/Scripts/EmotionEngine.cs`**: **`EmotionLiteDisableHeadAndNeck`** keeps scripted head/neck motion off regardless of presets/UI toggles; **`EmotionLiteLeaveEyeTargetUntouched`** avoids moving **`eyeTargetControl`** so VaM defaults, the loaded scene, or the user retain whatever eye aim target already applies.
 
-- **E-Motion Final** (VRAdultFun standalone tree — **not** merged by Easy Mate path rules or HUD **E‑Motion all**; **stripped** when installing full/lite via Easy Mate):
+- **E-Motion Final** (VRAdultFun standalone tree — HUD **E‑Motion Final** button, post–mocap female merge, or scene JSON; **stripped** when another family pack is merged via Easy Mate):
   - **`Custom/Scripts/E-MotionFinal/E-Motion_Final_AddThisONLY.cslist`** (`PluginEMotionFinal`).
   - **Different basename** from full/lite so scenes and tooling do not confuse it with **`E-Motion_AddThisONLY.cslist`**. Lives under **`Custom/Scripts/E-MotionFinal/`** so edits to Original or Lite sources do not affect Final files when only Final is loaded.
   - Presets and defaults load from **`Custom/Scripts/E-MotionFinal/Presets/`** (same pattern as Original/Lite: **`GetPluginPath()`** + `\Presets\`), not from legacy **`Custom/E-Motion/Presets`**.
@@ -735,7 +735,7 @@ For any future feature that scans atoms or modifies camera state on scene load, 
 
 ### 1. Remove Easy Mate buttons and add our own custom buttons
 
-**Status:** Old Look-at-Person / clothing / Load Look / Load Pose buttons were removed from `Easy Mate/src/MainUIButtons.cs`. HUD now has plugin toggles (RealGaze, E-Motion, Spankings), **Strip all** / **Underwear**, and **Snap F1** / **Snap M** one-shot rig snaps. Further custom buttons can follow the same file.
+**Status:** HUD includes an **E‑Motion** column (**Lite** / **Original** / **Final** / **Remove all**), **Spankings** toggle, **Strip all** / **Underwear**, and **Snap F** / **Snap M** one-shot rig snaps. Further custom buttons can follow the same file.
 
 Likely touch points for more buttons:
 
@@ -789,7 +789,7 @@ Recommended direction:
 
 ### 6. Button to add `E-Motion` to all persons if missing
 
-**Status:** Implemented in `Easy Mate/src/MainUIButtons.cs` as the **E-Motion** HUD button (merge-add by filename).
+**Status:** Implemented in `Easy Mate/src/MainUIButtons.cs` as **E‑Motion Lite**, **E‑Motion Original**, and **E‑Motion Final** HUD buttons (each replaces other family packs on all `Person` atoms first), plus **Remove E‑Motion**.
 
 Known plugin path:
 
@@ -1181,7 +1181,7 @@ When implementing later, revisit these first:
 4. The cleanest UI direction is to replace Easy Mate's current HUD button set rather than create a second unrelated HUD, while keeping the existing `Show UI` / `Hide UI` integration intact.
 5. "First female" and "second female" should be assigned by a deterministic ordering. The preferred default is sorting female atoms by `uid` so slot 1 and slot 2 stay stable as long as the scene's female atom set stays the same.
 6. RealGaze on the Easy Mate HUD: two separate actions — add **Looker** (`RealGaze - Looker.cs`) and add **Target** (`RealGaze - Target.cs`) to all Persons when missing (by script filename).
-7. E-Motion and Spankings on the same HUD: **E‑Motion all** / hotkey **E** merge AutoMate full E‑Motion and strip **Lite** + **Final** on each Person; **Shift+E** removes all three variants. **E-MotionLite** is merged automatically on matching loads via **`EasyMateEmotionPathKeywords`** / **`emotion_path_keywords.txt`**. **E-Motion Final** is merged onto **female** Persons once after a **long non-loop** mocap ends (**`EasyMateMotionAnimationEmotionEnd`**); otherwise add **`Custom/Scripts/E-MotionFinal/E-Motion_Final_AddThisONLY.cslist`** manually or via scene JSON unless another Easy Mate merge replaces it.
+7. E-Motion on the Easy Mate HUD: a **column** of **E‑Motion Lite**, **E‑Motion Original**, **E‑Motion Final**, and **Remove E‑Motion** (each install uses **`TryReplaceEmotionFamilyWithExactPath`**). **Spankings** stays a **`+`/`-`** toggle. **E-MotionLite** is also merged automatically on matching loads via **`EasyMateEmotionPathKeywords`** / **`emotion_path_keywords.txt`**. **E-Motion Final** is merged onto **female** Persons once after a **long non-loop** mocap ends (**`EasyMateMotionAnimationEmotionEnd`**).
 
 ## Short Conclusions
 

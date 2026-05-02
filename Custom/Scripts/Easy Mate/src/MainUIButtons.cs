@@ -12,13 +12,13 @@ using SimpleJSON;
 
 namespace geesp0t
 {
-    // World-space HUD: Ctrl+Shift+S = toggle Spankings off / merge onto Persons missing it; Possess+Align+Select (F/M/P) merges Spankings onto other Persons missing it when at least one possessed hand on the target; F = freeze animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; E = merge AutoMate E-Motion onto all Persons (same as HUD E-Motion all; also strips E-MotionLite / E-Motion Final on that atom); Shift+E = remove all E-Motion variants from all Persons; E-Motion HUD = merge onto all; I = hide hands + closest Person head snap; P = Possess+Align+Select closest Person by head; O = unpossess all; C = cycle Female then Male Persons (uid), Edit + Selected Options + root control.
+    // World-space HUD: Ctrl+Shift+S = toggle Spankings off / merge onto Persons missing it; Possess+Align+Select (F/M/P) merges Spankings onto other Persons missing it when at least one possessed hand on the target; F = freeze animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; E-Motion HUD column (Lite / Original / Final / remove all) swaps packs via TryReplaceEmotionFamilyWithExactPath; I = hide hands + closest Person head snap; P = Possess+Align+Select closest Person by head; O = unpossess all; C = cycle Female then Male Persons (uid), Edit + Selected Options + root control.
     public class MainUIButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
         /// <summary>Lite face/emotion pack (no scripted head/neck / eye target per fork). Loaded when <see cref="EasyMateEmotionPathKeywords"/> matches load/save folder paths (<see cref="EasyMateEmotionPathKeywords.KeywordsFileRelative"/>). Uses the same cslist file name as <see cref="PluginEMotion"/>; Easy Mate swaps packs via <see cref="TryReplaceEmotionFamilyWithExactPath"/>.</summary>
         public const string PluginEMotionLite = "Custom/Scripts/E-MotionLite/E-Motion_AddThisONLY.cslist";
-        /// <summary>VRAdultFun “Final” pack; own folder and unique <c>.cslist</c> basename so it is independent of AutoMate original and Lite sources. Add via Person UI or scene JSON — not merged by “E-Motion all,” but removed when that action installs AutoMate/Lite.</summary>
+        /// <summary>VRAdultFun “Final” pack; own folder and unique <c>.cslist</c> basename so it is independent of AutoMate original and Lite sources.</summary>
         public const string PluginEMotionFinal = "Custom/Scripts/E-MotionFinal/E-Motion_Final_AddThisONLY.cslist";
         public const string PluginSpankings = "Custom/Scripts/Spankings/Spankings.cslist";
         public const string PluginEasyMateClothingTouchFallOff = "Custom/Scripts/Easy Mate/EasyMateClothingTouchFallOff.cslist";
@@ -147,7 +147,10 @@ namespace geesp0t
 
         private bool isDesktopMode = false;
 
-        UIDynamicButton eMotionButton = null;
+        UIDynamicButton emotionLiteHudButton = null;
+        UIDynamicButton emotionOriginalHudButton = null;
+        UIDynamicButton emotionFinalHudButton = null;
+        UIDynamicButton emotionRemoveAllHudButton = null;
         UIDynamicButton spankingsButton = null;
         UIDynamicButton stripAllClothesButton = null;
         UIDynamicButton removeUnderwearButton = null;
@@ -172,7 +175,7 @@ namespace geesp0t
         /// <summary>
         /// Call from session plugin <c>Update</c>. <b>Ctrl+Shift+S</b> toggles Spankings (same as HUD <b>+/- Spankings</b>): removes when everyone has it; otherwise merges onto Persons that do not.
         /// <b>Y</b> logs look camera / HMD-related poses (debounced ~0.35s). With Oculus or OpenVR active, hold <b>Shift+Y</b> so the controller Y binding does not spam logs; <c>XRSettings.enabled</c> alone is not used for that gate (it often stays true with drivers while using the desktop keyboard).
-        /// <b>E</b> merges AutoMate E-Motion onto every Person (same as HUD <b>E-Motion all</b>; strips other E-Motion cslist variants per atom). <b>Shift+E</b> removes AutoMate E-Motion, E-MotionLite, and E-Motion Final from every Person.
+        /// E-Motion packs are merged only via HUD buttons (<b>E-Motion Lite</b>, <b>Original</b>, <b>Final</b>, <b>Remove all</b>), each replacing other family entries first.
         /// <b>O</b> stops auto-possess and <see cref="SuperController.ClearPossess"/>. <b>I</b> hides VR hand models then snaps the rig to the <b>closest Person head</b> to the look camera (same rules as <b>Snap F</b> for female, <b>Snap M</b> for male).
         /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD buttons on the <b>closest Person by head</b> to the look/center camera (not alphabetically first F/M).
         /// <b>C</b> (without Shift, Ctrl, or Alt) cycles visible Person atoms in order: all <b>female</b> then all <b>male</b> (by atom uid), switches to <b>Edit</b>, shows the main HUD, opens <b>Selected Options</b>, and selects each atom’s root <c>control</c> (or the first free controller if there is no <c>control</c>).
@@ -207,34 +210,6 @@ namespace geesp0t
             if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl) ||
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
                 return;
-
-            if (Input.GetKeyDown(KeyCode.E) && (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)))
-            {
-                try
-                {
-                    RemoveEmotionFromAllPersons();
-                }
-                catch (Exception e)
-                {
-                    SuperController.LogError("Shift+E hotkey (remove all E-Motion variants from all): " + e);
-                }
-
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.E))
-            {
-                try
-                {
-                    MergeEmotionOnAllPersonsOnly();
-                }
-                catch (Exception e)
-                {
-                    SuperController.LogError("E hotkey (E-Motion merge all): " + e);
-                }
-
-                return;
-            }
 
             if (Input.GetKeyDown(KeyCode.O))
             {
@@ -518,6 +493,26 @@ namespace geesp0t
             ClearAllPossession(string.IsNullOrEmpty(logMessage) ? null : logMessage);
         }
 
+        /// <summary>Merges <see cref="PluginEMotionLite"/> onto every Person (HUD). Removes other E-Motion family entries first.</summary>
+        public void MergeEmotionLiteOnAllPersonsOnly()
+        {
+            try
+            {
+                foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
+                {
+                    if (at == null)
+                        continue;
+                    TryReplaceEmotionFamilyWithExactPath(at, PluginEMotionLite);
+                }
+
+                RefreshPluginToggleLabels();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("E-MotionLite merge on all Persons: " + e);
+            }
+        }
+
         /// <summary>Merges AutoMate E-Motion onto every Person. Removes any other E-Motion family entry (Lite, Final) on that atom, then installs <see cref="PluginEMotion"/>.</summary>
         public void MergeEmotionOnAllPersonsOnly()
         {
@@ -538,8 +533,14 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Installs <see cref="PluginEMotionLite"/> on every Person (replacing AutoMate E-Motion and <see cref="PluginEMotionFinal"/> when present). Used only when <see cref="EasyMateEmotionPathKeywords.MatchesCurrentScenePath"/>.</summary>
+        /// <summary>Installs <see cref="PluginEMotionLite"/> on every Person when the load/save path rule matches. Same merge as <see cref="MergeEmotionLiteOnAllPersonsOnly"/>.</summary>
         public void MergeEmotionLiteForPathRuleOnAllPersonsOnly()
+        {
+            MergeEmotionLiteOnAllPersonsOnly();
+        }
+
+        /// <summary>Merges <see cref="PluginEMotionFinal"/> onto every Person (HUD). Removes other E-Motion family entries first.</summary>
+        public void MergeEmotionFinalOnAllPersonsOnly()
         {
             try
             {
@@ -547,14 +548,14 @@ namespace geesp0t
                 {
                     if (at == null)
                         continue;
-                    TryReplaceEmotionFamilyWithExactPath(at, PluginEMotionLite);
+                    TryReplaceEmotionFamilyWithExactPath(at, PluginEMotionFinal);
                 }
 
                 RefreshPluginToggleLabels();
             }
             catch (Exception e)
             {
-                SuperController.LogError("E-MotionLite merge (path rule) on all Persons: " + e);
+                SuperController.LogError("E-Motion Final merge on all Persons: " + e);
             }
         }
 
@@ -596,7 +597,7 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Removes AutoMate E-Motion, E-MotionLite, and E-Motion Final from every Person (<b>Shift+E</b> hotkey).</summary>
+        /// <summary>Removes AutoMate E-Motion, E-MotionLite, and E-Motion Final from every Person.</summary>
         public void RemoveEmotionFromAllPersons()
         {
             try
@@ -707,7 +708,19 @@ namespace geesp0t
             }
         }
 
-        private void OnEmotionMergeAllHudClicked()
+        private void OnEmotionLiteHudClicked()
+        {
+            try
+            {
+                MergeEmotionLiteOnAllPersonsOnly();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("E-Motion Lite HUD: " + e);
+            }
+        }
+
+        private void OnEmotionOriginalHudClicked()
         {
             try
             {
@@ -715,7 +728,31 @@ namespace geesp0t
             }
             catch (Exception e)
             {
-                SuperController.LogError("E-Motion HUD merge all: " + e);
+                SuperController.LogError("E-Motion Original HUD: " + e);
+            }
+        }
+
+        private void OnEmotionFinalHudClicked()
+        {
+            try
+            {
+                MergeEmotionFinalOnAllPersonsOnly();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("E-Motion Final HUD: " + e);
+            }
+        }
+
+        private void OnEmotionRemoveAllHudClicked()
+        {
+            try
+            {
+                RemoveEmotionFromAllPersons();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("Remove E-Motion HUD: " + e);
             }
         }
 
@@ -773,10 +810,15 @@ namespace geesp0t
 
             possessAlignSelectFemaleButton = AddButton("PossAlignSel F", PossessAlignSelectFirstFemale, 0, 0, 100f);
             possessAlignSelectMaleButton = AddButton("PossAlignSel M", PossessAlignSelectMaleIfAny, 1, 0, 100f);
-            eMotionButton = AddButton("E-Motion all", OnEmotionMergeAllHudClicked, 0, 1);
-            spankingsButton = AddButton("+ Spankings", OnSpankingsPluginToggleClicked, 1, 1);
-            snapFemaleHeadButton = AddButton("Snap F", SnapRigToClosestFemaleHead, 2, 1, 100f);
-            snapMaleHeadButton = AddButton("Snap M", SnapRigToClosestMaleHead, 3, 1, 100f);
+            const int emotionHudColumn = 3;
+            const float emotionHudButtonWidth = 132f;
+            emotionLiteHudButton = AddButton("E-Motion Lite", OnEmotionLiteHudClicked, emotionHudColumn, 0, emotionHudButtonWidth);
+            emotionOriginalHudButton = AddButton("E-Motion Original", OnEmotionOriginalHudClicked, emotionHudColumn, 1, emotionHudButtonWidth);
+            emotionFinalHudButton = AddButton("E-Motion Final", OnEmotionFinalHudClicked, emotionHudColumn, 2, emotionHudButtonWidth);
+            emotionRemoveAllHudButton = AddButton("Remove E-Motion", OnEmotionRemoveAllHudClicked, emotionHudColumn, 3, emotionHudButtonWidth);
+            spankingsButton = AddButton("+ Spankings", OnSpankingsPluginToggleClicked, 0, 1);
+            snapFemaleHeadButton = AddButton("Snap F", SnapRigToClosestFemaleHead, 1, 1, 100f);
+            snapMaleHeadButton = AddButton("Snap M", SnapRigToClosestMaleHead, 2, 1, 100f);
             stripAllClothesButton = AddButton("Strip all", StripAllClothesOnAllPersons, 0, 2, 100f);
             removeUnderwearButton = AddButton("Underwear", RemoveUnderwearOnAllPersons, 1, 2, 100f);
 
@@ -787,8 +829,14 @@ namespace geesp0t
 
         public void ShowUI(bool setToActive)
         {
-            if (eMotionButton != null)
-                eMotionButton.gameObject.SetActive(setToActive);
+            if (emotionLiteHudButton != null)
+                emotionLiteHudButton.gameObject.SetActive(setToActive);
+            if (emotionOriginalHudButton != null)
+                emotionOriginalHudButton.gameObject.SetActive(setToActive);
+            if (emotionFinalHudButton != null)
+                emotionFinalHudButton.gameObject.SetActive(setToActive);
+            if (emotionRemoveAllHudButton != null)
+                emotionRemoveAllHudButton.gameObject.SetActive(setToActive);
             if (spankingsButton != null)
                 spankingsButton.gameObject.SetActive(setToActive);
             if (stripAllClothesButton != null)
@@ -955,7 +1003,6 @@ namespace geesp0t
 
         public void RefreshPluginToggleLabels()
         {
-            RefreshEmotionSceneLoadButtonLabel();
             SetPluginToggleLabel(spankingsButton, PluginSpankings, "Spankings");
         }
 
@@ -996,13 +1043,6 @@ namespace geesp0t
             }
 
             return false;
-        }
-
-        public void RefreshEmotionSceneLoadButtonLabel()
-        {
-            if (eMotionButton == null)
-                return;
-            eMotionButton.label = "E-Motion all";
         }
 
         private static List<string> CollectNormalizedPluginPaths(MVRPluginManager manager)

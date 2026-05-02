@@ -220,9 +220,6 @@ namespace geesp0t
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
             EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
 
-            if (mainUIButtons != null)
-                mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
-
             EasyMateMonitorModeLaserRestore.EnsureMonitorCameraHook();
         }
 
@@ -258,7 +255,6 @@ namespace geesp0t
                 if (pathRuleMerge)
                     mainUIButtons.MergeEmotionLiteForPathRuleOnAllPersonsOnly();
                 mainUIButtons.MergeClothingTouchFallOffOnAllPersonsOnly();
-                mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
                 mainUIButtons.RefreshPluginToggleLabels();
             }
             finally
@@ -332,7 +328,6 @@ namespace geesp0t
                     yield break;
 
                 mainUIButtons.MergeEmotionLiteForPathRuleOnAllPersonsOnly();
-                mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
                 mainUIButtons.RefreshPluginToggleLabels();
             }
             finally

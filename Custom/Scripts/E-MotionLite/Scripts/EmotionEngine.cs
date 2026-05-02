@@ -22,6 +22,9 @@ namespace VRAdultFun
 		/// <summary>E-MotionLite pack: scripted head/neck motion from gaze/state machine stays off regardless of presets or UI toggles.</summary>
 		private const bool EmotionLiteDisableHeadAndNeck = true;
 
+		/// <summary>E-MotionLite pack: never reposition <c>eyeTargetControl</c>; VaM defaults / scene / user retain eye aim.</summary>
+		private const bool EmotionLiteLeaveEyeTargetUntouched = true;
+
 		private static bool allSetup = false;
 		private static float tempFloat = 0.0f;
 		private static float tempFloat2 = 0.0f;
@@ -319,6 +322,8 @@ namespace VRAdultFun
 
 		private static void ApplyEmotionEyesCameraOnlyOverride()
 		{
+			if (EmotionLiteLeaveEyeTargetUntouched)
+				return;
 			if (!AutoMateEyesOnlyTargetCamera)
 				return;
 			SuperController sc = SuperController.singleton;
@@ -5858,6 +5863,8 @@ namespace VRAdultFun
 
 
 			//SuperController.LogError("Look Position start");
+            if (!EmotionLiteLeaveEyeTargetUntouched)
+            {
             if (IsRandomInterest(currentInterest))
             {
                 lookAtPosition = GetStructuredRandomTargetPosition(currentInterest);
@@ -6486,8 +6493,9 @@ namespace VRAdultFun
 				eyeController.transform.position = playerHeadTransform.TransformPoint(new Vector3(0.0f, 0.04f, 0.07f));
                 eyeController.transform.rotation = playerHeadTransform.rotation;
 						focusPos = eyeController.transform.position;
-				focusRot = eyeController.transform.rotation;
+						focusRot = eyeController.transform.rotation;
 				}
+            }
 
 			if (mEyesClosedLeftValue > 0.9f && morphBlinking == false)
 			{
@@ -6857,10 +6865,13 @@ namespace VRAdultFun
 					}
 			
 			
+			if (!EmotionLiteLeaveEyeTargetUntouched)
+			{
 			ApplyEmotionEyesCameraOnlyOverride();
 			eyeController.transform.position = focusPos;
 			eyeController.transform.rotation = focusRot;
 			eyeController.transform.Translate(saccadeOffset * (Vector3.Distance(headController.followWhenOff.position, eyeController.transform.position) / 100.0f));
+			}
 			
 			if (eyeUpdateClock >= eyeUpdateTime - Time.fixedDeltaTime)
 			{
@@ -6883,8 +6894,11 @@ namespace VRAdultFun
             else
             {
                 eyeUpdateClock += Time.fixedDeltaTime;
-                eyeController.transform.position = curEyePosition;
-                eyeController.transform.eulerAngles = curEyeAngles;
+                if (!EmotionLiteLeaveEyeTargetUntouched)
+                {
+                    eyeController.transform.position = curEyePosition;
+                    eyeController.transform.eulerAngles = curEyeAngles;
+                }
             }
 
 			if (morphMouthAction == false)

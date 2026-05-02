@@ -38,6 +38,15 @@
 !Custom/Scripts/ImprovedPoV.cs
 !Custom/Scripts/Passenger.cs
 
+!/Custom/Scripts/Spankings/
+!Custom/Scripts/Spankings/Spankings.cslist
+!/Custom/Scripts/Spankings/octopussy/
+!Custom/Scripts/Spankings/octopussy/**
+!/Custom/Scripts/Spankings/Deluxe/
+!Custom/Scripts/Spankings/Deluxe/**
+!/Custom/Scripts/Spankings/Easy Moan/
+!Custom/Scripts/Spankings/Easy Moan/**
+
 !/Reference/
 !/Reference/Assembly-CSharp-decompiled/
 !Reference/Assembly-CSharp-decompiled/SuperController.cs
@@ -50,3 +59,4 @@
 !Saves/scene/MainMenu_Original.json
 !Saves/scene/female_male.json
 !Saves/scene/Default.json
+!Custom/Scripts/Easy Mate/emotion_path_keywords.txt

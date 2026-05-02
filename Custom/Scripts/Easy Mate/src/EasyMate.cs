@@ -89,8 +89,9 @@ namespace geesp0t
         public JSONStorableFloat longMocapMinSecondsForEmotionMerge;
 
         /// <summary>
-        /// When true (default), redraws VR controller laser beams during main-monitor mode after VaM clears them;
-        /// mirrors stock behavior when the monitor rig is off (hit dot still appears either way).
+        /// When true (default), restores per-controller <c>LaserPointer/LaserBeam</c> mesh lasers (blue/red UI rays)
+        /// during main-monitor mode after VaM’s Oculus hide-hand path disables their <see cref="MeshRenderer"/>s.
+        /// Does not affect green <see cref="SelectionHUD"/> lines toward atoms.
         /// </summary>
         public JSONStorableBool restoreMonitorModeControllerLaser;
 
@@ -141,7 +142,7 @@ namespace geesp0t
             longMocapMinSecondsForEmotionMerge = new JSONStorableFloat("Min mocap length (s) for end-of-clip E-Motion", 45f, 5f, 600f);
             RegisterFloat(longMocapMinSecondsForEmotionMerge);
 
-            restoreMonitorModeControllerLaser = new JSONStorableBool("Restore controller laser in monitor mode", true);
+            restoreMonitorModeControllerLaser = new JSONStorableBool("Restore VR UI laser (LaserPointer) in monitor mode", true);
             RegisterBool(restoreMonitorModeControllerLaser);
 
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;

@@ -55,11 +55,11 @@ namespace geesp0t
         public JSONStorableBool disableRemoteGripHandLink;
 
         /// <summary>
-        /// When true (default), a short press on <b>either</b> controller’s <b>physical grip</b> (Oculus) or HoldGrab (OpenVR)
+        /// When true (default), a short press on <b>either</b> controller’s physical <b>grip</b> (Oculus HandTrigger / swapped index trigger, OpenVR HoldGrab)
         /// toggles <b>both</b> sides together between articulated VR hands (<b>Male2</b>) and VaM’s sphere/kinematic hand mode
         /// (see <see cref="EasyMateGripHandVisibility"/>); a possessed hand side stays sphere. Collisions stay off while both
-        /// sides sphere. The <b>first</b> grip in a scene that leaves full sphere (including when possession blocks Male2),
-        /// Easy Mate merges <b>Spankings</b> onto <b>female</b> <c>Person</c> atoms only (deferred one frame; merge-only).
+        /// sides sphere. The <b>first</b> such grip press this scene queues a merge of <b>Spankings</b> onto <b>female</b> <c>Person</c> atoms only
+        /// that do not already have the plugin (deferred one frame; merge-only), regardless of whether hands become articulated.
         /// </summary>
         public JSONStorableBool gripTogglesHandVisibility;
 

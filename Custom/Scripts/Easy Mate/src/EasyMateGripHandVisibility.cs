@@ -7,10 +7,10 @@ using UnityEngine.XR;
 namespace geesp0t
 {
     /// <summary>
-    /// Quest squeeze / OpenVR HoldGrab (<b>grip</b>, not face buttons): each press toggles <b>both</b> hands together between
-    /// articulated <b>Male2</b> / <b>Male 2</b> and VaM’s <see cref="SphereKinematicChoice"/> sphere proxy (sides respect possession).
-    /// The first time in a scene a VR <b>grip</b> leaves full sphere (tries to show Male2, even if possession keeps both sides sphere),
-    /// runs an optional callback (see <see cref="EasyMate"/>) to merge Spankings onto <b>female</b> Persons only.
+    /// Quest squeeze / OpenVR HoldGrab (<b>grip</b>, Oculus <c>HandTrigger</c> per <see cref="EasyMateVrInput"/>): each press toggles <b>both</b>
+    /// hands together between articulated <b>Male2</b> / <b>Male 2</b> and VaM’s <see cref="SphereKinematicChoice"/> sphere proxy (sides respect possession).
+    /// The <b>first</b> grip press on either controller this scene runs an optional callback (see <see cref="EasyMate"/>) to merge Spankings only
+    /// onto <b>female</b> <c>Person</c>s that do not already have the plugin — independent of whether hands end up articulated or stay sphere (e.g. possession).
     /// </summary>
     internal static class EasyMateGripHandVisibility
     {
@@ -26,7 +26,7 @@ namespace geesp0t
         /// <summary>Until the user presses a VR grip this scene, sphere proxies stay non-colliding after scene reset.</summary>
         private static bool _vrGripUsedThisScene;
 
-        /// <summary>After <see cref="DisableVrHandModelsForSceneStart"/>, first grip that leaves full sphere merges Spankings once (even if possession blocks Male2).</summary>
+        /// <summary>After <see cref="DisableVrHandModelsForSceneStart"/>, first grip press this scene merges Spankings once onto females missing it.</summary>
         private static bool _mergedSpankingsAfterFirstGripThisScene;
 
         private static Action _mergeSpankingsOntoPersonsMissingOnly;
@@ -81,9 +81,9 @@ namespace geesp0t
             if (!leftDown && !rightDown)
                 return;
 
-            _vrGripUsedThisScene = true;
+            TryMergeSpankingsOnFirstGripPressThisScene();
 
-            bool anyArticulatedBefore = _leftArticulated || _rightArticulated;
+            _vrGripUsedThisScene = true;
 
             // Toggle both hands in lockstep (show both Male2 when going articulated) — per-side still respects possession.
             bool nextBothArticulated = !(_leftArticulated && _rightArticulated);
@@ -98,23 +98,15 @@ namespace geesp0t
                 _rightArticulated = false;
             }
 
-            bool anyArticulatedAfter = _leftArticulated || _rightArticulated;
-            TryMergeSpankingsOnFirstArticulatedGrip(anyArticulatedBefore, anyArticulatedAfter, nextBothArticulated);
-
             ApplyBothControls(sc);
             QueueApplyHandsEndOfFrame(sc);
         }
 
-        private static void TryMergeSpankingsOnFirstArticulatedGrip(bool anyArticulatedBefore, bool anyArticulatedAfter, bool nextBothArticulated)
+        private static void TryMergeSpankingsOnFirstGripPressThisScene()
         {
             if (_mergedSpankingsAfterFirstGripThisScene)
                 return;
             if (_mergeSpankingsOntoPersonsMissingOnly == null)
-                return;
-
-            bool leavingFullSphereAttempt = nextBothArticulated && !anyArticulatedBefore;
-            bool shouldMergeSpankings = anyArticulatedAfter || leavingFullSphereAttempt;
-            if (!shouldMergeSpankings)
                 return;
 
             _mergedSpankingsAfterFirstGripThisScene = true;

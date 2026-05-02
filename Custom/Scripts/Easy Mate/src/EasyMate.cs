@@ -41,9 +41,6 @@ namespace geesp0t
 
         private Coroutine _pathRuleEmotionMergeCo;
 
-        /// <summary>Dedupe <see cref="LogEmotionPathKeywordsDecisionOnce"/> so atom callbacks do not spam the log.</summary>
-        private static string _emotionPathKeywordsDebugSignature;
-
         public JSONStorableAction hideUI;
         public JSONStorableAction showUI;
 
@@ -217,9 +214,24 @@ namespace geesp0t
                 if (SuperController.singleton == null || mainUIButtons == null)
                     yield break;
 
-                if (loadEmotionOnSceneLoad != null && loadEmotionOnSceneLoad.val)
+                string elLoadDir;
+                string elSaveDir;
+                string elHaystack;
+                int elKeywordCount;
+                string elPathDetail;
+                bool pathRuleMerge = EvaluateEmotionPathRule(out elLoadDir, out elSaveDir, out elHaystack, out elKeywordCount, out elPathDetail);
+                bool everyScene = loadEmotionOnSceneLoad != null && loadEmotionOnSceneLoad.val;
+                bool mergeEmotion = everyScene || pathRuleMerge;
+
+                SuperController.LogMessage(
+                    "EasyMate emotion path keywords [scene load]: currentLoadDir=\""
+                    + elLoadDir + "\" currentSaveDir=\"" + elSaveDir + "\" compareHaystack=\"" + elHaystack
+                    + "\" keywordCount=" + elKeywordCount + " loadEmotionEveryScene=" + everyScene + " pathRuleMatch="
+                    + pathRuleMerge + " (" + elPathDetail + ") → merge E-Motion this load: " + (mergeEmotion ? "YES" : "NO"));
+
+                if (everyScene)
                     mainUIButtons.MergeEmotionOnAllPersonsOnly();
-                else if (ShouldMergeEmotionForCurrentScenePath())
+                else if (pathRuleMerge)
                     mainUIButtons.MergeEmotionOnAllPersonsOnly();
                 mainUIButtons.MergeClothingTouchFallOffOnAllPersonsOnly();
                 mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
@@ -305,27 +317,16 @@ namespace geesp0t
             }
         }
 
-        private bool ShouldMergeEmotionForCurrentScenePath()
+        /// <summary>Substring match on <paramref name="haystack"/> for keywords from <see cref="EmotionPathKeywordsFileRelative"/>.</summary>
+        private static bool EvaluateEmotionPathKeywordsAgainstHaystack(List<string> keys, string haystack, out string matchDetail)
         {
-            List<string> keys = GetParsedEmotionPathKeywords();
-            SuperController sc = SuperController.singleton;
-            if (sc == null)
-            {
-                LogEmotionPathKeywordsDecisionOnce("", "", "", 0, false, "SuperController.singleton is null");
-                return false;
-            }
-
-            string loadDir = sc.currentLoadDir != null ? sc.currentLoadDir : "";
-            string saveDir = sc.currentSaveDir != null ? sc.currentSaveDir : "";
-            string haystack = (loadDir + " " + saveDir).Replace('\\', '/').ToLowerInvariant();
-
+            matchDetail = "";
             if (keys == null || keys.Count == 0)
             {
-                LogEmotionPathKeywordsDecisionOnce(loadDir, saveDir, haystack, 0, false, "no keywords in " + EmotionPathKeywordsFileRelative);
+                matchDetail = "no keywords in " + EmotionPathKeywordsFileRelative;
                 return false;
             }
 
-            string matched = null;
             for (int i = 0; i < keys.Count; i++)
             {
                 string k = keys[i];
@@ -333,34 +334,49 @@ namespace geesp0t
                     continue;
                 if (haystack.IndexOf(k, StringComparison.Ordinal) >= 0)
                 {
-                    matched = k;
-                    break;
+                    matchDetail = "substring matched keyword \"" + k + "\"";
+                    return true;
                 }
             }
 
-            bool merge = matched != null;
-            string detail;
-            if (merge)
-                detail = "substring matched keyword \"" + matched + "\"";
-            else
-                detail = "no keyword substring in haystack";
-
-            LogEmotionPathKeywordsDecisionOnce(loadDir, saveDir, haystack, keys.Count, merge, detail);
-            return merge;
+            matchDetail = "no keyword substring in haystack";
+            return false;
         }
 
-        /// <summary>Logs path-rule E-Motion decision; skips duplicate lines for the same haystack/decision/keyword count.</summary>
-        private static void LogEmotionPathKeywordsDecisionOnce(string loadDir, string saveDir, string haystack, int keywordCount, bool mergeByPathRule, string detail)
+        /// <summary>Resolves load/save dirs, haystack, and whether the path rule would merge E-Motion (no console output).</summary>
+        private bool EvaluateEmotionPathRule(out string loadDir, out string saveDir, out string haystack, out int keywordCount, out string matchDetail)
         {
-            string sig = haystack + "\0" + (mergeByPathRule ? "1" : "0") + "\0" + keywordCount.ToString() + "\0" + detail;
-            if (sig == _emotionPathKeywordsDebugSignature)
-                return;
-            _emotionPathKeywordsDebugSignature = sig;
+            loadDir = "";
+            saveDir = "";
+            haystack = "";
+            keywordCount = 0;
+            matchDetail = "";
 
-            SuperController.LogMessage(
-                "EasyMate emotion path keywords: currentLoadDir=\"" + loadDir + "\" currentSaveDir=\"" + saveDir
-                + "\" compareHaystack(lowercase normalized)=\"" + haystack + "\" keywordCount=" + keywordCount
-                + " → merge E-Motion by path rule: " + (mergeByPathRule ? "YES" : "NO") + " (" + detail + ")");
+            List<string> keys = GetParsedEmotionPathKeywords();
+            keywordCount = keys != null ? keys.Count : 0;
+
+            SuperController sc = SuperController.singleton;
+            if (sc == null)
+            {
+                matchDetail = "SuperController.singleton is null";
+                return false;
+            }
+
+            loadDir = sc.currentLoadDir != null ? sc.currentLoadDir : "";
+            saveDir = sc.currentSaveDir != null ? sc.currentSaveDir : "";
+            haystack = (loadDir + " " + saveDir).Replace('\\', '/').ToLowerInvariant();
+
+            return EvaluateEmotionPathKeywordsAgainstHaystack(keys, haystack, out matchDetail);
+        }
+
+        private bool ShouldMergeEmotionForCurrentScenePath()
+        {
+            string ld;
+            string sd;
+            string hs;
+            int kc;
+            string detail;
+            return EvaluateEmotionPathRule(out ld, out sd, out hs, out kc, out detail);
         }
 
         private List<string> GetParsedEmotionPathKeywords()

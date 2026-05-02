@@ -14,3 +14,10 @@
 !**/*.cs
 !**/*.cslist
 !**/*.txt
+
+# After whitelist: hide paths whose components contain these substrings (case variants).
+# Later rules win; * does not cross '/' so each path segment is checked.
+*pose*
+*Pose*
+*appearance*
+*Appearance*

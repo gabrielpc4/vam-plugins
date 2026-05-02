@@ -38,7 +38,7 @@ namespace geesp0t
 
         private Coroutine _applyEmotionAfterSceneCo;
 
-        /// <summary>Relative to VaM install; substring match on lowercase haystack built from currentLoadDir, currentSaveDir, and (when uniquely inferable) the loaded scene .json path under save dir.</summary>
+        /// <summary>Relative to VaM install; substring match on lowercase haystack built from currentLoadDir, currentSaveDir, and (when uniquely inferable) the loaded scene .json path scanned under save dir or load dir.</summary>
         private const string EmotionPathKeywordsFileRelative = "Custom/Scripts/Easy Mate/emotion_path_keywords.txt";
 
         private Coroutine _pathRuleEmotionMergeCo;
@@ -400,14 +400,17 @@ namespace geesp0t
         /// <summary>
         /// VaM exposes <see cref="SuperController.currentSaveDir"/> (folder only), not the loaded file name. Infer <c>Saves/scene/foo.json</c> by scanning that folder with
         /// <see cref="SuperController.GetFilesAtPath"/> / <see cref="SuperController.ReadFileIntoString"/> and matching a fingerprint of <see cref="SuperController.loadJson"/> to exactly one file.
+        /// When <see cref="SuperController.currentSaveDir"/> is empty (common after loading from a menu), falls back to <see cref="SuperController.currentLoadDir"/> so subfolder scenes still infer their .json path when only one candidate matches.
         /// </summary>
         private static string TryInferLoadedSceneJsonRelativePath(SuperController sc)
         {
             if (sc == null || sc.loadJson == null)
                 return "";
 
-            string saveDir = sc.currentSaveDir;
-            if (saveDir == null || saveDir.Length == 0)
+            string scanDir = sc.currentSaveDir;
+            if (scanDir == null || scanDir.Length == 0)
+                scanDir = sc.currentLoadDir;
+            if (scanDir == null || scanDir.Length == 0)
                 return "";
 
             string needle = BuildSceneAtomsFingerprint(sc.loadJson);
@@ -417,7 +420,7 @@ namespace geesp0t
             string[] files;
             try
             {
-                files = sc.GetFilesAtPath(saveDir, "*.json");
+                files = sc.GetFilesAtPath(scanDir, "*.json");
             }
             catch
             {

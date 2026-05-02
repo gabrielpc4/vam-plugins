@@ -9,8 +9,8 @@ namespace geesp0t
     /// <summary>
     /// Quest squeeze / OpenVR HoldGrab (<b>grip</b>, not face buttons): each press toggles <b>both</b> hands together between
     /// articulated <b>Male2</b> / <b>Male 2</b> and VaM’s <see cref="SphereKinematicChoice"/> sphere proxy (sides respect possession).
-    /// The first time in a scene both become articulated, runs an optional callback (see <see cref="EasyMate"/>) to merge
-    /// Spankings onto <b>female</b> Persons only (<see cref="MainUIButtons.MergeSpankingsOnFemalePersonsOnly"/>).
+    /// The first time in a scene a VR <b>grip</b> leaves full sphere (tries to show Male2, even if possession keeps both sides sphere),
+    /// runs an optional callback (see <see cref="EasyMate"/>) to merge Spankings onto <b>female</b> Persons only.
     /// </summary>
     internal static class EasyMateGripHandVisibility
     {
@@ -26,7 +26,7 @@ namespace geesp0t
         /// <summary>Until the user presses a VR grip this scene, sphere proxies stay non-colliding after scene reset.</summary>
         private static bool _vrGripUsedThisScene;
 
-        /// <summary>After <see cref="DisableVrHandModelsForSceneStart"/>, first transition to any articulated hand merges Spankings once.</summary>
+        /// <summary>After <see cref="DisableVrHandModelsForSceneStart"/>, first grip that leaves full sphere merges Spankings once (even if possession blocks Male2).</summary>
         private static bool _mergedSpankingsAfterFirstGripThisScene;
 
         private static Action _mergeSpankingsOntoPersonsMissingOnly;
@@ -99,18 +99,24 @@ namespace geesp0t
             }
 
             bool anyArticulatedAfter = _leftArticulated || _rightArticulated;
-            TryMergeSpankingsOnFirstArticulatedGrip(anyArticulatedBefore, anyArticulatedAfter);
+            TryMergeSpankingsOnFirstArticulatedGrip(anyArticulatedBefore, anyArticulatedAfter, nextBothArticulated);
 
             ApplyBothControls(sc);
             QueueApplyHandsEndOfFrame(sc);
         }
 
-        private static void TryMergeSpankingsOnFirstArticulatedGrip(bool anyArticulatedBefore, bool anyArticulatedAfter)
+        private static void TryMergeSpankingsOnFirstArticulatedGrip(bool anyArticulatedBefore, bool anyArticulatedAfter, bool nextBothArticulated)
         {
-            if (anyArticulatedBefore || !anyArticulatedAfter || _mergedSpankingsAfterFirstGripThisScene)
+            if (_mergedSpankingsAfterFirstGripThisScene)
                 return;
             if (_mergeSpankingsOntoPersonsMissingOnly == null)
                 return;
+
+            bool leavingFullSphereAttempt = nextBothArticulated && !anyArticulatedBefore;
+            bool shouldMergeSpankings = anyArticulatedAfter || leavingFullSphereAttempt;
+            if (!shouldMergeSpankings)
+                return;
+
             _mergedSpankingsAfterFirstGripThisScene = true;
             try
             {
@@ -118,7 +124,8 @@ namespace geesp0t
             }
             catch (Exception e)
             {
-                SuperController.LogError("EasyMateGripHandVisibility: Spankings merge on first articulated grip: " + e.Message);
+                _mergedSpankingsAfterFirstGripThisScene = false;
+                SuperController.LogError("EasyMateGripHandVisibility: Spankings merge on first grip: " + e.Message);
             }
         }
 

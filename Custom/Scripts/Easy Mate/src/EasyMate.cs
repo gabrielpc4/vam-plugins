@@ -41,6 +41,8 @@ namespace geesp0t
 
         private Coroutine _pathRuleEmotionMergeCo;
 
+        private Coroutine _mergeSpankingsAfterGripCo;
+
         public JSONStorableAction hideUI;
         public JSONStorableAction showUI;
 
@@ -56,8 +58,8 @@ namespace geesp0t
         /// When true (default), a short press on <b>either</b> controller’s <b>physical grip</b> (Oculus) or HoldGrab (OpenVR)
         /// toggles <b>both</b> sides together between articulated VR hands (<b>Male2</b>) and VaM’s sphere/kinematic hand mode
         /// (see <see cref="EasyMateGripHandVisibility"/>); a possessed hand side stays sphere. Collisions stay off while both
-        /// sides sphere. The <b>first</b> time in a scene both become articulated, Easy Mate merges <b>Spankings</b> onto
-        /// <b>female</b> <c>Person</c> atoms only (merge-only, same as HUD <c>+ Spankings</c>).
+        /// sides sphere. The <b>first</b> grip in a scene that leaves full sphere (including when possession blocks Male2),
+        /// Easy Mate merges <b>Spankings</b> onto <b>female</b> <c>Person</c> atoms only (deferred one frame; merge-only).
         /// </summary>
         public JSONStorableBool gripTogglesHandVisibility;
 
@@ -141,13 +143,32 @@ namespace geesp0t
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
 
-            EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(OnMergeSpankingsAfterFirstVrGripToArticulated);
+            EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(QueueMergeSpankingsAfterGripDeferred);
         }
 
-        private void OnMergeSpankingsAfterFirstVrGripToArticulated()
+        private void QueueMergeSpankingsAfterGripDeferred()
         {
-            if (mainUIButtons != null)
+            if (mainUIButtons == null)
+                return;
+            if (_mergeSpankingsAfterGripCo != null)
+                StopCoroutine(_mergeSpankingsAfterGripCo);
+            _mergeSpankingsAfterGripCo = StartCoroutine(CoMergeSpankingsAfterGripDeferred());
+        }
+
+        private IEnumerator CoMergeSpankingsAfterGripDeferred()
+        {
+            try
+            {
+                yield return null;
+                yield return null;
+                if (mainUIButtons == null)
+                    yield break;
                 mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
+            }
+            finally
+            {
+                _mergeSpankingsAfterGripCo = null;
+            }
         }
 
         private void OnLoadEmotionOnSceneLoadChanged(bool v)
@@ -675,6 +696,12 @@ namespace geesp0t
             {
                 StopCoroutine(_pathRuleEmotionMergeCo);
                 _pathRuleEmotionMergeCo = null;
+            }
+
+            if (_mergeSpankingsAfterGripCo != null)
+            {
+                StopCoroutine(_mergeSpankingsAfterGripCo);
+                _mergeSpankingsAfterGripCo = null;
             }
 
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);

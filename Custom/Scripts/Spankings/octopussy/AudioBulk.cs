@@ -1,7 +1,7 @@
-using System;
 using System.Collections.Generic;
+using System.Linq;
 
-// uncomment the two lines to use as a  plugin
+// uncomment the two lines to use as  plugin
 
 namespace octopussy {
 
@@ -12,20 +12,6 @@ public class AudioBulk {//: MVRScript {
         public static string lastLoadPath;
         const string WILDCARD = "*";
         public static string[] supportedFileTypes = {WILDCARD, ".wav", ".ogg", ".mp3"}; // regex next time
-
-        public static bool LeafNameContainsSubstring(string filePath, string substring)
-        {
-            if (string.IsNullOrEmpty(filePath) || string.IsNullOrEmpty(substring))
-                return false;
-            int slash = filePath.LastIndexOf('/');
-            int bslash = filePath.LastIndexOf('\\');
-            if (bslash > slash)
-                slash = bslash;
-            string leaf = slash >= 0 ? filePath.Substring(slash + 1) : filePath;
-            string sub = substring.ToLowerInvariant();
-            return leaf.ToLowerInvariant().IndexOf(sub, StringComparison.Ordinal) >= 0;
-        }
-
         public  static JSONStorableStringChooser filetype = new JSONStorableStringChooser(
             "File type", new List<string>(supportedFileTypes), "", "Restrict File type");
 
@@ -80,51 +66,21 @@ public class AudioBulk {//: MVRScript {
 
 
         public static List<NamedAudioClip>
-        LoadFolder(string path, string filter="")
-        {
-            return LoadFolderImpl(path, filter, null);
-        }
-
-        /// <summary>Same as <see cref="LoadFolder"/> but never loads files whose leaf name contains <paramref name="skipLeafNameContains"/> (case-insensitive), e.g. <c>breath</c> to avoid decoding breathing moans.</summary>
-        public static List<NamedAudioClip> LoadFolderSkippingLeafNameSubstring(string path, string filter, string skipLeafNameContains)
-        {
-            return LoadFolderImpl(path, filter, skipLeafNameContains);
-        }
-
-        private static List<NamedAudioClip> LoadFolderImpl(string path, string filter, string skipLeafNameContains)
-        {
+        LoadFolder(string path, string filter="") {
             lastLoadPath = path;
             List<NamedAudioClip> clips = new List<NamedAudioClip>();
-            string[] filesAtPath = SuperController.singleton.GetFilesAtPath(path);
-            if (filesAtPath == null)
-                return clips;
-
-            bool useWildcard = filter == WILDCARD;
-            string filterLower = filter != null ? filter.ToLowerInvariant() : "";
-
-            for (int i = 0; i < filesAtPath.Length; i++)
-            {
-                string filePath = filesAtPath[i];
-                if (string.IsNullOrEmpty(filePath))
-                    continue;
-                if (!string.IsNullOrEmpty(skipLeafNameContains) &&
-                    LeafNameContainsSubstring(filePath, skipLeafNameContains))
-                    continue;
-
-                if (useWildcard)
-                {
-                    NamedAudioClip nacW = AudioBulk.LoadAudio(filePath);
-                    if (nacW != null)
-                        clips.Add(nacW);
-                }
-                else if (string.IsNullOrEmpty(filterLower) || filePath.ToLowerInvariant().EndsWith(filterLower))
-                {
-                    NamedAudioClip nac = AudioBulk.LoadAudio(filePath);
-                    if (nac != null)
-                        clips.Add(nac);
-                }
+            if (filter == WILDCARD) {
+                SuperController.singleton.GetFilesAtPath(path)
+                    .ToList().ForEach(filePath => clips.Add(AudioBulk.LoadAudio(filePath)));
             }
-
+            else SuperController.singleton.GetFilesAtPath(path).ToList()
+                    .ForEach((filePath) =>
+            {
+                if (filePath.ToLower().EndsWith(filter))
+                {
+                    clips.Add(AudioBulk.LoadAudio(filePath));
+                }
+            });
             return clips;
         }
     }

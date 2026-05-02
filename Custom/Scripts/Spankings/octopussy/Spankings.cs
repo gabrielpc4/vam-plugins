@@ -28,7 +28,7 @@ namespace octopussy
     {
         public const string pluginAuthor = "octopussy (mod by geesp0t)";
         public const string pluginName = "Spankings";
-        public const string pluginVersion = "1.6";
+        public const string pluginVersion = "1.5";
         public const string pluginDate = "[2020-03-03]";
         public const string pluginDescription = @"
         Gently manages sound effects, movement and feedback
@@ -100,24 +100,6 @@ namespace octopussy
         geesp0t.EasyMoanCycleForce easyMoanCycleForce = null;
 
         GameObject playerHands;
-
-        /// <summary>When true, moan/voice folders are not loaded, expressions are not loaded, and only spank + cheek + hit audio run.</summary>
-        private bool _isMalePerson;
-
-        private bool CanPlaySoftMoan()
-        {
-            return !_isMalePerson && softVoiceAudioclips != null && softVoiceAudioclips.Count > 0;
-        }
-
-        private bool CanPlayLoudMoan()
-        {
-            return !_isMalePerson && loudVoiceAudioclips != null && loudVoiceAudioclips.Count > 0;
-        }
-
-        private bool CanPlayExpressionNow()
-        {
-            return !_isMalePerson && useExpressions.val && expressionBank != null;
-        }
 
         public static T FindInPlugin<T>(MVRScript self) where T : MVRScript // thanks mcgruber
         {
@@ -228,10 +210,6 @@ namespace octopussy
 
                 CreateButton("Load expression Folder").button.onClick.AddListener(
                    () => {
-                       if (_isMalePerson)
-                           return;
-                       if (expressionBank == null)
-                           return;
                        expressionBank.ClearUIList();
                        expressionBank.openLoadFolder();
                    });
@@ -240,9 +218,6 @@ namespace octopussy
                 actionSelector.SetupActionCallback(this);
 
                 her = this.containingAtom;
-                DAZCharacter dazCharacter = her != null ? her.GetComponentInChildren<DAZCharacter>() : null;
-                _isMalePerson = dazCharacter != null && dazCharacter.isMale;
-
                 headAudio = her.GetStorableByID("HeadAudioSource") as AudioSourceControl;
                 headAudio.spatialize = false;
                 headAudio.volume = 1.0f;
@@ -251,18 +226,10 @@ namespace octopussy
                 try
                 {
                     hitAudioclips = AudioBulk.LoadFolder(SPANK_AUDIO_DIR);
-                    if (_isMalePerson)
-                    {
-                        softVoiceAudioclips = new List<NamedAudioClip>();
-                        loudVoiceAudioclips = new List<NamedAudioClip>();
-                    }
-                    else
-                    {
-                        softVoiceAudioclips = AudioBulk.LoadFolderSkippingLeafNameSubstring(SOFT_VOICE_AUDIO_DIR, "", "breath");
-                        loudVoiceAudioclips = AudioBulk.LoadFolderSkippingLeafNameSubstring(LOUD_VOICE_AUDIO_DIR, "", "breath");
-                    }
+                    softVoiceAudioclips = AudioBulk.LoadFolder(SOFT_VOICE_AUDIO_DIR);
+                    loudVoiceAudioclips = AudioBulk.LoadFolder(LOUD_VOICE_AUDIO_DIR);
                 }
-                catch (Exception e)// fallback to the local folder
+                catch(Exception e)// fallback to the local folder
                 {
                     SetupLoadPath(SuperController.singleton.currentLoadDir);
                     hitAudioclips = AudioBulk.LoadFolder(SPANK_AUDIO_DIR);
@@ -271,16 +238,8 @@ namespace octopussy
                     EmbeddedAudioClipManager.singleton.GetCategoryClips("FemaleMoan")
                     .Where(n => n.sourceClip.name.StartsWith("Pixie")).ToList();*/
 
-                    if (_isMalePerson)
-                    {
-                        softVoiceAudioclips = new List<NamedAudioClip>();
-                        loudVoiceAudioclips = new List<NamedAudioClip>();
-                    }
-                    else
-                    {
-                        softVoiceAudioclips = AudioBulk.LoadFolderSkippingLeafNameSubstring(SOFT_VOICE_AUDIO_DIR, "", "breath");
-                        loudVoiceAudioclips = AudioBulk.LoadFolderSkippingLeafNameSubstring(LOUD_VOICE_AUDIO_DIR, "", "breath");
-                    }
+                    softVoiceAudioclips = AudioBulk.LoadFolder(SOFT_VOICE_AUDIO_DIR);
+                    loudVoiceAudioclips = AudioBulk.LoadFolder(LOUD_VOICE_AUDIO_DIR);
                 }
 
                 randAudio = new RandomAudio(hitAudioclips);
@@ -470,11 +429,8 @@ namespace octopussy
                 SC.commonHandModelControl.useCollision = true;
 
                 expressionBank = FindInPlugin<ExpressionBank>(this);
-                if (!_isMalePerson && expressionBank != null)
-                {
-                    expressionBank.ClearUIList();
-                    expressionBank.loadExpressionFolder(EXPRESSION_DIR);
-                }
+                expressionBank.ClearUIList();
+                expressionBank.loadExpressionFolder(EXPRESSION_DIR);
 
                 reaction = FindInPlugin<CycleForceOnce>(this);
                 reaction.SyncReceiver("hip");
@@ -591,13 +547,10 @@ namespace octopussy
 
             randAudio.playRandom(hitAudioSourceControl.audioSource, level * collisionSoundVolume.val);
 
-            if (CanPlayExpressionNow()) expressionBank.PlayRandomAction(true); // << needs a quick lerp here
+            if (useExpressions.val) expressionBank.PlayRandomAction(true); // << needs a quick lerp here
 
-            if (CanPlayLoudMoan())
-            {
-                randLoudVoiceAudio.playNow = playMoansHighPriority.val;
-                randLoudVoiceAudio.playRandomDelayedIfClear(headAudio.audioSource, level * collisionSoundVolume.val, 0.1f, 0.8f);
-            }
+            randLoudVoiceAudio.playNow = playMoansHighPriority.val;
+            randLoudVoiceAudio.playRandomDelayedIfClear(headAudio.audioSource, level * collisionSoundVolume.val, 0.1f, 0.8f);
             reaction.SetForceAxis(axis[(++crntAxis + 1) % axis.Length]);
             reaction.restart();
             arousal += 0.5f;
@@ -612,13 +565,10 @@ namespace octopussy
 
             randAudio.playRandom(hitAudioSourceControl.audioSource, level * collisionSoundVolume.val);
 
-            if (CanPlayExpressionNow()) expressionBank.PlayRandomAction(true); // << needs a quick lerp here
+            if (useExpressions.val) expressionBank.PlayRandomAction(true); // << needs a quick lerp here
 
-            if (CanPlaySoftMoan())
-            {
-                randSoftVoiceAudio.playNow = playMoansHighPriority.val;
-                randSoftVoiceAudio.playRandomDelayedIfClear(headAudio.audioSource, level * collisionSoundVolume.val, 0.1f, 0.8f);
-            }
+            randSoftVoiceAudio.playNow = playMoansHighPriority.val;
+            randSoftVoiceAudio.playRandomDelayedIfClear(headAudio.audioSource, level * collisionSoundVolume.val, 0.1f, 0.8f);
             arousal += 0.25f;
 
             reaction.restart();
@@ -639,26 +589,20 @@ namespace octopussy
                         //SuperController.LogMessage("Collide with trigger");
                         randAudio.playRandom(hitAudioSourceControl.audioSource, level * collisionSoundVolume.val);
 
-                        if (CanPlayExpressionNow()) expressionBank.PlayRandomAction(true); // << needs a quick lerp here
+                        if (useExpressions.val) expressionBank.PlayRandomAction(true); // << needs a quick lerp here
 
                         if (level > 1.0f)
                         {
-                            if (CanPlayLoudMoan())
-                            {
-                                randLoudVoiceAudio.playNow = playMoansHighPriority.val;
-                                randLoudVoiceAudio.playRandomDelayedIfClear(headAudio.audioSource, level * collisionSoundVolume.val, 0.1f, 0.8f);
-                            }
+                            randLoudVoiceAudio.playNow = playMoansHighPriority.val;
+                            randLoudVoiceAudio.playRandomDelayedIfClear(headAudio.audioSource, level * collisionSoundVolume.val, 0.1f, 0.8f);
                             reaction.SetForceAxis(axis[(++crntAxis + 1) % axis.Length]);
                             reaction.restart();
                             arousal += 0.5f;
                         }
                         else
                         {
-                            if (CanPlaySoftMoan())
-                            {
-                                randSoftVoiceAudio.playNow = playMoansHighPriority.val;
-                                randSoftVoiceAudio.playRandomDelayedIfClear(headAudio.audioSource, level * collisionSoundVolume.val, 0.1f, 0.8f);
-                            }
+                            randSoftVoiceAudio.playNow = playMoansHighPriority.val;
+                            randSoftVoiceAudio.playRandomDelayedIfClear(headAudio.audioSource, level * collisionSoundVolume.val, 0.1f, 0.8f);
                             arousal += 0.25f;
                         }
 

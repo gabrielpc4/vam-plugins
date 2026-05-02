@@ -7,16 +7,10 @@ using UnityEngine.XR;
 namespace geesp0t
 {
     /// <summary>
-    /// Per-controller VR grip (Quest squeeze / OpenVR HoldGrab): toggles each side between articulated hands
-    /// (<b>Male2</b> / <b>Male 2</b> when present) with collision, and VaM’s compact <see cref="SphereKinematicChoice"/>
-    /// hand (same string as User Preferences → VR Hands → Left/Right Hand Choice). Sphere mode keeps the hand
-    /// enabled so the proxy stays visible; on fresh scene load both sides start as spheres with
-    /// <see cref="HandModelControl.useCollision"/> off. After any VR grip toggle (sphere ↔ articulated),
-    /// collision stays on for spheres so proxies can overlap-grab again. See decompiled <c>MeshVR.HandModelControl</c>.
-    /// Re-applies at end of frame so settings persist after <c>SuperController.Update</c> (built-in grab+trigger hand hide).
-    /// Articulated-on for a side is skipped while that Person hand control is possessed.
-    /// The first time in a scene either side becomes articulated, runs an optional callback (registered by <see cref="EasyMate"/>)
-    /// to merge Spankings onto Persons missing it (<see cref="MainUIButtons.MergeSpankingsOnAllPersonsOnly"/>).
+    /// Quest squeeze / OpenVR HoldGrab (<b>grip</b>, not face buttons): each press toggles <b>both</b> hands together between
+    /// articulated <b>Male2</b> / <b>Male 2</b> and VaM’s <see cref="SphereKinematicChoice"/> sphere proxy (sides respect possession).
+    /// The first time in a scene both become articulated, runs an optional callback (see <see cref="EasyMate"/>) to merge
+    /// Spankings onto <b>female</b> Persons only (<see cref="MainUIButtons.MergeSpankingsOnFemalePersonsOnly"/>).
     /// </summary>
     internal static class EasyMateGripHandVisibility
     {
@@ -91,10 +85,18 @@ namespace geesp0t
 
             bool anyArticulatedBefore = _leftArticulated || _rightArticulated;
 
-            if (leftDown)
-                ToggleLeft(sc);
-            if (rightDown)
-                ToggleRight(sc);
+            // Toggle both hands in lockstep (show both Male2 when going articulated) — per-side still respects possession.
+            bool nextBothArticulated = !(_leftArticulated && _rightArticulated);
+            if (nextBothArticulated)
+            {
+                _leftArticulated = !AnyPersonLeftHandPossessed();
+                _rightArticulated = !AnyPersonRightHandPossessed();
+            }
+            else
+            {
+                _leftArticulated = false;
+                _rightArticulated = false;
+            }
 
             bool anyArticulatedAfter = _leftArticulated || _rightArticulated;
             TryMergeSpankingsOnFirstArticulatedGrip(anyArticulatedBefore, anyArticulatedAfter);
@@ -118,22 +120,6 @@ namespace geesp0t
             {
                 SuperController.LogError("EasyMateGripHandVisibility: Spankings merge on first articulated grip: " + e.Message);
             }
-        }
-
-        private static void ToggleLeft(SuperController sc)
-        {
-            bool nextArticulated = !_leftArticulated;
-            if (nextArticulated && AnyPersonLeftHandPossessed())
-                return;
-            _leftArticulated = nextArticulated;
-        }
-
-        private static void ToggleRight(SuperController sc)
-        {
-            bool nextArticulated = !_rightArticulated;
-            if (nextArticulated && AnyPersonRightHandPossessed())
-                return;
-            _rightArticulated = nextArticulated;
         }
 
         private static void ApplyBothControls(SuperController sc)

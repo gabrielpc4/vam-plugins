@@ -59,10 +59,11 @@ namespace geesp0t
         public JSONStorableBool disableRemoteGripHandLink;
 
         /// <summary>
-        /// When true (default), a short press on each controller’s <b>physical grip</b> (Oculus) or HoldGrab (OpenVR)
-        /// toggles that side between articulated VR hands and VaM’s sphere/kinematic hand mode (see <see cref="EasyMateGripHandVisibility"/>).
-        /// Collisions stay off while both sides are in sphere mode. The <b>first</b> time in a scene either side becomes articulated,
-        /// Easy Mate merges <b>Spankings</b> onto every <c>Person</c> that does not already have it (same as HUD <c>+ Spankings</c> merge-only).
+        /// When true (default), a short press on <b>either</b> controller’s <b>physical grip</b> (Oculus) or HoldGrab (OpenVR)
+        /// toggles <b>both</b> sides together between articulated VR hands (<b>Male2</b>) and VaM’s sphere/kinematic hand mode
+        /// (see <see cref="EasyMateGripHandVisibility"/>); a possessed hand side stays sphere. Collisions stay off while both
+        /// sides sphere. The <b>first</b> time in a scene both become articulated, Easy Mate merges <b>Spankings</b> onto
+        /// <b>female</b> <c>Person</c> atoms only (merge-only, same as HUD <c>+ Spankings</c>).
         /// </summary>
         public JSONStorableBool gripTogglesHandVisibility;
 
@@ -140,7 +141,7 @@ namespace geesp0t
         private void OnMergeSpankingsAfterFirstVrGripToArticulated()
         {
             if (mainUIButtons != null)
-                mainUIButtons.MergeSpankingsOnAllPersonsOnly();
+                mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
         }
 
         private void OnLoadEmotionOnSceneLoadChanged(bool v)

@@ -653,6 +653,28 @@ namespace geesp0t
             }
         }
 
+        /// <summary>Merges Spankings (original full plugin) onto every <b>female</b> <c>Person</c> that does not already have it.</summary>
+        public void MergeSpankingsOnFemalePersonsOnly()
+        {
+            try
+            {
+                string fn = GetFileName(PluginSpankings);
+                foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
+                {
+                    if (at == null || !IsPersonFemale(at))
+                        continue;
+                    if (!PersonHasPluginByFileName(at, fn))
+                        TryMergePluginOntoPerson(at, PluginSpankings);
+                }
+
+                RefreshPluginToggleLabels();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("Spankings merge on female Persons: " + e);
+            }
+        }
+
         private void OnEmotionMergeAllHudClicked()
         {
             try

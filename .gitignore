@@ -17,10 +17,17 @@
 !**/*.cslist
 !**/*.txt
 
-# Custom/: only Scripts/ is eligible for the extensions above; rest of Custom stays ignored.
+# Custom/: only those extensions under Scripts/ (not e.g. .wav); **/ traverses nested folders.
 Custom/**
 !Custom/Scripts/
-!Custom/Scripts/**
+!Custom/Scripts/**/
+!Custom/Scripts/**/*.md
+!Custom/Scripts/**/*.py
+!Custom/Scripts/**/*.vac
+!Custom/Scripts/**/*.json
+!Custom/Scripts/**/*.cs
+!Custom/Scripts/**/*.cslist
+!Custom/Scripts/**/*.txt
 
 # After whitelist: hide paths whose components contain these substrings (case variants).
 # Later rules win; * does not cross '/' so each path segment is checked.

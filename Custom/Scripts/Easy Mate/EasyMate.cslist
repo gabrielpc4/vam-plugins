@@ -1,5 +1,4 @@
 src/EasyMate.cs
-src/EasyMateCameraPoseLog.cs
 src/EasyMateGripHandVisibility.cs
 src/EasyMateHeadSnapPovRuntime.cs
 src/EasyMateNxtUiQuestThumbstick.cs

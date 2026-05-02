@@ -32,12 +32,6 @@ namespace geesp0t
         private bool sceneChanged = true;
         private float loadingTimeCounter = 0;
 
-        /// <summary>Edge-detect <see cref="SuperController.isLoading"/> for camera pose logging.</summary>
-        private bool _prevSuperControllerLoading;
-
-        /// <summary>Set when EasyMate’s post-load delay completes (same moment the plugin sets sceneChanged after ~1 s).</summary>
-        private bool _logCameraPoseSceneFinishedLoading;
-
         private string lastLoadDir = ""; //wish this was last full path of loaded file included directory and filename!
 
         private Coroutine _applyEmotionAfterSceneCo;
@@ -517,19 +511,6 @@ namespace geesp0t
 
         void Update()
         {
-            SuperController scCam = SuperController.singleton;
-            if (scCam != null)
-            {
-                bool scLoading = scCam.isLoading;
-                if (scLoading && !_prevSuperControllerLoading)
-                    EasyMateCameraPoseLog.LogSnapshot("loading started");
-                if (!scLoading && _prevSuperControllerLoading)
-                    EasyMateCameraPoseLog.LogSnapshot("loading false");
-                _prevSuperControllerLoading = scLoading;
-                if (Input.GetKeyDown(KeyCode.K))
-                    EasyMateCameraPoseLog.LogSnapshot("key K");
-            }
-
             //once finished loading, apply
             if (SuperController.singleton.isLoading)
             {
@@ -544,18 +525,11 @@ namespace geesp0t
                 {
                     isLoading = false;
                     sceneChanged = true;
-                    _logCameraPoseSceneFinishedLoading = true;
                 }
             }
 
             if (sceneChanged)
             {
-                if (_logCameraPoseSceneFinishedLoading)
-                {
-                    EasyMateCameraPoseLog.LogSnapshot("scene finished loading");
-                    _logCameraPoseSceneFinishedLoading = false;
-                }
-
                 sceneChanged = false;
                 Log("EasyMate Scene Changed, Load Dir: " + SuperController.singleton.currentLoadDir + ", Time Since Level Load: " + Time.timeSinceLevelLoad);
                 //get menu data, if this is a menu

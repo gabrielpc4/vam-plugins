@@ -1,0 +1,11 @@
+src/EasyMate.cs
+src/EasyMateEmotionPathKeywords.cs
+src/EasyMateGripHandVisibility.cs
+src/EasyMateMonitorModeLaserRestore.cs
+src/EasyMateMotionAnimationEmotionEnd.cs
+src/EasyMateHeadSnapPovRuntime.cs
+src/EasyMateNxtUiQuestThumbstick.cs
+src/EasyMateOverlapFullGrabRelease.cs
+src/EasyMateVrInput.cs
+src/MainUIButtons.cs
+src/EasyMatePossessFootDistanceAutoRelease.cs

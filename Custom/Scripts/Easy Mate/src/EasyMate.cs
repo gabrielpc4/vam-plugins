@@ -38,9 +38,6 @@ namespace geesp0t
 
         private Coroutine _applyEmotionAfterSceneCo;
 
-        /// <summary>Relative to VaM install; substring match on lowercase haystack built from <see cref="SuperController.currentLoadDir"/> and <see cref="SuperController.currentSaveDir"/> only.</summary>
-        private const string EmotionPathKeywordsFileRelative = "Custom/Scripts/Easy Mate/emotion_path_keywords.txt";
-
         private Coroutine _pathRuleEmotionMergeCo;
 
         private Coroutine _mergeSpankingsAfterGripCo;
@@ -230,8 +227,8 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Person plugin lists can restore over several frames; merge E-MotionLite when
-        /// <c>emotion_path_keywords.txt</c> matches the load path; clothing touch fall-off on everyone; refresh HUD.
+        /// Person plugin lists can restore over several frames; merge E-MotionLite when load/save paths match keywords in
+        /// <see cref="EasyMateEmotionPathKeywords.KeywordsFileRelative"/> (see <see cref="EasyMateEmotionPathKeywords"/>); clothing touch fall-off on everyone; refresh HUD.
         /// </summary>
         private IEnumerator CoApplyEmotionAfterSceneSettles()
         {
@@ -249,7 +246,7 @@ namespace geesp0t
                 string elHaystack;
                 int elKeywordCount;
                 string elPathDetail;
-                bool pathRuleMerge = EvaluateEmotionPathRule(out elLoadDir, out elSaveDir, out elHaystack, out elKeywordCount, out elPathDetail);
+                bool pathRuleMerge = EasyMateEmotionPathKeywords.EvaluatePathRule(out elLoadDir, out elSaveDir, out elHaystack, out elKeywordCount, out elPathDetail);
 
                 SuperController.LogMessage(
                     "EasyMate emotion path keywords [scene load]: currentLoadDir=\""
@@ -276,7 +273,7 @@ namespace geesp0t
             {
                 if (atomUids == null || atomUids.Count == 0)
                     return;
-                if (!ShouldMergeEmotionForCurrentScenePath())
+                if (!EasyMateEmotionPathKeywords.MatchesCurrentScenePath())
                     return;
 
                 SuperController sc = SuperController.singleton;
@@ -307,7 +304,7 @@ namespace geesp0t
 
         private void StartPathRuleEmotionMergeDeferred()
         {
-            if (!ShouldMergeEmotionForCurrentScenePath())
+            if (!EasyMateEmotionPathKeywords.MatchesCurrentScenePath())
                 return;
             if (_pathRuleEmotionMergeCo != null)
             {
@@ -331,7 +328,7 @@ namespace geesp0t
 
                 if (sc == null || mainUIButtons == null)
                     yield break;
-                if (!ShouldMergeEmotionForCurrentScenePath())
+                if (!EasyMateEmotionPathKeywords.MatchesCurrentScenePath())
                     yield break;
 
                 mainUIButtons.MergeEmotionLiteForPathRuleOnAllPersonsOnly();
@@ -342,104 +339,6 @@ namespace geesp0t
             {
                 _pathRuleEmotionMergeCo = null;
             }
-        }
-
-        /// <summary>Substring match on <paramref name="haystack"/> for keywords from <see cref="EmotionPathKeywordsFileRelative"/>.</summary>
-        private static bool EvaluateEmotionPathKeywordsAgainstHaystack(List<string> keys, string haystack, out string matchDetail)
-        {
-            matchDetail = "";
-            if (keys == null || keys.Count == 0)
-            {
-                matchDetail = "no keywords in " + EmotionPathKeywordsFileRelative;
-                return false;
-            }
-
-            for (int i = 0; i < keys.Count; i++)
-            {
-                string k = keys[i];
-                if (k == null || k.Length == 0)
-                    continue;
-                if (haystack.IndexOf(k, StringComparison.Ordinal) >= 0)
-                {
-                    matchDetail = "substring matched keyword \"" + k + "\"";
-                    return true;
-                }
-            }
-
-            matchDetail = "no keyword substring in haystack";
-            return false;
-        }
-
-        /// <summary>Resolves load/save dirs, haystack, and whether the path rule would merge E-Motion (no console output).</summary>
-        private bool EvaluateEmotionPathRule(out string loadDir, out string saveDir, out string haystack, out int keywordCount, out string matchDetail)
-        {
-            loadDir = "";
-            saveDir = "";
-            haystack = "";
-            keywordCount = 0;
-            matchDetail = "";
-
-            List<string> keys = GetParsedEmotionPathKeywords();
-            keywordCount = keys != null ? keys.Count : 0;
-
-            SuperController sc = SuperController.singleton;
-            if (sc == null)
-            {
-                matchDetail = "SuperController.singleton is null";
-                return false;
-            }
-
-            loadDir = sc.currentLoadDir != null ? sc.currentLoadDir : "";
-            saveDir = sc.currentSaveDir != null ? sc.currentSaveDir : "";
-            haystack = (loadDir + " " + saveDir).Replace('\\', '/').ToLowerInvariant();
-
-            return EvaluateEmotionPathKeywordsAgainstHaystack(keys, haystack, out matchDetail);
-        }
-
-        private bool ShouldMergeEmotionForCurrentScenePath()
-        {
-            string ld;
-            string sd;
-            string hs;
-            int kc;
-            string detail;
-            return EvaluateEmotionPathRule(out ld, out sd, out hs, out kc, out detail);
-        }
-
-        private List<string> GetParsedEmotionPathKeywords()
-        {
-            List<string> result = new List<string>();
-            SuperController sc = SuperController.singleton;
-            if (sc == null)
-                return result;
-
-            string raw = null;
-            try
-            {
-                raw = sc.ReadFileIntoString(EmotionPathKeywordsFileRelative);
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError("EasyMate: read " + EmotionPathKeywordsFileRelative + ": " + e.Message);
-                return result;
-            }
-
-            if (string.IsNullOrEmpty(raw))
-                return result;
-
-            char[] seps = new char[] { '\r', '\n', ',', ';' };
-            string[] parts = raw.Split(seps);
-            for (int p = 0; p < parts.Length; p++)
-            {
-                string t = parts[p].Trim();
-                if (t.Length == 0)
-                    continue;
-                if (t[0] == '#')
-                    continue;
-                result.Add(t.ToLowerInvariant());
-            }
-
-            return result;
         }
 
         private IEnumerator CreateResetVROrientationAtom()

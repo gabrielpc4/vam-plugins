@@ -16,6 +16,7 @@ namespace geesp0t
     public class MainUIButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
+        public const string PluginEasyMotionLite = "Custom/Scripts/EasyMotionLite/EasyMotionLite.cslist";
         public const string PluginSpankings = "Custom/Scripts/Spankings/Spankings.cslist";
         public const string PluginEasyMateClothingTouchFallOff = "Custom/Scripts/Easy Mate/EasyMateClothingTouchFallOff.cslist";
 
@@ -568,6 +569,26 @@ namespace geesp0t
             }
         }
 
+        /// <summary>Merges <see cref="PluginEasyMotionLite"/> onto every Person (Easy Mate path-keyword rule only).</summary>
+        public void MergeEasyMotionLiteOnAllPersonsOnly()
+        {
+            try
+            {
+                foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
+                {
+                    if (at == null)
+                        continue;
+                    TryMergePluginOntoPerson(at, PluginEasyMotionLite);
+                }
+
+                RefreshPluginToggleLabels();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("EasyMotionLite merge on all Persons: " + e);
+            }
+        }
+
         /// <summary>Merges Easy Mate clothing touch fall-off onto every Person (after scene settles; idempotent merge).</summary>
         public void MergeClothingTouchFallOffOnAllPersonsOnly()
         {
@@ -586,24 +607,26 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Removes E-Motion from every Person (used when disabling auto-load).</summary>
+        /// <summary>Removes E-Motion and EasyMotionLite from every Person (used when disabling auto-load).</summary>
         public void RemoveEmotionFromAllPersons()
         {
             try
             {
-                string fn = GetFileName(PluginEMotion);
+                string fnEmotion = GetFileName(PluginEMotion);
+                string fnLite = GetFileName(PluginEasyMotionLite);
                 foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                 {
                     if (at == null)
                         continue;
-                    TryRemovePluginFromPerson(at, fn);
+                    TryRemovePluginFromPerson(at, fnEmotion);
+                    TryRemovePluginFromPerson(at, fnLite);
                 }
 
                 RefreshPluginToggleLabels();
             }
             catch (Exception e)
             {
-                SuperController.LogError("E-Motion remove from all Persons: " + e);
+                SuperController.LogError("E-Motion / EasyMotionLite remove from all Persons: " + e);
             }
         }
 

@@ -234,8 +234,8 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Person plugin lists can restore over several frames; merge E-Motion when "every scene" is on or when
-        /// emotion_path_keywords.txt matches the load path; clothing touch fall-off on everyone; refresh HUD.
+        /// Person plugin lists can restore over several frames; merges <b>EasyMotionLite</b> when
+        /// <c>emotion_path_keywords.txt</c> matches, full <b>E-Motion</b> when “every scene” is on; clothing touch fall-off on everyone; refresh HUD.
         /// </summary>
         private IEnumerator CoApplyEmotionAfterSceneSettles()
         {
@@ -255,18 +255,22 @@ namespace geesp0t
                 string elPathDetail;
                 bool pathRuleMerge = EvaluateEmotionPathRule(out elLoadDir, out elSaveDir, out elHaystack, out elKeywordCount, out elPathDetail);
                 bool everyScene = loadEmotionOnSceneLoad != null && loadEmotionOnSceneLoad.val;
-                bool mergeEmotion = everyScene || pathRuleMerge;
+                string mergePlan = "none";
+                if (everyScene)
+                    mergePlan = "E-Motion on all Persons (every scene)";
+                else if (pathRuleMerge)
+                    mergePlan = "EasyMotionLite on all Persons (path keywords)";
 
                 SuperController.LogMessage(
                     "EasyMate emotion path keywords [scene load]: currentLoadDir=\""
                     + elLoadDir + "\" currentSaveDir=\"" + elSaveDir + "\" compareHaystack=\"" + elHaystack
                     + "\" keywordCount=" + elKeywordCount + " loadEmotionEveryScene=" + everyScene + " pathRuleMatch="
-                    + pathRuleMerge + " (" + elPathDetail + ") → merge E-Motion this load: " + (mergeEmotion ? "YES" : "NO"));
+                    + pathRuleMerge + " (" + elPathDetail + ") → " + mergePlan);
 
                 if (everyScene)
                     mainUIButtons.MergeEmotionOnAllPersonsOnly();
                 else if (pathRuleMerge)
-                    mainUIButtons.MergeEmotionOnAllPersonsOnly();
+                    mainUIButtons.MergeEasyMotionLiteOnAllPersonsOnly();
                 mainUIButtons.MergeClothingTouchFallOffOnAllPersonsOnly();
                 mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
                 mainUIButtons.RefreshPluginToggleLabels();
@@ -341,7 +345,7 @@ namespace geesp0t
                 if (!ShouldMergeEmotionForCurrentScenePath())
                     yield break;
 
-                mainUIButtons.MergeEmotionOnAllPersonsOnly();
+                mainUIButtons.MergeEasyMotionLiteOnAllPersonsOnly();
                 mainUIButtons.RefreshEmotionSceneLoadButtonLabel();
                 mainUIButtons.RefreshPluginToggleLabels();
             }
@@ -377,7 +381,7 @@ namespace geesp0t
             return false;
         }
 
-        /// <summary>Resolves load/save dirs, haystack, and whether the path rule would merge E-Motion (no console output).</summary>
+        /// <summary>Resolves load/save dirs, haystack, and whether the path rule would merge EasyMotionLite (no console output).</summary>
         private bool EvaluateEmotionPathRule(out string loadDir, out string saveDir, out string haystack, out int keywordCount, out string matchDetail)
         {
             loadDir = "";

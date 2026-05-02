@@ -1,12 +1,14 @@
-# Whitelist-only: ignore everything except *.md, *.py, *.jpg, *.vac, *.json, *.cs,
-# *.cslist, and *.txt
+# Whitelist-only: ignore everything except *.md, *.py, *.vac, *.json, *.cs, *.cslist,
+# *.txt, and *.jpg only under Saves/scene/ (any subfolder depth).
 # (`*` ignores; `!*/` lets Git traverse directories so `!` rules can match.)
 *
 !*/
 !.gitignore
 !**/*.md
 !**/*.py
-!**/*.jpg
+!/Saves/
+!/Saves/scene/
+!Saves/scene/**/*.jpg
 !**/*.vac
 !**/*.json
 !**/*.cs

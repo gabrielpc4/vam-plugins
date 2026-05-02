@@ -79,10 +79,10 @@ namespace geesp0t
         /// </summary>
         public JSONStorableBool possessAutoUnpossessWhenFarFromFeet;
 
-        /// <summary>When true (default), after a non-looping scene mocap at least <see cref="longMocapMinSecondsForEmotionMerge"/> long finishes, merge E-Motion onto female Persons once (uses <see cref="SuperController.motionAnimationMaster"/>).</summary>
+        /// <summary>When true (default), after a non-looping scene mocap at least <see cref="longMocapMinSecondsForEmotionMerge"/> long finishes, merge E-Motion Final onto female Persons once (uses <see cref="SuperController.motionAnimationMaster"/>).</summary>
         public JSONStorableBool mergeEmotionWhenLongMocapEndsNoLoop;
 
-        /// <summary>Minimum longest <see cref="MotionAnimationClip.clipLength"/> in the scene (seconds) for end-of-mocap female E-Motion merge; avoids short clips.</summary>
+        /// <summary>Minimum longest <see cref="MotionAnimationClip.clipLength"/> in the scene (seconds) for end-of-mocap female E-Motion Final merge; avoids short clips.</summary>
         public JSONStorableFloat longMocapMinSecondsForEmotionMerge;
 
         /// <summary>
@@ -133,10 +133,10 @@ namespace geesp0t
                 5f);
             RegisterFloat(possessAutoUnpossessFeetMaxHorizontalM);
 
-            mergeEmotionWhenLongMocapEndsNoLoop = new JSONStorableBool("Merge E-Motion on females when long mocap ends (no loop)", true);
+            mergeEmotionWhenLongMocapEndsNoLoop = new JSONStorableBool("Merge E-Motion Final on females when long mocap ends (no loop)", true);
             RegisterBool(mergeEmotionWhenLongMocapEndsNoLoop);
 
-            longMocapMinSecondsForEmotionMerge = new JSONStorableFloat("Min mocap length (s) for end-of-clip E-Motion", 45f, 5f, 600f);
+            longMocapMinSecondsForEmotionMerge = new JSONStorableFloat("Min mocap length (s) for end-of-clip E-Motion Final", 45f, 5f, 600f);
             RegisterFloat(longMocapMinSecondsForEmotionMerge);
 
             restoreMonitorModeControllerLaser = new JSONStorableBool("Restore VR UI laser (LaserPointer) in monitor mode", true);

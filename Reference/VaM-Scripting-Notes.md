@@ -74,10 +74,11 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
   - Uses the **same cslist file name** as full E‑Motion (`E-Motion_AddThisONLY.cslist`). Easy Mate **`TryReplaceEmotionFamilyWithExactPath`** removes every known pack basename (`E-Motion_AddThisONLY.cslist`, **`E-Motion_Final_AddThisONLY.cslist`**) then adds the desired **full path**, so lite vs full vs Final never stack on the same atom when Easy Mate performs a merge.
   - Lite-only behavior lives in **`Custom/Scripts/E-MotionLite/Scripts/EmotionEngine.cs`**: **`EmotionLiteDisableHeadAndNeck`** keeps scripted head/neck motion off regardless of presets/UI toggles; **`EmotionLiteLeaveEyeTargetUntouched`** avoids moving **`eyeTargetControl`** so VaM defaults, the loaded scene, or the user retain whatever eye aim target already applies.
 
-- **E-Motion Final** (VRAdultFun standalone tree — **not** auto-merged by Easy Mate path rules or HUD **E‑Motion all** swap logic beyond removal when installing full/lite):
+- **E-Motion Final** (VRAdultFun standalone tree — **not** merged by Easy Mate path rules or HUD **E‑Motion all**; **stripped** when installing full/lite via Easy Mate):
   - **`Custom/Scripts/E-MotionFinal/E-Motion_Final_AddThisONLY.cslist`** (`PluginEMotionFinal`).
   - **Different basename** from full/lite so scenes and tooling do not confuse it with **`E-Motion_AddThisONLY.cslist`**. Lives under **`Custom/Scripts/E-MotionFinal/`** so edits to Original or Lite sources do not affect Final files when only Final is loaded.
   - Presets and defaults load from **`Custom/Scripts/E-MotionFinal/Presets/`** (same pattern as Original/Lite: **`GetPluginPath()`** + `\Presets\`), not from legacy **`Custom/E-Motion/Presets`**.
+  - After a **long non-loop** scene mocap ends, **`EasyMateMotionAnimationEmotionEnd`** calls **`MergeEmotionFinalOnFemalePersonsOnly`** once per scene (EasyMate toggles **`mergeEmotionWhenLongMocapEndsNoLoop`** / **`longMocapMinSecondsForEmotionMerge`**).
 
 - **`EasyMateEmotionPathKeywords.cs`** (`Custom/Scripts/Easy Mate/src/EasyMateEmotionPathKeywords.cs`, listed in **`EasyMate.cslist`**):
   - **`KeywordsFileRelative`**: **`Custom/Scripts/Easy Mate/emotion_path_keywords.txt`** — read with **`SuperController.ReadFileIntoString`**; `#` lines skipped; tokens trimmed and split on newline / comma / semicolon; stored lowercase for matching.
@@ -1180,7 +1181,7 @@ When implementing later, revisit these first:
 4. The cleanest UI direction is to replace Easy Mate's current HUD button set rather than create a second unrelated HUD, while keeping the existing `Show UI` / `Hide UI` integration intact.
 5. "First female" and "second female" should be assigned by a deterministic ordering. The preferred default is sorting female atoms by `uid` so slot 1 and slot 2 stay stable as long as the scene's female atom set stays the same.
 6. RealGaze on the Easy Mate HUD: two separate actions — add **Looker** (`RealGaze - Looker.cs`) and add **Target** (`RealGaze - Target.cs`) to all Persons when missing (by script filename).
-7. E-Motion and Spankings on the same HUD: **E‑Motion all** / hotkey **E** merge AutoMate full E‑Motion and strip **Lite** + **Final** on each Person; **Shift+E** removes all three variants. **E-MotionLite** is merged automatically on matching loads via **`EasyMateEmotionPathKeywords`** / **`emotion_path_keywords.txt`** (folder-path substring rule). **E-Motion Final** (`Custom/Scripts/E-MotionFinal/E-Motion_Final_AddThisONLY.cslist`) is manual/scene-only unless Easy Mate installs another pack on top.
+7. E-Motion and Spankings on the same HUD: **E‑Motion all** / hotkey **E** merge AutoMate full E‑Motion and strip **Lite** + **Final** on each Person; **Shift+E** removes all three variants. **E-MotionLite** is merged automatically on matching loads via **`EasyMateEmotionPathKeywords`** / **`emotion_path_keywords.txt`**. **E-Motion Final** is merged onto **female** Persons once after a **long non-loop** mocap ends (**`EasyMateMotionAnimationEmotionEnd`**); otherwise add **`Custom/Scripts/E-MotionFinal/E-Motion_Final_AddThisONLY.cslist`** manually or via scene JSON unless another Easy Mate merge replaces it.
 
 ## Short Conclusions
 

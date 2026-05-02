@@ -558,8 +558,8 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Merges AutoMate E-Motion onto every <b>female</b> <c>Person</c> via <see cref="TryReplaceEmotionFamilyWithExactPath"/>.</summary>
-        public void MergeEmotionOnFemalePersonsOnly()
+        /// <summary>Merges <see cref="PluginEMotionFinal"/> onto every <b>female</b> <c>Person</c> (used after long non-loop mocap ends — see <see cref="EasyMateMotionAnimationEmotionEnd"/>).</summary>
+        public void MergeEmotionFinalOnFemalePersonsOnly()
         {
             try
             {
@@ -567,14 +567,14 @@ namespace geesp0t
                 {
                     if (at == null || !IsPersonFemale(at))
                         continue;
-                    TryReplaceEmotionFamilyWithExactPath(at, PluginEMotion);
+                    TryReplaceEmotionFamilyWithExactPath(at, PluginEMotionFinal);
                 }
 
                 RefreshPluginToggleLabels();
             }
             catch (Exception e)
             {
-                SuperController.LogError("E-Motion merge on female Persons: " + e);
+                SuperController.LogError("E-Motion Final merge on female Persons: " + e);
             }
         }
 

@@ -1,5 +1,14 @@
-# Ignore only these subtrees; all other paths are trackable by default.
-/Custom/Scripts/
-/Saves/scene/
-/Reference/
-/scene_menu_tools/
+# Whitelist-only: ignore everything except *.md, *.py, *.jpg, *.vac, *.json, *.cs,
+# *.cslist, and *.txt
+# (`*` ignores; `!*/` lets Git traverse directories so `!` rules can match.)
+*
+!*/
+!.gitignore
+!**/*.md
+!**/*.py
+!**/*.jpg
+!**/*.vac
+!**/*.json
+!**/*.cs
+!**/*.cslist
+!**/*.txt

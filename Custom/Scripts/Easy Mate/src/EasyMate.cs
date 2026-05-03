@@ -120,6 +120,14 @@ namespace geesp0t
         /// </summary>
         public JSONStorableFloat sceneLoadUnfreezeDelaySeconds;
 
+        /// <summary>
+        /// While <see cref="SuperController.isLoading"/> is true, disables
+        /// renderers on CustomUnityAsset atoms that use DillDoe cum /
+        /// <c>Fluid.assetbundle</c>, then restores prior enabled state after
+        /// load (see <see cref="EasyMateFluidCumHideDuringSceneLoad"/>).
+        /// </summary>
+        public JSONStorableBool hideFluidCumMeshDuringSceneLoad;
+
         public override void Init()
         {
             Log("EasyMate Init");
@@ -172,6 +180,11 @@ namespace geesp0t
                 true,
                 true);
             RegisterFloat(sceneLoadUnfreezeDelaySeconds);
+
+            hideFluidCumMeshDuringSceneLoad = new JSONStorableBool(
+                "Hide DillDoe cum mesh during scene load",
+                true);
+            RegisterBool(hideFluidCumMeshDuringSceneLoad);
 
             mergeEmotionWhenLongMocapEndsNoLoop = new JSONStorableBool("Merge E-Motion Final on females when long mocap ends (no loop)", true);
             RegisterBool(mergeEmotionWhenLongMocapEndsNoLoop);
@@ -636,6 +649,11 @@ namespace geesp0t
             if (scFsm != null)
                 TickPostSceneLoadFreezeAnimAndSound(scFsm);
 
+            EasyMateFluidCumHideDuringSceneLoad.Tick(
+                hideFluidCumMeshDuringSceneLoad != null &&
+                    hideFluidCumMeshDuringSceneLoad.val,
+                scFsm != null && scFsm.isLoading);
+
             //once finished loading, apply
             if (SuperController.singleton.isLoading)
             {
@@ -733,6 +751,8 @@ namespace geesp0t
 
         void OnDestroy()
         {
+            EasyMateFluidCumHideDuringSceneLoad.OnPluginDestroy();
+
             CancelPendingPostSceneLoadUnfreeze(true);
 
             if (SuperController.singleton != null)

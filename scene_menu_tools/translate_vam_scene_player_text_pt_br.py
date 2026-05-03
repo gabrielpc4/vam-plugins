@@ -17,7 +17,7 @@ Pass ``--no-backup`` to skip.
 Avoid translating paths, hashes, GUIDs or technical ids: only storable ids listed in
 TEXT_STORABLE_IDS and only the explicit ``text`` field on those storables.
 
-Validate output by round-tripping through json.loads before writing.
+Validate output by ``json.loads`` before writing and again after re-reading from disk.
 """
 
 from __future__ import annotations
@@ -43,6 +43,17 @@ def validate_roundtrip(serialized: str) -> dict[str, Any]:
     parsed = json.loads(serialized)
     assert isinstance(parsed, dict)
     return parsed
+
+
+def validate_written_scene_file(scene_path: Path) -> dict[str, Any]:
+    """Re-read UTF-8 from disk; fail if ``json.loads`` or root type is invalid."""
+    body = scene_path.read_text(encoding="utf-8")
+    root = json.loads(body)
+    if not isinstance(root, dict):
+        raise SystemExit(
+            f"Written file is invalid: root JSON is not an object: {scene_path}"
+        )
+    return root
 
 
 TEXT_STORABLE_IDS = frozenset({"Text"})
@@ -181,7 +192,11 @@ def main(argv: list[str]) -> int:
             print(f"Backup: {bak}")
 
     path.write_text(serialized, encoding="utf-8", newline="\n")
-    print(f"Wrote {path} ({n} Text storables updated)")
+    validate_written_scene_file(path)
+
+    print(
+        f"Wrote {path} ({n} Text storables updated); JSON verified on disk (UTF-8)"
+    )
     unused = sorted(set(mapping.keys()) - set(t for _, t in before))
     if unused:
         print("Unused map keys:", ", ".join(repr(u) for u in unused), file=sys.stderr)

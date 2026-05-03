@@ -1,0 +1,691 @@
+{
+   "playerHeightAdjust" : "0.2066653", 
+   "monitorCameraRotation" : {
+      "x" : "15.27028", 
+      "y" : "0", 
+      "z" : "0"
+   }, 
+   "useSceneLoadPosition" : "false", 
+   "atoms" : [
+      {
+         "id" : "CoreControl", 
+         "on" : "true", 
+         "type" : "CoreControl", 
+         "storables" : [
+            {
+               "id" : "GlobalLighting", 
+               "unityAmbientIntensity" : "0.7272246", 
+               "camExposure" : "1.01", 
+               "skyboxIntensity" : "2.29881", 
+               "skyboxYAngle" : "-164.9846", 
+               "unityAmbientColor" : {
+                  "h" : "0.09303924", 
+                  "s" : "0.3347397", 
+                  "v" : "0.2060385"
+               }, 
+               "skyName" : "SkyDaySunSunsetSummer3"
+            }, 
+            {
+               "id" : "URLAudioClipManager", 
+               "clips" : [
+                  {
+                     "url" : "Custom/Audio/Music/Gnawledge_-_01_-_Flamencologa.mp3", 
+                     "displayName" : "Gnawledge_-_01_-_Flamencologa.mp3"
+                  }, 
+                  {
+                     "url" : "Custom/Audio/Background Ambience/Birds Chirping on a Spring Day Ambience Background Sound Effect Free High Quality Sound FX.mp3", 
+                     "displayName" : "Birds Chirping on a Spring Day Ambience Background Sound Effect Free High Quality Sound FX.mp3"
+                  }
+               ]
+            }, 
+            {
+               "id" : "MotionAnimationMaster", 
+               "loop" : "true", 
+               "triggers" : []
+            }
+         ]
+      }, 
+      {
+         "id" : "[CameraRig]", 
+         "on" : "true", 
+         "type" : "VRController", 
+         "position" : {
+            "x" : "-0.170924", 
+            "y" : "0", 
+            "z" : "-0.8837397"
+         }, 
+         "rotation" : {
+            "x" : "0", 
+            "y" : "30.09897", 
+            "z" : "0"
+         }, 
+         "storables" : []
+      }, 
+      {
+         "id" : "sapuzexSpheregrabber", 
+         "on" : "true", 
+         "collisionEnabled" : "false", 
+         "type" : "Sphere", 
+         "position" : {
+            "x" : "-0.607", 
+            "y" : "0.78", 
+            "z" : "-0.792"
+         }, 
+         "rotation" : {
+            "x" : "0", 
+            "y" : "0", 
+            "z" : "0"
+         }, 
+         "containerPosition" : {
+            "x" : "0.03180981", 
+            "y" : "0.8722411", 
+            "z" : "0.06773901"
+         }, 
+         "containerRotation" : {
+            "x" : "357.0478", 
+            "y" : "325.1824", 
+            "z" : "343.795"
+         }, 
+         "storables" : [
+            {
+               "id" : "CollisionTrigger", 
+               "trigger" : {
+                  "startActions" : [], 
+                  "transitionActions" : [], 
+                  "endActions" : []
+               }
+            }, 
+            {
+               "id" : "scale", 
+               "scale" : "0.06828999"
+            }, 
+            {
+               "id" : "materials", 
+               "Diffuse Color" : {
+                  "h" : "0.644651", 
+                  "s" : "0", 
+                  "v" : "1"
+               }
+            }, 
+            {
+               "id" : "PluginManager", 
+               "plugins" : {}
+            }, 
+            {
+               "id" : "control", 
+               "possessable" : "true", 
+               "physicsEnabled" : "false", 
+               "holdPositionSpring" : "10000", 
+               "holdRotationSpring" : "1000", 
+               "position" : {
+                  "x" : "0.03180981", 
+                  "y" : "0.8722411", 
+                  "z" : "0.06773901"
+               }, 
+               "rotation" : {
+                  "x" : "357.0478", 
+                  "y" : "325.1824", 
+                  "z" : "343.795"
+               }
+            }
+         ]
+      }, 
+      {
+         "id" : "sapuzexUIopt3", 
+         "on" : "true", 
+         "type" : "UIButton", 
+         "position" : {
+            "x" : "1.4", 
+            "y" : "1", 
+            "z" : "0"
+         }, 
+         "rotation" : {
+            "x" : "0", 
+            "y" : "0", 
+            "z" : "0"
+         }, 
+         "containerPosition" : {
+            "x" : "0.1588259", 
+            "y" : "0.9541932", 
+            "z" : "0.08788294"
+         }, 
+         "containerRotation" : {
+            "x" : "344.7955", 
+            "y" : "172.8928", 
+            "z" : "1.674911"
+         }, 
+         "storables" : [
+            {
+               "id" : "CollisionTrigger", 
+               "trigger" : {
+                  "startActions" : [], 
+                  "transitionActions" : [], 
+                  "endActions" : []
+               }
+            }, 
+            {
+               "id" : "scale", 
+               "scale" : "0.2999999"
+            }, 
+            {
+               "id" : "Text", 
+               "text" : "Espere ela terminar o banho"
+            }, 
+            {
+               "id" : "Canvas", 
+               "xSize" : "1400.333"
+            }, 
+            {
+               "id" : "ButtonColor", 
+               "color" : {
+                  "h" : "0.1666667", 
+                  "s" : "0.3921568", 
+                  "v" : "1"
+               }
+            }, 
+            {
+               "id" : "Trigger", 
+               "trigger" : {
+                  "startActions" : [], 
+                  "transitionActions" : [], 
+                  "endActions" : []
+               }
+            }, 
+            {
+               "id" : "PluginManager", 
+               "plugins" : {}
+            }, 
+            {
+               "id" : "control", 
+               "canGrabPosition" : "false", 
+               "canGrabRotation" : "false", 
+               "positionState" : "ParentLink", 
+               "rotationState" : "ParentLink", 
+               "position" : {
+                  "x" : "0.1588259", 
+                  "y" : "0.9541932", 
+                  "z" : "0.08788294"
+               }, 
+               "rotation" : {
+                  "x" : "344.7955", 
+                  "y" : "172.8928", 
+                  "z" : "1.674911"
+               }, 
+               "linkTo" : "sapzexui bg:object"
+            }
+         ]
+      }, 
+      {
+         "id" : "sapuzexUIButtonshow", 
+         "on" : "false", 
+         "type" : "UIButton", 
+         "position" : {
+            "x" : "1.4", 
+            "y" : "1", 
+            "z" : "0"
+         }, 
+         "rotation" : {
+            "x" : "0", 
+            "y" : "0", 
+            "z" : "0"
+         }, 
+         "containerPosition" : {
+            "x" : "0.03716731", 
+            "y" : "0.853265", 
+            "z" : "0.04807682"
+         }, 
+         "containerRotation" : {
+            "x" : "338.8827", 
+            "y" : "174.1293", 
+            "z" : "0.9902577"
+         }, 
+         "storables" : [
+            {
+               "id" : "CollisionTrigger", 
+               "trigger" : {
+                  "startActions" : [], 
+                  "transitionActions" : [], 
+                  "endActions" : []
+               }
+            }, 
+            {
+               "id" : "Text", 
+               "fontSize" : "36.16103", 
+               "text" : "Mostrar"
+            }, 
+            {
+               "id" : "Canvas", 
+               "xSize" : "130.7178", 
+               "ySize" : "100"
+            }, 
+            {
+               "id" : "ButtonColor", 
+               "alpha" : "0"
+            }, 
+            {
+               "id" : "Trigger", 
+               "trigger" : {
+                  "startActions" : [
+                     {
+                        "receiverAtom" : "sapzexui bg", 
+                        "receiver" : "Image", 
+                        "receiverTargetName" : "url", 
+                        "urlValue" : "Saves/scene/sapuzex/Perrine and Pablo/UIbarOpen.png"
+                     }, 
+                     {
+                        "receiverAtom" : "sapuzexUIButtonhide", 
+                        "receiver" : "AtomControl", 
+                        "receiverTargetName" : "on", 
+                        "boolValue" : "true"
+                     }, 
+                     {
+                        "receiverAtom" : "sapuzexUIButtonshow", 
+                        "receiver" : "AtomControl", 
+                        "receiverTargetName" : "on", 
+                        "boolValue" : "false"
+                     }, 
+                     {
+                        "receiverAtom" : "sapuzexUIopt2n", 
+                        "receiver" : "AtomControl", 
+                        "receiverTargetName" : "on", 
+                        "boolValue" : "true"
+                     }, 
+                     {
+                        "receiverAtom" : "sapuzexUIopt1", 
+                        "receiver" : "AtomControl", 
+                        "receiverTargetName" : "on", 
+                        "boolValue" : "true"
+                     }, 
+                     {
+                        "receiverAtom" : "sapuzexUIopt3", 
+                        "receiver" : "AtomControl", 
+                        "receiverTargetName" : "on", 
+                        "boolValue" : "true"
+                     }
+                  ], 
+                  "transitionActions" : [], 
+                  "endActions" : []
+               }
+            }, 
+            {
+               "id" : "PluginManager", 
+               "plugins" : {}
+            }, 
+            {
+               "id" : "control", 
+               "canGrabPosition" : "false", 
+               "canGrabRotation" : "false", 
+               "positionState" : "ParentLink", 
+               "rotationState" : "ParentLink", 
+               "position" : {
+                  "x" : "0.03716731", 
+                  "y" : "0.853265", 
+                  "z" : "0.04807682"
+               }, 
+               "rotation" : {
+                  "x" : "338.8827", 
+                  "y" : "174.1293", 
+                  "z" : "0.9902577"
+               }, 
+               "linkTo" : "sapzexui bg:control"
+            }
+         ]
+      }, 
+      {
+         "id" : "sapuzexUIButtonhide", 
+         "on" : "true", 
+         "type" : "UIButton", 
+         "position" : {
+            "x" : "1.4", 
+            "y" : "1", 
+            "z" : "0"
+         }, 
+         "rotation" : {
+            "x" : "0", 
+            "y" : "0", 
+            "z" : "0"
+         }, 
+         "containerPosition" : {
+            "x" : "0.04086685", 
+            "y" : "0.8537499", 
+            "z" : "0.04629788"
+         }, 
+         "containerRotation" : {
+            "x" : "338.066", 
+            "y" : "169.0376", 
+            "z" : "3.03306"
+         }, 
+         "storables" : [
+            {
+               "id" : "CollisionTrigger", 
+               "trigger" : {
+                  "startActions" : [], 
+                  "transitionActions" : [], 
+                  "endActions" : []
+               }
+            }, 
+            {
+               "id" : "Text", 
+               "fontSize" : "37.68015", 
+               "text" : "Ocultar"
+            }, 
+            {
+               "id" : "Canvas", 
+               "xSize" : "136.1461", 
+               "ySize" : "100"
+            }, 
+            {
+               "id" : "ButtonColor", 
+               "alpha" : "0", 
+               "color" : {
+                  "h" : "0", 
+                  "s" : "0", 
+                  "v" : "1"
+               }
+            }, 
+            {
+               "id" : "Trigger", 
+               "trigger" : {
+                  "startActions" : [
+                     {
+                        "receiverAtom" : "sapzexui bg", 
+                        "receiver" : "Image", 
+                        "receiverTargetName" : "url", 
+                        "urlValue" : "Saves/scene/sapuzex/Perrine and Pablo/UIbarClose.png"
+                     }, 
+                     {
+                        "receiverAtom" : "sapuzexUIButtonhide", 
+                        "receiver" : "AtomControl", 
+                        "receiverTargetName" : "on", 
+                        "boolValue" : "false"
+                     }, 
+                     {
+                        "receiverAtom" : "sapuzexUIButtonshow", 
+                        "receiver" : "AtomControl", 
+                        "receiverTargetName" : "on", 
+                        "boolValue" : "true"
+                     }, 
+                     {
+                        "receiverAtom" : "sapuzexUIopt2n", 
+                        "receiver" : "AtomControl", 
+                        "receiverTargetName" : "on", 
+                        "boolValue" : "false"
+                     }, 
+                     {
+                        "receiverAtom" : "sapuzexUIopt1", 
+                        "receiver" : "AtomControl", 
+                        "receiverTargetName" : "on", 
+                        "boolValue" : "false"
+                     }, 
+                     {
+                        "receiverAtom" : "sapuzexUIopt3", 
+                        "receiver" : "AtomControl", 
+                        "receiverTargetName" : "on", 
+                        "boolValue" : "false"
+                     }
+                  ], 
+                  "transitionActions" : [], 
+                  "endActions" : []
+               }
+            }, 
+            {
+               "id" : "PluginManager", 
+               "plugins" : {}
+            }, 
+            {
+               "id" : "control", 
+               "canGrabPosition" : "false", 
+               "canGrabRotation" : "false", 
+               "positionState" : "ParentLink", 
+               "rotationState" : "ParentLink", 
+               "position" : {
+                  "x" : "0.04086685", 
+                  "y" : "0.8537499", 
+                  "z" : "0.04629788"
+               }, 
+               "rotation" : {
+                  "x" : "338.066", 
+                  "y" : "169.0376", 
+                  "z" : "3.03306"
+               }, 
+               "linkTo" : "sapzexui bg:control"
+            }
+         ]
+      }, 
+      {
+         "id" : "sapuzexUIopt1", 
+         "on" : "true", 
+         "type" : "UIButton", 
+         "position" : {
+            "x" : "1.4", 
+            "y" : "1", 
+            "z" : "0"
+         }, 
+         "rotation" : {
+            "x" : "0", 
+            "y" : "0", 
+            "z" : "0"
+         }, 
+         "containerPosition" : {
+            "x" : "0.159863", 
+            "y" : "1.064233", 
+            "z" : "0.1221466"
+         }, 
+         "containerRotation" : {
+            "x" : "341.6694", 
+            "y" : "172.9272", 
+            "z" : "1.540669"
+         }, 
+         "storables" : [
+            {
+               "id" : "CollisionTrigger", 
+               "trigger" : {
+                  "startActions" : [], 
+                  "transitionActions" : [], 
+                  "endActions" : []
+               }
+            }, 
+            {
+               "id" : "scale", 
+               "scale" : "0.2999999"
+            }, 
+            {
+               "id" : "Text", 
+               "text" : "Entre no chuveiro com ela"
+            }, 
+            {
+               "id" : "Canvas", 
+               "xSize" : "1399.685"
+            }, 
+            {
+               "id" : "ButtonColor", 
+               "color" : {
+                  "h" : "0.1666667", 
+                  "s" : "0.3411765", 
+                  "v" : "1"
+               }
+            }, 
+            {
+               "id" : "Trigger", 
+               "trigger" : {
+                  "startActions" : [], 
+                  "transitionActions" : [], 
+                  "endActions" : []
+               }
+            }, 
+            {
+               "id" : "PluginManager", 
+               "plugins" : {}
+            }, 
+            {
+               "id" : "control", 
+               "canGrabPosition" : "false", 
+               "canGrabRotation" : "false", 
+               "positionState" : "ParentLink", 
+               "rotationState" : "ParentLink", 
+               "position" : {
+                  "x" : "0.159863", 
+                  "y" : "1.064233", 
+                  "z" : "0.1221466"
+               }, 
+               "rotation" : {
+                  "x" : "341.6694", 
+                  "y" : "172.9272", 
+                  "z" : "1.540669"
+               }, 
+               "linkTo" : "sapzexui bg:control"
+            }
+         ]
+      }, 
+      {
+         "id" : "sapuzexUIopt2n", 
+         "on" : "true", 
+         "type" : "UIButton", 
+         "position" : {
+            "x" : "1.4", 
+            "y" : "1", 
+            "z" : "0"
+         }, 
+         "rotation" : {
+            "x" : "0", 
+            "y" : "0", 
+            "z" : "0"
+         }, 
+         "containerPosition" : {
+            "x" : "0.1588526", 
+            "y" : "1.010163", 
+            "z" : "0.1088951"
+         }, 
+         "containerRotation" : {
+            "x" : "343.5553", 
+            "y" : "173.0462", 
+            "z" : "1.458487"
+         }, 
+         "storables" : [
+            {
+               "id" : "CollisionTrigger", 
+               "trigger" : {
+                  "startActions" : [], 
+                  "transitionActions" : [], 
+                  "endActions" : []
+               }
+            }, 
+            {
+               "id" : "scale", 
+               "scale" : "0.2999999"
+            }, 
+            {
+               "id" : "Text", 
+               "text" : "Elogie ela"
+            }, 
+            {
+               "id" : "Canvas", 
+               "xSize" : "1399.995"
+            }, 
+            {
+               "id" : "ButtonColor", 
+               "color" : {
+                  "h" : "0.1666667", 
+                  "s" : "0.3921568", 
+                  "v" : "1"
+               }
+            }, 
+            {
+               "id" : "Trigger", 
+               "trigger" : {
+                  "startActions" : [], 
+                  "transitionActions" : [], 
+                  "endActions" : []
+               }
+            }, 
+            {
+               "id" : "PluginManager", 
+               "plugins" : {}
+            }, 
+            {
+               "id" : "control", 
+               "canGrabPosition" : "false", 
+               "canGrabRotation" : "false", 
+               "positionState" : "ParentLink", 
+               "rotationState" : "ParentLink", 
+               "position" : {
+                  "x" : "0.1588526", 
+                  "y" : "1.010163", 
+                  "z" : "0.1088951"
+               }, 
+               "rotation" : {
+                  "x" : "343.5553", 
+                  "y" : "173.0462", 
+                  "z" : "1.458487"
+               }, 
+               "linkTo" : "sapzexui bg:control"
+            }
+         ]
+      }, 
+      {
+         "id" : "sapzexui bg", 
+         "on" : "true", 
+         "type" : "ImagePanelEmissive", 
+         "position" : {
+            "x" : "3.166", 
+            "y" : "1.093", 
+            "z" : "0"
+         }, 
+         "rotation" : {
+            "x" : "0", 
+            "y" : "0", 
+            "z" : "0"
+         }, 
+         "containerPosition" : {
+            "x" : "0.1619058", 
+            "y" : "1.010338", 
+            "z" : "0.1013073"
+         }, 
+         "containerRotation" : {
+            "x" : "341.3798", 
+            "y" : "174.0295", 
+            "z" : "1.018562"
+         }, 
+         "storables" : [
+            {
+               "id" : "CollisionTrigger", 
+               "trigger" : {
+                  "startActions" : [], 
+                  "transitionActions" : [], 
+                  "endActions" : []
+               }
+            }, 
+            {
+               "id" : "scale", 
+               "scale" : "0.3188488"
+            }, 
+            {
+               "id" : "Image", 
+               "url" : "Saves/scene/sapuzex/Perrine and Pablo/UIbarOpen.png"
+            }, 
+            {
+               "id" : "PluginManager", 
+               "plugins" : {}
+            }, 
+            {
+               "id" : "control", 
+               "canGrabPosition" : "false", 
+               "canGrabRotation" : "false", 
+               "positionState" : "ParentLink", 
+               "rotationState" : "ParentLink", 
+               "position" : {
+                  "x" : "0.1619058", 
+                  "y" : "1.010338", 
+                  "z" : "0.1013073"
+               }, 
+               "rotation" : {
+                  "x" : "341.3798", 
+                  "y" : "174.0295", 
+                  "z" : "1.018562"
+               }, 
+               "linkTo" : "sapuzexSpheregrabber:object"
+            }
+         ]
+      }
+   ]
+}

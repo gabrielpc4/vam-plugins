@@ -21,8 +21,8 @@ namespace geesp0t
     // scene JSON
     // (currentLoadDir); E-Motion HUD column (Lite / Original / Final / remove
     // all)
-    // swaps packs via TryReplaceEmotionFamilyWithExactPath; I = hide hands +
-    // cycle Person head snap (uid order; one Person = re-snap same); P =
+    // swaps packs via TryReplaceEmotionFamilyWithExactPath; I / VR right-hand
+    // over HMD (cylinder) = hide hands + cycle Person head snap; P =
     // Possess+Align+Select closest Person by head;
     // O = unpossess all; C = cycle Female then Male Persons (uid), Edit +
     // Selected
@@ -49,6 +49,8 @@ namespace geesp0t
         private static Coroutine _autoPossessCoroutine;
         /// <summary>Next index for <see cref="HotkeySnapNearestHeadHideHandsThenSnap"/> among <see cref="AllPersonsSortedByUidForISnapCycle"/>.</summary>
         private static int _hotkeyISnapPersonCycleNextIndex;
+        /// <summary>After <see cref="TryVrRightHandOverHeadCylinderSnapGesture"/> fires, true until the hand leaves the zone.</summary>
+        private static bool _vrOverHeadSnapGestureInsideLatch;
         /// <summary>Set in <see cref="Init"/> so static possess coroutine can refresh HUD after merging plugins.</summary>
         private static System.Action _refreshPluginToggleLabelsStatic;
 
@@ -114,6 +116,16 @@ namespace geesp0t
         /// <summary>Offset snap target for Snap F (and any caller that wants a slightly raised/backed eye point). Snap M aligns to <see cref="GetPossessionMatchHeadSnapWorldPosition"/> instead.</summary>
         private const float SnapHeadTargetAboveControlMeters = 0.15f;
         private const float SnapHeadTargetBackAlongPossessMeters = 0.05f;
+
+        /// <summary>Right hand vs HMD axis: max horizontal offset (m) for
+        /// <see cref="TryVrRightHandOverHeadCylinderSnapGesture"/>.</summary>
+        private const float VrOverHeadSnapCylinderRadiusM = 0.14f;
+        /// <summary>Hand must be at least this far <b>above</b> HMD position
+        /// along headset <c>up</c> (m).</summary>
+        private const float VrOverHeadSnapMinHeightAlongHmdUpM = 0.06f;
+        /// <summary>Hand must stay below this height above HMD along <c>up</c>
+        /// (m) so random high reaches do not fire.</summary>
+        private const float VrOverHeadSnapMaxHeightAlongHmdUpM = 0.34f;
 
         /// <summary>Same anchor VaM uses for head possession (<c>headControl</c> transform / control), no Easy Mate offset.</summary>
         private static Vector3 GetPossessionMatchHeadSnapWorldPosition(FreeControllerV3 head)
@@ -204,9 +216,12 @@ namespace geesp0t
         /// other family entries first.
         /// <b>O</b> stops auto-possess and
         /// <see cref="SuperController.ClearPossess"/>.
-        /// <b>I</b> hides VR hand models then snaps the rig to the <b>closest
-        /// Person head</b> to the look camera (same rules as <b>Passenger Female</b> for
-        /// female, <b>Passenger Male</b> for male).
+        /// <b>I</b> hides VR hand models then cycles rig snap across
+        /// <b>Person</b> heads by uid (same rules as <b>Passenger Female</b> /
+        /// <b>Passenger Male</b> per figure). In VR, placing the <b>right
+        /// controller</b> in a short vertical cylinder <b>above the HMD</b>
+        /// (headset <c>up</c> axis, limited radius) triggers that same action
+        /// once until the hand leaves the volume.
         /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD
         /// buttons on the <b>closest Person by head</b> to the look/center
         /// camera (not alphabetically first F/M).
@@ -354,6 +369,15 @@ namespace geesp0t
                 }
 
                 return;
+            }
+
+            try
+            {
+                TryVrRightHandOverHeadCylinderSnapGesture();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("VR over-head I snap gesture: " + e);
             }
         }
 
@@ -503,6 +527,60 @@ namespace geesp0t
                 currentlyOn = sc.freezeAnimation;
 
             sc.SetFreezeAnimation(!currentlyOn);
+        }
+
+        /// <summary>
+        /// If the right controller sits in a cylinder segment above the HMD
+        /// (radial cap around headset <c>up</c>, not merely “somewhere higher”
+        /// in world space), run the same path as the <b>I</b> key once per
+        /// entry until the hand exits.
+        /// </summary>
+        private void TryVrRightHandOverHeadCylinderSnapGesture()
+        {
+            SuperController sc = SuperController.singleton;
+            if (sc == null || sc.isLoading)
+                return;
+            if (!(sc.isOVR || sc.isOpenVR || XRSettings.enabled))
+                return;
+
+            Transform hmdTf = sc.centerCameraTarget != null ?
+                sc.centerCameraTarget.transform :
+                null;
+            if (hmdTf == null && sc.lookCamera != null)
+                hmdTf = sc.lookCamera.transform;
+            if (hmdTf == null)
+                return;
+
+            Transform rh = sc.rightHand;
+            if (rh == null)
+                return;
+
+            Vector3 headUp = hmdTf.up;
+            if (headUp.sqrMagnitude < 1e-10f)
+                headUp = Vector3.up;
+            else
+                headUp.Normalize();
+
+            Vector3 deltaW = rh.position - hmdTf.position;
+            float hAlongUp = Vector3.Dot(deltaW, headUp);
+            Vector3 radial = deltaW - headUp * hAlongUp;
+            float rMax = VrOverHeadSnapCylinderRadiusM;
+            bool inZone = hAlongUp >= VrOverHeadSnapMinHeightAlongHmdUpM &&
+                hAlongUp <= VrOverHeadSnapMaxHeightAlongHmdUpM &&
+                radial.sqrMagnitude <= rMax * rMax;
+
+            if (inZone)
+            {
+                if (!_vrOverHeadSnapGestureInsideLatch)
+                {
+                    HotkeySnapNearestHeadHideHandsThenSnap();
+                    _vrOverHeadSnapGestureInsideLatch = true;
+                }
+            }
+            else
+            {
+                _vrOverHeadSnapGestureInsideLatch = false;
+            }
         }
 
         /// <summary>All <c>Person</c> atoms, stable uid order (I hotkey snap cycle).</summary>

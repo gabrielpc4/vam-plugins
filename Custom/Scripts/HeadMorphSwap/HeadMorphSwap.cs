@@ -11,31 +11,6 @@ using SimpleJSON;
 /// </summary>
 public class HeadMorphSwap : MVRScript
 {
-    /// <summary>
-    /// Logs to VaM error buffer and opens Error HUD (helps desktop mirror use).
-    /// </summary>
-    private static void LogErrorShowHud(string message)
-    {
-        SuperController sc = SuperController.singleton;
-        if (sc != null && !sc.IsMonitorOnly)
-        {
-            sc.ShowMainHUD(setAnchors: true, forceMonitor: false);
-        }
-        SuperController.LogError(message);
-        if (sc != null)
-        {
-            sc.OpenErrorLogPanel();
-            if (sc.errorLogPanel != null)
-            {
-                Transform sub = sc.errorLogPanel.Find("Panel");
-                if (sub != null)
-                {
-                    sub.gameObject.SetActive(true);
-                }
-            }
-        }
-    }
-
     private JSONStorableUrl donorPersonPresetPathUrl;
 
     private JSONStorableStringChooser recipientChooser;
@@ -509,7 +484,8 @@ public class HeadMorphSwap : MVRScript
             out presetErr))
         {
             statusLine.val = presetErr;
-            LogErrorShowHud(string.Concat("[HeadMorphSwap] ", presetErr));
+            SuperController.LogError(
+                string.Concat("[HeadMorphSwap] ", presetErr));
             return;
         }
 
@@ -716,7 +692,7 @@ public class HeadMorphSwap : MVRScript
         }
         catch (Exception e)
         {
-            LogErrorShowHud(string.Concat("HeadMorphSwap Init ", e.ToString()));
+            SuperController.LogError("HeadMorphSwap Init " + e);
         }
     }
 

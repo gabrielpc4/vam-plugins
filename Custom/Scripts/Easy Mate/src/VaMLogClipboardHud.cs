@@ -7,15 +7,23 @@ using UnityEngine.XR;
 namespace geesp0t
 {
     /// <summary>
-    /// Separate session plugin: only Copy Errors / Copy Console / Clear logs.
-    /// Own .cslist so these controls still load if EasyMate.cslist or
-    /// MainUIButtons fails; layout column 0 matches MainUIButtons columns
-    /// 1–3 on the same mainHUD transform.
+    /// Separate session plugin: Copy Errors / Copy Console / Clear logs, plus when
+    /// VaM adds new error-lines (SuperController.errorCount rises), brings main HUD
+    /// to headset in VR and expands the Error Log panel so faults are readable in-HMD.
+    /// Own .cslist so controls still load if EasyMate.cslist or MainUIButtons fails;
+    /// layout column 0 matches MainUIButtons columns 1–3 on mainHUD.
     /// </summary>
     public class VaMLogClipboardHud : MVRScript
     {
         private Canvas _canvas;
+
         private bool _isDesktopMode;
+
+        /// <summary>Previous SuperController.errorCount; syncs ClearErrors dips.</summary>
+        private int _lastSeenErrorCount;
+
+        /// <summary>False until baseline count captured (avoids spurious HUD pop).</summary>
+        private bool _baselineErrorSeen;
 
         public override void Init()
         {
@@ -27,12 +35,48 @@ namespace geesp0t
             {
                 SuperController sc = SuperController.singleton;
                 if (sc != null)
+                {
+                    _lastSeenErrorCount = sc.errorCount;
+                    _baselineErrorSeen = true;
                     _isDesktopMode = !(sc.isOVR || sc.isOpenVR);
+                }
                 CreateHud();
             }
             catch (Exception e)
             {
                 SuperController.LogError("VaMLogClipboardHud Start: " + e);
+            }
+        }
+
+        private void LateUpdate()
+        {
+            SuperController sc = SuperController.singleton;
+            if (sc == null || !_baselineErrorSeen)
+                return;
+
+            int c = sc.errorCount;
+            if (c > _lastSeenErrorCount)
+                BringVaMErrorHudToView(sc);
+
+            _lastSeenErrorCount = c;
+        }
+
+        /// <summary>
+        /// Main HUD follows headset anchors (skip monitor mirror rig in VR); open Error
+        /// Log drawer and Panel child match ErrorLogToggle / LFE command behavior.
+        /// </summary>
+        private static void BringVaMErrorHudToView(SuperController sc)
+        {
+            if (sc == null)
+                return;
+            if (!sc.IsMonitorOnly)
+                sc.ShowMainHUD(setAnchors: true, forceMonitor: false);
+            sc.OpenErrorLogPanel();
+            if (sc.errorLogPanel != null)
+            {
+                Transform subPanel = sc.errorLogPanel.Find("Panel");
+                if (subPanel != null)
+                    subPanel.gameObject.SetActive(true);
             }
         }
 

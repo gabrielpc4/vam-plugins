@@ -15,7 +15,9 @@ namespace geesp0t
     /// <c>Reference/VaM-Camera-Initial-Scene-Pose.md</c>).
     /// Scene folder comes from <see cref="SuperController.currentLoadDir"/>.
     /// Absolute paths for the patch process use
-    /// <see cref="FileManager.GetFullPath"/> (no System.IO in plugin code).
+    /// <see cref="FileManager.GetFullPath"/>. Process stdout/stderr are not
+    /// read here (VaM prohibits referencing <c>System.IO</c> via
+    /// <c>Process.StandardOutput</c>); see <see cref="PatchToolLogRelative"/>.
     /// </summary>
     public static class EasyMateKSceneCameraPatch
     {
@@ -84,8 +86,6 @@ namespace geesp0t
                 psi.FileName = exe;
                 psi.Arguments = exe == "py" ? ("-3 " + pyArgs) : pyArgs;
                 psi.UseShellExecute = false;
-                psi.RedirectStandardOutput = true;
-                psi.RedirectStandardError = true;
                 psi.CreateNoWindow = true;
                 try
                 {
@@ -119,25 +119,18 @@ namespace geesp0t
                 return;
             }
 
-            string outLog = proc.StandardOutput.ReadToEnd();
-            string errLog = proc.StandardError.ReadToEnd();
-            if (proc.ExitCode != 0)
+            int exitCode = proc.ExitCode;
+            if (exitCode != 0)
             {
                 SuperController.LogError(string.Format(
-                    "EasyMate [key K]: python exit {0}. stdout: {1} stderr: {2}",
-                    proc.ExitCode,
-                    outLog,
-                    errLog));
+                    "EasyMate [key K]: python exit {0}. Details: {1}",
+                    exitCode,
+                    PatchToolLogRelative));
             }
             else
-            {
                 SuperController.LogMessage(string.Format(
-                    "EasyMate [key K]: python exit 0. stdout: {0} stderr: {1}",
-                    outLog,
-                    errLog));
-            }
-
-            SuperController.LogMessage("EasyMate [key K]: full tool log: " + PatchToolLogRelative);
+                    "EasyMate [key K]: python exit 0. Details: {0}",
+                    PatchToolLogRelative));
         }
 
         private static JSONClass BuildPatchRequest(SuperController sc)

@@ -21,8 +21,8 @@ namespace geesp0t
     // scene JSON
     // (currentLoadDir); E-Motion HUD column (Lite / Original / Final / remove
     // all)
-    // swaps packs via TryReplaceEmotionFamilyWithExactPath; I / VR right-hand
-    // over HMD (cylinder) = hide hands + cycle Person head snap; P =
+    // swaps packs via TryReplaceEmotionFamilyWithExactPath; I / VR gestures
+    // (see EasyMateVrGestureRuntime) e.g. over-HMD cylinder → same as I; P =
     // Possess+Align+Select closest Person by head;
     // O = unpossess all; C = cycle Female then Male Persons (uid), Edit +
     // Selected
@@ -176,6 +176,8 @@ namespace geesp0t
         UIDynamicButton possessAlignSelectFemaleButton = null;
         UIDynamicButton possessAlignSelectMaleButton = null;
 
+        private EasyMateVrGestureBindings _vrGestureBindings;
+
         private static float _lastYDebugLogUnscaledTime = -1000f;
         private const float YDebugLogMinIntervalSeconds = 0.35f;
 
@@ -187,6 +189,10 @@ namespace geesp0t
             isDesktopMode = !(SuperController.singleton.isOVR || SuperController.singleton.isOpenVR);
             RegisterPersonGenderCacheInvalidation();
             _refreshPluginToggleLabelsStatic = RefreshPluginToggleLabels;
+
+            _vrGestureBindings = new EasyMateVrGestureBindings();
+            _vrGestureBindings.TriggerISnapSameAsKeyI =
+                delegate() { HotkeySnapNearestHeadHideHandsThenSnap(); };
         }
 
         /// <summary>
@@ -206,9 +212,9 @@ namespace geesp0t
         /// <see cref="SuperController.ClearPossess"/>.
         /// <b>I</b> hides VR hand models then cycles rig snap across
         /// <b>Person</b> heads by uid (same rules as <b>Passenger Female</b> /
-        /// <b>Passenger Male</b> per figure). VR: <see cref="EasyMateVrOverHeadSnapGesture"/> — right
-        /// controller over the HMD (cylinder), 4s cooldown, once per visit until
-        /// the hand exits the volume.
+        /// <b>Passenger Male</b> per figure). VR: <see cref="EasyMateVrGestureRuntime"/> — e.g.
+        /// right hand over the HMD (cylinder), 4s cooldown, once per visit until
+        /// the hand exits; more gestures can use the same pipeline.
         /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD
         /// buttons on the <b>closest Person by head</b> to the look/center
         /// camera (not alphabetically first F/M).
@@ -360,12 +366,11 @@ namespace geesp0t
 
             try
             {
-                EasyMateVrOverHeadSnapGesture.ProcessUpdate(
-                    delegate() { HotkeySnapNearestHeadHideHandsThenSnap(); });
+                EasyMateVrGestureRuntime.ProcessUpdate(_vrGestureBindings);
             }
             catch (Exception e)
             {
-                SuperController.LogError("VR over-head I snap gesture: " + e);
+                SuperController.LogError("Easy Mate VR gestures: " + e);
             }
         }
 

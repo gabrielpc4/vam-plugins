@@ -790,8 +790,9 @@ namespace geesp0t
                 case "ToyBP":
                 case "Paddle":
                 default:
-                    // User: Dildo needs X spin; others read correct without yaw flip.
-                    return Quaternion.identity;
+                    // Grip +Z tended to aim props at the headset; flip about local X so
+                    // length runs away along palm forward (+Z) instead of toward you.
+                    return Quaternion.Euler(180f, 0f, 0f);
             }
         }
 

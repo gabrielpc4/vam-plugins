@@ -98,9 +98,11 @@ namespace geesp0t
         public JSONStorableFloat longMocapMinSecondsForEmotionMerge;
 
         /// <summary>
-        /// When true (default), in main monitor mode on Quest (Oculus), shows blue/red
-        /// aim cylinders while resting a finger on X (left) or A (right) capacitive touch;
-        /// hides on release. No OpenVR support for this gesture.
+        /// When true (default), in main monitor mode, shows blue/red aim cylinders while
+        /// the UI-aim gesture is active: Oculus X/A capacitive touch, or OpenVR (SteamVR
+        /// / e.g. Virtual Desktop) <c>TargetShow</c> via
+        /// <see cref="SuperController.GetLeftUIPointerShow"/> /
+        /// <see cref="SuperController.GetRightUIPointerShow"/>.
         /// </summary>
         public JSONStorableBool restoreMonitorModeControllerLaser;
 
@@ -194,7 +196,7 @@ namespace geesp0t
             RegisterFloat(longMocapMinSecondsForEmotionMerge);
 
             restoreMonitorModeControllerLaser = new JSONStorableBool(
-                "Monitor mode: beams on Quest X/A capacitive touch",
+                "Monitor mode: beams (Quest X/A touch or SteamVR TargetShow)",
                 true);
             RegisterBool(restoreMonitorModeControllerLaser);
 

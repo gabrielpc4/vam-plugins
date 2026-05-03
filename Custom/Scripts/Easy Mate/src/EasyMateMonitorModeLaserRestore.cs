@@ -6,9 +6,11 @@ namespace geesp0t
     /// <summary>
     /// With main monitor mode on (<see cref="SuperController.MonitorRig"/> active), shows a
     /// thin blue (left) / red (right) cylinder along each motion controller’s forward
-    /// while the user rests a finger on the Quest face-button capacitive sensor: X on
-    /// the left controller (OVR Touch.Three + LTouch) and A on the right (Touch.One + RTouch).
-    /// Hides on release. OpenVR has no matching capacitive signal; beams stay off there.
+    /// while the user shows the UI aim gesture: on Oculus runtime, X left and A right
+    /// capacitive (<c>OVRInput.Touch</c> on LTouch/RTouch); on OpenVR (SteamVR, including
+    /// Virtual Desktop), <see cref="SuperController.GetLeftUIPointerShow"/> /
+    /// <see cref="SuperController.GetRightUIPointerShow"/> (SteamVR TargetShow per hand).
+    /// Hides when that input is inactive.
     /// </summary>
     internal static class EasyMateMonitorModeLaserRestore
     {
@@ -54,18 +56,8 @@ namespace geesp0t
 
             EnsureBeams(sc);
 
-            if (!sc.isOVR)
-            {
-                HideBeams();
-                return;
-            }
-
-            bool capLeft = OVRInput.Get(
-                OVRInput.Touch.Three,
-                OVRInput.Controller.LTouch);
-            bool capRight = OVRInput.Get(
-                OVRInput.Touch.One,
-                OVRInput.Controller.RTouch);
+            bool capLeft = CapTouchLeft(sc);
+            bool capRight = CapTouchRight(sc);
 
             if (capLeft)
                 UpdateBeamForward(sc, MotionLeft(sc), _beamLeft);
@@ -76,6 +68,32 @@ namespace geesp0t
                 UpdateBeamForward(sc, MotionRight(sc), _beamRight);
             else
                 HideOne(_beamRight);
+        }
+
+        /// <summary>
+        /// Left “show UI pointer” / X capacitive on Quest; SteamVR TargetShow left on
+        /// OpenVR.
+        /// </summary>
+        private static bool CapTouchLeft(SuperController sc)
+        {
+            if (sc.isOVR)
+                return OVRInput.Get(OVRInput.Touch.Three, OVRInput.Controller.LTouch);
+            if (sc.isOpenVR)
+                return sc.GetLeftUIPointerShow();
+            return false;
+        }
+
+        /// <summary>
+        /// Right “show UI pointer” / A capacitive on Quest; SteamVR TargetShow right
+        /// on OpenVR.
+        /// </summary>
+        private static bool CapTouchRight(SuperController sc)
+        {
+            if (sc.isOVR)
+                return OVRInput.Get(OVRInput.Touch.One, OVRInput.Controller.RTouch);
+            if (sc.isOpenVR)
+                return sc.GetRightUIPointerShow();
+            return false;
         }
 
         private static Transform MotionLeft(SuperController sc)

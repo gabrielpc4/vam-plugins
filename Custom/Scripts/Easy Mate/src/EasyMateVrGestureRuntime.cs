@@ -33,7 +33,8 @@ namespace geesp0t
 
         /// <summary>
         /// Right hand in a vertical cylinder above the HMD (headset
-        /// <c>up</c>), once per visit, with cooldown.
+        /// <c>up</c>), once per visit, with cooldown. Pose checks run at most
+        /// once per second; per-frame cost is only mode + interval gate.
         /// </summary>
         private static class OverHeadRightHandCylinderGesture
         {
@@ -41,9 +42,15 @@ namespace geesp0t
             private const float MinHeightAlongHmdUpM = 0.06f;
             private const float MaxHeightAlongHmdUpM = 0.34f;
             private const float CooldownSeconds = 4f;
+            /// <summary>
+            /// Min seconds between HMD/hand reads and cylinder tests;
+            /// ≤1s trigger delay vs continuous <c>Update</c>.
+            /// </summary>
+            private const float EvalIntervalUnscaledSeconds = 1f;
 
             private static bool _insideLatch;
             private static float _lastTriggerUnscaledTime = -1000f;
+            private static float _lastEvalUnscaledTime = -1000f;
 
             public static void ProcessUpdate(Action boundAction)
             {
@@ -55,6 +62,11 @@ namespace geesp0t
                     return;
                 if (!(sc.isOVR || sc.isOpenVR || XRSettings.enabled))
                     return;
+
+                float now = Time.unscaledTime;
+                if (now - _lastEvalUnscaledTime < EvalIntervalUnscaledSeconds)
+                    return;
+                _lastEvalUnscaledTime = now;
 
                 Transform hmdTf = sc.centerCameraTarget != null ?
                     sc.centerCameraTarget.transform :
@@ -86,7 +98,6 @@ namespace geesp0t
                 {
                     if (!_insideLatch)
                     {
-                        float now = Time.unscaledTime;
                         if (now - _lastTriggerUnscaledTime >= CooldownSeconds)
                         {
                             boundAction();

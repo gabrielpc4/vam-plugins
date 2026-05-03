@@ -8,13 +8,12 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// VR Grab spawns atoms at the hand (VaM Grab = index trigger). Default
-    /// mode clones toy atoms + storables from a scene JSON preset (colors,
-    /// scale, springs) then moves the main controller to the hand (see
-    /// ReadFileIntoString path). Fallback mode uses vanilla AddAtomByType plus
-    /// optional extra type lines. First spawn each session is Dildo (template
-    /// id Dildo when present, else legacy Dildo). OVR LT/RT fallback when Oculus
-    /// paths are inactive.
+    /// VR: left-hand Grab / index-trigger only spawns at the right hand so the
+    /// right trigger stays normal grab. Clone mode restores toy storables from
+    /// catalog JSON (colors, scale, springs). Fallback uses AddAtomByType plus
+    /// optional extras. First session spawn is catalog Dildo when present else
+    /// legacy Dildo. Oculus uses OVR LTouch triggers when Oculus paths drive
+    /// input.
     /// </summary>
     public class DildoOnHands : MVRScript
     {
@@ -622,23 +621,13 @@ namespace geesp0t
                 }
             }
 
-            bool leftOnly = leftPressed && !rightPressed;
-            bool rightOnly = rightPressed && !leftPressed;
-            bool dual = leftPressed && rightPressed;
-
-            if (!leftOnly && !rightOnly && !dual)
+            if (!leftPressed || rightPressed)
                 return;
 
-            bool pickLeft;
-            if (rightOnly)
-                pickLeft = false;
-            else
-                pickLeft = true;
-
-            StartCoroutine(CoSpawnToyAtHand(pickLeft));
+            StartCoroutine(CoSpawnToyAtHand());
         }
 
-        private IEnumerator CoSpawnToyAtHand(bool leftHandPreferred)
+        private IEnumerator CoSpawnToyAtHand()
         {
             _spawnCoroutineRunning = true;
             SuperController svc = SuperController.singleton;
@@ -719,8 +708,7 @@ namespace geesp0t
                                         _lastSceneToySourceId =
                                             tmpl.SceneAtomId;
 
-                                        PlaceSpawnAtHand(spawned,
-                                            leftHandPreferred);
+                                        PlaceSpawnAtHand(spawned, false);
 
                                         yield break;
                                     }
@@ -814,7 +802,7 @@ namespace geesp0t
                 _waitingMandatoryFirstDildo = false;
                 _lastToyAtomTypeSpawned = atomLegacy;
                 _lastSceneToySourceId = null;
-                PlaceSpawnAtHand(spawnedLegacy, leftHandPreferred);
+                PlaceSpawnAtHand(spawnedLegacy, false);
             }
             finally
             {

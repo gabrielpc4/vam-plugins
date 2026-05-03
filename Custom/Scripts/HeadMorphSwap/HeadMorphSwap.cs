@@ -11,6 +11,33 @@ public class HeadMorphSwap : MVRScript
 {
     private const string DonorNoneChoice = "--- pick donor ---";
 
+    /// <summary>
+    /// Logs to VaM's error buffer, attaches main HUD to the headset when not in
+    /// monitor-only mode (avoids HUD stuck on mirror monitor), opens Error Log,
+    /// and ensures its Panel child stays visible like the Error Log toggle bind.
+    /// </summary>
+    private static void LogErrorShowHud(string message)
+    {
+        SuperController sc = SuperController.singleton;
+        if (sc != null && !sc.IsMonitorOnly)
+        {
+            sc.ShowMainHUD(setAnchors: true, forceMonitor: false);
+        }
+        SuperController.LogError(message);
+        if (sc != null)
+        {
+            sc.OpenErrorLogPanel();
+            if (sc.errorLogPanel != null)
+            {
+                Transform sub = sc.errorLogPanel.Find("Panel");
+                if (sub != null)
+                {
+                    sub.gameObject.SetActive(true);
+                }
+            }
+        }
+    }
+
     private JSONStorableUrl donorPersonPresetPathUrl;
 
     private JSONStorableStringChooser recipientChooser;
@@ -594,8 +621,7 @@ public class HeadMorphSwap : MVRScript
             out presetErr))
         {
             statusLine.val = presetErr;
-            SuperController.LogError(
-                string.Concat("[HeadMorphSwap] ", presetErr));
+            LogErrorShowHud(string.Concat("[HeadMorphSwap] ", presetErr));
             return;
         }
 
@@ -954,7 +980,7 @@ public class HeadMorphSwap : MVRScript
         }
         catch (Exception e)
         {
-            SuperController.LogError("HeadMorphSwap Init " + e);
+            LogErrorShowHud(string.Concat("HeadMorphSwap Init ", e.ToString()));
         }
     }
 

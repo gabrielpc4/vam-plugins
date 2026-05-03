@@ -172,9 +172,6 @@ namespace geesp0t
         UIDynamicButton snapMaleHeadButton = null;
         UIDynamicButton possessAlignSelectFemaleButton = null;
         UIDynamicButton possessAlignSelectMaleButton = null;
-        UIDynamicButton copyErrorLogButton = null;
-        UIDynamicButton copyMessageLogButton = null;
-        UIDynamicButton clearLogsButton = null;
 
         private static float _lastYDebugLogUnscaledTime = -1000f;
         private const float YDebugLogMinIntervalSeconds = 0.35f;
@@ -878,10 +875,6 @@ namespace geesp0t
             snapMaleHeadButton = AddButton("Snap M", SnapRigToClosestMaleHead, 2, 1, 100f);
             stripAllClothesButton = AddButton("Strip all", StripAllClothesOnAllPersons, 0, 2, 100f);
             removeUnderwearButton = AddButton("Underwear", RemoveUnderwearOnAllPersons, 1, 2, 100f);
-            const float logHudButtonWidth = 112f;
-            copyErrorLogButton = AddButton("Copy errors", OnCopyErrorLogClicked, 0, 3, logHudButtonWidth);
-            copyMessageLogButton = AddButton("Copy messages", OnCopyMessageLogClicked, 1, 3, logHudButtonWidth);
-            clearLogsButton = AddButton("Clear logs", OnClearLogsClicked, 2, 3, logHudButtonWidth);
 
             RefreshPluginToggleLabels();
 
@@ -912,12 +905,6 @@ namespace geesp0t
                 possessAlignSelectFemaleButton.gameObject.SetActive(setToActive);
             if (possessAlignSelectMaleButton != null)
                 possessAlignSelectMaleButton.gameObject.SetActive(setToActive);
-            if (copyErrorLogButton != null)
-                copyErrorLogButton.gameObject.SetActive(setToActive);
-            if (copyMessageLogButton != null)
-                copyMessageLogButton.gameObject.SetActive(setToActive);
-            if (clearLogsButton != null)
-                clearLogsButton.gameObject.SetActive(setToActive);
             if (setToActive)
             {
                 RefreshPluginToggleLabels();
@@ -1038,83 +1025,6 @@ namespace geesp0t
         private void OnSpankingsPluginToggleClicked()
         {
             ToggleSpankingsPluginOnAllPersons();
-        }
-
-        /// <summary>VaM keeps <see cref="SuperController.allErrorsText"/> in sync with the internal error buffer.</summary>
-        private static string GetVaMErrorLogText(SuperController sc)
-        {
-            if (sc == null)
-                return string.Empty;
-            if (sc.allErrorsText != null && sc.allErrorsText.text != null)
-                return sc.allErrorsText.text;
-            if (sc.allErrorsText2 != null && sc.allErrorsText2.text != null)
-                return sc.allErrorsText2.text;
-            return string.Empty;
-        }
-
-        /// <summary>In-game message console log (<see cref="SuperController.allMessagesText"/>).</summary>
-        private static string GetVaMMessageLogText(SuperController sc)
-        {
-            if (sc == null)
-                return string.Empty;
-            if (sc.allMessagesText != null && sc.allMessagesText.text != null)
-                return sc.allMessagesText.text;
-            if (sc.allMessagesText2 != null && sc.allMessagesText2.text != null)
-                return sc.allMessagesText2.text;
-            return string.Empty;
-        }
-
-        private void OnCopyErrorLogClicked()
-        {
-            try
-            {
-                SuperController sc = SuperController.singleton;
-                string t = GetVaMErrorLogText(sc);
-                GUIUtility.systemCopyBuffer = t != null ? t : string.Empty;
-                if (t == null || t.Length == 0)
-                    SuperController.LogMessage("Easy Mate: copied error log to clipboard (empty).");
-                else
-                    SuperController.LogMessage("Easy Mate: copied error log to clipboard (" + t.Length + " chars).");
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError("Easy Mate: copy error log to clipboard: " + e);
-            }
-        }
-
-        private void OnCopyMessageLogClicked()
-        {
-            try
-            {
-                SuperController sc = SuperController.singleton;
-                string t = GetVaMMessageLogText(sc);
-                GUIUtility.systemCopyBuffer = t != null ? t : string.Empty;
-                if (t == null || t.Length == 0)
-                    SuperController.LogMessage("Easy Mate: copied message log to clipboard (empty).");
-                else
-                    SuperController.LogMessage("Easy Mate: copied message log to clipboard (" + t.Length + " chars).");
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError("Easy Mate: copy message log to clipboard: " + e);
-            }
-        }
-
-        private void OnClearLogsClicked()
-        {
-            try
-            {
-                SuperController sc = SuperController.singleton;
-                if (sc == null)
-                    return;
-                sc.ClearErrors();
-                sc.ClearMessages();
-                SuperController.LogMessage("Easy Mate: cleared in-game error and message logs.");
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError("Easy Mate: clear in-game logs: " + e);
-            }
         }
 
         /// <summary>Merge or remove Spankings on every Person (HUD and <b>Ctrl+Shift+S</b>). When disabling (everyone had it): full remove + cleanup scene atoms. When enabling: merge only onto Persons missing the plugin (does not strip scene-loaded Spankings first).</summary>

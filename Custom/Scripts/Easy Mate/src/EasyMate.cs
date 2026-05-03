@@ -107,6 +107,15 @@ namespace geesp0t
         /// </summary>
         public JSONStorableBool hideFluidCumMeshDuringSceneLoad;
 
+        /// <summary>
+        /// Restore navigation rig, monitor orientation, and player height after a
+        /// load when VaM stays in the same <see cref="SuperController.currentLoadDir"/>
+        /// (e.g. switching between JSON files inside one chapter folder).
+        /// </summary>
+        public JSONStorableBool retainCameraPoseSameFolderLoads;
+
+        private bool prevSuperLoading;
+
         public override void Init()
         {
             Log("EasyMate Init");
@@ -149,6 +158,14 @@ namespace geesp0t
                 "Hide DillDoe cum mesh during scene load",
                 true);
             RegisterBool(hideFluidCumMeshDuringSceneLoad);
+
+            retainCameraPoseSameFolderLoads = new JSONStorableBool(
+                "Retain camera pose (loads from same folder)",
+                true,
+                OnRetainSameFolderPoseChanged);
+            RegisterBool(retainCameraPoseSameFolderLoads);
+            EasyMateSameFolderCameraRetain.SetRetainEnabled(
+                retainCameraPoseSameFolderLoads.val);
 
             mergeEmotionWhenLongMocapEndsNoLoop = new JSONStorableBool("Merge E-Motion Final on females when long mocap ends (no loop)", true);
             RegisterBool(mergeEmotionWhenLongMocapEndsNoLoop);
@@ -213,6 +230,11 @@ namespace geesp0t
         private void OnDisableRemoteGripHandLinkChanged(bool v)
         {
             ApplyRemoteHoldGrabPreference();
+        }
+
+        private void OnRetainSameFolderPoseChanged(bool v)
+        {
+            EasyMateSameFolderCameraRetain.SetRetainEnabled(v);
         }
 
         private void ApplyRemoteHoldGrabPreference()
@@ -506,6 +528,20 @@ namespace geesp0t
                     hideFluidCumMeshDuringSceneLoad.val,
                 scFsm != null && scFsm.isLoading);
 
+            bool loadingNow =
+                SuperController.singleton != null && SuperController.singleton.isLoading;
+            if (retainCameraPoseSameFolderLoads != null &&
+                retainCameraPoseSameFolderLoads.val &&
+                scFsm != null)
+            {
+                if (prevSuperLoading && !loadingNow)
+                    EasyMateSameFolderCameraRetain.QueueRestoreCoroutineIfNeeded(this);
+                if (!prevSuperLoading && loadingNow)
+                    EasyMateSameFolderCameraRetain.NotifyLoadBeginning(scFsm);
+            }
+
+            prevSuperLoading = loadingNow;
+
             //once finished loading, apply
             if (SuperController.singleton.isLoading)
             {
@@ -588,6 +624,9 @@ namespace geesp0t
 
             bool gripHands = gripTogglesHandVisibility != null && gripTogglesHandVisibility.val;
             EasyMateGripHandVisibility.LateTick(gripHands);
+
+            if (retainCameraPoseSameFolderLoads != null && retainCameraPoseSameFolderLoads.val)
+                EasyMateSameFolderCameraRetain.LateTickIdleCapture(SuperController.singleton);
 
             bool footDist = possessAutoUnpossessWhenFarFromFeet != null && possessAutoUnpossessWhenFarFromFeet.val;
             float footMax = possessAutoUnpossessFeetMaxHorizontalM != null ? possessAutoUnpossessFeetMaxHorizontalM.val : 1.35f;

@@ -314,6 +314,12 @@ namespace geesp0t
             }
         }
 
+        /// <summary>
+        /// Catalog JSON is loaded and parsed once per catalog path for a VaM
+        /// session (see <see cref="EnsureToyCatalogFresh"/> cache). Spawn does not
+        /// re-open the file every trigger. Slim files with only
+        /// <c>atoms</c> work; offline build: extract_toy_catalog.py.
+        /// </summary>
         /// <returns>Whether catalog rebuilt successfully with one+ toys.</returns>
         private bool TryRebuildToyCatalog(bool logErrors)
         {

@@ -432,6 +432,7 @@ namespace geesp0t
             }
         }
 
+        /// <summary>
         /// Catalog JSON is loaded and parsed once per catalog path for a VaM
         /// session (see <see cref="EnsureToyCatalogFresh"/> cache). Spawn does not
         /// re-open the file every trigger. Slim files with only

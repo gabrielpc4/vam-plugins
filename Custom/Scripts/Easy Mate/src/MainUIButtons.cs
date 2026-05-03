@@ -799,6 +799,34 @@ namespace geesp0t
             }
         }
 
+        /// <summary>
+        /// True when at least one female <c>Person</c> lacks Spankings (same file
+        /// name check as <see cref="MergeSpankingsOnFemalePersonsOnly"/>).
+        /// </summary>
+        public bool AnyFemalePersonMissingSpankings()
+        {
+            try
+            {
+                string fn = GetFileName(PluginSpankings);
+                foreach (Atom at in SuperController.singleton.GetAtoms()
+                    .Where(a => a.type == "Person"))
+                {
+                    if (at == null || !IsPersonFemale(at))
+                        continue;
+                    if (!PersonHasPluginByFileName(at, fn))
+                        return true;
+                }
+
+                return false;
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "AnyFemalePersonMissingSpankings: " + e.Message);
+                return false;
+            }
+        }
+
         private void OnEmotionLiteHudClicked()
         {
             try

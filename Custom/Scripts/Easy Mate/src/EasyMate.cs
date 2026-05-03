@@ -58,7 +58,8 @@ namespace geesp0t
         /// toggles <b>both</b> sides together between articulated VR hands (<b>Male2</b>) and VaM’s sphere/kinematic hand mode
         /// (see <see cref="EasyMateGripHandVisibility"/>); a possessed hand side stays sphere. Collisions stay off while both
         /// sides sphere. The <b>first</b> such grip press this scene queues a merge of <b>Spankings</b> onto <b>female</b> <c>Person</c> atoms only
-        /// that do not already have the plugin (deferred one frame; merge-only), regardless of whether hands become articulated.
+        /// that do not already have the plugin (deferred; merge-only), then after <b>4</b> seconds re-checks and merges again if any female still
+        /// lacks the plugin, regardless of whether hands become articulated.
         /// </summary>
         public JSONStorableBool gripTogglesHandVisibility;
 
@@ -166,6 +167,12 @@ namespace geesp0t
                 if (mainUIButtons == null)
                     yield break;
                 mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
+                yield return new WaitForSeconds(4f);
+                if (mainUIButtons != null &&
+                    mainUIButtons.AnyFemalePersonMissingSpankings())
+                {
+                    mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
+                }
             }
             finally
             {

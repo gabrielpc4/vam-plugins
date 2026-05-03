@@ -10,7 +10,8 @@ namespace geesp0t
     /// Quest squeeze / OpenVR HoldGrab (<b>grip</b>, Oculus <c>HandTrigger</c> per <see cref="EasyMateVrInput"/>): each press toggles <b>both</b>
     /// hands together between articulated <b>Male2</b> / <b>Male 2</b> and VaM’s <see cref="SphereKinematicChoice"/> sphere proxy (sides respect possession).
     /// The <b>first</b> grip press on either controller this scene runs an optional callback (see <see cref="EasyMate"/>) to merge Spankings only
-    /// onto <b>female</b> <c>Person</c>s that do not already have the plugin — independent of whether hands end up articulated or stay sphere (e.g. possession).
+    /// onto <b>female</b> <c>Person</c>s that do not already have the plugin (then a 4s delayed re-check and second merge if still missing) —
+    /// independent of whether hands end up articulated or stay sphere (e.g. possession).
     /// </summary>
     internal static class EasyMateGripHandVisibility
     {

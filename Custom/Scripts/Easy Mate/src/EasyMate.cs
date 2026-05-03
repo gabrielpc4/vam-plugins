@@ -44,6 +44,8 @@ namespace geesp0t
 
         private Coroutine _mergeSpankingsAfterGripCo;
 
+        private Coroutine _postSceneLoadUnfreezeCo;
+
         private bool _prevSuperLoading;
 
         private bool _sceneLoadFreezeCheckboxSnapshot;
@@ -116,9 +118,16 @@ namespace geesp0t
         /// <summary>
         /// When true (default), snapshots the Animation “Freeze Animations / Sound”
         /// checkbox when a load starts, turns freeze on for the load, then restores
-        /// the snapshot as soon as loading finishes.
+        /// the snapshot after <see cref="sceneLoadUnfreezeDelaySeconds"/> realtime
+        /// once loading finishes.
         /// </summary>
         public JSONStorableBool autoFreezeAnimAndSoundBrieflyAfterSceneLoad;
+
+        /// <summary>
+        /// Realtime delay after loading ends before restoring the Animation freeze
+        /// checkbox.
+        /// </summary>
+        public JSONStorableFloat sceneLoadUnfreezeDelaySeconds;
 
         public override void Init()
         {
@@ -163,6 +172,15 @@ namespace geesp0t
                     "Freeze animations/audio during scene loads",
                     true);
             RegisterBool(autoFreezeAnimAndSoundBrieflyAfterSceneLoad);
+
+            sceneLoadUnfreezeDelaySeconds = new JSONStorableFloat(
+                "Seconds after load before unfreeze (realtime)",
+                3f,
+                0f,
+                60f,
+                true,
+                true);
+            RegisterFloat(sceneLoadUnfreezeDelaySeconds);
 
             mergeEmotionWhenLongMocapEndsNoLoop = new JSONStorableBool("Merge E-Motion Final on females when long mocap ends (no loop)", true);
             RegisterBool(mergeEmotionWhenLongMocapEndsNoLoop);
@@ -502,6 +520,41 @@ namespace geesp0t
         }
 
         /// <summary>
+        /// Stops delayed unfreeze. If restoring, reapplies checkbox snapshot so a
+        /// new load’s Snapshot reflects user intent rather than leftover forced freeze.
+        /// </summary>
+        private void CancelPendingPostSceneLoadUnfreeze(bool restoreSnapshotIfApplicable)
+        {
+            if (_postSceneLoadUnfreezeCo != null)
+            {
+                StopCoroutine(_postSceneLoadUnfreezeCo);
+                _postSceneLoadUnfreezeCo = null;
+            }
+
+            if (restoreSnapshotIfApplicable &&
+                _sceneLoadFreezeAppliedForCurrentLoad &&
+                SuperController.singleton != null)
+            {
+                SuperController.singleton.SetFreezeAnimation(
+                    _sceneLoadFreezeCheckboxSnapshot);
+            }
+
+            _sceneLoadFreezeAppliedForCurrentLoad = false;
+        }
+
+        private IEnumerator CoUnfreezeAnimationAfterDelay(float delayRealtimeSeconds)
+        {
+            if (delayRealtimeSeconds > 0f)
+                yield return new WaitForSecondsRealtime(delayRealtimeSeconds);
+
+            SuperController sc2 = SuperController.singleton;
+            if (sc2 != null)
+                sc2.SetFreezeAnimation(_sceneLoadFreezeCheckboxSnapshot);
+            _sceneLoadFreezeAppliedForCurrentLoad = false;
+            _postSceneLoadUnfreezeCo = null;
+        }
+
+        /// <summary>
         /// Syncs <see cref="SuperController.SetFreezeAnimation"/> with load start/end.
         /// </summary>
         private void TickPostSceneLoadFreezeAnimAndSound(SuperController sc)
@@ -522,6 +575,7 @@ namespace geesp0t
 
             if (nowLoading && !_prevSuperLoading)
             {
+                CancelPendingPostSceneLoadUnfreeze(true);
                 if (useSync)
                 {
                     _sceneLoadFreezeCheckboxSnapshot =
@@ -534,10 +588,29 @@ namespace geesp0t
             {
                 if (_sceneLoadFreezeAppliedForCurrentLoad)
                 {
-                    SuperController sc2 = SuperController.singleton;
-                    if (sc2 != null)
-                        sc2.SetFreezeAnimation(_sceneLoadFreezeCheckboxSnapshot);
-                    _sceneLoadFreezeAppliedForCurrentLoad = false;
+                    float delaySec =
+                        sceneLoadUnfreezeDelaySeconds != null
+                            ? sceneLoadUnfreezeDelaySeconds.val
+                            : 3f;
+
+                    if (_postSceneLoadUnfreezeCo != null)
+                    {
+                        StopCoroutine(_postSceneLoadUnfreezeCo);
+                        _postSceneLoadUnfreezeCo = null;
+                    }
+
+                    if (delaySec <= 0f)
+                    {
+                        if (SuperController.singleton != null)
+                            SuperController.singleton.SetFreezeAnimation(
+                                _sceneLoadFreezeCheckboxSnapshot);
+                        _sceneLoadFreezeAppliedForCurrentLoad = false;
+                    }
+                    else
+                    {
+                        _postSceneLoadUnfreezeCo = StartCoroutine(
+                            CoUnfreezeAnimationAfterDelay(delaySec));
+                    }
                 }
             }
 
@@ -758,13 +831,7 @@ namespace geesp0t
 
         void OnDestroy()
         {
-            if (_sceneLoadFreezeAppliedForCurrentLoad &&
-                SuperController.singleton != null)
-            {
-                SuperController.singleton.SetFreezeAnimation(
-                    _sceneLoadFreezeCheckboxSnapshot);
-                _sceneLoadFreezeAppliedForCurrentLoad = false;
-            }
+            CancelPendingPostSceneLoadUnfreeze(true);
 
             if (SuperController.singleton != null)
             {

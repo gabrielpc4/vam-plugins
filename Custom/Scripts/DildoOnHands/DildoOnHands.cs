@@ -1,22 +1,27 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using MeshVR;
+using SimpleJSON;
 using UnityEngine;
 
 namespace geesp0t
 {
     /// <summary>
-    /// VR Grab spawns atoms at the hand pose (VaM Grab = index trigger). First
-    /// successful spawn each session is always Dildo. Later picks a different
-    /// type than last from built-ins plus lines in Extra toy atom types (paste
-    /// names from VaM Add Atom / Toys popup on your PC). Custom/Assets in this
-    /// repo bundle list has no extra toy defs. OVR LT/RT fallback when Oculus
+    /// VR Grab spawns atoms at the hand (VaM Grab = index trigger). Default
+    /// mode clones toy atoms + storables from a scene JSON preset (colors,
+    /// scale, springs) then moves the main controller to the hand (see
+    /// ReadFileIntoString path). Fallback mode uses vanilla AddAtomByType plus
+    /// optional extra type lines. First spawn each session is Dildo (template
+    /// id Dildo when present, else legacy Dildo). OVR LT/RT fallback when Oculus
     /// paths are inactive.
     /// </summary>
     public class DildoOnHands : MVRScript
     {
         public const string PluginName = "HandSpawnToy";
+
+        public const string DefaultCatalogSceneRelativePath =
+            "Saves/scene/Mofme/Mofme CamGirlToys/1100_camgirltoys.json";
 
         private static readonly string[] VarietyToyAtomTypes =
         {
@@ -30,6 +35,12 @@ namespace geesp0t
 
         private JSONStorableBool _listenEnabled;
 
+        private JSONStorableBool _cloneFromCatalogScene;
+
+        private JSONStorableString _catalogSceneRelativePath;
+
+        private JSONStorableString _catalogExtraTypesWhitelist;
+
         private JSONStorableFloat _localOffsetForward;
 
         private JSONStorableFloat _localOffsetRight;
@@ -42,15 +53,39 @@ namespace geesp0t
 
         private JSONStorableFloat _localEulerRollDeg;
 
-        /// <summary>Optional AddAtom type names one per line (VAR / menu).</summary>
         private JSONStorableString _extraToyAtomTypes;
 
         private bool _spawnCoroutineRunning;
 
-        /// <summary>First trigger after Init must spawn Dildo only.</summary>
         private bool _waitingMandatoryFirstDildo = true;
 
         private string _lastToyAtomTypeSpawned;
+
+        /// <summary>Scene atom id of last spawned catalog clone (#suffix).</summary>
+        private string _lastSceneToySourceId;
+
+        private sealed class SceneToyTemplate
+        {
+            public readonly string SceneAtomId;
+            public readonly string AtomTypeName;
+            public readonly string SerializedAtomJson;
+
+            public SceneToyTemplate(
+                string sceneAtomId,
+                string atomTypeName,
+                string serializedAtomJson)
+            {
+                SceneAtomId = sceneAtomId;
+                AtomTypeName = atomTypeName;
+                SerializedAtomJson = serializedAtomJson;
+            }
+        }
+
+        private List<SceneToyTemplate> _catalogToyTemplates;
+
+        private string _catalogPathLastLoaded;
+
+        private SceneToyTemplate _mandatoryDildoCatalogEntry;
 
         public override void Init()
         {
@@ -64,6 +99,22 @@ namespace geesp0t
                     true);
 
                 RegisterBool(_listenEnabled);
+
+                _cloneFromCatalogScene = new JSONStorableBool(
+                    "Clone toys from catalog scene JSON",
+                    true);
+
+                RegisterBool(_cloneFromCatalogScene);
+
+                _catalogSceneRelativePath = new JSONStorableString(
+                    "Toy catalog scene path (VaM-relative)",
+                    DefaultCatalogSceneRelativePath);
+                RegisterString(_catalogSceneRelativePath);
+
+                _catalogExtraTypesWhitelist = new JSONStorableString(
+                    "Extra atom types allowed in catalog (one per line)",
+                    "");
+                RegisterString(_catalogExtraTypesWhitelist);
 
                 _localOffsetForward =
                     new JSONStorableFloat(
@@ -116,7 +167,7 @@ namespace geesp0t
                 RegisterFloat(_localEulerRollDeg);
 
                 _extraToyAtomTypes = new JSONStorableString(
-                    "Extra toy atom types (one name per line)",
+                    "Legacy fallback: extra atom types (one per line)",
                     "");
                 _extraToyAtomTypes.storeType = JSONStorableParam.StoreType.Full;
                 RegisterString(_extraToyAtomTypes);
@@ -144,7 +195,41 @@ namespace geesp0t
             dest.Add(trimmed);
         }
 
-        /// <summary>Built-in suspects plus trimmed lines from storables UI.</summary>
+        private HashSet<string> BuildCatalogTypeWhitelist()
+        {
+            HashSet<string> set = new HashSet<string>();
+            foreach (string builtin in VarietyToyAtomTypes)
+            {
+                set.Add(builtin);
+            }
+
+            try
+            {
+                if (_catalogExtraTypesWhitelist == null)
+                    return set;
+                string raw;
+                raw = _catalogExtraTypesWhitelist.val;
+                if (string.IsNullOrEmpty(raw))
+                    return set;
+                string[] lines = raw.Split(
+                    new char[] { '\r', '\n' },
+                    StringSplitOptions.RemoveEmptyEntries);
+                foreach (string line in lines)
+                {
+                    string t = line.Trim();
+                    if (t.Length > 0)
+                        set.Add(t);
+                }
+            }
+            catch (Exception ex)
+            {
+                SuperController.LogError(
+                    PluginName + ": catalog whitelist parse: " + ex.Message);
+            }
+
+            return set;
+        }
+
         private List<string> BuildVarietyToyTypePool()
         {
             List<string> pool;
@@ -160,10 +245,9 @@ namespace geesp0t
                     string.IsNullOrEmpty(_extraToyAtomTypes.val))
                     return pool;
                 string[] lines;
-                lines = _extraToyAtomTypes.val.Split(new char[] {
-                    '\r',
-                    '\n'
-                }, StringSplitOptions.RemoveEmptyEntries);
+                lines = _extraToyAtomTypes.val.Split(
+                    new char[] { '\r', '\n' },
+                    StringSplitOptions.RemoveEmptyEntries);
 
                 foreach (string line in lines)
                 {
@@ -179,23 +263,240 @@ namespace geesp0t
             return pool;
         }
 
-        /// <summary>Random pool entry unlike prior successful spawn.</summary>
-        private string PickRandomToyDifferentFromLast()
+
+        private static JSONClass AxisZeroEulerJson()
+        {
+            JSONClass e = new JSONClass();
+            e["x"] = "0";
+            e["y"] = "0";
+            e["z"] = "0";
+            return e;
+        }
+
+        private static void NeutralizeStoredWorldPose(JSONClass atomJc)
+        {
+            atomJc.Remove("parentAtom");
+            atomJc.Remove("containerPosition");
+            atomJc.Remove("containerRotation");
+            atomJc.Remove("position");
+            atomJc.Remove("rotation");
+
+            JSONNode storN = atomJc["storables"];
+            JSONArray arr = storN != null ? storN.AsArray : null;
+            if (arr == null)
+                return;
+
+            for (int i = 0; i < arr.Count; i++)
+            {
+                JSONClass st = arr[i] as JSONClass;
+                if (st == null)
+                    continue;
+                JSONNode sid = st["id"];
+                string idText = sid != null ? sid.Value : "";
+                if (idText != "control")
+                    continue;
+
+                JSONClass pos = new JSONClass();
+                pos["x"] = "0";
+                pos["y"] = "0";
+                pos["z"] = "0";
+                JSONClass euler = AxisZeroEulerJson();
+                st["position"] = pos;
+                st["rotation"] = euler;
+                if (st["positionState"] != null)
+                    st["positionState"] = "On";
+                if (st["rotationState"] != null)
+                    st["rotationState"] = "On";
+                st.Remove("linkTo");
+                st.Remove("linkPositionSpring");
+                st.Remove("linkPositionDamper");
+                st.Remove("linkRotationSpring");
+                st.Remove("linkRotationDamper");
+            }
+        }
+
+        /// <returns>Whether catalog rebuilt successfully with one+ toys.</returns>
+        private bool TryRebuildToyCatalog(bool logErrors)
+        {
+            string desiredPath;
+
+            desiredPath =
+                (_catalogSceneRelativePath != null)
+                    ? _catalogSceneRelativePath.val.Trim()
+                    : DefaultCatalogSceneRelativePath;
+
+            if (desiredPath.Length == 0)
+                desiredPath = DefaultCatalogSceneRelativePath;
+
+            HashSet<string> whitelist = BuildCatalogTypeWhitelist();
+
+            _catalogToyTemplates = new List<SceneToyTemplate>();
+            _mandatoryDildoCatalogEntry = null;
+            _catalogPathLastLoaded = desiredPath;
+
+            if (_sc == null)
+                return false;
+
+            string txt;
+            try
+            {
+                txt = SuperController.singleton.ReadFileIntoString(desiredPath);
+            }
+            catch (Exception ex)
+            {
+                if (logErrors)
+                    SuperController.LogError(
+                        PluginName + ": catalog read failed: " + ex.Message);
+
+                return false;
+            }
+
+            if (txt == null || txt.Length == 0)
+            {
+                if (logErrors)
+                    SuperController.LogError(
+                        PluginName + ": catalog file empty / missing (" +
+                            desiredPath + ").");
+
+                return false;
+            }
+
+            JSONNode rootNode;
+            try
+            {
+                rootNode = JSONNode.Parse(txt);
+            }
+            catch (Exception ex)
+            {
+                if (logErrors)
+                    SuperController.LogError(
+                        PluginName + ": catalog JSON parse failed: " + ex.Message);
+
+                return false;
+            }
+
+            JSONClass sceneRoot = rootNode.AsObject;
+            JSONArray atoms = sceneRoot != null && sceneRoot["atoms"] != null
+                ? sceneRoot["atoms"].AsArray
+                : null;
+
+            if (atoms == null)
+                return false;
+
+            foreach (JSONNode child in atoms)
+            {
+                JSONClass entry = child as JSONClass;
+                if (entry == null)
+                    continue;
+                JSONNode typeN = entry["type"];
+                if (typeN == null)
+                    continue;
+                string typeName = typeN.Value;
+                if (!whitelist.Contains(typeName))
+                    continue;
+                JSONNode idN = entry["id"];
+                string sceneUid = idN != null ? idN.Value : "";
+                if (sceneUid.Length == 0)
+                    continue;
+
+                SceneToyTemplate row = new SceneToyTemplate(
+                    sceneUid,
+                    typeName,
+                    entry.ToString());
+
+                _catalogToyTemplates.Add(row);
+
+                if (typeName == "Dildo")
+                {
+                    if (_mandatoryDildoCatalogEntry == null &&
+                        sceneUid == "Dildo")
+                        _mandatoryDildoCatalogEntry = row;
+                }
+            }
+
+            if (_mandatoryDildoCatalogEntry == null)
+            {
+                foreach (SceneToyTemplate t in _catalogToyTemplates)
+                {
+                    if (t.AtomTypeName != "Dildo")
+                        continue;
+                    _mandatoryDildoCatalogEntry = t;
+                    break;
+                }
+            }
+
+            return _catalogToyTemplates.Count > 0;
+        }
+
+        private bool EnsureToyCatalogFresh()
+        {
+            string p = (_catalogSceneRelativePath != null)
+                ? _catalogSceneRelativePath.val.Trim()
+                : DefaultCatalogSceneRelativePath;
+            if (p.Length == 0)
+                p = DefaultCatalogSceneRelativePath;
+
+            if (_catalogToyTemplates != null &&
+                _catalogPathLastLoaded == p)
+                return _catalogToyTemplates.Count > 0;
+
+            return TryRebuildToyCatalog(true);
+        }
+
+        private SceneToyTemplate PickMandatoryDildoOrNull()
+        {
+            if (_mandatoryDildoCatalogEntry != null)
+                return _mandatoryDildoCatalogEntry;
+
+            foreach (SceneToyTemplate t in _catalogToyTemplates)
+            {
+                if (t.AtomTypeName == "Dildo")
+                    return t;
+            }
+
+            return null;
+        }
+
+        private SceneToyTemplate PickVarietyToyTemplate()
+        {
+            int count = _catalogToyTemplates.Count;
+
+            if (count == 1)
+                return _catalogToyTemplates[0];
+
+            int guard = 0;
+            while (guard < 96)
+            {
+                guard++;
+
+                SceneToyTemplate pick =
+                    _catalogToyTemplates[UnityEngine.Random.Range(0, count)];
+
+                if (_lastSceneToySourceId != null &&
+                    pick.SceneAtomId == _lastSceneToySourceId &&
+                    count > 1)
+                    continue;
+
+                return pick;
+            }
+
+            return _catalogToyTemplates[0];
+        }
+
+        private string PickRandomToyDifferentFromLastLegacy()
         {
             List<string> pool;
             pool = BuildVarietyToyTypePool();
+
             if (pool.Count == 0)
                 return "Dildo";
 
-            string last;
-            last = _lastToyAtomTypeSpawned;
-            int guard;
-            guard = 0;
+            string last = _lastToyAtomTypeSpawned;
+
+            int guard = 0;
             while (guard < 64)
             {
-                string candidate;
-                candidate =
-                    pool[UnityEngine.Random.Range(0, pool.Count)];
+                string candidate = pool[UnityEngine.Random.Range(0, pool.Count)];
                 guard++;
                 if (pool.Count <= 1)
                     return candidate;
@@ -203,12 +504,14 @@ namespace geesp0t
                     return candidate;
             }
 
-            string fallback;
-            fallback = pool[0];
+            string fallback = pool[0];
+
             if (pool.Count <= 1)
                 return fallback;
+
             if (fallback != last)
                 return fallback;
+
             return pool[1];
         }
 
@@ -243,6 +546,7 @@ namespace geesp0t
                 return;
 
             FreeControllerV3 fc = spawned.mainController;
+
             if (fc == null)
                 return;
 
@@ -252,7 +556,8 @@ namespace geesp0t
                     _localOffsetUp.val,
                     _localOffsetForward.val));
 
-            Quaternion worldRot = hand.rotation * LocalGripOffsetQuaternion();
+            Quaternion worldRot =
+                hand.rotation * LocalGripOffsetQuaternion();
 
             fc.currentPositionState = FreeControllerV3.PositionState.On;
             fc.currentRotationState = FreeControllerV3.RotationState.On;
@@ -263,8 +568,10 @@ namespace geesp0t
 
         private void Update()
         {
-            if (_listenEnabled == null || !_listenEnabled.val || _sc == null ||
-                _sc.isLoading || _spawnCoroutineRunning)
+            if (_listenEnabled == null || !_listenEnabled.val ||
+                _sc == null ||
+                _sc.isLoading ||
+                _spawnCoroutineRunning)
                 return;
 
             bool xrOn = UnityEngine.XR.XRSettings.enabled ||
@@ -274,7 +581,6 @@ namespace geesp0t
                 return;
 
             bool leftPressed = false;
-
             bool rightPressed = false;
 
             if (_sc.isOVR || _sc.isOpenVR)
@@ -335,63 +641,180 @@ namespace geesp0t
         private IEnumerator CoSpawnToyAtHand(bool leftHandPreferred)
         {
             _spawnCoroutineRunning = true;
+            SuperController svc = SuperController.singleton;
+            bool cloneMode =
+                (_cloneFromCatalogScene != null &&
+                    _cloneFromCatalogScene.val);
+
             try
             {
-                bool consumedMandatoryFirst;
-                consumedMandatoryFirst = false;
+                if (cloneMode && EnsureToyCatalogFresh())
+                {
+                    SceneToyTemplate tmpl = null;
 
-                string atomType;
+                    if (_waitingMandatoryFirstDildo)
+                        tmpl = PickMandatoryDildoOrNull();
+                    else
+                        tmpl = PickVarietyToyTemplate();
+
+                    if (tmpl != null)
+                    {
+                        JSONClass atomJc = null;
+                        try
+                        {
+                            atomJc = JSONNode.Parse(tmpl.SerializedAtomJson).
+                                AsObject;
+                        }
+                        catch (Exception ex)
+                        {
+                            SuperController.LogError(
+                                PluginName + ": toy template JSON: " +
+                                    ex.Message);
+                        }
+
+                        if (atomJc != null)
+                        {
+                            NeutralizeStoredWorldPose(atomJc);
+                            string atomType = tmpl.AtomTypeName;
+                            string uidCandidate = null;
+
+                            int tIdx;
+                            for (tIdx = 0; tIdx < 32; tIdx++)
+                            {
+                                uidCandidate =
+                                    PluginName + "_" +
+                                    Mathf.FloorToInt(
+                                        Time.realtimeSinceStartup *
+                                        1000f) + "_" +
+                                    UnityEngine.Random.Range(
+                                        100000,
+                                        999999999).ToString();
+
+                                if (svc.GetAtomByUid(uidCandidate) == null)
+                                    break;
+
+                                uidCandidate = null;
+                            }
+
+                            if (uidCandidate != null)
+                            {
+                                atomJc["id"] = uidCandidate;
+
+                                yield return svc.AddAtomByType(atomType,
+                                    uidCandidate);
+
+                                Atom spawned = svc.GetAtomByUid(uidCandidate);
+                                if (spawned != null)
+                                {
+                                    try
+                                    {
+                                        spawned.PreRestore();
+                                        spawned.Restore(atomJc);
+                                        spawned.LateRestore(atomJc);
+                                        spawned.PostRestore();
+                                        _waitingMandatoryFirstDildo =
+                                            false;
+
+                                        _lastToyAtomTypeSpawned = atomType;
+                                        _lastSceneToySourceId =
+                                            tmpl.SceneAtomId;
+
+                                        PlaceSpawnAtHand(spawned,
+                                            leftHandPreferred);
+
+                                        yield break;
+                                    }
+                                    catch (Exception exR)
+                                    {
+                                        SuperController.LogError(
+                                            PluginName +
+                                            ": Restore catalog toy: " +
+                                            exR.Message);
+
+                                        try
+                                        {
+                                            svc.RemoveAtom(spawned);
+                                        }
+                                        catch
+                                        {
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        SuperController.LogError(
+                            PluginName +
+                            ": catalog clone failed — trying legacy spawn.");
+                    }
+                }
+
+                bool consumedMandatory = false;
+                string atomLegacy;
+
                 if (_waitingMandatoryFirstDildo)
                 {
-                    atomType = "Dildo";
-                    consumedMandatoryFirst = true;
+                    atomLegacy = "Dildo";
+                    consumedMandatory = true;
                 }
                 else
                 {
-                    atomType = PickRandomToyDifferentFromLast();
+                    atomLegacy =
+                        PickRandomToyDifferentFromLastLegacy();
                 }
 
-                string uid;
-                Atom clash;
-                int tries = 0;
-                SuperController svc = SuperController.singleton;
-                do
+                string uid = null;
+
+                Atom clashLegacy;
+                int tries;
+                tries = 0;
+
+                while (tries < 32)
                 {
-                    uid = PluginName + "_" +
+                    uid =
+                        PluginName + "_" +
                         Mathf.FloorToInt(Time.realtimeSinceStartup * 1000f) +
                         "_" +
-                        UnityEngine.Random.Range(100000, 999999999).ToString();
-                    clash = svc.GetAtomByUid(uid);
+                        UnityEngine.Random.Range(
+                            100000,
+                            999999999).ToString();
+
+                    clashLegacy = svc.GetAtomByUid(uid);
+
+                    if (clashLegacy == null)
+                        break;
+
+                    uid = null;
                     tries++;
-                    if (tries > 32)
-                    {
-                        if (consumedMandatoryFirst)
-                            _waitingMandatoryFirstDildo = true;
-                        yield break;
-                    }
                 }
-                while (clash != null);
 
-                yield return svc.AddAtomByType(atomType, uid);
+                if (uid == null)
+                {
+                    if (consumedMandatory)
+                        _waitingMandatoryFirstDildo = true;
 
-                Atom spawned = svc.GetAtomByUid(uid);
-                if (spawned == null)
+                    yield break;
+                }
+
+                yield return svc.AddAtomByType(atomLegacy, uid);
+
+                Atom spawnedLegacy = svc.GetAtomByUid(uid);
+                if (spawnedLegacy == null)
                 {
                     SuperController.LogError(
                         PluginName +
-                        ": failed to spawn toy atom '" +
-                        atomType +
-                        "'.");
+                            ": legacy failed '" + atomLegacy + "'.");
 
-                    if (consumedMandatoryFirst)
+                    if (consumedMandatory)
                         _waitingMandatoryFirstDildo = true;
 
                     yield break;
                 }
 
                 _waitingMandatoryFirstDildo = false;
-                _lastToyAtomTypeSpawned = atomType;
-                PlaceSpawnAtHand(spawned, leftHandPreferred);
+                _lastToyAtomTypeSpawned = atomLegacy;
+                _lastSceneToySourceId = null;
+                PlaceSpawnAtHand(spawnedLegacy, leftHandPreferred);
             }
             finally
             {
@@ -400,3 +823,6 @@ namespace geesp0t
         }
     }
 }
+
+
+

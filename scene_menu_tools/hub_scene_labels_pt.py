@@ -203,20 +203,23 @@ def split_prior_pt_two_line_hub_label(
     old_full_text: str, scene_path: str
 ) -> tuple[str, str] | None:
     """
-    If text is already migrated ``tipo`` + ``título`` (two lines), keep both lines.
-    Ignores legacy English blocks that still have ``Type:`` / ``Author:``.
+    If text is migrated ``tipo`` + ``título`` plus optional blank tail lines,
+    keep the first two lines. Ignores legacy English ``Type:`` / ``Author:``.
     """
     if extract_type_en_from_full_text(old_full_text):
         return None
     if re.search(r"(?mi)^author:\s", old_full_text):
         return None
-    parts = old_full_text.strip().split("\n")
-    if len(parts) != 2:
+    parts = old_full_text.split("\n")
+    if len(parts) < 2:
         return None
     a = parts[0].strip()
     b = parts[1].strip()
     if not a or not b:
         return None
+    for extra in parts[2:]:
+        if extra.strip():
+            return None
     if a not in _PRIMARY_PT_TYPE_LINES:
         return None
     hub = _norm_scene_path_for_sniff(scene_path)
@@ -270,8 +273,17 @@ def derive_scene_button_title_pt(
     return polish_title_line(title_from_scene_path_stem(sfp), sfp)
 
 
+# VaM UIButton Text is vertically centered on the full string. Old hub strings
+# had ``Type:/Author:`` and many trailing newlines so the caption sat higher.
+# Thin two-line labels look mid-thumb without similar padding.
+_HUB_UIBUTTON_TEXT_BOTTOM_PAD_NEWLINES = 10
+
+
 def format_two_line_pt(type_pt: str, title_pt: str) -> str:
-    return "%s\n%s" % (type_pt.strip(), title_pt.strip())
+    a = type_pt.strip()
+    b = title_pt.strip()
+    pad = "\n" * _HUB_UIBUTTON_TEXT_BOTTOM_PAD_NEWLINES
+    return "%s\n%s%s" % (a, b, pad)
 
 
 def build_scene_hub_label_pt(

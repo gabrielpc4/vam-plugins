@@ -92,9 +92,9 @@ _SCENE_TITLE_NORMALIZED_PT: dict[str, str] = {
     ),
 }
 
-# Leading blank lines: UIButton texto centralizado → cabeça alinhado à parte de
-# baixo da miniatura.
-_HUB_UIBUTTON_LEADING_PAD_NEWLINES = 14
+# Leading ``\\n``: VaM centraliza o bloco inteiro; uns poucos descem o rótulo um
+# pouco. Demais (ex.: 14) empurra o texto para fora do quadro — ajuste fino aqui.
+_HUB_UIBUTTON_LEADING_PAD_NEWLINES = 5
 
 
 def _norm_scene_path_for_sniff(scene_path: str) -> str:

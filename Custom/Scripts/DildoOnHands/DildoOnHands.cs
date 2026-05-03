@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using MeshVR;
 using SimpleJSON;
 using UnityEngine;
@@ -10,9 +11,10 @@ namespace geesp0t
     /// <summary>
     /// VR: left-hand Grab / index-trigger only spawns at the right hand so the
     /// right trigger stays normal grab. Clone mode restores toy storables from
-    /// catalog JSON (colors, scale, springs). Fallback uses AddAtomByType plus
+    /// catalog JSON (colors, scale, joint/spring presets). Fallback uses AddAtomByType plus
     /// optional extras. First session spawn is catalog Dildo when present else
-    /// legacy Dildo. Oculus uses OVR LTouch triggers when Oculus paths drive
+    /// legacy Dildo — that starter Dildo gets maximum internal segment stiffness;
+    /// later clones keep each catalog preset. Oculus uses OVR LTouch triggers when Oculus paths drive
     /// input.
     /// </summary>
     public class DildoOnHands : MVRScript
@@ -381,7 +383,13 @@ namespace geesp0t
             }
         }
 
-        private static void ZeroSpringControlsInToyJson(JSONClass atomJc)
+        /// <remarks>
+        /// Dildos use storables/id <c>springControl</c>; <c>springStrength</c> scales
+        /// internal segment joints (~0=droopy, ~1=stiff).
+        /// </remarks>
+        private static void ApplyDildoSpringStrength01InToyJson(
+            JSONClass atomJc,
+            float strength01)
         {
             JSONArray arr;
 
@@ -390,6 +398,14 @@ namespace geesp0t
                 : null;
             if (arr == null)
                 return;
+
+            float clamped;
+
+            clamped = Mathf.Clamp01(strength01);
+            string sVal;
+
+            sVal =
+                clamped.ToString("G", CultureInfo.InvariantCulture);
 
             int iIdx;
             for (iIdx = 0; iIdx < arr.Count; iIdx++)
@@ -405,8 +421,31 @@ namespace geesp0t
                 if (sidTxt != "springControl")
                     continue;
 
-                st["springStrength"] = "0";
+                st["springStrength"] = sVal;
             }
+        }
+
+        /// <summary>
+        /// Legacy <c>AddAtomByType</c> path lacks catalog JSON tweaks; ramp joint
+        /// stiffness for the starter Dildo to match cloned first-spawn behaviour.
+        /// </summary>
+        private static void TryApplyRigidDildoSpringControlOnAtom(
+            Atom spawned,
+            float strength01)
+        {
+            AdjustJointSpringsControl ctrl;
+
+            if (spawned == null ||
+                spawned.type != "Dildo")
+                return;
+
+            ctrl = spawned.GetStorableByID(
+                "springControl") as AdjustJointSpringsControl;
+
+            if (ctrl == null || ctrl.springStrengthJSON == null)
+                return;
+
+            ctrl.springStrengthJSON.val = Mathf.Clamp01(strength01);
         }
 
         /// <summary>
@@ -991,7 +1030,21 @@ namespace geesp0t
                         if (atomJc != null)
                         {
                             NeutralizeStoredWorldPose(atomJc);
-                            ZeroSpringControlsInToyJson(atomJc);
+                            bool firstDildo;
+
+                            firstDildo =
+                                _waitingMandatoryFirstDildo &&
+                                tmpl.AtomTypeName == "Dildo";
+
+                            if (firstDildo)
+                            {
+                                // Full joint stiffness (~1); later spawns keep
+                                // catalog/springControl values intact.
+                                ApplyDildoSpringStrength01InToyJson(
+                                    atomJc,
+                                    1f);
+                            }
+
                             string atomType = tmpl.AtomTypeName;
                             string uidCandidate = null;
 
@@ -1130,6 +1183,10 @@ namespace geesp0t
                 _waitingMandatoryFirstDildo = false;
                 _lastToyAtomTypeSpawned = atomLegacy;
                 _lastSceneToySourceId = null;
+
+                if (consumedMandatory && atomLegacy == "Dildo")
+                    TryApplyRigidDildoSpringControlOnAtom(spawnedLegacy, 1f);
+
                 PlaceSpawnAtHand(spawnedLegacy, false);
             }
             finally

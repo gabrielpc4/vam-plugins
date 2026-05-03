@@ -27,24 +27,27 @@ namespace geesp0t
         {
             if (bindings == null)
                 return;
-            OverHeadRightHandCylinderGesture.ProcessUpdate(
+            OverHeadRightHandGesture.ProcessUpdate(
                 bindings.TriggerISnapSameAsKeyI);
         }
 
         /// <summary>
-        /// Right hand in a vertical cylinder above the HMD (headset
-        /// <c>up</c>), once per visit, with cooldown. Pose checks run at most
-        /// once per second; per-frame cost is only mode + interval gate.
+        /// Right hand above the HMD along headset <c>up</c>, within a small
+        /// lateral cap (not far forward/side), once per visit, with cooldown.
+        /// Pose checks at most once per second; otherwise only mode + interval.
         /// </summary>
-        private static class OverHeadRightHandCylinderGesture
+        private static class OverHeadRightHandGesture
         {
-            private const float CylinderRadiusM = 0.14f;
+            /// <summary>
+            /// Max offset perpendicular to headset <c>up</c> through the HMD
+            /// (m); keeps “pat top of head” vs arm held high elsewhere.
+            /// </summary>
+            private const float MaxLateralOffsetM = 0.14f;
             private const float MinHeightAlongHmdUpM = 0.06f;
             private const float MaxHeightAlongHmdUpM = 0.34f;
             private const float CooldownSeconds = 4f;
             /// <summary>
-            /// Min seconds between HMD/hand reads and cylinder tests;
-            /// ≤1s trigger delay vs continuous <c>Update</c>.
+            /// Min seconds between HMD/hand reads and zone test (~1 Hz).
             /// </summary>
             private const float EvalIntervalUnscaledSeconds = 1f;
 
@@ -88,11 +91,12 @@ namespace geesp0t
 
                 Vector3 deltaW = rh.position - hmdTf.position;
                 float hAlongUp = Vector3.Dot(deltaW, headUp);
-                Vector3 radial = deltaW - headUp * hAlongUp;
-                float rMax = CylinderRadiusM;
+                float lateralSq = deltaW.sqrMagnitude - hAlongUp * hAlongUp;
+                if (lateralSq < 0f)
+                    lateralSq = 0f;
                 bool inZone = hAlongUp >= MinHeightAlongHmdUpM &&
                     hAlongUp <= MaxHeightAlongHmdUpM &&
-                    radial.sqrMagnitude <= rMax * rMax;
+                    lateralSq <= MaxLateralOffsetM * MaxLateralOffsetM;
 
                 if (inZone)
                 {

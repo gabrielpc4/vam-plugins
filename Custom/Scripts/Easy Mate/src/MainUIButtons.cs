@@ -22,7 +22,7 @@ namespace geesp0t
     // (currentLoadDir); E-Motion HUD column (Lite / Original / Final / remove
     // all)
     // swaps packs via TryReplaceEmotionFamilyWithExactPath; I / VR gestures
-    // (see EasyMateVrGestureRuntime) e.g. over-HMD cylinder → same as I; P =
+    // (see EasyMateVrGestureRuntime) e.g. over-HMD hand zone → same as I; P =
     // Possess+Align+Select closest Person by head;
     // O = unpossess all; C = cycle Female then Male Persons (uid), Edit +
     // Selected
@@ -213,7 +213,7 @@ namespace geesp0t
         /// <b>I</b> hides VR hand models then cycles rig snap across
         /// <b>Person</b> heads by uid (same rules as <b>Passenger Female</b> /
         /// <b>Passenger Male</b> per figure). VR: <see cref="EasyMateVrGestureRuntime"/> — e.g.
-        /// right hand over the HMD (cylinder), 4s cooldown, once per visit until
+        /// right hand over the HMD (height + lateral cap), 4s cooldown, once per visit until
         /// the hand exits; more gestures can use the same pipeline.
         /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD
         /// buttons on the <b>closest Person by head</b> to the look/center

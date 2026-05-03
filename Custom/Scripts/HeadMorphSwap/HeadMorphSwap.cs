@@ -2,9 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using SimpleJSON;
-using MVR.FileManagement;
-
 /// <summary>
 /// Copies head / face morphs from Saves/Person .json presets OR from another
 /// Person in the scene. If a preset path is set it wins over the scene donor.
@@ -226,6 +223,46 @@ public class HeadMorphSwap : MVRScript
         }
     }
 
+    /// <summary>
+    /// VaM forbids referencing MVR.FileManagement in script plugins.
+    /// We only unify slashes and strip SELF: (VAR package rewriting is omitted).
+    /// </summary>
+    private static string CanonicalMorphOrHairId(string rawId)
+    {
+        if (rawId == null)
+        {
+            return string.Empty;
+        }
+        string t = rawId.Trim();
+        if (t.StartsWith("SELF:", StringComparison.Ordinal))
+        {
+            string selfPrefix = "SELF:";
+            t = t.Substring(selfPrefix.Length).TrimStart();
+        }
+        return t.Replace('\\', '/');
+    }
+
+    private static bool PresetMorphUidMatchesMorph(
+        string presetUidRaw,
+        string morphUidRaw)
+    {
+        string presetCanon = CanonicalMorphOrHairId(presetUidRaw);
+        string morphCanon = CanonicalMorphOrHairId(morphUidRaw);
+        if (presetCanon.Length == 0 ||
+            morphCanon.Length == 0)
+        {
+            return false;
+        }
+        if (string.Equals(presetCanon, morphCanon, StringComparison.Ordinal))
+        {
+            return true;
+        }
+        return string.Equals(
+            presetCanon,
+            morphCanon,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <returns>Preset morph block for tm or null.</returns>
     private static JSONClass FindPresetMorphForTarget(
         JSONArray presetMorphArray,
@@ -246,9 +283,7 @@ public class HeadMorphSwap : MVRScript
             if (uidNode != null &&
                 !(uidNode.Value == null || uidNode.Value == string.Empty))
             {
-                string nu = FileManager.NormalizeID(uidNode.Value);
-                string tu = FileManager.NormalizeID(tm.uid);
-                if (nu == tu)
+                if (PresetMorphUidMatchesMorph(uidNode.Value, tm.uid))
                 {
                     return presetMorphJson;
                 }
@@ -434,21 +469,38 @@ public class HeadMorphSwap : MVRScript
                 continue;
             }
             JSONNode idNodePrimary = itemJson["id"];
-            string textPrimary = idNodePrimary != null ?
-                idNodePrimary.Value :
-                null;
-            string itemIdActivation = "";
+            string textPrimary =
+                idNodePrimary != null ? idNodePrimary.Value : null;
+
+            string itemIdActivation = string.Empty;
+
+            DAZHairGroup hairFound = null;
+
             if (textPrimary != null && textPrimary != string.Empty)
             {
-                itemIdActivation =
-                    FileManager.NormalizeID(textPrimary);
+                string trimmedId = textPrimary.Trim();
+                if (trimmedId.Length > 0)
+                {
+                    hairFound = recipientGeom.GetHairItem(trimmedId);
+                    if (hairFound != null)
+                    {
+                        itemIdActivation = trimmedId;
+                    }
+
+                    if (hairFound == null)
+                    {
+                        string canonicalHairId =
+                            CanonicalMorphOrHairId(trimmedId);
+                        hairFound = recipientGeom.GetHairItem(
+                            canonicalHairId);
+                        if (hairFound != null)
+                        {
+                            itemIdActivation = canonicalHairId;
+                        }
+                    }
+                }
             }
-            DAZHairGroup hairFound = null;
-            if (itemIdActivation != string.Empty)
-            {
-                hairFound =
-                    recipientGeom.GetHairItem(itemIdActivation);
-            }
+
             JSONNode internalNode = itemJson["internalId"];
             string backupId = internalNode != null ?
                 internalNode.Value :

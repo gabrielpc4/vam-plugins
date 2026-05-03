@@ -2,22 +2,31 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using SimpleJSON;
+using MVR.FileManagement;
 
 /// <summary>
-/// Copies head / face morph values from another Person onto the recipient.
-/// Body morphs, clothing, skin texture presets, and plugins stay as-is unless
-/// you enable optional donor hair-slot matching.
+/// Copies head / face morphs from Saves/Person .json presets OR from another
+/// Person in the scene. If a preset path is set it wins over the scene donor.
 /// </summary>
 public class HeadMorphSwap : MVRScript
 {
     private const string DonorNoneChoice = "--- pick donor ---";
 
+    private JSONStorableUrl donorPersonPresetPathUrl;
+
     private JSONStorableStringChooser recipientChooser;
+
     private JSONStorableStringChooser donorChooser;
+
     private JSONStorableString regionSubstringsCsv;
+
     private JSONStorableBool requireSameSex;
+
     private JSONStorableBool copyHairFromDonor;
+
     private JSONStorableString statusLine;
+
     private JSONStorableAction applyAction;
 
     private void SyncRecipientChoices()
@@ -57,7 +66,8 @@ public class HeadMorphSwap : MVRScript
 
     private static bool IsRealPersonUid(string uid)
     {
-        if (uid == null || uid == string.Empty ||
+        if (uid == null ||
+            uid == string.Empty ||
             uid.Equals(DonorNoneChoice))
         {
             return false;
@@ -65,7 +75,6 @@ public class HeadMorphSwap : MVRScript
         return true;
     }
 
-    /// <summary>Pick a usable uid whenever the popup list changes.</summary>
     private static void NormalizeRecipientChooser(
         JSONStorableStringChooser ch,
         List<string> choices)
@@ -189,98 +198,12 @@ public class HeadMorphSwap : MVRScript
         return false;
     }
 
-    private void ApplyMorphsFromDonor()
+    private static void SmoothMorphBanks(DAZCharacterSelector rGeom)
     {
-        string rid = recipientChooser.val;
-        string did = donorChooser.val;
-        if (rid == null || rid.Length == 0)
+        if (rGeom == null)
         {
-            statusLine.val = "Select recipient Person.";
             return;
         }
-        if (did == null ||
-            did.Length == 0 ||
-            did.Equals(DonorNoneChoice))
-        {
-            statusLine.val = "Select donor Person.";
-            return;
-        }
-        if (rid == did)
-        {
-            statusLine.val = "Pick two different Persons.";
-            return;
-        }
-        if (SuperController.singleton == null)
-        {
-            statusLine.val = "SuperController unavailable.";
-            return;
-        }
-        Atom recipientAtom = SuperController.singleton.GetAtomByUid(rid);
-        Atom donorAtom = SuperController.singleton.GetAtomByUid(did);
-        if (!IsPersonReady(recipientAtom) || !IsPersonReady(donorAtom))
-        {
-            statusLine.val = "Recipient and donor must be loaded Person atoms.";
-            return;
-        }
-
-        if (requireSameSex.val)
-        {
-            DAZCharacter rc = recipientAtom.GetComponentInChildren<DAZCharacter>();
-            DAZCharacter dcDonor =
-                donorAtom.GetComponentInChildren<DAZCharacter>();
-            bool rMale = rc.isMale;
-            bool dMale = dcDonor.isMale;
-            if (rMale != dMale)
-            {
-                statusLine.val = "Sex differs; disable \"same sex\" or swap atoms.";
-                return;
-            }
-        }
-
-        List<string> regionTokens = ParseRegionTokens(regionSubstringsCsv.val);
-        if (regionTokens.Count == 0)
-        {
-            statusLine.val = "Add comma-separated region substrings.";
-            return;
-        }
-
-        DAZCharacterSelector rGeom = GetGeometry(recipientAtom);
-        DAZCharacterSelector dGeom = GetGeometry(donorAtom);
-        GenerateDAZMorphsControlUI rMorphs = rGeom.morphsControlUI;
-        GenerateDAZMorphsControlUI dMorphs = dGeom.morphsControlUI;
-
-        List<DAZMorph> tgtList = rMorphs.GetMorphs();
-        if (tgtList == null)
-        {
-            statusLine.val = "Recipient morph bank not ready.";
-            return;
-        }
-
-        int copied = 0;
-        int noMatch = 0;
-        foreach (DAZMorph tmorph in tgtList)
-        {
-            if (tmorph == null || tmorph.isPoseControl || tmorph.disable)
-            {
-                continue;
-            }
-            if (!RegionMatchesMorph(tmorph, regionTokens))
-            {
-                continue;
-            }
-            DAZMorph donorMorph =
-                dMorphs.GetMorphByDisplayName(tmorph.resolvedDisplayName);
-            if (donorMorph == null ||
-                donorMorph.isPoseControl ||
-                donorMorph.disable)
-            {
-                noMatch++;
-                continue;
-            }
-            tmorph.morphValue = donorMorph.morphValue;
-            copied++;
-        }
-
         DAZCharacterRun run = rGeom.GetComponentInChildren<DAZCharacterRun>();
         if (run != null)
         {
@@ -301,70 +224,588 @@ public class HeadMorphSwap : MVRScript
                 rGeom.morphBank3.ApplyMorphsImmediate();
             }
         }
+    }
 
-        int hairSynced = 0;
-        int hairSkipped = 0;
-        if (copyHairFromDonor.val)
+    /// <returns>Preset morph block for tm or null.</returns>
+    private static JSONClass FindPresetMorphForTarget(
+        JSONArray presetMorphArray,
+        DAZMorph tm)
+    {
+        if (presetMorphArray == null || tm == null)
         {
-            rGeom.RemoveAllHair();
-            DAZHairGroup[] donorHairItems = dGeom.hairItems;
-            if (donorHairItems != null)
+            return null;
+        }
+        foreach (JSONNode presetNode in presetMorphArray)
+        {
+            JSONClass presetMorphJson = presetNode.AsObject;
+            if (presetMorphJson == null)
             {
-                foreach (DAZHairGroup dh in donorHairItems)
+                continue;
+            }
+            JSONNode uidNode = presetMorphJson["uid"];
+            if (uidNode != null &&
+                !(uidNode.Value == null || uidNode.Value == string.Empty))
+            {
+                string nu = FileManager.NormalizeID(uidNode.Value);
+                string tu = FileManager.NormalizeID(tm.uid);
+                if (nu == tu)
                 {
-                    if (dh == null || !dh.active || dh.uid == null)
-                    {
-                        continue;
-                    }
-                    DAZHairGroup onReceiver = rGeom.GetHairItem(dh.uid);
-                    if (onReceiver != null)
-                    {
-                        rGeom.SetActiveHairItem(dh.uid, true, false);
-                        hairSynced++;
-                    }
-                    else
-                    {
-                        hairSkipped++;
-                    }
+                    return presetMorphJson;
                 }
             }
         }
+        foreach (JSONNode presetNodeSecond in presetMorphArray)
+        {
+            JSONClass presetMorphJson2 = presetNodeSecond.AsObject;
+            if (presetMorphJson2 == null)
+            {
+                continue;
+            }
+            JSONNode nameNode = presetMorphJson2["name"];
+            if (nameNode != null &&
+                tm.resolvedDisplayName != null &&
+                string.Equals(
+                    nameNode.Value,
+                    tm.resolvedDisplayName,
+                    StringComparison.Ordinal))
+            {
+                return presetMorphJson2;
+            }
+        }
+        return null;
+    }
 
+    private static bool RecipientSexFailsPresetCharacterField(
+        DAZCharacter rc,
+        JSONClass presetGeom)
+    {
+        if (rc == null || presetGeom == null)
+        {
+            return false;
+        }
+        string chRaw = presetGeom["character"];
+        if (chRaw == null || chRaw.Length == 0)
+        {
+            return false;
+        }
+        string low = chRaw.ToLowerInvariant();
+        bool hasFemale = low.IndexOf("female", StringComparison.Ordinal) >= 0;
+        bool hasMale = low.IndexOf("male", StringComparison.Ordinal) >= 0;
+        if (hasFemale && hasMale)
+        {
+            return false;
+        }
+        if (hasFemale)
+        {
+            return rc.isMale;
+        }
+        if (hasMale)
+        {
+            return !rc.isMale;
+        }
+        return false;
+    }
+
+    /// <returns>geometry storable JSON or null.</returns>
+    private static JSONClass FindFirstGeometryInPersonPreset(JSONClass sceneRoot)
+    {
+        if (sceneRoot == null)
+        {
+            return null;
+        }
+        JSONNode atomsNode = sceneRoot["atoms"];
+        JSONArray atoms = atomsNode != null ? atomsNode.AsArray : null;
+        if (atoms == null)
+        {
+            return null;
+        }
+        for (int ai = 0; ai < atoms.Count; ai++)
+        {
+            JSONClass atomJson = atoms[ai].AsObject;
+            if (atomJson == null)
+            {
+                continue;
+            }
+            string tp = atomJson["type"];
+            if (tp != "Person")
+            {
+                continue;
+            }
+            JSONNode stNode = atomJson["storables"];
+            JSONArray storArr =
+                stNode != null ? stNode.AsArray : null;
+            if (storArr == null)
+            {
+                continue;
+            }
+            for (int si = 0; si < storArr.Count; si++)
+            {
+                JSONClass stjc = storArr[si].AsObject;
+                if (stjc == null)
+                {
+                    continue;
+                }
+                JSONNode sid = stjc["id"];
+                if (sid != null && sid.Value == "geometry")
+                {
+                    return stjc;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static bool TryReadPersonPresetGeometry(
+        string relativePathNormalized,
+        out JSONClass presetGeomJson,
+        out JSONArray presetMorphArray,
+        out string err)
+    {
+        presetGeomJson = null;
+        presetMorphArray = null;
+        err = "";
+        string jsonText =
+            SuperController.singleton.ReadFileIntoString(relativePathNormalized);
+        if (jsonText == null || jsonText.Length == 0)
+        {
+            err = "Empty or unreadable preset.";
+            return false;
+        }
+        JSONClass rootJC = JSON.Parse(jsonText).AsObject;
+        if (rootJC == null)
+        {
+            err = "Not valid JSON preset.";
+            return false;
+        }
+        presetGeomJson = FindFirstGeometryInPersonPreset(rootJC);
+        if (presetGeomJson == null)
+        {
+            err = "No Person geometry section (Saves/Person .json?).";
+            return false;
+        }
+        JSONNode morNode = presetGeomJson["morphs"];
+        presetMorphArray = morNode != null ? morNode.AsArray : null;
+        if (presetMorphArray == null)
+        {
+            err = "Preset geometry lacks morph array.";
+            return false;
+        }
+        return true;
+    }
+
+    private static string TrimPresetPathInput(string rawVal)
+    {
+        if (rawVal == null)
+        {
+            return string.Empty;
+        }
+        return rawVal.Trim().Replace('\\', '/').Trim();
+    }
+
+    private void CopyHairSlotsFromPresetJson(
+        DAZCharacterSelector recipientGeom,
+        JSONClass presetGeomJson,
+        ref int synced,
+        ref int skipped)
+    {
+        if (!(copyHairFromDonor.val &&
+            presetGeomJson != null &&
+            recipientGeom != null))
+        {
+            return;
+        }
+        JSONNode hairNode = presetGeomJson["hair"];
+        JSONArray ha = hairNode != null ? hairNode.AsArray : null;
+        if (ha == null)
+        {
+            return;
+        }
+        recipientGeom.RemoveAllHair();
+        for (int hi = 0; hi < ha.Count; hi++)
+        {
+            JSONClass itemJson = ha[hi].AsObject;
+            if (itemJson == null)
+            {
+                continue;
+            }
+            JSONNode enNode = itemJson["enabled"];
+            if (enNode != null && !(enNode.AsBool))
+            {
+                continue;
+            }
+            JSONNode idNodePrimary = itemJson["id"];
+            string textPrimary = idNodePrimary != null ?
+                idNodePrimary.Value :
+                null;
+            string itemIdActivation = "";
+            if (textPrimary != null && textPrimary != string.Empty)
+            {
+                itemIdActivation =
+                    FileManager.NormalizeID(textPrimary);
+            }
+            DAZHairGroup hairFound = null;
+            if (itemIdActivation != string.Empty)
+            {
+                hairFound =
+                    recipientGeom.GetHairItem(itemIdActivation);
+            }
+            JSONNode internalNode = itemJson["internalId"];
+            string backupId = internalNode != null ?
+                internalNode.Value :
+                null;
+            if (hairFound == null &&
+                !(backupId == null || backupId == string.Empty))
+            {
+                hairFound = recipientGeom.GetHairItem(backupId);
+                if (hairFound != null)
+                {
+                    itemIdActivation = backupId;
+                }
+            }
+            if (hairFound != null &&
+                !(itemIdActivation == string.Empty))
+            {
+                recipientGeom.SetActiveHairItem(itemIdActivation, true, false);
+                synced++;
+            }
+            else
+            {
+                skipped++;
+            }
+        }
+    }
+
+    private void CopyHairSlotsFromLivingDonor(
+        DAZCharacterSelector recipientGeom,
+        DAZCharacterSelector donorGeom,
+        ref int synced,
+        ref int skipped)
+    {
+        if (!(copyHairFromDonor.val &&
+            recipientGeom != null &&
+            donorGeom != null))
+        {
+            return;
+        }
+        recipientGeom.RemoveAllHair();
+        DAZHairGroup[] donorHairItems = donorGeom.hairItems;
+        if (donorHairItems == null)
+        {
+            return;
+        }
+        foreach (DAZHairGroup dh in donorHairItems)
+        {
+            if (dh == null || !dh.active || dh.uid == null)
+            {
+                continue;
+            }
+            if (recipientGeom.GetHairItem(dh.uid) != null)
+            {
+                recipientGeom.SetActiveHairItem(dh.uid, true, false);
+                synced++;
+            }
+            else
+            {
+                skipped++;
+            }
+        }
+    }
+
+    private void ApplyMorphsFromPresetFile(string presetRelativePath)
+    {
+        string rid = recipientChooser.val;
+        if (rid == null || rid.Length == 0)
+        {
+            statusLine.val = "Select recipient Person.";
+            return;
+        }
+        if (SuperController.singleton == null)
+        {
+            statusLine.val = "SuperController unavailable.";
+            return;
+        }
+        Atom recipientAtom = SuperController.singleton.GetAtomByUid(rid);
+        if (!IsPersonReady(recipientAtom))
+        {
+            statusLine.val = "Recipient morph bank not ready.";
+            return;
+        }
+
+        JSONClass presetGeomJson;
+        JSONArray presetMorphArr;
+        string presetErr;
+        if (!TryReadPersonPresetGeometry(
+            presetRelativePath,
+            out presetGeomJson,
+            out presetMorphArr,
+            out presetErr))
+        {
+            statusLine.val = presetErr;
+            SuperController.LogError(
+                string.Concat("[HeadMorphSwap] ", presetErr));
+            return;
+        }
+
+        if (requireSameSex.val)
+        {
+            DAZCharacter rc =
+                recipientAtom.GetComponentInChildren<DAZCharacter>();
+            if (RecipientSexFailsPresetCharacterField(rc, presetGeomJson))
+            {
+                statusLine.val = "Sex mismatch preset vs recipient; loosen check.";
+                return;
+            }
+        }
+
+        List<string> regionTokens = ParseRegionTokens(regionSubstringsCsv.val);
+        if (regionTokens.Count == 0)
+        {
+            statusLine.val = "Add comma-separated region substrings.";
+            return;
+        }
+
+        DAZCharacterSelector recipientGeom = GetGeometry(recipientAtom);
+        GenerateDAZMorphsControlUI morphCtrl = recipientGeom.morphsControlUI;
+        List<DAZMorph> tgtList = morphCtrl.GetMorphs();
+        if (tgtList == null)
+        {
+            statusLine.val = "Recipient morph list missing.";
+            return;
+        }
+
+        int copied = 0;
+        int noMatch = 0;
+        foreach (DAZMorph tmorph in tgtList)
+        {
+            if (tmorph == null || tmorph.isPoseControl || tmorph.disable)
+            {
+                continue;
+            }
+            if (!RegionMatchesMorph(tmorph, regionTokens))
+            {
+                continue;
+            }
+            JSONClass presetMorphJC =
+                FindPresetMorphForTarget(presetMorphArr, tmorph);
+            if (presetMorphJC == null)
+            {
+                noMatch++;
+                continue;
+            }
+            tmorph.RestoreFromJSON(presetMorphJC);
+            copied++;
+        }
+
+        SmoothMorphBanks(recipientGeom);
+
+        int hairSynced = 0;
+        int hairSkipped = 0;
+        CopyHairSlotsFromPresetJson(
+            recipientGeom,
+            presetGeomJson,
+            ref hairSynced,
+            ref hairSkipped);
+
+        PushStatusAfterApply(
+            "preset",
+            copied,
+            noMatch,
+            hairSynced,
+            hairSkipped);
+    }
+
+    private void PushStatusAfterApply(
+        string modeLabel,
+        int copied,
+        int noMatch,
+        int hairSynced,
+        int hairSkipped)
+    {
         if (copyHairFromDonor.val)
         {
             statusLine.val = string.Concat(
-                "Morphs copied: ",
+                "(", modeLabel, ") Morphs ",
                 copied.ToString(),
-                ". Missing donor morph: ",
+                ". Missing source ",
                 noMatch.ToString(),
-                ". Hair slots matched ",
+                ". Hair ",
                 hairSynced.ToString(),
-                "; not on recipient ",
+                "/",
                 hairSkipped.ToString(),
-                ".");
+                " synced/missing.");
+
         }
         else
         {
             statusLine.val = string.Concat(
-                "Morphs copied: ",
+                "(", modeLabel, ") Morphs ",
                 copied.ToString(),
-                ". Missing donor morph: ",
+                ". Missing source ",
                 noMatch.ToString(),
                 ".");
         }
         SuperController.singleton.Message(statusLine.val);
     }
 
+    private void ApplyMorphsFromSceneDonor(string rid, string did)
+    {
+        if (did == null ||
+            did.Length == 0 ||
+            did.Equals(DonorNoneChoice))
+        {
+            statusLine.val = "Select scene donor Person or-browse Saves/Person preset.";
+            return;
+        }
+        if (rid == did)
+        {
+            statusLine.val = "Pick two different Persons.";
+            return;
+        }
+        if (SuperController.singleton == null)
+        {
+            statusLine.val = "SuperController unavailable.";
+            return;
+        }
+        Atom recipientAtom = SuperController.singleton.GetAtomByUid(rid);
+        Atom donorAtom = SuperController.singleton.GetAtomByUid(did);
+        if (!IsPersonReady(recipientAtom) || !IsPersonReady(donorAtom))
+        {
+            statusLine.val = "Recipient & donor Persons must finish loading.";
+            return;
+        }
+
+        if (requireSameSex.val)
+        {
+            DAZCharacter rc = recipientAtom.GetComponentInChildren<DAZCharacter>();
+            DAZCharacter dcDonor =
+                donorAtom.GetComponentInChildren<DAZCharacter>();
+            bool rMale = rc.isMale;
+            bool dMale = dcDonor.isMale;
+            if (rMale != dMale)
+            {
+                statusLine.val = "Sex differs; disable same-sex gate or swap.";
+                return;
+            }
+        }
+
+        List<string> regionTokens = ParseRegionTokens(regionSubstringsCsv.val);
+        if (regionTokens.Count == 0)
+        {
+            statusLine.val = "Comma-separate morph region substring list.";
+            return;
+        }
+
+        DAZCharacterSelector rGeom = GetGeometry(recipientAtom);
+        DAZCharacterSelector dGeom = GetGeometry(donorAtom);
+        GenerateDAZMorphsControlUI rm = rGeom.morphsControlUI;
+        GenerateDAZMorphsControlUI dm = dGeom.morphsControlUI;
+
+        List<DAZMorph> tgtList = rm.GetMorphs();
+        if (tgtList == null)
+        {
+            statusLine.val = "Recipient morph list missing.";
+            return;
+        }
+
+        int copied = 0;
+        int noMatch = 0;
+        foreach (DAZMorph tmorph in tgtList)
+        {
+            if (tmorph == null || tmorph.isPoseControl || tmorph.disable)
+            {
+                continue;
+            }
+            if (!RegionMatchesMorph(tmorph, regionTokens))
+            {
+                continue;
+            }
+            DAZMorph donorMorph =
+                dm.GetMorphByDisplayName(tmorph.resolvedDisplayName);
+            if (donorMorph == null ||
+                donorMorph.isPoseControl ||
+                donorMorph.disable)
+            {
+                noMatch++;
+                continue;
+            }
+            tmorph.morphValue = donorMorph.morphValue;
+            copied++;
+        }
+
+        SmoothMorphBanks(rGeom);
+
+        int hairSynced = 0;
+        int hairSkipped = 0;
+        CopyHairSlotsFromLivingDonor(rGeom, dGeom, ref hairSynced, ref hairSkipped);
+
+        PushStatusAfterApply(
+            "scene",
+            copied,
+            noMatch,
+            hairSynced,
+            hairSkipped);
+    }
+
+    private void ApplyMorphsFromDonor()
+    {
+        string rid = recipientChooser.val;
+        if (rid == null || rid.Length == 0)
+        {
+            statusLine.val = "Select recipient Person.";
+            return;
+        }
+
+        string presetPathCandidate = TrimPresetPathInput(
+            donorPersonPresetPathUrl != null ? donorPersonPresetPathUrl.val : "");
+        if (presetPathCandidate.Length > 0)
+        {
+            ApplyMorphsFromPresetFile(presetPathCandidate);
+            return;
+        }
+
+        ApplyMorphsFromSceneDonor(rid, donorChooser.val);
+    }
+
     public override void Init()
     {
         try
         {
+            donorPersonPresetPathUrl = new JSONStorableUrl(
+                "donorPersonPresetPath",
+                string.Empty,
+                delegate(string unusedPathSync)
+                {
+                    NotifyPresetChosen();
+                },
+                "json",
+                "Saves/Person");
+
+            donorPersonPresetPathUrl.showDirs = true;
+            RegisterUrl(donorPersonPresetPathUrl);
+
+            UIDynamicButton browsePresetBtn =
+                CreateButton("Browse Saves/Person .json");
+            if (browsePresetBtn != null && browsePresetBtn.button != null)
+            {
+                donorPersonPresetPathUrl.RegisterFileBrowseButton(
+                    browsePresetBtn.button);
+
+            }
+
+            UIDynamicTextField presetPathTf =
+                CreateTextField(donorPersonPresetPathUrl, false);
+            if (presetPathTf != null)
+            {
+                presetPathTf.height = 40f;
+
+            }
+
             recipientChooser =
                 new JSONStorableStringChooser(
                     "recipientPerson",
                     new List<string>(),
                     "",
-                    "Recipient")
+                    "Recipient Person")
                 ;
             RegisterStringChooser(recipientChooser);
             SyncRecipientChoices();
@@ -380,7 +821,7 @@ public class HeadMorphSwap : MVRScript
                     "donorPerson",
                     new List<string>(),
                     DonorNoneChoice,
-                    "Donor")
+                    "Scene donor")
                 ;
             RegisterStringChooser(donorChooser);
             SyncDonorChoices();
@@ -395,41 +836,52 @@ public class HeadMorphSwap : MVRScript
             regionSubstringsCsv =
                 new JSONStorableString(
                     "regionSubstringsCsv",
-                    defaultCsv)
-                ;
+                    defaultCsv);
+
             RegisterString(regionSubstringsCsv);
+
             CreateTextField(regionSubstringsCsv, false);
 
             requireSameSex = new JSONStorableBool(
                 "requireSameSexMorphBanks",
-                true)
-                ;
+                true);
+
             RegisterBool(requireSameSex);
+
             CreateToggle(requireSameSex, false);
 
             copyHairFromDonor =
                 new JSONStorableBool("copyHairFromDonorIfIdsMatch", false);
+
             RegisterBool(copyHairFromDonor);
+
             CreateToggle(copyHairFromDonor, false);
 
             applyAction = new JSONStorableAction(
                 "applyHeadMorphsFromDonor",
                 ApplyMorphsFromDonor);
+
             RegisterAction(applyAction);
 
             UIDynamicButton goButton =
-                CreateButton("Apply head morphs from donor");
+                CreateButton(
+                    "Apply head morphs");
+
             if (goButton != null && goButton.button != null)
             {
                 goButton.button.onClick.AddListener(
                     delegate() { ApplyMorphsFromDonor(); });
+
             }
 
             statusLine = new JSONStorableString(
                 "lastSwapStatus",
-                "Substring list matches morph region text (comma-separated).");
+                string.Concat(
+                    "Preset JSON path overrides scene donor.",
+                    " Use Browse under Saves/Person (for example Saves/Person/full)."));
 
             RegisterString(statusLine);
+
             CreateTextField(statusLine, false);
 
             if (containingAtom != null &&
@@ -437,7 +889,10 @@ public class HeadMorphSwap : MVRScript
                 recipientChooser != null &&
                 recipientChooser.choices != null &&
                 recipientChooser.choices.Exists(
-                    delegate(string uid) { return uid.Equals(containingAtom.uid); }))
+                    delegate(string uid)
+                    {
+                        return uid.Equals(containingAtom.uid);
+                    }))
             {
                 recipientChooser.valNoCallback = containingAtom.uid;
                 SyncRecipientChoices();
@@ -448,5 +903,26 @@ public class HeadMorphSwap : MVRScript
         {
             SuperController.LogError("HeadMorphSwap Init " + e);
         }
+    }
+
+    private void NotifyPresetChosen()
+    {
+        if (statusLine == null)
+        {
+            return;
+        }
+
+        string p = TrimPresetPathInput(
+            donorPersonPresetPathUrl != null ?
+                donorPersonPresetPathUrl.val :
+                "");
+
+        statusLine.val = p.Length > 0 ?
+            string.Concat("Preset armed: ", p) :
+
+            string.Concat(
+                "Preset cleared: using scene donor if selected.",
+                " Use Saves/Person .json.");
+
     }
 }

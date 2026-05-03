@@ -40,8 +40,6 @@ namespace geesp0t
 
         private Coroutine _pathRuleEmotionMergeCo;
 
-        private Coroutine _maleEmotionOnNewPersonCo;
-
         private Coroutine _mergeSpankingsAfterGripCo;
 
         private Coroutine _postSceneLoadUnfreezeCo;
@@ -98,12 +96,6 @@ namespace geesp0t
 
         /// <summary>Minimum longest <see cref="MotionAnimationClip.clipLength"/> in the scene (seconds) for end-of-mocap female E-Motion Final merge; avoids short clips.</summary>
         public JSONStorableFloat longMocapMinSecondsForEmotionMerge;
-
-        /// <summary>
-        /// After scene load (and when males are added mid-scene), merges <see cref="MainUIButtons.PluginEMotion"/> onto male <c>Person</c> atoms only when they have no scene motion-animation clip targeting head,
-        /// neck, or eye target (<see cref="EasyMateHeadFaceMotionProbe"/>). Toggle off to leave males unchanged.
-        /// </summary>
-        public JSONStorableBool mergeEmotionOriginalOnMaleWithoutHeadFaceMocap;
 
         /// <summary>
         /// When true (default), draws blue/red <see cref="LineRenderer"/> beams from each VR
@@ -188,11 +180,6 @@ namespace geesp0t
             longMocapMinSecondsForEmotionMerge = new JSONStorableFloat("Min mocap length (s) for end-of-clip E-Motion Final", 45f, 5f, 600f);
             RegisterFloat(longMocapMinSecondsForEmotionMerge);
 
-            mergeEmotionOriginalOnMaleWithoutHeadFaceMocap = new JSONStorableBool(
-                "Auto-merge E-Motion Original on males (no head/neck/gaze mocap)",
-                true);
-            RegisterBool(mergeEmotionOriginalOnMaleWithoutHeadFaceMocap);
-
             restoreMonitorModeControllerLaser = new JSONStorableBool(
                 "Monitor mode: LineRenderer to LaserBeamDot",
                 true);
@@ -200,8 +187,6 @@ namespace geesp0t
 
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
-            SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedMaleEmotionMerge;
-            SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedMaleEmotionMerge;
 
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(QueueMergeSpankingsAfterGripDeferred);
         }
@@ -312,9 +297,6 @@ namespace geesp0t
                 if (pathRuleMerge)
                     mainUIButtons.MergeEmotionLiteForPathRuleOnAllPersonsOnly();
                 mainUIButtons.MergeClothingTouchFallOffOnAllPersonsOnly();
-                if (mergeEmotionOriginalOnMaleWithoutHeadFaceMocap != null &&
-                    mergeEmotionOriginalOnMaleWithoutHeadFaceMocap.val)
-                    mainUIButtons.MergeEmotionOriginalOnMalePersonsWithoutHeadFaceMotionClip();
                 mainUIButtons.RefreshPluginToggleLabels();
             }
             finally
@@ -388,90 +370,11 @@ namespace geesp0t
                     yield break;
 
                 mainUIButtons.MergeEmotionLiteForPathRuleOnAllPersonsOnly();
-                if (mergeEmotionOriginalOnMaleWithoutHeadFaceMocap != null &&
-                    mergeEmotionOriginalOnMaleWithoutHeadFaceMocap.val)
-                    mainUIButtons.MergeEmotionOriginalOnMalePersonsWithoutHeadFaceMotionClip();
                 mainUIButtons.RefreshPluginToggleLabels();
             }
             finally
             {
                 _pathRuleEmotionMergeCo = null;
-            }
-        }
-
-        private void OnAtomUIDsChangedMaleEmotionMerge(List<string> atomUids)
-        {
-            try
-            {
-                if (mergeEmotionOriginalOnMaleWithoutHeadFaceMocap == null ||
-                    !mergeEmotionOriginalOnMaleWithoutHeadFaceMocap.val)
-                    return;
-                if (atomUids == null || atomUids.Count == 0)
-                    return;
-
-                SuperController sc = SuperController.singleton;
-                if (sc == null || sc.isLoading)
-                    return;
-
-                bool sawMalePerson = false;
-                for (int i = 0; i < atomUids.Count; i++)
-                {
-                    Atom a = sc.GetAtomByUid(atomUids[i]);
-                    if (a != null && a.type == "Person" && MainUIButtons.IsMalePerson(a))
-                    {
-                        sawMalePerson = true;
-                        break;
-                    }
-                }
-
-                if (!sawMalePerson)
-                    return;
-
-                StartMaleEmotionMergeDeferred();
-            }
-            catch (Exception e)
-            {
-                LogError("EasyMate male E-Motion (atom UID change): " + e.Message);
-            }
-        }
-
-        private void StartMaleEmotionMergeDeferred()
-        {
-            if (mergeEmotionOriginalOnMaleWithoutHeadFaceMocap == null ||
-                !mergeEmotionOriginalOnMaleWithoutHeadFaceMocap.val)
-                return;
-            if (_maleEmotionOnNewPersonCo != null)
-            {
-                StopCoroutine(_maleEmotionOnNewPersonCo);
-                _maleEmotionOnNewPersonCo = null;
-            }
-            _maleEmotionOnNewPersonCo = StartCoroutine(CoMaleEmotionMergeDeferred());
-        }
-
-        private IEnumerator CoMaleEmotionMergeDeferred()
-        {
-            try
-            {
-                SuperController sc = SuperController.singleton;
-                while (sc != null && sc.isLoading)
-                    yield return null;
-
-                yield return null;
-                yield return null;
-                yield return new WaitForSecondsRealtime(0.35f);
-
-                if (sc == null || mainUIButtons == null)
-                    yield break;
-                if (mergeEmotionOriginalOnMaleWithoutHeadFaceMocap == null ||
-                    !mergeEmotionOriginalOnMaleWithoutHeadFaceMocap.val)
-                    yield break;
-
-                mainUIButtons.MergeEmotionOriginalOnMalePersonsWithoutHeadFaceMotionClip();
-                mainUIButtons.RefreshPluginToggleLabels();
-            }
-            finally
-            {
-                _maleEmotionOnNewPersonCo = null;
             }
         }
 
@@ -836,19 +739,12 @@ namespace geesp0t
             if (SuperController.singleton != null)
             {
                 SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
-                SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedMaleEmotionMerge;
             }
 
             if (_pathRuleEmotionMergeCo != null)
             {
                 StopCoroutine(_pathRuleEmotionMergeCo);
                 _pathRuleEmotionMergeCo = null;
-            }
-
-            if (_maleEmotionOnNewPersonCo != null)
-            {
-                StopCoroutine(_maleEmotionOnNewPersonCo);
-                _maleEmotionOnNewPersonCo = null;
             }
 
             if (_mergeSpankingsAfterGripCo != null)

@@ -19,9 +19,8 @@ namespace geesp0t
     // animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR,
     // else plain Y; K = write camera/rig patch request + run Python on current
     // scene JSON
-    // (currentLoadDir); E-Motion HUD column (Lite / Original / Final / remove
-    // all)
-    // swaps packs via TryReplaceEmotionFamilyWithExactPath; I / VR gestures
+    // (currentLoadDir); E-Motion HUD: Lite / Original / M-F gender / Final /
+    // remove-all; swaps via TryReplaceEmotionFamilyWithExactPath; I / VR gestures
     // (see EasyMateVrGestureRuntime) e.g. over-HMD hand zone → same as I; P =
     // Possess+Align+Select closest Person by head;
     // O = unpossess all; C = cycle Female then Male Persons (uid), Edit +
@@ -166,6 +165,8 @@ namespace geesp0t
 
         UIDynamicButton emotionLiteHudButton = null;
         UIDynamicButton emotionOriginalHudButton = null;
+        UIDynamicButton emotionMaleHudButton = null;
+        UIDynamicButton emotionFemaleHudButton = null;
         UIDynamicButton emotionFinalHudButton = null;
         UIDynamicButton emotionRemoveAllHudButton = null;
         UIDynamicButton spankingsButton = null;
@@ -204,10 +205,10 @@ namespace geesp0t
         /// Y binding does not spam logs; <c>XRSettings.enabled</c> alone is not
         /// used for that gate (it often stays true with drivers while using the
         /// desktop keyboard).
-        /// E-Motion packs are merged only via HUD buttons
-        /// (<b>E-Motion Lite</b>,
-        /// <b>Original</b>, <b>Final</b>, <b>Remove all</b>), each replacing
-        /// other family entries first.
+        /// E‑Motion merges via HUD: <b>Lite</b>, <b>Original</b>
+        /// (everyone), <b>M</b> / <b>F</b> (<see cref="PluginEMotion"/> males
+        /// or females only), <b>Final</b>, <b>Remove all</b> — replacing other
+        /// family packs first.
         /// <b>O</b> stops auto-possess and
         /// <see cref="SuperController.ClearPossess"/>.
         /// <b>I</b> hides VR hand models then cycles rig snap across
@@ -625,18 +626,17 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Merges <see cref="PluginEMotion"/> on each male <c>Person</c> with no motion clip on head, neck,
-        /// or eye target (avoid stacking E-Motion head driver on authored scene mocap).
+        /// Merges AutoMate E-Motion (<see cref="PluginEMotion"/>) onto every male
+        /// <c>Person</c> only (same swap as HUD <b>E-Motion Original</b>,
+        /// gender-filtered).
         /// </summary>
-        public void MergeEmotionOriginalOnMalePersonsWithoutHeadFaceMotionClip()
+        public void MergeEmotionOriginalOnMalePersonsOnly()
         {
             try
             {
                 foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
                 {
                     if (at == null || !IsMalePerson(at))
-                        continue;
-                    if (EasyMateHeadFaceMotionProbe.PersonHasHeadFaceMotionClip(at))
                         continue;
                     TryReplaceEmotionFamilyWithExactPath(at, PluginEMotion);
                 }
@@ -645,8 +645,30 @@ namespace geesp0t
             }
             catch (Exception e)
             {
-                SuperController.LogError(
-                    "E-Motion Original merge on males (no head/neck/gaze mocap): " + e);
+                SuperController.LogError("E-Motion Original merge on males: " + e);
+            }
+        }
+
+        /// <summary>
+        /// Merges <see cref="PluginEMotion"/> onto every female <c>Person</c> only
+        /// (<b>E‑Motion F</b> HUD).
+        /// </summary>
+        public void MergeEmotionOriginalOnFemalePersonsOnly()
+        {
+            try
+            {
+                foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
+                {
+                    if (at == null || !IsPersonFemale(at))
+                        continue;
+                    TryReplaceEmotionFamilyWithExactPath(at, PluginEMotion);
+                }
+
+                RefreshPluginToggleLabels();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("E-Motion Original merge on females: " + e);
             }
         }
 
@@ -877,6 +899,30 @@ namespace geesp0t
             }
         }
 
+        private void OnEmotionMaleHudClicked()
+        {
+            try
+            {
+                MergeEmotionOriginalOnMalePersonsOnly();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("E-Motion M HUD: " + e);
+            }
+        }
+
+        private void OnEmotionFemaleHudClicked()
+        {
+            try
+            {
+                MergeEmotionOriginalOnFemalePersonsOnly();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("E-Motion F HUD: " + e);
+            }
+        }
+
         private void OnEmotionFinalHudClicked()
         {
             try
@@ -973,6 +1019,19 @@ namespace geesp0t
             emotionRemoveAllHudButton = AddButton("Remove E-Motion", OnEmotionRemoveAllHudClicked, 1, 3, emotionColButtonWidth);
             snapFemaleHeadButton = AddButton("Passenger Female", SnapRigToClosestFemaleHead, 2, 3, midColButtonWidth);
 
+            emotionMaleHudButton = AddButton(
+                "E-Motion M",
+                OnEmotionMaleHudClicked,
+                1,
+                4,
+                emotionColButtonWidth);
+            emotionFemaleHudButton = AddButton(
+                "E-Motion F",
+                OnEmotionFemaleHudClicked,
+                2,
+                4,
+                midColButtonWidth);
+
             RefreshPluginToggleLabels();
 
             canvas.transform.Translate(0, 0.2f, 0);
@@ -988,6 +1047,10 @@ namespace geesp0t
                 emotionFinalHudButton.gameObject.SetActive(setToActive);
             if (emotionRemoveAllHudButton != null)
                 emotionRemoveAllHudButton.gameObject.SetActive(setToActive);
+            if (emotionMaleHudButton != null)
+                emotionMaleHudButton.gameObject.SetActive(setToActive);
+            if (emotionFemaleHudButton != null)
+                emotionFemaleHudButton.gameObject.SetActive(setToActive);
             if (spankingsButton != null)
                 spankingsButton.gameObject.SetActive(setToActive);
             if (stripAllClothesButton != null)

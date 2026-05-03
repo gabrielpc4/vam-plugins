@@ -7,7 +7,20 @@ namespace Utils.UIUtils
     public class UIUtils
     {
         private static Font _font = (Font)Resources.GetBuiltinResource(typeof(Font), "Arial.ttf");
-        private static Sprite _buttonBackgroundSprite = SuperController.singleton.dynamicButtonPrefab.GetComponentInChildren<Image>().sprite;
+
+        // Button sprite from VaM plugin manager prefab (not SuperController API).
+        private static Sprite GetConfigurableButtonSprite(MVRScript script)
+        {
+            if (script == null || script.manager == null)
+                return null;
+            if (script.manager.configurableButtonPrefab == null)
+                return null;
+            Image image =
+                script.manager.configurableButtonPrefab.GetComponentInChildren<Image>();
+            if (image == null)
+                return null;
+            return image.sprite;
+        }
 
         static public void RemoveUI(MVRScript script, List<UIDynamic> ui)
         {
@@ -76,7 +89,9 @@ namespace Utils.UIUtils
             inputField.text = storableString.val;
             inputField.onValueChanged.AddListener((string newValue) => storableString.val = newValue);
 
-            textField.GetComponentInChildren<Image>().sprite = _buttonBackgroundSprite;
+            Sprite buttonSprite = GetConfigurableButtonSprite(script);
+            if (buttonSprite != null)
+                textField.GetComponentInChildren<Image>().sprite = buttonSprite;
             textField.height = 28f;
             textField.backgroundColor = Color.white;
 

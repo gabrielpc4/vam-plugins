@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.Text;
-using MVR.FileManagement;
 using SimpleJSON;
 using UnityEngine;
 
@@ -14,10 +13,11 @@ namespace geesp0t
     /// main <c>.json</c> (see
     /// <c>Reference/VaM-Camera-Initial-Scene-Pose.md</c>).
     /// Scene folder comes from <see cref="SuperController.currentLoadDir"/>.
-    /// Absolute paths for the patch process use
-    /// <see cref="FileManager.GetFullPath"/>. Process stdout/stderr are not
-    /// read here (VaM prohibits referencing <c>System.IO</c> via
-    /// <c>Process.StandardOutput</c>); see <see cref="PatchToolLogRelative"/>.
+    /// Absolute paths for Python are <see cref="Application.dataPath"/> minus
+    /// <c>VaM_Data</c>, plus forward-slash joins (dynamic scripts cannot use
+    /// <c>System.IO</c> or <c>MVR.FileManagement</c>). Process stdout/stderr
+    /// are not read (that would pull <c>System.IO</c>); see
+    /// <see cref="PatchToolLogRelative"/>.
     /// </summary>
     public static class EasyMateKSceneCameraPatch
     {
@@ -60,10 +60,10 @@ namespace geesp0t
 
             LogCapturedPose(sc, loadDir, request);
 
-            string normLoadDir = FileManager.NormalizeLoadPath(NormalizeFwd(loadDir));
-            string sceneFolderAbs = FileManager.GetFullPath(normLoadDir);
-            string scriptAbs = FileManager.GetFullPath(NormalizeFwd(PatchScriptRelative));
-            string requestAbs = FileManager.GetFullPath(NormalizeFwd(RequestJsonRelative));
+            string installRoot = GetVaMInstallRoot();
+            string sceneFolderAbs = CombineFwd(installRoot, loadDir);
+            string scriptAbs = CombineFwd(installRoot, PatchScriptRelative);
+            string requestAbs = CombineFwd(installRoot, RequestJsonRelative);
 
             StringBuilder args = new StringBuilder();
             args.Append("-u \"");
@@ -246,5 +246,35 @@ namespace geesp0t
             return p.Replace('\\', '/');
         }
 
+        /// <summary>
+        /// Join install root and VaM-relative path using <c>/</c> only (no
+        /// <c>System.IO</c> / <c>MVR.FileManagement</c>).
+        /// </summary>
+        private static string CombineFwd(string root, string rel)
+        {
+            string r = NormalizeFwd(root).TrimEnd('/');
+            string x = NormalizeFwd(rel).TrimStart('/');
+            if (r.Length == 0)
+                return x;
+            if (x.Length == 0)
+                return r;
+            return r + "/" + x;
+        }
+
+        /// <summary>
+        /// Game install directory (folder containing <c>VaM_Data</c>), from Unity
+        /// only; string operations only.
+        /// </summary>
+        private static string GetVaMInstallRoot()
+        {
+            string dataPath = NormalizeFwd(Application.dataPath);
+            const string suffix = "/VaM_Data";
+            if (dataPath.Length >= suffix.Length && dataPath.EndsWith(suffix))
+                return dataPath.Substring(0, dataPath.Length - suffix.Length);
+            int li = dataPath.LastIndexOf('/');
+            if (li > 0)
+                return dataPath.Substring(0, li);
+            return dataPath;
+        }
     }
 }

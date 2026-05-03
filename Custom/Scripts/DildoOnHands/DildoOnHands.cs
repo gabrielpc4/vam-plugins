@@ -19,8 +19,11 @@ namespace geesp0t
     {
         public const string PluginName = "HandSpawnToy";
 
+        /// Default VaM-relative path: slim <c>{ "atoms": [...] }</c> from
+        /// extract_toy_catalog.py (checked in beside this plugin). Full scenes
+        /// work too if you paste their path here.
         public const string DefaultCatalogSceneRelativePath =
-            "Saves/scene/Mofme/Mofme CamGirlToys/1100_camgirltoys.json";
+            "Custom/Scripts/DildoOnHands/handspawn_toy_atoms.json";
 
         private static readonly string[] VarietyToyAtomTypes =
         {

@@ -5,8 +5,15 @@ Brazilian Portuguese labels for VaM Easy Mate hub UIButton scene slots.
 Used by ``rewire_hub_scene_button.py`` and ``localize_hub_button_labels.py``.
 
 Format:
-  Linha 1: tipo em pt-BR
-  Linha 2: nome exibido (título já usado quando possível)
+  Linha 1: ``Tipo:`` em pt-BR
+  Linha 2: nome da cena (traduzido, com exceções)
+  ``\\n`` iniciais puxam o bloco para baixo porque o VaM centraliza todo o texto
+  no espaço do botão.
+
+Exceções: tipo ``Dança`` preserva inglês (``Like a Dark Horse`` etc.); duas músicas,
+``Hey Mama`` e ``Late Nite Dance``, recebem só toque leve PT; título com ``Dawn``
+permanece (ex.: Crack of Dawn).
+``1100_camgirltoys`` → ``Camgirl and Toys``.
 """
 
 from __future__ import annotations
@@ -54,9 +61,55 @@ _PRIMARY_PT_TYPE_LINES = frozenset(
     )
 )
 
+_CAMGIRL_STEM_LOWER = "1100_camgirltoys"
+_CAMGIRL_DISPLAY_TITLE = "Camgirl and Toys"
+
+_SCENE_TITLE_NORMALIZED_PT: dict[str, str] = {
+    _CAMGIRL_STEM_LOWER: _CAMGIRL_DISPLAY_TITLE,
+    "like a dark horse": "Como um cavalo negro",
+    "best laid plans": "Os melhores planos traçados",
+    "seductive witches": "Bruxas sedutoras",
+    "jessika's bedroom": "Quarto da Jessika",
+    "rainy mood missionary": "Missionário em clima chuvoso",
+    "late nite dance": "Dança da madrugada",
+    "yolanda x rose jerk-off and bj (futa)": (
+        "Yolanda x Rose punheta e boquete (Futa)"
+    ),
+    "blue": "Azul",
+    "makeout session": "Sessão de amassos",
+    "a dressing room": "Sala de vestir",
+    "hacker cracker": "Hacker cracker",
+    "touchy booty shake": "Rebolado sensível",
+    "not so rude awakening": "Um despertar nada rude",
+    "no matter": "Não importa",
+    "worthy": "Valor",
+    "call me": "Me liga",
+    "yolanda - bbc mod": "Yolanda — mod BBC",
+    "bondage and pole dance": "Bondagem e pole dance",
+    "math lesson": "Lição de matemática",
+    "spanking, press next for reverse cowgirl spanking": (
+        "Surras: avance pra cowgirl invertida"
+    ),
+}
+
+# Leading blank lines: UIButton texto centralizado → cabeça alinhado à parte de
+# baixo da miniatura.
+_HUB_UIBUTTON_LEADING_PAD_NEWLINES = 14
+
 
 def _norm_scene_path_for_sniff(scene_path: str) -> str:
     return scene_path.strip().replace("\\", "/")
+
+
+def _normalize_title_lookup_key(s: str) -> str:
+    return " ".join(s.strip().split()).lower()
+
+
+def strip_tipo_colon_suffix(line: str) -> str:
+    s = line.strip()
+    while s.endswith(":"):
+        s = s[:-1].rstrip()
+    return s.strip()
 
 
 def extract_type_en_from_full_text(old_full_text: str) -> str | None:
@@ -113,9 +166,6 @@ def resolve_type_pt(button_id: str, scene_path: str, old_full_text: str) -> str:
 
 
 def extract_body_before_hub_meta(raw: str) -> str:
-    """
-    Lines before hub ``Type:`` / ``Author:`` markers (drops tutorial footers).
-    """
     lines_out: list[str] = []
     for ln in raw.splitlines():
         ls = ln.strip()
@@ -177,16 +227,26 @@ def title_from_scene_path_stem(scene_path: str) -> str:
     return stem.replace("_", " ").strip()
 
 
+_DANCA_STILL_TRANSLATE_TITLE: dict[str, str] = {
+    _normalize_title_lookup_key(k): v
+    for k, v in {
+        "Hey Mama - Trap Mix": "Hey Mama — mix trap",
+        "Late Nite Dance": "Dança da madrugada",
+    }.items()
+}
+
+
 def polish_title_line(title: str, scene_path: str) -> str:
-    """
-    Light PT pass for menu chrome; scene names mostly stay unchanged.
-    """
     t = title.strip()
     if not t:
         t = title_from_scene_path_stem(scene_path)
-    m = _page_num_from_menu_page_line(t)
-    if m is not None:
-        return "Página %d" % (m,)
+    lp = (_norm_scene_path_for_sniff(scene_path)).lower()
+    fn = PurePosixPath(lp).name.lower()
+    if _CAMGIRL_STEM_LOWER in lp or fn.startswith(_CAMGIRL_STEM_LOWER):
+        return _CAMGIRL_DISPLAY_TITLE
+    pg = _page_num_from_menu_page_line(t)
+    if pg is not None:
+        return "Página %d" % (pg,)
     u = " ".join(t.upper().split())
     repl = {
         "SIMULATING": "Simulando",
@@ -199,31 +259,70 @@ def polish_title_line(title: str, scene_path: str) -> str:
     return t
 
 
+def translate_scene_display_title(
+    title_pt_or_en: str, type_pt: str, scene_path: str
+) -> str:
+    sfp_l = (_norm_scene_path_for_sniff(scene_path)).lower()
+    fn = PurePosixPath(sfp_l).name.lower()
+    if _CAMGIRL_STEM_LOWER in sfp_l or fn.startswith(_CAMGIRL_STEM_LOWER):
+        return _CAMGIRL_DISPLAY_TITLE
+
+    tit = title_pt_or_en.strip()
+    if not tit:
+        return tit
+
+    if type_pt.strip() == "Dança":
+        lk_d = _normalize_title_lookup_key(tit)
+        if lk_d in _DANCA_STILL_TRANSLATE_TITLE:
+            return _DANCA_STILL_TRANSLATE_TITLE[lk_d]
+        return tit
+    if re.search(r"(?<![A-Za-z0-9])Dawn(?![A-Za-z0-9])", tit):
+        return tit
+
+    tl = tit.lower().strip()
+    if tl.startswith("página ") or tl.startswith("pagina "):
+        return tit
+    if tit in ("Menu de aparências", "Menu VAMasutra"):
+        return tit
+
+    lk = _normalize_title_lookup_key(tit)
+    if lk in _SCENE_TITLE_NORMALIZED_PT:
+        return _SCENE_TITLE_NORMALIZED_PT[lk]
+    stm = lk.replace(".json", "").replace(".vac", "")
+    if stm in _SCENE_TITLE_NORMALIZED_PT:
+        return _SCENE_TITLE_NORMALIZED_PT[stm]
+    return tit
+
+
 def split_prior_pt_two_line_hub_label(
     old_full_text: str, scene_path: str
 ) -> tuple[str, str] | None:
-    """
-    If text is migrated ``tipo`` + ``título`` plus optional blank tail lines,
-    keep the first two lines. Ignores legacy English ``Type:`` / ``Author:``.
-    """
     if extract_type_en_from_full_text(old_full_text):
         return None
     if re.search(r"(?mi)^author:\s", old_full_text):
         return None
-    parts = old_full_text.split("\n")
-    if len(parts) < 2:
+    lines = old_full_text.split("\n")
+    i = 0
+    while i < len(lines) and not lines[i].strip():
+        i += 1
+    if i >= len(lines):
         return None
-    a = parts[0].strip()
-    b = parts[1].strip()
-    if not a or not b:
+    tipo_key = strip_tipo_colon_suffix(lines[i].strip())
+    i += 1
+    if tipo_key not in _PRIMARY_PT_TYPE_LINES:
         return None
-    for extra in parts[2:]:
-        if extra.strip():
+    while i < len(lines) and not lines[i].strip():
+        i += 1
+    if i >= len(lines):
+        return None
+    b_raw = lines[i].strip()
+    i += 1
+    while i < len(lines):
+        if lines[i].strip():
             return None
-    if a not in _PRIMARY_PT_TYPE_LINES:
-        return None
+        i += 1
     hub = _norm_scene_path_for_sniff(scene_path)
-    return a, polish_title_line(b, hub)
+    return tipo_key, polish_title_line(b_raw, hub)
 
 
 def derive_scene_button_title_pt(
@@ -273,17 +372,11 @@ def derive_scene_button_title_pt(
     return polish_title_line(title_from_scene_path_stem(sfp), sfp)
 
 
-# VaM UIButton Text is vertically centered on the full string. Old hub strings
-# had ``Type:/Author:`` and many trailing newlines so the caption sat higher.
-# Thin two-line labels look mid-thumb without similar padding.
-_HUB_UIBUTTON_TEXT_BOTTOM_PAD_NEWLINES = 10
-
-
 def format_two_line_pt(type_pt: str, title_pt: str) -> str:
-    a = type_pt.strip()
+    a = strip_tipo_colon_suffix(type_pt.strip())
     b = title_pt.strip()
-    pad = "\n" * _HUB_UIBUTTON_TEXT_BOTTOM_PAD_NEWLINES
-    return "%s\n%s%s" % (a, b, pad)
+    lead = "\n" * _HUB_UIBUTTON_LEADING_PAD_NEWLINES
+    return "%s%s:\n%s" % (lead, a, b)
 
 
 def build_scene_hub_label_pt(
@@ -292,14 +385,17 @@ def build_scene_hub_label_pt(
     scene_hub_path: str,
     old_full_text: str | None,
 ) -> str:
-    """Two-line PT label for UIButton scenes (existing text optional)."""
     hub = scene_hub_path.strip().replace("\\", "/")
+    typ = resolve_type_pt(button_id, hub, old_full_text or "")
     if old_full_text is not None:
         frozen = split_prior_pt_two_line_hub_label(old_full_text, hub)
         if frozen is not None:
-            return format_two_line_pt(frozen[0], frozen[1])
-        title = derive_scene_button_title_pt(old_full_text, hub, button_id)
+            title_base = frozen[1]
+        else:
+            title_base = derive_scene_button_title_pt(
+                old_full_text, hub, button_id
+            )
     else:
-        title = polish_title_line(scene_title_stem.strip(), hub)
-    typ = resolve_type_pt(button_id, hub, old_full_text or "")
-    return format_two_line_pt(typ, title)
+        title_base = polish_title_line(scene_title_stem.strip(), hub)
+    titled = translate_scene_display_title(title_base, typ, hub)
+    return format_two_line_pt(typ, titled)

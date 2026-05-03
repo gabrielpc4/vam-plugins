@@ -9,7 +9,8 @@ Rewire **one** main-hub ``UIButton`` so it loads a chosen scene:
   picks that ``.vac`` as the pack asset **unless** a ``.json`` with the **same basename**
   (same stem) exists beside it — then the hub loads that ``.json`` instead (button label stem
   matches that file).
-- UIButton ``Text`` becomes **two-line pt-BR** (tipo, then nome) via ``hub_scene_labels_pt``.
+- UIButton ``Text`` becomes **two-line pt-BR** (tipo, then nome) via
+  ``hub_scene_labels_pt_br``.
 - Then run ``inject_default_scene_thumbnails.py`` for ``_SceneThumb_*`` vs ``MainMenu_Original.json``.
 
 See: ``SCENE_MENU_AND_THUMBS.md``
@@ -37,7 +38,7 @@ from typing import Optional
 _TOOLS_DIR = Path(__file__).resolve().parent
 if str(_TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(_TOOLS_DIR))
-from hub_scene_labels_pt import build_scene_hub_label_pt
+from hub_scene_labels_pt_br import build_scene_hub_label_pt_br
 
 
 def find_va_root(start: Path) -> Optional[Path]:
@@ -317,7 +318,7 @@ def main() -> int:
     rel_for_author = title_src.relative_to(scene_root)
     scene_title = title_src.stem
     author = resolve_label_author(author_json_src, rel_for_author)
-    label = build_scene_hub_label_pt(scene_title, bid, hub_rel, None)
+    label = build_scene_hub_label_pt_br(scene_title, bid, hub_rel, None)
 
     print(f"VaM root:        {va_root}")
     print(f"Button id:       {bid}")

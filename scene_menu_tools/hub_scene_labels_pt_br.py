@@ -2,7 +2,8 @@
 """
 Brazilian Portuguese labels for VaM Easy Mate hub UIButton scene slots.
 
-Used by ``rewire_hub_scene_button.py`` and ``localize_hub_button_labels.py``.
+Used by ``rewire_hub_scene_button.py`` and ``localize_hub_button_labels.py``
+(module ``hub_scene_labels_pt_br.py``).
 
 Format:
   Linha 1: ``Tipo:`` em pt-BR
@@ -11,7 +12,7 @@ Format:
   no espaço do botão.
 
 Exceções: tipo ``Dança`` preserva inglês (``Like a Dark Horse`` etc.); duas músicas,
-``Hey Mama`` e ``Late Nite Dance``, recebem só toque leve PT; título com ``Dawn``
+``Hey Mama`` e ``Late Nite Dance``, recebem só toque leve pt-BR; ``Dawn``
 permanece (ex.: Crack of Dawn).
 ``1100_camgirltoys`` → ``Camgirl and Toys``.
 """
@@ -22,7 +23,7 @@ import re
 from pathlib import PurePosixPath
 
 # Exact English hub ``Type:`` phrases (stripped lower-case key).
-_TYPES_EN_LOWER_PT: dict[str, str] = {
+_TYPES_EN_LOWER_PT_BR: dict[str, str] = {
     "story": "História",
     "dance": "Dança",
     "dance &": "Dança e …",
@@ -37,7 +38,7 @@ _TYPES_EN_LOWER_PT: dict[str, str] = {
     "positions menu": "Menu de posições",
 }
 
-_CONDENSED_PRE_TYPE_PT: dict[str, str] = {
+_CONDENSED_PRE_TYPE_PT_BR: dict[str, str] = {
     "SIMULATING SEX": "Simulação sexual",
     "EASY MIX & SCENE BUILDING": "Easy Mix e construção de cenas",
     "BASICS & GETTING STARTED": "Básicos e primeiros passos",
@@ -46,8 +47,8 @@ _CONDENSED_PRE_TYPE_PT: dict[str, str] = {
     ),
 }
 
-_PRIMARY_PT_TYPE_LINES = frozenset(
-    {*_TYPES_EN_LOWER_PT.values(), "Tutorial", "Movimento manual"}
+_PRIMARY_PT_BR_TYPE_LINES = frozenset(
+    {*_TYPES_EN_LOWER_PT_BR.values(), "Tutorial", "Movimento manual"}
     | frozenset(
         {
             "História",
@@ -64,7 +65,7 @@ _PRIMARY_PT_TYPE_LINES = frozenset(
 _CAMGIRL_STEM_LOWER = "1100_camgirltoys"
 _CAMGIRL_DISPLAY_TITLE = "Camgirl and Toys"
 
-_SCENE_TITLE_NORMALIZED_PT: dict[str, str] = {
+_SCENE_TITLE_NORMALIZED_PT_BR: dict[str, str] = {
     _CAMGIRL_STEM_LOWER: _CAMGIRL_DISPLAY_TITLE,
     "like a dark horse": "Como um cavalo negro",
     "best laid plans": "Os melhores planos traçados",
@@ -120,16 +121,16 @@ def extract_type_en_from_full_text(old_full_text: str) -> str | None:
     return s if s else None
 
 
-def translate_type_en_to_pt(type_en: str) -> str | None:
+def translate_type_en_to_pt_br(type_en: str) -> str | None:
     k = type_en.strip().lower()
-    if k in _TYPES_EN_LOWER_PT:
-        return _TYPES_EN_LOWER_PT[k]
+    if k in _TYPES_EN_LOWER_PT_BR:
+        return _TYPES_EN_LOWER_PT_BR[k]
     if k.startswith("manual movement"):
         return "Movimento manual"
     return None
 
 
-def path_sniff_type_pt(scene_path: str) -> str | None:
+def path_sniff_type_pt_br(scene_path: str) -> str | None:
     s = _norm_scene_path_for_sniff(scene_path)
     if "PersonLooksMenu" in s:
         return "Menu de aparências"
@@ -140,7 +141,7 @@ def path_sniff_type_pt(scene_path: str) -> str | None:
     return None
 
 
-def default_column_type_pt(button_id: str) -> str | None:
+def default_column_type_pt_br(button_id: str) -> str | None:
     if button_id.startswith("Left"):
         return "Dança"
     if button_id.startswith("Front"):
@@ -150,16 +151,16 @@ def default_column_type_pt(button_id: str) -> str | None:
     return None
 
 
-def resolve_type_pt(button_id: str, scene_path: str, old_full_text: str) -> str:
+def resolve_type_pt_br(button_id: str, scene_path: str, old_full_text: str) -> str:
     te = extract_type_en_from_full_text(old_full_text)
     if te:
-        hit = translate_type_en_to_pt(te)
+        hit = translate_type_en_to_pt_br(te)
         if hit:
             return hit
-    sniff = path_sniff_type_pt(scene_path)
+    sniff = path_sniff_type_pt_br(scene_path)
     if sniff:
         return sniff
-    col = default_column_type_pt(button_id)
+    col = default_column_type_pt_br(button_id)
     if col:
         return col
     return "Cena"
@@ -188,8 +189,8 @@ def condensed_pre_type_title(body: str) -> str:
     parts = [p.strip() for p in body.splitlines() if p.strip()]
     cu = " ".join(parts).upper()
     cu = " ".join(cu.split())
-    if cu in _CONDENSED_PRE_TYPE_PT:
-        return _CONDENSED_PRE_TYPE_PT[cu]
+    if cu in _CONDENSED_PRE_TYPE_PT_BR:
+        return _CONDENSED_PRE_TYPE_PT_BR[cu]
     return " ".join(parts)
 
 
@@ -260,18 +261,18 @@ def polish_title_line(title: str, scene_path: str) -> str:
 
 
 def translate_scene_display_title(
-    title_pt_or_en: str, type_pt: str, scene_path: str
+    title_pt_br_or_en: str, type_pt_br: str, scene_path: str
 ) -> str:
     sfp_l = (_norm_scene_path_for_sniff(scene_path)).lower()
     fn = PurePosixPath(sfp_l).name.lower()
     if _CAMGIRL_STEM_LOWER in sfp_l or fn.startswith(_CAMGIRL_STEM_LOWER):
         return _CAMGIRL_DISPLAY_TITLE
 
-    tit = title_pt_or_en.strip()
+    tit = title_pt_br_or_en.strip()
     if not tit:
         return tit
 
-    if type_pt.strip() == "Dança":
+    if type_pt_br.strip() == "Dança":
         lk_d = _normalize_title_lookup_key(tit)
         if lk_d in _DANCA_STILL_TRANSLATE_TITLE:
             return _DANCA_STILL_TRANSLATE_TITLE[lk_d]
@@ -286,15 +287,15 @@ def translate_scene_display_title(
         return tit
 
     lk = _normalize_title_lookup_key(tit)
-    if lk in _SCENE_TITLE_NORMALIZED_PT:
-        return _SCENE_TITLE_NORMALIZED_PT[lk]
+    if lk in _SCENE_TITLE_NORMALIZED_PT_BR:
+        return _SCENE_TITLE_NORMALIZED_PT_BR[lk]
     stm = lk.replace(".json", "").replace(".vac", "")
-    if stm in _SCENE_TITLE_NORMALIZED_PT:
-        return _SCENE_TITLE_NORMALIZED_PT[stm]
+    if stm in _SCENE_TITLE_NORMALIZED_PT_BR:
+        return _SCENE_TITLE_NORMALIZED_PT_BR[stm]
     return tit
 
 
-def split_prior_pt_two_line_hub_label(
+def split_prior_pt_br_two_line_hub_label(
     old_full_text: str, scene_path: str
 ) -> tuple[str, str] | None:
     if extract_type_en_from_full_text(old_full_text):
@@ -309,7 +310,7 @@ def split_prior_pt_two_line_hub_label(
         return None
     tipo_key = strip_tipo_colon_suffix(lines[i].strip())
     i += 1
-    if tipo_key not in _PRIMARY_PT_TYPE_LINES:
+    if tipo_key not in _PRIMARY_PT_BR_TYPE_LINES:
         return None
     while i < len(lines) and not lines[i].strip():
         i += 1
@@ -325,7 +326,7 @@ def split_prior_pt_two_line_hub_label(
     return tipo_key, polish_title_line(b_raw, hub)
 
 
-def derive_scene_button_title_pt(
+def derive_scene_button_title_pt_br(
     old_full_text: str, scene_path: str, button_id: str
 ) -> str:
     sfp = _norm_scene_path_for_sniff(scene_path)
@@ -348,8 +349,8 @@ def derive_scene_button_title_pt(
 
     tun = condensed.upper()
     tun = " ".join(tun.split())
-    if tun in _CONDENSED_PRE_TYPE_PT:
-        return _CONDENSED_PRE_TYPE_PT[tun]
+    if tun in _CONDENSED_PRE_TYPE_PT_BR:
+        return _CONDENSED_PRE_TYPE_PT_BR[tun]
 
     te = extract_type_en_from_full_text(old_full_text)
     if te and te.strip().lower() == "tutorial" and condensed.strip():
@@ -372,30 +373,30 @@ def derive_scene_button_title_pt(
     return polish_title_line(title_from_scene_path_stem(sfp), sfp)
 
 
-def format_two_line_pt(type_pt: str, title_pt: str) -> str:
-    a = strip_tipo_colon_suffix(type_pt.strip())
-    b = title_pt.strip()
+def format_two_line_pt_br(type_pt_br: str, title_pt_br: str) -> str:
+    a = strip_tipo_colon_suffix(type_pt_br.strip())
+    b = title_pt_br.strip()
     lead = "\n" * _HUB_UIBUTTON_LEADING_PAD_NEWLINES
     return "%s%s:\n%s" % (lead, a, b)
 
 
-def build_scene_hub_label_pt(
+def build_scene_hub_label_pt_br(
     scene_title_stem: str,
     button_id: str,
     scene_hub_path: str,
     old_full_text: str | None,
 ) -> str:
     hub = scene_hub_path.strip().replace("\\", "/")
-    typ = resolve_type_pt(button_id, hub, old_full_text or "")
+    typ = resolve_type_pt_br(button_id, hub, old_full_text or "")
     if old_full_text is not None:
-        frozen = split_prior_pt_two_line_hub_label(old_full_text, hub)
+        frozen = split_prior_pt_br_two_line_hub_label(old_full_text, hub)
         if frozen is not None:
             title_base = frozen[1]
         else:
-            title_base = derive_scene_button_title_pt(
+            title_base = derive_scene_button_title_pt_br(
                 old_full_text, hub, button_id
             )
     else:
         title_base = polish_title_line(scene_title_stem.strip(), hub)
     titled = translate_scene_display_title(title_base, typ, hub)
-    return format_two_line_pt(typ, titled)
+    return format_two_line_pt_br(typ, titled)

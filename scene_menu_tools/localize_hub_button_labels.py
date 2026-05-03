@@ -18,7 +18,7 @@ from typing import Any
 _TOOLS_DIR = Path(__file__).resolve().parent
 if str(_TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(_TOOLS_DIR))
-from hub_scene_labels_pt import build_scene_hub_label_pt
+from hub_scene_labels_pt_br import build_scene_hub_label_pt_br
 
 
 def find_va_root(start: Path) -> Path | None:
@@ -53,7 +53,7 @@ def load_scene_trigger_path(atom: dict[str, Any]) -> str | None:
     return None
 
 
-TEXT_INSTRUCTIONS_PT = (
+TEXT_INSTRUCTIONS_PT_BR = (
     "Para voltar a este seletor, abra o menu do VaM, vá em Scene, escolha "
     "Open Scene, role a lista até aparecer MainMenu.json e carregue o "
     "arquivo.\n\n"
@@ -85,7 +85,7 @@ def _replace_if_first_line_heading(text: str, old_heading: str, new_heading: str
 
 def translate_static_ui_text(atom_id: str, text: str) -> str | None:
     if atom_id == "_Text Instructions":
-        return TEXT_INSTRUCTIONS_PT
+        return TEXT_INSTRUCTIONS_PT_BR
     if atom_id == "_Text C&GTips":
         return (
             "C&G Studio recomenda abrir o menu do VaM e marcar "
@@ -135,7 +135,7 @@ def rewrite_scene_button_labels_default(data: dict[str, Any]) -> int:
             continue
         old = str(st.get("text", ""))
         bid = str(atom.get("id", ""))
-        new = build_scene_hub_label_pt("", bid, path, old)
+        new = build_scene_hub_label_pt_br("", bid, path, old)
         if new != old:
             st["text"] = new
             n += 1
@@ -201,7 +201,7 @@ def main(argv: list[str]) -> int:
     if ns.dry_run:
         return 0
 
-    bak = default_path.with_suffix(".json.bak-pt")
+    bak = default_path.with_suffix(".json.bak-pt-br")
     shutil.copy2(default_path, bak)
     dump_scene_same_style(data, default_path)
     shutil.copyfile(default_path, main_path)

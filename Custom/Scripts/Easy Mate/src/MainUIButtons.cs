@@ -22,8 +22,8 @@ namespace geesp0t
     // (currentLoadDir); E-Motion HUD column (Lite / Original / Final / remove
     // all)
     // swaps packs via TryReplaceEmotionFamilyWithExactPath; I = hide hands +
-    // closest Person head snap; P = Possess+Align+Select closest Person by
-    // head;
+    // cycle Person head snap (uid order; one Person = re-snap same); P =
+    // Possess+Align+Select closest Person by head;
     // O = unpossess all; C = cycle Female then Male Persons (uid), Edit +
     // Selected
     // Options + root control.
@@ -47,6 +47,8 @@ namespace geesp0t
 
         private static MVRScript _pluginHost;
         private static Coroutine _autoPossessCoroutine;
+        /// <summary>Next index for <see cref="HotkeySnapNearestHeadHideHandsThenSnap"/> among <see cref="AllPersonsSortedByUidForISnapCycle"/>.</summary>
+        private static int _hotkeyISnapPersonCycleNextIndex;
         /// <summary>Set in <see cref="Init"/> so static possess coroutine can refresh HUD after merging plugins.</summary>
         private static System.Action _refreshPluginToggleLabelsStatic;
 
@@ -89,6 +91,7 @@ namespace geesp0t
         private static void OnPersonSceneAtomUIDsChanged(List<string> atomUids)
         {
             InvalidatePersonGenderCaches();
+            _hotkeyISnapPersonCycleNextIndex = 0;
         }
 
         private static void RegisterPersonGenderCacheInvalidation()
@@ -502,6 +505,18 @@ namespace geesp0t
             sc.SetFreezeAnimation(!currentlyOn);
         }
 
+        /// <summary>All <c>Person</c> atoms, stable uid order (I hotkey snap cycle).</summary>
+        private static List<Atom> AllPersonsSortedByUidForISnapCycle()
+        {
+            SuperController sc = SuperController.singleton;
+            if (sc == null)
+                return new List<Atom>();
+            return sc.GetAtoms()
+                .Where(a => a != null && a.type == "Person")
+                .OrderBy(a => a.uid, StringComparer.Ordinal)
+                .ToList();
+        }
+
         private void HotkeySnapNearestHeadHideHandsThenSnap()
         {
             try
@@ -511,13 +526,18 @@ namespace geesp0t
                 if (sc == null || sc.isLoading)
                     return;
 
-                Atom target;
-                bool isFemale;
-                if (!TryFindClosestPersonByHeadToCamera(out target, out isFemale))
+                List<Atom> persons = AllPersonsSortedByUidForISnapCycle();
+                if (persons.Count == 0)
                 {
                     SuperController.LogMessage("Easy Mate: I — no Person in scene.");
                     return;
                 }
+
+                int n = persons.Count;
+                int idx = _hotkeyISnapPersonCycleNextIndex % n;
+                _hotkeyISnapPersonCycleNextIndex = (idx + 1) % n;
+                Atom target = persons[idx];
+                bool isFemale = IsPersonFemale(target);
 
                 if (isFemale)
                     OneShotSnapRigToPersonHead(target, null, false);
@@ -526,7 +546,7 @@ namespace geesp0t
             }
             catch (Exception e)
             {
-                SuperController.LogError("I hotkey (hide hands + closest head snap): " + e);
+                SuperController.LogError("I hotkey (hide hands + cycle head snap): " + e);
             }
         }
 

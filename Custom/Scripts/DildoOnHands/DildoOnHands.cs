@@ -12,10 +12,10 @@ namespace geesp0t
     /// VR: left-hand Grab / index-trigger only spawns at the right hand so the
     /// right trigger stays normal grab. Clone mode restores toy storables from
     /// catalog JSON (colors, scale, joint/spring presets). Fallback uses AddAtomByType plus
-    /// optional extras. First session spawn is catalog Dildo when present else
-    /// legacy Dildo — that starter Dildo gets maximum internal segment stiffness;
-    /// later clones keep each catalog preset. Oculus uses OVR LTouch triggers when Oculus paths drive
-    /// input.
+    /// optional extras. First session spawn is catalog Dildo when present — only that
+    /// clone sets springControl to max stiffness in JSON before Restore; every other spawn
+    /// leaves springControl/storables untouched (catalog presets or VaM defaults). Oculus uses
+    /// OVR LTouch triggers when Oculus paths drive input.
     /// </summary>
     public class DildoOnHands : MVRScript
     {
@@ -391,6 +391,14 @@ namespace geesp0t
             JSONClass atomJc,
             float strength01)
         {
+            JSONNode tn = atomJc["type"];
+            string tTxt;
+
+            tTxt = tn != null ? tn.Value : "";
+
+            if (tTxt != "Dildo")
+                return;
+
             JSONArray arr;
 
             arr = atomJc["storables"] != null
@@ -425,30 +433,6 @@ namespace geesp0t
             }
         }
 
-        /// <summary>
-        /// Legacy <c>AddAtomByType</c> path lacks catalog JSON tweaks; ramp joint
-        /// stiffness for the starter Dildo to match cloned first-spawn behaviour.
-        /// </summary>
-        private static void TryApplyRigidDildoSpringControlOnAtom(
-            Atom spawned,
-            float strength01)
-        {
-            AdjustJointSpringsControl ctrl;
-
-            if (spawned == null ||
-                spawned.type != "Dildo")
-                return;
-
-            ctrl = spawned.GetStorableByID(
-                "springControl") as AdjustJointSpringsControl;
-
-            if (ctrl == null || ctrl.springStrengthJSON == null)
-                return;
-
-            ctrl.springStrengthJSON.val = Mathf.Clamp01(strength01);
-        }
-
-        /// <summary>
         /// Catalog JSON is loaded and parsed once per catalog path for a VaM
         /// session (see <see cref="EnsureToyCatalogFresh"/> cache). Spawn does not
         /// re-open the file every trigger. Slim files with only
@@ -1038,8 +1022,9 @@ namespace geesp0t
 
                             if (firstDildo)
                             {
-                                // Full joint stiffness (~1); later spawns keep
-                                // catalog/springControl values intact.
+                                // Only this clone: max segment stiffness via JSON.
+                                // All later catalog restores keep catalog/springControl
+                                // as authored (nothing else here touches springs).
                                 ApplyDildoSpringStrength01InToyJson(
                                     atomJc,
                                     1f);
@@ -1183,9 +1168,6 @@ namespace geesp0t
                 _waitingMandatoryFirstDildo = false;
                 _lastToyAtomTypeSpawned = atomLegacy;
                 _lastSceneToySourceId = null;
-
-                if (consumedMandatory && atomLegacy == "Dildo")
-                    TryApplyRigidDildoSpringControlOnAtom(spawnedLegacy, 1f);
 
                 PlaceSpawnAtHand(spawnedLegacy, false);
             }

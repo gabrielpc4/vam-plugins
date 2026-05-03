@@ -63,6 +63,8 @@ namespace geesp0t
 
         private JSONStorableFloat _tipExtraEulerRollDeg;
 
+        private JSONStorableBool _spawnAtHandPivotOnly;
+
         private JSONStorableString _extraToyAtomTypes;
 
         private bool _spawnCoroutineRunning;
@@ -205,6 +207,11 @@ namespace geesp0t
                 RegisterFloat(_tipExtraEulerPitchDeg);
                 RegisterFloat(_tipExtraEulerYawDeg);
                 RegisterFloat(_tipExtraEulerRollDeg);
+
+                _spawnAtHandPivotOnly = new JSONStorableBool(
+                    "Spawn exactly at hand (ignore offset sliders)",
+                    true);
+                RegisterBool(_spawnAtHandPivotOnly);
 
                 _extraToyAtomTypes = new JSONStorableString(
                     "Legacy fallback: extra atom types (one per line)",
@@ -374,6 +381,34 @@ namespace geesp0t
             }
         }
 
+        private static void ZeroSpringControlsInToyJson(JSONClass atomJc)
+        {
+            JSONArray arr;
+
+            arr = atomJc["storables"] != null
+                ? atomJc["storables"].AsArray
+                : null;
+            if (arr == null)
+                return;
+
+            int iIdx;
+            for (iIdx = 0; iIdx < arr.Count; iIdx++)
+            {
+                JSONClass st = arr[iIdx] as JSONClass;
+                if (st == null)
+                    continue;
+
+                JSONNode sidn = st["id"];
+                string sidTxt;
+
+                sidTxt = sidn != null ? sidn.Value : "";
+                if (sidTxt != "springControl")
+                    continue;
+
+                st["springStrength"] = "0";
+            }
+        }
+
         /// <summary>
         /// Catalog JSON is loaded and parsed once per catalog path for a VaM
         /// session (see <see cref="EnsureToyCatalogFresh"/> cache). Spawn does not
@@ -522,62 +557,196 @@ namespace geesp0t
             return null;
         }
 
+        private static string EscapeSceneAtomIdForUid(string sceneAtomId)
+        {
+            string s;
+
+            if (sceneAtomId == null)
+                return "_";
+
+            s = sceneAtomId.Trim();
+
+            if (s.Length == 0)
+                return "_";
+
+            s = s.Replace("#", "h");
+            s = s.Replace(" ", "_");
+            s = s.Replace("/", "_");
+            s = s.Replace("\\", "_");
+            s = s.Replace(":", "_");
+
+            return s;
+        }
+
+        /// <remarks>
+        /// Detect which catalog preset is still spawned (HandSpawnToy + double
+        /// underscore). Legacy atoms use a single underscore only.
+        /// </remarks>
+        private static string SpawnUidPrefixForCatalogRow(SceneToyTemplate t)
+        {
+            return PluginName +
+                "__" +
+                EscapeSceneAtomIdForUid(t.SceneAtomId) +
+                "__";
+        }
+
+        private static bool IsCatalogToyInstanceInScene(
+            SceneToyTemplate t,
+            SuperController svc)
+        {
+            if (t == null || svc == null)
+                return false;
+
+            string pfx;
+            List<Atom> lst;
+
+            pfx = SpawnUidPrefixForCatalogRow(t);
+
+            lst = svc.GetAtoms();
+            foreach (Atom a in lst)
+            {
+                string u;
+
+                if (a == null)
+                    continue;
+                u = a.uid;
+
+                if (u != null && u.StartsWith(pfx))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <remarks>
+        /// Prefer a catalog toy not yet spawned (by uid prefix scan). When every
+        /// row has an instance present, reuse the whole pool (duplicate ok).
+        /// </remarks>
         private SceneToyTemplate PickVarietyToyTemplate()
         {
-            int count = _catalogToyTemplates.Count;
+            SuperController svc;
+            svc = SuperController.singleton;
+
+            int count;
+            count = (_catalogToyTemplates != null)
+                ? _catalogToyTemplates.Count
+                : 0;
+
+            if (count == 0)
+                return null;
 
             if (count == 1)
                 return _catalogToyTemplates[0];
 
-            int guard = 0;
+            List<SceneToyTemplate> absent;
+            absent = new List<SceneToyTemplate>();
+
+            foreach (SceneToyTemplate t in _catalogToyTemplates)
+            {
+                if (!IsCatalogToyInstanceInScene(t, svc))
+                    absent.Add(t);
+            }
+
+            List<SceneToyTemplate> bag;
+            if (absent.Count > 0)
+                bag = absent;
+            else
+                bag = _catalogToyTemplates;
+
+            int bagCount;
+            bagCount = bag.Count;
+
+            int guard;
+
+            guard = 0;
+
             while (guard < 96)
             {
                 guard++;
 
-                SceneToyTemplate pick =
-                    _catalogToyTemplates[UnityEngine.Random.Range(0, count)];
+                SceneToyTemplate pick;
+                pick = bag[UnityEngine.Random.Range(0, bagCount)];
 
                 if (_lastSceneToySourceId != null &&
                     pick.SceneAtomId == _lastSceneToySourceId &&
-                    count > 1)
+                    bagCount > 1)
                     continue;
 
                 return pick;
             }
 
-            return _catalogToyTemplates[0];
+            return bag[0];
         }
 
-        private string PickRandomToyDifferentFromLastLegacy()
+        private string PickLegacyTypePreferringAbsentFromScene()
         {
             List<string> pool;
+
             pool = BuildVarietyToyTypePool();
 
             if (pool.Count == 0)
                 return "Dildo";
 
-            string last = _lastToyAtomTypeSpawned;
+            SuperController svc;
+            svc = SuperController.singleton;
 
-            int guard = 0;
-            while (guard < 64)
+            List<string> absent;
+            absent = new List<string>();
+
+            if (svc != null)
             {
-                string candidate = pool[UnityEngine.Random.Range(0, pool.Count)];
-                guard++;
-                if (pool.Count <= 1)
-                    return candidate;
-                if (last == null || candidate != last)
-                    return candidate;
+                foreach (string tp in pool)
+                {
+                    bool any;
+                    any = false;
+
+                    foreach (Atom a in svc.GetAtoms())
+                    {
+                        if (a == null)
+                            continue;
+
+                        if (a.type != tp)
+                            continue;
+
+                        any = true;
+                        break;
+                    }
+
+                    if (!any)
+                        absent.Add(tp);
+                }
             }
 
-            string fallback = pool[0];
+            List<string> bag;
+            if (absent.Count > 0)
+                bag = absent;
+            else
+                bag = new List<string>(pool);
 
-            if (pool.Count <= 1)
-                return fallback;
+            if (bag.Count == 1)
+                return bag[0];
 
-            if (fallback != last)
-                return fallback;
+            string last;
+            last = _lastToyAtomTypeSpawned;
 
-            return pool[1];
+            int tries;
+            tries = 0;
+
+            while (tries < 72)
+            {
+                tries++;
+
+                string cand;
+                cand = bag[UnityEngine.Random.Range(0, bag.Count)];
+
+                if (bag.Count <= 1)
+                    return cand;
+
+                if (last == null || cand != last)
+                    return cand;
+            }
+
+            return bag[0];
         }
 
         private Transform ResolveHandWorldTransform(SuperController sc,
@@ -619,12 +788,9 @@ namespace geesp0t
 
                 case "ToyAH":
                 case "ToyBP":
-                    return Quaternion.Euler(0f, 180f, 0f);
-
                 case "Paddle":
-                    return Quaternion.identity;
-
                 default:
+                    // User: Dildo needs X spin; others read correct without yaw flip.
                     return Quaternion.identity;
             }
         }
@@ -657,6 +823,19 @@ namespace geesp0t
             return qOut * extras;
         }
 
+        private static void SnapSpawnRigidbodyToHand(FreeControllerV3 fc)
+        {
+            Rigidbody rb;
+
+            rb = fc != null ? fc.followWhenOffRB : null;
+
+            if (rb == null)
+                return;
+
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
         /// <summary>
         /// Match scene presets that disable physics (kinematic), grab toggles, or axis
         /// locks — user cannot laser-grab otherwise.
@@ -687,11 +866,19 @@ namespace geesp0t
             if (fc == null)
                 return;
 
+            Vector3 localOff;
+
+            if (_spawnAtHandPivotOnly != null && _spawnAtHandPivotOnly.val)
+                localOff = Vector3.zero;
+            else
+                localOff =
+                    new Vector3(
+                        _localOffsetRight.val,
+                        _localOffsetUp.val,
+                        _localOffsetForward.val);
+
             Vector3 worldPos =
-                hand.TransformPoint(new Vector3(
-                    _localOffsetRight.val,
-                    _localOffsetUp.val,
-                    _localOffsetForward.val));
+                hand.TransformPoint(localOff);
 
             Quaternion worldRot =
                 hand.rotation *
@@ -701,6 +888,7 @@ namespace geesp0t
             UnlockMainPhysicsForGrab(fc);
             fc.transform.rotation = worldRot;
             fc.transform.position = worldPos;
+            SnapSpawnRigidbodyToHand(fc);
         }
 
         private void Update()
@@ -802,6 +990,7 @@ namespace geesp0t
                         if (atomJc != null)
                         {
                             NeutralizeStoredWorldPose(atomJc);
+                            ZeroSpringControlsInToyJson(atomJc);
                             string atomType = tmpl.AtomTypeName;
                             string uidCandidate = null;
 
@@ -809,7 +998,7 @@ namespace geesp0t
                             for (tIdx = 0; tIdx < 32; tIdx++)
                             {
                                 uidCandidate =
-                                    PluginName + "_" +
+                                    SpawnUidPrefixForCatalogRow(tmpl) +
                                     Mathf.FloorToInt(
                                         Time.realtimeSinceStartup *
                                         1000f) + "_" +
@@ -886,7 +1075,7 @@ namespace geesp0t
                 else
                 {
                     atomLegacy =
-                        PickRandomToyDifferentFromLastLegacy();
+                        PickLegacyTypePreferringAbsentFromScene();
                 }
 
                 string uid = null;

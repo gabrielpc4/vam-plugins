@@ -272,6 +272,11 @@ namespace geesp0t
             return e;
         }
 
+        /// <remarks>
+        /// Catalog scenes often freeze toys: physicsDisabled makes the follow-RB
+        /// kinematic, and grab booleans false. JSON is patched before Restore;
+        /// runtime reinforce here via <see cref="UnlockMainPhysicsForGrab"/>.
+        /// </remarks>
         private static void NeutralizeStoredWorldPose(JSONClass atomJc)
         {
             atomJc.Remove("parentAtom");
@@ -302,10 +307,24 @@ namespace geesp0t
                 JSONClass euler = AxisZeroEulerJson();
                 st["position"] = pos;
                 st["rotation"] = euler;
-                if (st["positionState"] != null)
-                    st["positionState"] = "On";
-                if (st["rotationState"] != null)
-                    st["rotationState"] = "On";
+
+                // Main FreeController JSON: drive physics RB, not kinematic glue.
+                st["physicsEnabled"] = "true";
+
+                // Allow laser / hand grab arrows on XYZ even if preset disabled.
+                st["canGrabPosition"] = "true";
+                st["canGrabRotation"] = "true";
+
+                st["positionState"] = "On";
+                st["rotationState"] = "On";
+
+                st["xPositionLock"] = "false";
+                st["yPositionLock"] = "false";
+                st["zPositionLock"] = "false";
+                st["xRotationLock"] = "false";
+                st["yRotationLock"] = "false";
+                st["zRotationLock"] = "false";
+
                 st.Remove("linkTo");
                 st.Remove("linkPositionSpring");
                 st.Remove("linkPositionDamper");
@@ -541,6 +560,22 @@ namespace geesp0t
                 _localEulerRollDeg.val);
         }
 
+        /// <summary>
+        /// Match scene presets that disable physics (kinematic), grab toggles, or axis
+        /// locks — user cannot laser-grab otherwise.
+        /// </summary>
+        private static void UnlockMainPhysicsForGrab(FreeControllerV3 fc)
+        {
+            if (fc == null)
+                return;
+
+            fc.physicsEnabled = true;
+            fc.canGrabPosition = true;
+            fc.canGrabRotation = true;
+            fc.currentPositionState = FreeControllerV3.PositionState.On;
+            fc.currentRotationState = FreeControllerV3.RotationState.On;
+        }
+
         private void PlaceSpawnAtHand(Atom spawned, bool leftHand)
         {
             if (spawned == null || _sc == null)
@@ -564,9 +599,7 @@ namespace geesp0t
             Quaternion worldRot =
                 hand.rotation * LocalGripOffsetQuaternion();
 
-            fc.currentPositionState = FreeControllerV3.PositionState.On;
-            fc.currentRotationState = FreeControllerV3.RotationState.On;
-
+            UnlockMainPhysicsForGrab(fc);
             fc.transform.rotation = worldRot;
             fc.transform.position = worldPos;
         }

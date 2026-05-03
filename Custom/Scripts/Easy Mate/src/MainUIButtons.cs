@@ -172,6 +172,9 @@ namespace geesp0t
         UIDynamicButton snapMaleHeadButton = null;
         UIDynamicButton possessAlignSelectFemaleButton = null;
         UIDynamicButton possessAlignSelectMaleButton = null;
+        UIDynamicButton copyErrorLogButton = null;
+        UIDynamicButton copyMessageLogButton = null;
+        UIDynamicButton clearLogsButton = null;
 
         private static float _lastYDebugLogUnscaledTime = -1000f;
         private const float YDebugLogMinIntervalSeconds = 0.35f;
@@ -188,7 +191,7 @@ namespace geesp0t
 
         /// <summary>
         /// Call from session plugin <c>Update</c>. <b>Ctrl+Shift+S</b>
-        /// toggles Spankings (same as HUD <b>+/- Spankings</b>): removes when
+        /// toggles Spankings (same as HUD <b>+/- Spankings Male</b>): removes when
         /// everyone has it; otherwise merges onto Persons that do not.
         /// <b>Y</b> logs look camera / HMD-related poses (debounced ~0.35s).
         /// With Oculus or OpenVR active, hold <b>Shift+Y</b> so the controller
@@ -202,8 +205,8 @@ namespace geesp0t
         /// <b>O</b> stops auto-possess and
         /// <see cref="SuperController.ClearPossess"/>.
         /// <b>I</b> hides VR hand models then snaps the rig to the <b>closest
-        /// Person head</b> to the look camera (same rules as <b>Snap F</b> for
-        /// female, <b>Snap M</b> for male).
+        /// Person head</b> to the look camera (same rules as <b>Passenger Female</b> for
+        /// female, <b>Passenger Male</b> for male).
         /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD
         /// buttons on the <b>closest Person by head</b> to the look/center
         /// camera (not alphabetically first F/M).
@@ -862,19 +865,28 @@ namespace geesp0t
 
             LookAtCamera();
 
-            possessAlignSelectFemaleButton = AddButton("PossAlignSel F", PossessAlignSelectFirstFemale, 0, 0, 100f);
-            possessAlignSelectMaleButton = AddButton("PossAlignSel M", PossessAlignSelectMaleIfAny, 1, 0, 100f);
-            const int emotionHudColumn = 3;
-            const float emotionHudButtonWidth = 132f;
-            emotionLiteHudButton = AddButton("E-Motion Lite", OnEmotionLiteHudClicked, emotionHudColumn, 0, emotionHudButtonWidth);
-            emotionOriginalHudButton = AddButton("E-Motion Original", OnEmotionOriginalHudClicked, emotionHudColumn, 1, emotionHudButtonWidth);
-            emotionFinalHudButton = AddButton("E-Motion Final", OnEmotionFinalHudClicked, emotionHudColumn, 2, emotionHudButtonWidth);
-            emotionRemoveAllHudButton = AddButton("Remove E-Motion", OnEmotionRemoveAllHudClicked, emotionHudColumn, 3, emotionHudButtonWidth);
-            spankingsButton = AddButton("+ Spankings", OnSpankingsPluginToggleClicked, 0, 1);
-            snapFemaleHeadButton = AddButton("Snap F", SnapRigToClosestFemaleHead, 1, 1, 100f);
-            snapMaleHeadButton = AddButton("Snap M", SnapRigToClosestMaleHead, 2, 1, 100f);
-            stripAllClothesButton = AddButton("Strip all", StripAllClothesOnAllPersons, 0, 2, 100f);
-            removeUnderwearButton = AddButton("Underwear", RemoveUnderwearOnAllPersons, 1, 2, 100f);
+            const float logColButtonWidth = 118f;
+            const float emotionColButtonWidth = 132f;
+            const float midColButtonWidth = 118f;
+            const float rightColButtonWidth = 132f;
+
+            copyErrorLogButton = AddButton("Copy Errors", OnCopyErrorLogClicked, 0, 0, logColButtonWidth);
+            emotionLiteHudButton = AddButton("E-Motion Lite", OnEmotionLiteHudClicked, 1, 0, emotionColButtonWidth);
+            possessAlignSelectMaleButton = AddButton("Possess Male", PossessAlignSelectMaleIfAny, 2, 0, midColButtonWidth);
+            removeUnderwearButton = AddButton("Remove underwear", RemoveUnderwearOnAllPersons, 3, 0, rightColButtonWidth);
+
+            copyMessageLogButton = AddButton("Copy Console", OnCopyMessageLogClicked, 0, 1, logColButtonWidth);
+            emotionOriginalHudButton = AddButton("E-Motion Original", OnEmotionOriginalHudClicked, 1, 1, emotionColButtonWidth);
+            possessAlignSelectFemaleButton = AddButton("Possess Female", PossessAlignSelectFirstFemale, 2, 1, midColButtonWidth);
+            stripAllClothesButton = AddButton("Remove All Clothes", StripAllClothesOnAllPersons, 3, 1, rightColButtonWidth);
+
+            clearLogsButton = AddButton("Clear logs", OnClearLogsClicked, 0, 2, logColButtonWidth);
+            emotionFinalHudButton = AddButton("E-Motion Final", OnEmotionFinalHudClicked, 1, 2, emotionColButtonWidth);
+            snapMaleHeadButton = AddButton("Passenger Male", SnapRigToClosestMaleHead, 2, 2, midColButtonWidth);
+            spankingsButton = AddButton("+ Spankings Male", OnSpankingsPluginToggleClicked, 3, 2, rightColButtonWidth);
+
+            emotionRemoveAllHudButton = AddButton("Remove E-Motion", OnEmotionRemoveAllHudClicked, 2, 3, emotionColButtonWidth);
+            snapFemaleHeadButton = AddButton("Passenger Female", SnapRigToClosestFemaleHead, 3, 3, rightColButtonWidth);
 
             RefreshPluginToggleLabels();
 
@@ -905,6 +917,12 @@ namespace geesp0t
                 possessAlignSelectFemaleButton.gameObject.SetActive(setToActive);
             if (possessAlignSelectMaleButton != null)
                 possessAlignSelectMaleButton.gameObject.SetActive(setToActive);
+            if (copyErrorLogButton != null)
+                copyErrorLogButton.gameObject.SetActive(setToActive);
+            if (copyMessageLogButton != null)
+                copyMessageLogButton.gameObject.SetActive(setToActive);
+            if (clearLogsButton != null)
+                clearLogsButton.gameObject.SetActive(setToActive);
             if (setToActive)
             {
                 RefreshPluginToggleLabels();
@@ -1022,6 +1040,90 @@ namespace geesp0t
             }
         }
 
+        private static string GetVaMErrorLogText(SuperController sc)
+        {
+            if (sc == null)
+                return string.Empty;
+            if (sc.allErrorsText != null && sc.allErrorsText.text != null)
+                return sc.allErrorsText.text;
+            if (sc.allErrorsText2 != null && sc.allErrorsText2.text != null)
+                return sc.allErrorsText2.text;
+            return string.Empty;
+        }
+
+        private static string GetVaMMessageLogText(SuperController sc)
+        {
+            if (sc == null)
+                return string.Empty;
+            if (sc.allMessagesText != null && sc.allMessagesText.text != null)
+                return sc.allMessagesText.text;
+            if (sc.allMessagesText2 != null && sc.allMessagesText2.text != null)
+                return sc.allMessagesText2.text;
+            return string.Empty;
+        }
+
+        private void OnCopyErrorLogClicked()
+        {
+            try
+            {
+                SuperController sc = SuperController.singleton;
+                string t = GetVaMErrorLogText(sc);
+                GUIUtility.systemCopyBuffer = t != null ? t : string.Empty;
+                if (t == null || t.Length == 0)
+                    SuperController.LogMessage(
+                        "Easy Mate: copied error log to clipboard (empty).");
+                else
+                    SuperController.LogMessage(
+                        "Easy Mate: copied error log to clipboard (" + t.Length
+                        + " chars).");
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "Easy Mate: copy error log to clipboard: " + e);
+            }
+        }
+
+        private void OnCopyMessageLogClicked()
+        {
+            try
+            {
+                SuperController sc = SuperController.singleton;
+                string t = GetVaMMessageLogText(sc);
+                GUIUtility.systemCopyBuffer = t != null ? t : string.Empty;
+                if (t == null || t.Length == 0)
+                    SuperController.LogMessage(
+                        "Easy Mate: copied console log to clipboard (empty).");
+                else
+                    SuperController.LogMessage(
+                        "Easy Mate: copied console log to clipboard (" + t.Length
+                        + " chars).");
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "Easy Mate: copy console log to clipboard: " + e);
+            }
+        }
+
+        private void OnClearLogsClicked()
+        {
+            try
+            {
+                SuperController sc = SuperController.singleton;
+                if (sc == null)
+                    return;
+                sc.ClearErrors();
+                sc.ClearMessages();
+                SuperController.LogMessage(
+                    "Easy Mate: cleared in-game error and message logs.");
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError("Easy Mate: clear in-game logs: " + e);
+            }
+        }
+
         private void OnSpankingsPluginToggleClicked()
         {
             ToggleSpankingsPluginOnAllPersons();
@@ -1057,7 +1159,7 @@ namespace geesp0t
 
         public void RefreshPluginToggleLabels()
         {
-            SetPluginToggleLabel(spankingsButton, PluginSpankings, "Spankings");
+            SetPluginToggleLabel(spankingsButton, PluginSpankings, "Spankings Male");
         }
 
         private static void SetPluginToggleLabel(UIDynamicButton btn, string pluginPath, string labelBase)
@@ -1492,7 +1594,7 @@ namespace geesp0t
             List<Atom> list = FemalePersonsByUid();
             if (list.Count == 0)
             {
-                SuperController.LogMessage("Easy Mate HUD: Possess+Align+Select F — no female Person in scene.");
+                SuperController.LogMessage("Easy Mate HUD: Possess Female — no female Person in scene.");
                 return;
             }
 
@@ -1504,7 +1606,7 @@ namespace geesp0t
             List<Atom> list = MalePersonsByUid();
             if (list.Count == 0)
             {
-                SuperController.LogMessage("Easy Mate HUD: Possess+Align+Select M — no male Person in scene.");
+                SuperController.LogMessage("Easy Mate HUD: Possess Male — no male Person in scene.");
                 return;
             }
 
@@ -1721,7 +1823,7 @@ namespace geesp0t
             List<Atom> list = FemalePersonsByUid();
             if (list.Count == 0)
             {
-                SuperController.LogMessage("Easy Mate HUD: Snap F — no female Person in scene.");
+                SuperController.LogMessage("Easy Mate HUD: Passenger Female — no female Person in scene.");
                 return;
             }
 
@@ -1737,7 +1839,7 @@ namespace geesp0t
             List<Atom> list = MalePersonsByUid();
             if (list.Count == 0)
             {
-                SuperController.LogMessage("Easy Mate HUD: Snap M — no male Person in scene.");
+                SuperController.LogMessage("Easy Mate HUD: Passenger Male — no male Person in scene.");
                 return;
             }
 

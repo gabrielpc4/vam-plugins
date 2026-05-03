@@ -1,20 +1,25 @@
 using MeshVR;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace geesp0t
 {
     /// <summary>
     /// With main monitor mode on (<see cref="SuperController.MonitorRig"/> active), shows a
-    /// thin cylinder per hand aligned to each motion controller’s <c>forward</c> (length scales
-    /// with <see cref="SuperController.worldScale"/>). Independent of stock UI lasers; hides when
-    /// monitor mode or the plugin toggle is off.
+    /// thin blue/red cylinder per hand along the controller <c>forward</c> only when a physics ray
+    /// hits an active, interactable <see cref="Button"/> in the collider’s parents. Max length scales
+    /// with <see cref="SuperController.worldScale"/>; visible length ends at the hit.
     /// </summary>
     internal static class EasyMateMonitorModeLaserRestore
     {
+        private static readonly Color BeamBlue = new Color(0.1f, 0.42f, 1f, 1f);
+
+        private static readonly Color BeamRed = new Color(1f, 0.2f, 0.12f, 1f);
+
         /// <summary>World-space beam radius before applying worldScale.</summary>
         private const float BaseRadiusM = 0.0015f;
 
-        /// <summary>Beam length along aim (m), multiplied by worldScale.</summary>
+        /// <summary>Max aim ray length (m), multiplied by worldScale.</summary>
         private const float BeamLengthM = 5f;
 
         private static GameObject _root;
@@ -81,9 +86,9 @@ namespace geesp0t
             }
 
             if (_beamLeft == null)
-                _beamLeft = CreateCylinder(_root.transform, "MonitorBeamLeft", Color.blue);
+                _beamLeft = CreateCylinder(_root.transform, "MonitorBeamLeft", BeamBlue);
             if (_beamRight == null)
-                _beamRight = CreateCylinder(_root.transform, "MonitorBeamRight", Color.red);
+                _beamRight = CreateCylinder(_root.transform, "MonitorBeamRight", BeamRed);
         }
 
         /// <summary>
@@ -108,6 +113,7 @@ namespace geesp0t
                 {
                     Material mat = new Material(sh);
                     mat.SetColor("_Color", color);
+                    mat.color = color;
                     mr.material = mat;
                 }
 
@@ -135,7 +141,18 @@ namespace geesp0t
             if (ws < 0.01f)
                 ws = 0.01f;
 
-            float len = BeamLengthM * ws;
+            float maxLen = BeamLengthM * ws;
+            RaycastHit hit;
+            if (!TryNearestUIButtonHit(motion, maxLen, out hit))
+            {
+                beam.gameObject.SetActive(false);
+                return;
+            }
+
+            float len = hit.distance;
+            if (len < 0.02f * ws)
+                len = 0.02f * ws;
+
             float radiusWorld = BaseRadiusM * ws;
             if (radiusWorld < 0.0003f)
                 radiusWorld = 0.0003f;
@@ -152,6 +169,60 @@ namespace geesp0t
                 radialScale);
 
             beam.gameObject.SetActive(true);
+        }
+
+        /// <summary>
+        /// Pick the closest raycast hit whose hierarchy has an interactable UI
+        /// <see cref="Button"/>.
+        /// </summary>
+        private static bool TryNearestUIButtonHit(
+            Transform motion,
+            float maxDistance,
+            out RaycastHit outHit)
+        {
+            outHit = default(RaycastHit);
+            if (motion == null || maxDistance <= 0f)
+                return false;
+
+            RaycastHit[] hits = Physics.RaycastAll(
+                motion.position,
+                motion.forward,
+                maxDistance,
+                -1,
+                QueryTriggerInteraction.Collide);
+
+            if (hits == null || hits.Length == 0)
+                return false;
+
+            float bestDist = float.MaxValue;
+            RaycastHit best = default(RaycastHit);
+            Button bestBtn = null;
+            int i;
+            for (i = 0; i < hits.Length; i++)
+            {
+                RaycastHit h = hits[i];
+                if (h.collider == null)
+                    continue;
+
+                Button b = h.collider.GetComponentInParent<Button>();
+                if (b == null)
+                    continue;
+                if (!b.isActiveAndEnabled || !b.interactable)
+                    continue;
+
+                if (h.distance < bestDist)
+                {
+                    bestDist = h.distance;
+                    best = h;
+                    bestBtn = b;
+                }
+            }
+
+            if (bestBtn == null)
+                return false;
+
+            outHit = best;
+            return true;
         }
 
         private static void HideBeams()

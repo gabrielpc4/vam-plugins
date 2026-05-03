@@ -98,8 +98,8 @@ namespace geesp0t
         public JSONStorableFloat longMocapMinSecondsForEmotionMerge;
 
         /// <summary>
-        /// When true (default), shows thin cylinder “beams” along each motion controller’s
-        /// forward axis while main monitor mode is on; hidden when monitor mode is off.
+        /// When true (default), in main monitor mode shows blue/red cylinder aim beams only
+        /// when the controller ray hits an interactable <see cref="UnityEngine.UI.Button"/>.
         /// </summary>
         public JSONStorableBool restoreMonitorModeControllerLaser;
 
@@ -193,7 +193,7 @@ namespace geesp0t
             RegisterFloat(longMocapMinSecondsForEmotionMerge);
 
             restoreMonitorModeControllerLaser = new JSONStorableBool(
-                "Monitor mode: forward cylinder beams",
+                "Monitor mode: aim cylinders on UI Button hit",
                 true);
             RegisterBool(restoreMonitorModeControllerLaser);
 

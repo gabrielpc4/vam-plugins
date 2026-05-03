@@ -22,7 +22,7 @@ namespace VRAdultFun
 		/// <summary>E-MotionLite pack: scripted head/neck motion from gaze/state machine stays off regardless of presets or UI toggles.</summary>
 		private const bool EmotionLiteDisableHeadAndNeck = true;
 
-		/// <summary>E-MotionLite pack: never reposition <c>eyeTargetControl</c>; VaM defaults / scene / user retain eye aim.</summary>
+		/// <summary>E-MotionLite pack: never reposition <c>eyeTargetControl</c> and never force Eyes <c>lookMode</c> to Target; VaM defaults / scene / user retain eye aim.</summary>
 		private const bool EmotionLiteLeaveEyeTargetUntouched = true;
 
 		private static bool allSetup = false;
@@ -2213,7 +2213,8 @@ namespace VRAdultFun
 			//	loadDefaults();
 			//}
 			
-			personEyes.SetStringChooserParamValue("lookMode", "Target");
+			if (!EmotionLiteLeaveEyeTargetUntouched && personEyes != null)
+				personEyes.SetStringChooserParamValue("lookMode", "Target");
 			//personEyelids.SetBoolParamValue("blinkEnabled", false);
 			containingAtom.GetStorableByID("AutoExpressions").SetBoolParamValue("enabled", false);
 			//SuperController.LogError("Init");

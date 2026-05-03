@@ -41,11 +41,19 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
 - `Custom/Scripts/Easy Mate/src/AutoLoadEasyMate.cs`
   - Menu/bootstrap plugin.
   - Injects session plugins into the `CoreControl` `PluginManager`.
-  - Loads:
-    - `Custom/Scripts/Easy Mate/EasyMate.cslist`
-    - `Custom/Scripts/AutoMate/SESSION_PLUGINS/Auto_Load_Person_Plugins.cslist`
+  - **Session load order** (first missing entries are prepended when merging):
+    1. `Custom/Scripts/Easy Mate/VaMLogClipboardHud.cslist` — log clipboard HUD (**separate compile** from `EasyMate.cslist`).
+    2. `Custom/Scripts/Easy Mate/EasyMate.cslist` — main Easy Mate stack (includes `MainUIButtons`).
+    3. `Custom/Scripts/AutoMate/SESSION_PLUGINS/Auto_Load_Person_Plugins.cslist`.
   - In desktop mode, also adds `Custom/Scripts/prestigitis_DesktopClothGrab.cs`.
   - Directly sets `SuperController.singleton.navigationRig.position` during init, so it already affects initial camera placement.
+
+- **`Custom/Scripts/Easy Mate/VaMLogClipboardHud.cslist`**
+  - Single source: `src/VaMLogClipboardHud.cs`.
+  - **Why it exists:** The three VaM log buttons (**Copy Errors**, **Copy Console**, **Clear logs**) must still load if `EasyMate.cslist` fails to compile or `MainUIButtons` fails at runtime. They use the same `mainHUD` placement math as Easy Mate column **0** so the combined grid lines up.
+  - **Behavior:** Reads `SuperController.allErrorsText` / `allErrorsText2` and `allMessagesText` / `allMessagesText2`; copy uses `GUIUtility.systemCopyBuffer`; clear calls `ClearErrors()` and `ClearMessages()` (see decompiled `SuperController`).
+  - **Not toggled** by Easy Mate `Show UI` / `Hide UI` (separate plugin); it always builds its small canvas in `Start()` if the plugin loads.
+  - **Grid alignment:** Same canvas scale/position/`Translate(0, 0.2f, 0)` as `MainUIButtons`; button Y uses `0.50f - row * ySpacing` with `xSpacing = 0.22f`, `ySpacing = 0.05f`; log column only uses **column 0**, rows **0–2**.
 
 - `Custom/Scripts/Easy Mate/src/EasyMate.cs`
   - Main manager for Easy Mate.
@@ -55,13 +63,25 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
   - Calls `mainUIButtons.ClothingResetCycle()` when the load directory changes.
 
 - `Custom/Scripts/Easy Mate/src/MainUIButtons.cs`
-  - Builds a world-space HUD canvas attached to `SuperController.singleton.mainHUD`.
-  - **Plugin toggles / E‑Motion column:** **Spankings** — label **`+ `** / **`- `** by whether every `Person` already has that plugin filename. **E‑Motion** — a **single column** of four buttons (**E‑Motion Lite**, **E‑Motion Original**, **E‑Motion Final**, **Remove E‑Motion**): each merge uses **`TryReplaceEmotionFamilyWithExactPath`** so only one pack is active per `Person`; **Remove** strips all three family basenames.
-  - **Clothing** (row 2): **Strip all** — `EnableUndressAllClothingItems()` then deactivate every `DAZClothingItem` on each `Person`. **Underwear** — same undress unlock, then deactivates items with `exclusiveRegion` **UnderChest** / **UnderHip**, or name/tags heuristics (bra, panty, thong, …), while skipping name/tag hints for skirts/dresses/gowns and similar outer pieces (see `LooksLikeSkirtDressOuterGarment`).
-  - **One-shot snap** (row 3): **Snap F1** — first female `Person` by stable **`uid`** sort. **Snap M** — first male by `uid` (scenes with 0 males log and no-op; if multiple males exist, the lowest-`uid` male is used). Uses `centerCameraTarget` **`Possessor.autoSnapPoint`**, snap target **`head.control`** **+ 0.15 m** along **possess up** and **+ 0.05 m** along **−possess forward** (back; head-relative). **Horizontal yaw** aligns **`navigationRig`** so **`lookCamera.forward`** matches the snapped person’s **possess forward** on the **`navigationRig.up`** plane (same idea as `AlignRigAndController`, **`SignedAngle`** yaw). Then `playerHeightAdjust` peel, **`MonitorCenterCamera`** looks along **head + possess forward**. Does **not** call built-in **`HeadPossess`**; skips if **`headControl.possessed`**. On success, starts **`EasyMateHeadSnapPovRuntime`** (in-head hide + optional **HMD↔head** physics link while inside the cylinder). **Debug:** console + append **`Custom/Scripts/Easy Mate/HMD_snap_debug.log`**: session banner, then **one start line at +1 s**; further presses of **Right controller A** (OVR `Button.One`) or **Space** (desktop) run the plugin **`JSONStorableStringChooser`** **`EasyMatePostSnapRightAOrSpaceAction`** (default **Snap F1**; choices **Snap F1**, **Snap M**, **Log HMD sample**, **None**). HUD row-4 button **A/Space: …** cycles that setting.
+  - Builds **a second** world-space HUD canvas on `SuperController.singleton.mainHUD` (Easy Mate only). **Columns 1–3** of the 4-column grid; **column 0** is reserved for `VaMLogClipboardHud`.
+  - **Layout** (`CreateButtons`): `column * 0.22f`, `0.50f - row * 0.05f` per button; widths — E‑Motion column **132px**, middle **118px**, right **132px**.
+  - **Grid (MainUIButtons only):**
+
+    | Row | Col 1 | Col 2 | Col 3 |
+    |-----|--------|--------|--------|
+    | 0 | E‑Motion Lite | Possess Male | Remove underwear |
+    | 1 | E‑Motion Original | Possess Female | Remove All Clothes |
+    | 2 | E‑Motion Final | Passenger Male | **+/‑ Spankings Male** |
+    | 3 | Remove E‑Motion | Passenger Female | *(empty)* |
+
+  - **Spankings:** Toggle label **`+ `** / **`- `** + **`Spankings Male`** when every `Person` has the Spankings plugin filename. Hotkey **Ctrl+Shift+S** still toggles the same merge/remove behavior.
+  - **E‑Motion:** Same four actions as before (**Lite**, **Original**, **Final**, **Remove E‑Motion**); **`TryReplaceEmotionFamilyWithExactPath`** enforces one family pack per merge.
+  - **Possess Male / Female:** `Possess+Align+Select` to first male/female `Person` by stable **uid** (not “closest head” — that is **P** hotkey).
+  - **Passenger Male / Female:** One-shot rig snap to closest male/female **by head distance** to look/center camera (was labeled Snap M / Snap F); still uses `Possessor.autoSnapPoint`, head offsets, **`EasyMateHeadSnapPovRuntime`**, etc. Closest-female / closest-male helpers apply.
+  - **Remove All Clothes / Remove underwear:** Same `DAZCharacterSelector` logic as before (`StripAllClothesOnAllPersons`, `RemoveUnderwearOnAllPersons`).
   - Shared plugin path: `GetJSON` → normalize paths → `LateRestoreFromJSON`; empty plugin set uses empty `PluginManager` JSON.
-  - `Show UI` / `Hide UI` toggles every HUD button (used by `ResetVROrientation` and peers).
-  - `ClothingResetCycle()` refreshes the `+`/`-` plugin labels when `EasyMate.cs` detects a `currentLoadDir` change.
+  - **`Show UI` / `Hide UI`:** Toggle **only** MainUIButtons HUD elements (not `VaMLogClipboardHud`).
+  - `ClothingResetCycle()` refreshes **Spankings** `+`/`-` when `EasyMate.cs` sees a `currentLoadDir` change.
 
 #### E-Motion (full), E-MotionLite, E-Motion Final, and path-keyword merge
 
@@ -176,6 +196,9 @@ Examples:
   - `src/EasyMate.cs`
   - `src/EasyMateHeadSnapPovRuntime.cs`
   - `src/MainUIButtons.cs`
+  - (full list in the file — does **not** include `VaMLogClipboardHud.cs`)
+- `Custom/Scripts/Easy Mate/VaMLogClipboardHud.cslist`
+  - `src/VaMLogClipboardHud.cs` only — **separate** plugin for log copy/clear buttons (see **Easy Mate** notes above).
 - `Custom/Scripts/Easy Mate/AutoLoadEasyMate.cslist`
   - `src/AutoLoadEasyMate.cs`
 - `Custom/Scripts/Spankings/Spankings.cslist`
@@ -268,6 +291,7 @@ This is the main gateway object. The most relevant fields/properties/methods for
 - `worldScale`
 - `playerHeightAdjust`
 - `isLoading`
+- **In-game log UI buffers (also exposed as `UnityEngine.UI.Text`):** `allErrorsText`, `allErrorsText2`, `allMessagesText`, `allMessagesText2` — kept in sync with internal strings when **`LogError`** / **`Message`** run. **`ClearErrors()`**, **`ClearMessages()`** wipe buffers and text. **`LogError`** / **`LogMessage`** static helpers append lines. Clipboard copy from plugins typically reads `.text` from those `Text` fields and sets `GUIUtility.systemCopyBuffer` (see **`VaMLogClipboardHud`**).
 
 ### `Atom`
 
@@ -444,9 +468,9 @@ Use this order:
    - `skirt`, `dress`, maybe `gown`
 4. avoid removing plain `Hip` / `Legs` items unless positively identified
 
-### Clothing logic (no longer on Easy Mate HUD)
+### Clothing logic on Easy Mate HUD
 
-The former `Easy Mate/src/MainUIButtons.cs` implementation had working examples for saving clothing state, cycling `DAZSkinWrapSwitcher`, undress-all, and restore. That UI was removed when the HUD was narrowed to RealGaze install buttons. For future clothing buttons, reuse the same APIs (`DAZCharacterSelector`, `clothingItems`, `EnableUndressAllClothingItems()`, etc.) and/or consult version history of `MainUIButtons.cs`.
+`Easy Mate/src/MainUIButtons.cs` still exposes **Remove All Clothes** and **Remove underwear** (world HUD). Implementation uses `DAZCharacterSelector`, `EnableUndressAllClothingItems()`, `SetActiveClothingItem`, `LooksLikeSkirtDressOuterGarment`, `IsUnderwearLikeItem`, etc. For standalone clothing automation without the HUD, use the same APIs or **`Auto_Load_Person_Plugins`** patterns.
 
 ## Morph API Notes
 
@@ -735,21 +759,22 @@ For any future feature that scans atoms or modifies camera state on scene load, 
 
 ### 1. Remove Easy Mate buttons and add our own custom buttons
 
-**Status:** HUD includes an **E‑Motion** column (**Lite** / **Original** / **Final** / **Remove all**), **Spankings** toggle, **Strip all** / **Underwear**, and **Snap F** / **Snap M** one-shot rig snaps. Further custom buttons can follow the same file.
+**Status:** World HUD is split between **`VaMLogClipboardHud`** (log column) and **`MainUIButtons`** (columns 1–3): E‑Motion column, **Possess Male/Female**, **Passenger Male/Female**, **Remove underwear**, **Remove All Clothes**, **+/‑ Spankings Male**, **Remove E‑Motion**. Further buttons: same files or follow **`AutoMate/SESSION_PLUGINS`** HUD patterns.
 
-Likely touch points for more buttons:
+Likely touch points:
 
-- `Custom/Scripts/Easy Mate/src/MainUIButtons.cs`
-- possibly `Custom/Scripts/Easy Mate/src/EasyMate.cs`
-- maybe `Custom/Scripts/Reset VR Orientation/ResetVROrientation.cs` if show/hide expectations change
+- `Custom/Scripts/Easy Mate/src/MainUIButtons.cs` — Easy Mate grid only.
+- `Custom/Scripts/Easy Mate/src/VaMLogClipboardHud.cs` — log copy/clear only (own `.cslist`).
+- `Custom/Scripts/Easy Mate/src/EasyMate.cs` — lifecycle, `Show UI` / `Hide UI` (MainUIButtons only).
 
 Notes:
 
-- Keep `Show UI` / `Hide UI` wiring intact when adding or removing HUD elements.
+- Keep **`Show UI` / `Hide UI`** wiring intact for **`MainUIButtons`**; log HUD is a separate session plugin.
+- To hide log buttons with Easy Mate, either extend **`EasyMate.cs`** / **`VaMLogClipboardHud`** or merge the plugins (not done today).
 
 ### 2. Button to remove underwear / bra only, but keep skirts
 
-**Status:** Implemented in `Easy Mate/src/MainUIButtons.cs` as the **Underwear** button (all `Person` atoms). Uses `UnderChest` / `UnderHip` plus name/tag keywords; skips items whose name/tags look like skirt/dress/gown-style outer garments.
+**Status:** Implemented in `Easy Mate/src/MainUIButtons.cs` as **Remove underwear** (all `Person` atoms). Uses `UnderChest` / `UnderHip` plus name/tag keywords; skips items whose name/tags look like skirt/dress/gown-style outer garments.
 
 Likely touch points for tweaks:
 
@@ -757,13 +782,13 @@ Likely touch points for tweaks:
 
 ### 3. Button to remove all clothes from all persons
 
-**Status:** Implemented in `Easy Mate/src/MainUIButtons.cs` as **Strip all** (`EnableUndressAllClothingItems` + deactivate every clothing item per `Person`).
+**Status:** Implemented in `Easy Mate/src/MainUIButtons.cs` as **Remove All Clothes** (`EnableUndressAllClothingItems` + deactivate every clothing item per `Person`).
 
 ### 4. Buttons to snap the HMD into first / second female without attaching
 
-**Status (partial):** In `Easy Mate/src/MainUIButtons.cs`, **Snap F1** one-shot-snaps `navigationRig` to the first female `Person` (sorted by **`uid`**). **Snap M** snaps to the first male by **`uid`** (0 males → log message; multiple males → lowest `uid`). Second-female (**F2**) button not added yet.
+**Status (partial):** **Passenger Female** / **Passenger Male** in `MainUIButtons` one-shot-snap the rig to the **closest** female/male **by head** to the look/center camera (not “first by uid”). **Possess Female** / **Possess Male** use first person by **uid** for **Possess+Align+Select**. A dedicated second-female-only snap button is not added. **`EasyMateHeadSnapPovRuntime`** may **`PhysicsLink`** head to HMD **`CenterEye`** inside the head zone.
 
-Implementation mirrors `SuperController.AlignRigAndController` position/`playerHeightAdjust` peel and **possess-forward** yaw on **`navigationRig.up`**. Does not call built-in **`HeadPossess`**; **`EasyMateHeadSnapPovRuntime`** may **`PhysicsLink`** the person’s head to the HMD **`CenterEye`** while the eye camera is inside the in-head cylinder.
+Implementation mirrors `AlignRigAndController`-style rig peel and yaw on **`navigationRig.up`**; does not use built-in **`HeadPossess`** for the passenger snap path.
 
 Likely touch points for F2 / polish:
 
@@ -799,7 +824,7 @@ Related: **E-MotionLite** is merged automatically when **`emotion_path_keywords.
 
 ### 7. Button to add `Spankings` to all persons if missing
 
-**Status:** Implemented in `Easy Mate/src/MainUIButtons.cs` as the **Spankings** HUD button (merge-add by filename).
+**Status:** Implemented in `Easy Mate/src/MainUIButtons.cs` as **+/‑ Spankings Male** (merge-add by filename when enabling).
 
 Known plugin path:
 
@@ -807,17 +832,7 @@ Known plugin path:
 
 ### 8. Button to add `RealGaze` to all persons if missing
 
-**Status:** Implemented in `Easy Mate/src/MainUIButtons.cs` as two buttons: one merges `RealGaze - Looker.cs`, the other `RealGaze - Target.cs`, onto every `Person` if that filename is not already present.
-
-Important note:
-
-- The base folder is:
-  - `Custom/Scripts/RealGaze`
-- Related files:
-  - `RealGaze - Looker.cs`
-  - `RealGaze - Target.cs`
-  - `RealGaze - Looker Full Comments.cs`
-  - `RealGaze Mirror Excluder.cs`
+**Status:** **Not** on the current Easy Mate world HUD (`MainUIButtons.cs` has no RealGaze buttons). Use **`Auto_Load_Person_Plugins`** / merge patterns if you need scene-wide RealGaze; to restore HUD buttons, add merge helpers to `MainUIButtons` (paths under `Custom/Scripts/RealGaze`: **Looker** / **Target** `.cs` files).
 
 ### 9. World tilt using a button + right analog up/down
 
@@ -1129,15 +1144,17 @@ So the independent desktop camera feature is the hardest request in the list.
 ### Easy Mate / AutoMate / ResetVROrientation already coordinate each other
 
 - `ResetVROrientation` calls `Show UI` / `Hide UI` actions on Easy Mate, AutoMate, and Possess Sex
-- `MainUIButtons.ShowUI` must keep toggling every HUD button that exists so hide/show stays coherent
+- `MainUIButtons.ShowUI` toggles **only** Easy Mate’s main HUD buttons; **`VaMLogClipboardHud`** is a separate session plugin and is **not** controlled by those actions
 
 ## Best Reusable Code References
 
 When implementing later, revisit these first:
 
 - `Custom/Scripts/Easy Mate/src/MainUIButtons.cs`
-  - world-space HUD on `mainHUD`
-  - merge-add / remove plugins; **Strip all** / **Underwear** clothing; **Snap F1** / **Snap M** one-shot rig to head (`FemalePersonsByUid` / `MalePersonsByUid`, `AlignRigAndController`-style math)
+  - world-space HUD on `mainHUD` (columns 1–3; see grid in **Easy Mate** section)
+  - merge-add / remove plugins; **Remove All Clothes** / **Remove underwear**; **Passenger Female/Male** (closest-by-head snap); **Possess Female/Male** (uid-first possess flow)
+- `Custom/Scripts/Easy Mate/src/VaMLogClipboardHud.cs`
+  - separate `.cslist`; **Copy Errors** / **Copy Console** / **Clear logs** aligned to HUD column 0
 
 - `Custom/Scripts/AutoMate/SESSION_PLUGINS/src/Auto_Load_Person_Plugins.cs`
   - safe plugin-list merging
@@ -1178,17 +1195,15 @@ When implementing later, revisit these first:
 1. `Passenger` source of truth is `Custom/Scripts/Passenger.cs`, and the duplicate `Custom/Scripts/Passenger/Passenger.cs` was deleted.
 2. Future keyboard shortcuts should avoid VaM's bare-key defaults and avoid numpad-only bindings. The default keybind family should be modifier-heavy, preferably `Ctrl+Shift+1` through `Ctrl+Shift+9`, unless a specific feature needs a better fit.
 3. `RealGaze` scripts live under `Custom/Scripts/RealGaze`.
-4. The cleanest UI direction is to replace Easy Mate's current HUD button set rather than create a second unrelated HUD, while keeping the existing `Show UI` / `Hide UI` integration intact.
+4. Easy Mate’s **primary** actions live on **`MainUIButtons`**; **log copy/clear** uses a **second** session plugin (**`VaMLogClipboardHud`**) so those controls survive **`EasyMate.cslist`** failures. Keep **`Show UI` / `Hide UI`** affecting **`MainUIButtons`** only unless you wire **`VaMLogClipboardHud`** separately.
 5. "First female" and "second female" should be assigned by a deterministic ordering. The preferred default is sorting female atoms by `uid` so slot 1 and slot 2 stay stable as long as the scene's female atom set stays the same.
-6. RealGaze on the Easy Mate HUD: two separate actions — add **Looker** (`RealGaze - Looker.cs`) and add **Target** (`RealGaze - Target.cs`) to all Persons when missing (by script filename).
-7. E-Motion on the Easy Mate HUD: a **column** of **E‑Motion Lite**, **E‑Motion Original**, **E‑Motion Final**, and **Remove E‑Motion** (each install uses **`TryReplaceEmotionFamilyWithExactPath`**). **Spankings** stays a **`+`/`-`** toggle. **E-MotionLite** is also merged automatically on matching loads via **`EasyMateEmotionPathKeywords`** / **`emotion_path_keywords.txt`**. **E-Motion Final** is merged onto **female** Persons once after a **long non-loop** mocap ends (**`EasyMateMotionAnimationEmotionEnd`**).
+6. **RealGaze** is not on the current Easy Mate world HUD; scripts live under `Custom/Scripts/RealGaze` if you add merge buttons or use **`Auto_Load_Person_Plugins`**. Historical note: two-HUD actions (**Looker** / **Target**) were once described here; reintroduce via `MainUIButtons` if needed.
+7. E-Motion on the Easy Mate HUD: a **column** of **E‑Motion Lite**, **E‑Motion Original**, **E‑Motion Final**, and **Remove E‑Motion** (each install uses **`TryReplaceEmotionFamilyWithExactPath`**). **Spankings Male** is a **`+`/`-`** toggle on **`MainUIButtons`**. Log copy/clear is **`VaMLogClipboardHud`**. **E-MotionLite** is also merged automatically on matching loads via **`EasyMateEmotionPathKeywords`** / **`emotion_path_keywords.txt`**. **E-Motion Final** is merged onto **female** Persons once after a **long non-loop** mocap ends (**`EasyMateMotionAnimationEmotionEnd`**).
 
 ## Short Conclusions
 
 - The project already has solid patterns for HUD buttons, scene scanning, clothing control, plugin injection, and person-relative camera math.
 - The hardest future task is the independent desktop monitor camera because VaM's built-in monitor mode shares the same `navigationRig` as VR.
-- The easiest remaining HUD-style tasks are: **Snap F2** (second female by `uid`), optional head-hide when camera inside head, more plugin toggles.
+- The easiest remaining HUD-style tasks are: a **second-female Passenger** button (by `uid` or closest-head), optional head-hide when camera inside head, more plugin toggles.
 - The best way to do "snap to female head once" is probably **not** built-in possession, but a one-time rig move using the same math that built-in possession uses.
 
-
-Note: Always commit after each change

@@ -94,7 +94,7 @@ _SCENE_TITLE_NORMALIZED_PT: dict[str, str] = {
 
 # Leading ``\\n``: VaM centraliza o bloco inteiro; uns poucos descem o rótulo um
 # pouco. Demais (ex.: 14) empurra o texto para fora do quadro — ajuste fino aqui.
-_HUB_UIBUTTON_LEADING_PAD_NEWLINES = 8
+_HUB_UIBUTTON_LEADING_PAD_NEWLINES = 7
 
 
 def _norm_scene_path_for_sniff(scene_path: str) -> str:

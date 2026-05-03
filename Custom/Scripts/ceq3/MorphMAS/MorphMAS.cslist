@@ -1,0 +1,7 @@
+src/lib/MorphBuffer.cs
+src/lib/MorphFilters.cs
+src/lib/ScannedMorph.cs
+src/utils/DictUtils.cs
+src/utils/MorphsPreset.cs
+src/utils/UIUtils.cs
+src/MorphMAS.cs

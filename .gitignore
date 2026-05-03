@@ -28,6 +28,7 @@ Custom/**
 !Custom/Scripts/**/*.cs
 !Custom/Scripts/**/*.cslist
 !Custom/Scripts/**/*.txt
+!Custom/Scripts/ceq3/MorphMAS/MorphMAS.csproj
 
 # After whitelist: hide paths whose components contain these substrings (case variants).
 # Later rules win; * does not cross '/' so each path segment is checked.

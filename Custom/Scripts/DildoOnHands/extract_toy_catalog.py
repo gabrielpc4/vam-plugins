@@ -23,9 +23,8 @@ Writes ``{"atoms": [ ...matching atom objects... ]}``: each object is copied
 whole from the original scene ``atoms[]`` entry so storables/colors/materials,
 etc. survive.
 
-Default types match VarietyToyAtomTypes in DildoOnHands.cs. Additionally
-``DEFAULT_ID_PREFIXES`` pulls multi-atom props (wand + trigger + audio).
-Override with ``--extra-prefixes`` (comma list) or ``--prefixes-file``.
+Default types match VarietyToyAtomTypes in DildoOnHands.cs plus optional extra
+atom type names (--extra-types or --extras-file).
 
 Usage (run from VaM folder or pass absolute paths)::
 
@@ -42,40 +41,6 @@ import sys
 
 
 DEFAULT_TYPES = frozenset(("Dildo", "ToyAH", "ToyBP", "Paddle"))
-
-# CamGirlToys-style assemblies: any atom id starting with one of these is
-# copied whole (CollisionTrigger, AudioSource, ISSphere, …). Longer first
-# avoids accidental supersets if you add overlapping names later.
-DEFAULT_ID_PREFIXES = (
-    "MagicWand",
-    "Vibrator2",
-    "Vibrator1",
-    "AnalBalls",
-    "Lush",
-    "ButtPlug1",
-)
-
-
-def _sorted_prefixes(prefixes):
-    lst = list(prefixes)
-    lst.sort(key=lambda s: len(s), reverse=True)
-    return tuple(lst)
-
-
-def _atom_matches_whitelist_or_prefix(ent, type_whitelist, id_prefixes_sorted):
-    uid = ent.get("id")
-    if not isinstance(uid, str) or not uid.strip():
-        return False
-
-    for pfx in id_prefixes_sorted:
-        if uid.startswith(pfx):
-            return True
-
-    atype = ent.get("type")
-    if atype not in type_whitelist:
-        return False
-
-    return True
 
 
 def _read_scene(path):
@@ -135,18 +100,6 @@ def main():
         help="One VaM atom type name per line (plugin whitelist style)",
     )
 
-    p.add_argument(
-        "--extra-prefixes",
-        default="",
-        help="Comma-separated extra atom id prefixes (composite toys)",
-    )
-
-    p.add_argument(
-        "--prefixes-file",
-        default="",
-        help="One atom id prefix per line (like extra types file)",
-    )
-
     args = p.parse_args()
 
     whitelist = set(DEFAULT_TYPES)
@@ -161,22 +114,6 @@ def main():
     if args.extras_file:
         for t in _load_extras(args.extras_file):
             whitelist.add(t)
-
-    prefix_set = set(DEFAULT_ID_PREFIXES)
-
-    pchunk = args.extra_prefixes.strip()
-
-    if pchunk:
-        for part in pchunk.split(","):
-            piece = part.strip()
-            if piece:
-                prefix_set.add(piece)
-
-    if args.prefixes_file:
-        for t in _load_extras(args.prefixes_file):
-            prefix_set.add(t)
-
-    id_prefixes_sorted = _sorted_prefixes(prefix_set)
 
     try:
         scene = _read_scene(args.scene)
@@ -199,18 +136,20 @@ def main():
         if not isinstance(ent, dict):
             continue
 
-        if not _atom_matches_whitelist_or_prefix(
-                ent, whitelist, id_prefixes_sorted):
+        atype = ent.get("type")
+        uid = ent.get("id")
+
+        if atype not in whitelist:
+            continue
+
+        if not isinstance(uid, str) or len(uid.strip()) == 0:
             continue
 
         picked.append(ent)
 
     if not picked:
         print(
-            "No atoms matched type whitelist {} or id prefixes {}.".format(
-                sorted(whitelist),
-                list(id_prefixes_sorted),
-            ),
+            'No atoms matched types {}.'.format(sorted(whitelist)),
             file=sys.stderr,
         )
         sys.exit(1)

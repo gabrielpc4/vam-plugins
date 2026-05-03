@@ -33,59 +33,6 @@ namespace geesp0t
             "Paddle",
         };
 
-        /// <remarks>
-        /// Multi-atom props (wand + CollisionTrigger + AudioSource, vibrators +
-        /// triggers, …) share an id prefix; spawn clones the whole subgraph with new
-        /// uids so cross-refs stay valid. Sorted longest-prefix first so
-        /// Vibrator2 wins over Vibrator1.
-        /// </remarks>
-        private sealed class CatalogCompositeToyDef
-        {
-            public readonly string Key;
-            public readonly string IdPrefix;
-            public readonly string GripCatalogUid;
-
-            public CatalogCompositeToyDef(
-                string userKey,
-                string idPrefix,
-                string gripCatalogUid)
-            {
-                Key = userKey;
-                IdPrefix = idPrefix;
-                GripCatalogUid = gripCatalogUid;
-            }
-        }
-
-        /// <remarks>Unified variety pick across singles + composite bundles.</remarks>
-        private sealed class CatalogVarietyToyPick
-        {
-            public readonly bool FromCompositeBundle;
-            public readonly SceneToyTemplate SingleToy;
-            public readonly CatalogCompositeToyDef Composite;
-
-            private CatalogVarietyToyPick(
-                bool fromComposite,
-                SceneToyTemplate single,
-                CatalogCompositeToyDef composite)
-            {
-                FromCompositeBundle = fromComposite;
-                SingleToy = single;
-                Composite = composite;
-            }
-
-            public static CatalogVarietyToyPick ForSingleTemplate(
-                SceneToyTemplate t)
-            {
-                return new CatalogVarietyToyPick(false, t, null);
-            }
-
-            public static CatalogVarietyToyPick ForComposite(
-                CatalogCompositeToyDef c)
-            {
-                return new CatalogVarietyToyPick(true, null, c);
-            }
-        }
-
         private SuperController _sc;
 
         private JSONStorableBool _listenEnabled;
@@ -147,12 +94,6 @@ namespace geesp0t
         }
 
         private List<SceneToyTemplate> _catalogToyTemplates;
-
-        private Dictionary<string, string> _catalogAtomJsonBySceneUid;
-
-        private List<CatalogCompositeToyDef> _compositeToyBundlesInCatalog;
-
-        private static CatalogCompositeToyDef[] _cachedSortedCompositeToyDefs;
 
         private string _catalogPathLastLoaded;
 
@@ -468,551 +409,6 @@ namespace geesp0t
             }
         }
 
-        private static int CompareCompositePrefixLength(
-            CatalogCompositeToyDef a,
-            CatalogCompositeToyDef b)
-        {
-            return b.IdPrefix.Length - a.IdPrefix.Length;
-        }
-
-        private static CatalogCompositeToyDef[] GetSortedCompositeToyDefs()
-        {
-            if (_cachedSortedCompositeToyDefs != null)
-                return _cachedSortedCompositeToyDefs;
-
-            CatalogCompositeToyDef[] arr;
-            arr =
-                new CatalogCompositeToyDef[]
-                {
-                    new CatalogCompositeToyDef(
-                        "MagicWand",
-                        "MagicWand",
-                        "MagicWandBody"),
-
-                    new CatalogCompositeToyDef(
-                        "Vibrator1",
-                        "Vibrator1",
-                        "Vibrator1Body"),
-
-                    new CatalogCompositeToyDef(
-                        "Vibrator2",
-                        "Vibrator2",
-                        "Vibrator2Body"),
-
-                    new CatalogCompositeToyDef(
-                        "Lush",
-                        "Lush",
-                        "LushStem"),
-
-                    new CatalogCompositeToyDef(
-                        "AnalBalls",
-                        "AnalBalls",
-                        "AnalBallsRing"),
-
-                    new CatalogCompositeToyDef(
-                        "ButtPlug1",
-                        "ButtPlug1",
-                        "ButtPlug1Stop"),
-                };
-
-            Array.Sort(arr, CompareCompositePrefixLength);
-
-            _cachedSortedCompositeToyDefs = arr;
-
-            return arr;
-        }
-
-        private static CatalogCompositeToyDef LookupCompositeToyDefForAtomUid(
-            string sceneAtomUid)
-        {
-            if (sceneAtomUid == null || sceneAtomUid.Length == 0)
-                return null;
-
-            CatalogCompositeToyDef[] defs;
-            defs = GetSortedCompositeToyDefs();
-
-            for (int i = 0; i < defs.Length; i++)
-            {
-                CatalogCompositeToyDef d;
-                d = defs[i];
-                if (sceneAtomUid.StartsWith(d.IdPrefix))
-                    return d;
-            }
-
-            return null;
-        }
-
-        private static bool IsCatalogCompositeMemberAtomUid(string sceneUid)
-        {
-            return LookupCompositeToyDefForAtomUid(sceneUid) != null;
-        }
-
-        private static string SpawnCompositeGroupPresenceUidPrefix(
-            CatalogCompositeToyDef group)
-        {
-            return PluginName +
-                "__grp__" +
-                EscapeSceneAtomIdForUid(group.Key) +
-                "__";
-        }
-
-        private static bool IsCompositeBundlePresentInScene(
-            CatalogCompositeToyDef group,
-            SuperController svc)
-        {
-            if (svc == null || group == null)
-                return false;
-
-            string pfx;
-            pfx = SpawnCompositeGroupPresenceUidPrefix(group);
-
-            List<Atom> lst;
-            lst = svc.GetAtoms();
-
-            foreach (Atom a in lst)
-            {
-                string u;
-
-                if (a == null)
-                    continue;
-                u = a.uid;
-
-                if (u != null && u.StartsWith(pfx))
-                    return true;
-            }
-
-            return false;
-        }
-
-        private static string RemapColonFirstAtomUid(
-            string compound,
-            Dictionary<string, string> oldToNew)
-        {
-            if (compound == null || oldToNew == null || compound.Length == 0)
-                return compound;
-
-            int iCol;
-            iCol = compound.IndexOf(':');
-
-            if (iCol <= 0)
-            {
-                if (oldToNew.ContainsKey(compound))
-                    return oldToNew[compound];
-
-                return compound;
-            }
-
-            string pre;
-            string suf;
-
-            pre = compound.Substring(0, iCol);
-            suf = compound.Substring(iCol);
-
-            if (!oldToNew.ContainsKey(pre))
-                return compound;
-
-            return oldToNew[pre] + suf;
-        }
-
-        private static string RemapPlainAtomUidMaybe(
-            string maybeUid,
-            Dictionary<string, string> oldToNew)
-        {
-            if (maybeUid == null || maybeUid.Length == 0 ||
-                oldToNew == null)
-                return maybeUid;
-
-            if (oldToNew.ContainsKey(maybeUid))
-                return oldToNew[maybeUid];
-
-            return maybeUid;
-        }
-
-        private static void RemapUidReferencesRecursive(
-            JSONNode n,
-            Dictionary<string, string> oldToNew)
-        {
-            JSONArray arrCandidate;
-
-            arrCandidate = n != null ? n.AsArray : null;
-
-            if (arrCandidate != null)
-            {
-                int j;
-                for (j = 0; j < arrCandidate.Count; j++)
-                    RemapUidReferencesRecursive(arrCandidate[j], oldToNew);
-
-                return;
-            }
-
-            JSONClass jc;
-            jc = n != null ? n.AsObject : null;
-
-            if (jc == null)
-                return;
-
-            foreach (KeyValuePair<string, JSONNode> kv in jc)
-            {
-                string ky;
-                JSONNode chNode;
-
-                ky = kv.Key;
-                chNode = kv.Value;
-
-                if (chNode == null)
-                    continue;
-
-                JSONArray chArr;
-                JSONClass nestedObj;
-
-                chArr = chNode.AsArray;
-                nestedObj = chNode.AsObject;
-
-                if (chArr != null)
-                    RemapUidReferencesRecursive(chArr, oldToNew);
-                else if (nestedObj != null)
-                    RemapUidReferencesRecursive(nestedObj, oldToNew);
-                else
-                {
-                    string cur;
-                    cur = chNode.Value;
-
-                    if (cur == null || cur.Length == 0 || ky.Length == 0)
-                        continue;
-
-                    string next;
-
-                    next = cur;
-
-                    if (ky == "parentAtom" || ky == "receiverAtom")
-                        next = RemapPlainAtomUidMaybe(cur, oldToNew);
-                    else if (ky == "linkTo")
-                        next = RemapColonFirstAtomUid(cur, oldToNew);
-                    else if (ky == "receiver")
-                    {
-                        int colPos;
-                        colPos = cur.IndexOf(':');
-
-                        if (colPos >= 1)
-                            next = RemapColonFirstAtomUid(cur, oldToNew);
-                        else
-                            next = RemapPlainAtomUidMaybe(cur, oldToNew);
-                    }
-
-                    if (next != cur)
-                        jc[ky] = next;
-                }
-            }
-        }
-
-        private static List<string> TopoSortAtomsByParentHints(
-            List<string> ids,
-            Dictionary<string, string> parentOfInsideGroup)
-        {
-            List<string> outOrder;
-            outOrder = new List<string>();
-
-            if (ids == null || ids.Count == 0)
-                return outOrder;
-
-            Dictionary<string, List<string>> childrenByParent;
-            childrenByParent = new Dictionary<string, List<string>>();
-
-            HashSet<string> idSet;
-            idSet = new HashSet<string>();
-            foreach (string x in ids)
-                idSet.Add(x);
-
-            for (int i = 0; i < ids.Count; i++)
-            {
-                string id;
-                id = ids[i];
-                string p;
-                p = "";
-
-                if (parentOfInsideGroup.ContainsKey(id))
-                    p = parentOfInsideGroup[id];
-
-                bool parentOutside;
-                parentOutside =
-                    string.IsNullOrEmpty(p) || !idSet.Contains(p);
-
-                if (parentOutside)
-                {
-                    if (!childrenByParent.ContainsKey(""))
-                        childrenByParent[""] = new List<string>();
-
-                    childrenByParent[""].Add(id);
-                    continue;
-                }
-
-                if (!childrenByParent.ContainsKey(p))
-                    childrenByParent[p] = new List<string>();
-
-                childrenByParent[p].Add(id);
-            }
-
-            List<string> q;
-            q = new List<string>();
-
-            if (!childrenByParent.ContainsKey(""))
-                return outOrder;
-
-            q.AddRange(childrenByParent[""]);
-
-            HashSet<string> seen;
-            seen = new HashSet<string>();
-
-            int guardSteps;
-            guardSteps = 0;
-
-            while (q.Count > 0 && guardSteps < 4096)
-            {
-                guardSteps++;
-
-                string tip;
-                tip = q[0];
-                q.RemoveAt(0);
-
-                if (!idSet.Contains(tip))
-                    continue;
-
-                if (seen.Contains(tip))
-                    continue;
-
-                seen.Add(tip);
-
-                outOrder.Add(tip);
-
-                if (!childrenByParent.ContainsKey(tip))
-                    continue;
-
-                List<string> ch;
-                ch = childrenByParent[tip];
-
-                for (int c = 0; c < ch.Count; c++)
-                    q.Add(ch[c]);
-            }
-
-            if (outOrder.Count < ids.Count)
-            {
-                HashSet<string> seen2;
-                seen2 = new HashSet<string>();
-
-                for (int s = 0; s < outOrder.Count; s++)
-                    seen2.Add(outOrder[s]);
-
-                for (int r = 0; r < ids.Count; r++)
-                {
-                    string rest;
-                    rest = ids[r];
-
-                    if (seen2.Contains(rest))
-                        continue;
-
-                    outOrder.Add(rest);
-                }
-            }
-
-            return outOrder;
-        }
-
-        private IEnumerator CoSpawnCompositeToyBundle(CatalogCompositeToyDef group)
-        {
-            SuperController svc;
-            svc = SuperController.singleton;
-
-            if (svc == null || group == null || _catalogAtomJsonBySceneUid == null)
-                yield break;
-
-            List<string> members;
-            members = new List<string>();
-
-            Dictionary<string, string> parentHints;
-            parentHints = new Dictionary<string, string>();
-
-            Dictionary<string, string> oldToNew;
-            oldToNew = new Dictionary<string, string>();
-
-            foreach (KeyValuePair<string, string> kv in _catalogAtomJsonBySceneUid)
-            {
-                string cid;
-                cid = kv.Key;
-
-                CatalogCompositeToyDef chkMembership;
-                chkMembership = LookupCompositeToyDefForAtomUid(cid);
-
-                if (chkMembership != group)
-                    continue;
-
-                members.Add(cid);
-            }
-
-            if (members.Count == 0)
-                yield break;
-
-            foreach (string mem in members)
-            {
-                JSONNode rootPn;
-                rootPn =
-                    JSONNode.Parse(_catalogAtomJsonBySceneUid[mem]);
-
-                JSONClass one;
-                one = rootPn.AsObject;
-
-                JSONNode pn;
-                pn = one != null ? one["parentAtom"] : null;
-                string ptxt;
-
-                ptxt = pn != null ? pn.Value : "";
-
-                parentHints[mem] = ptxt;
-            }
-
-            List<string> order;
-            order = TopoSortAtomsByParentHints(members, parentHints);
-
-            string batchNonce;
-            batchNonce =
-                Mathf.FloorToInt(Time.realtimeSinceStartup * 1000f) +
-                "_" +
-                UnityEngine.Random.Range(100000, 999999999).ToString();
-
-            oldToNew.Clear();
-
-            int mapIdx;
-
-            mapIdx = 0;
-
-            for (mapIdx = 0; mapIdx < members.Count; mapIdx++)
-            {
-                string origId;
-                origId = members[mapIdx];
-
-                oldToNew[origId] =
-                    SpawnCompositeGroupPresenceUidPrefix(group) +
-                    EscapeSceneAtomIdForUid(origId) +
-                    "__" +
-                    batchNonce;
-            }
-
-            int spIdx;
-
-            spIdx = 0;
-
-            for (spIdx = 0; spIdx < order.Count; spIdx++)
-            {
-                string oldUid;
-                oldUid = order[spIdx];
-
-                JSONClass clone;
-                JSONNode clonedRoot;
-
-                clonedRoot =
-                    JSONNode.Parse(_catalogAtomJsonBySceneUid[oldUid]);
-
-                clone = clonedRoot.AsObject;
-
-                NeutralizeStoredWorldPose(clone);
-                ZeroSpringControlsInToyJson(clone);
-
-                RemapUidReferencesRecursive(clone, oldToNew);
-
-                clone["id"] = oldToNew[oldUid];
-
-                JSONNode nidType;
-                string typ;
-
-                nidType = clone["type"];
-                typ = nidType != null ? nidType.Value : "";
-
-                string newUidResolved;
-
-                newUidResolved = clone["id"] != null
-                    ? clone["id"].Value
-                    : "";
-
-                if (newUidResolved == null || newUidResolved.Length == 0 ||
-                    typ == null || typ.Length == 0 ||
-                    svc.GetAtomByUid(newUidResolved) != null)
-                    continue;
-
-                yield return svc.AddAtomByType(typ, newUidResolved);
-
-                Atom spawnedPart;
-                spawnedPart = svc.GetAtomByUid(newUidResolved);
-
-                if (spawnedPart == null)
-                {
-                    SuperController.LogError(
-                        PluginName +
-                            ": composite part missing '" +
-                            typ +
-                            "'.");
-
-                    yield break;
-                }
-
-                try
-                {
-                    spawnedPart.PreRestore();
-                    spawnedPart.Restore(clone);
-                    spawnedPart.LateRestore(clone);
-                    spawnedPart.PostRestore();
-                }
-                catch (Exception exRb)
-                {
-                    SuperController.LogError(
-                        PluginName +
-                            ": composite Restore: " +
-                            exRb.Message);
-
-                    try
-                    {
-                        svc.RemoveAtom(spawnedPart);
-                    }
-                    catch
-                    {
-                    }
-
-                    yield break;
-                }
-            }
-
-            string gripNew;
-
-            gripNew =
-                RemapPlainAtomUidMaybe(group.GripCatalogUid, oldToNew);
-
-            Atom gripAtom;
-
-            gripAtom = svc.GetAtomByUid(gripNew);
-
-            if (gripAtom == null)
-            {
-                SuperController.LogError(
-                    PluginName +
-                        ": composite grip atom missing.");
-            }
-            else
-            {
-                PlaceSpawnAtHand(gripAtom, false);
-
-                string grpSidDone;
-
-                grpSidDone = GrpVarietyScratchId(group.Key);
-
-                _waitingMandatoryFirstDildo = false;
-                _lastToyAtomTypeSpawned = grpSidDone;
-                _lastSceneToySourceId = grpSidDone;
-            }
-        }
-
-        private static string GrpVarietyScratchId(string grpKeyRaw)
-        {
-            return "Grp:" + grpKeyRaw;
-        }
-
         /// <summary>
         /// Catalog JSON is loaded and parsed once per catalog path for a VaM
         /// session (see <see cref="EnsureToyCatalogFresh"/> cache). Spawn does not
@@ -1035,9 +431,6 @@ namespace geesp0t
             HashSet<string> whitelist = BuildCatalogTypeWhitelist();
 
             _catalogToyTemplates = new List<SceneToyTemplate>();
-            _compositeToyBundlesInCatalog = new List<CatalogCompositeToyDef>();
-            _catalogAtomJsonBySceneUid =
-                new Dictionary<string, string>();
             _mandatoryDildoCatalogEntry = null;
             _catalogPathLastLoaded = desiredPath;
 
@@ -1095,31 +488,21 @@ namespace geesp0t
                 JSONClass entry = child as JSONClass;
                 if (entry == null)
                     continue;
-
+                JSONNode typeN = entry["type"];
+                if (typeN == null)
+                    continue;
+                string typeName = typeN.Value;
+                if (!whitelist.Contains(typeName))
+                    continue;
                 JSONNode idN = entry["id"];
                 string sceneUid = idN != null ? idN.Value : "";
                 if (sceneUid.Length == 0)
                     continue;
 
-                _catalogAtomJsonBySceneUid[sceneUid] = entry.ToString();
-
-                if (IsCatalogCompositeMemberAtomUid(sceneUid))
-                    continue;
-
-                JSONNode typeN = entry["type"];
-                if (typeN == null)
-                    continue;
-
-                string typeName = typeN.Value;
-
-                if (!whitelist.Contains(typeName))
-                    continue;
-
-                SceneToyTemplate row =
-                    new SceneToyTemplate(
-                        sceneUid,
-                        typeName,
-                        entry.ToString());
+                SceneToyTemplate row = new SceneToyTemplate(
+                    sceneUid,
+                    typeName,
+                    entry.ToString());
 
                 _catalogToyTemplates.Add(row);
 
@@ -1131,53 +514,18 @@ namespace geesp0t
                 }
             }
 
-            CatalogCompositeToyDef[] grpDefsSorted;
-            grpDefsSorted = GetSortedCompositeToyDefs();
-
-            int gdi;
-
-            for (gdi = 0; gdi < grpDefsSorted.Length; gdi++)
-            {
-                CatalogCompositeToyDef grpRow;
-                grpRow = grpDefsSorted[gdi];
-
-                bool grpExists;
-                grpExists = false;
-
-                List<string> allKeysScratch;
-                allKeysScratch =
-                    new List<string>(_catalogAtomJsonBySceneUid.Keys);
-
-                for (int kix = 0; kix < allKeysScratch.Count; kix++)
-                {
-                    string kk;
-                    kk = allKeysScratch[kix];
-
-                    if (LookupCompositeToyDefForAtomUid(kk) != grpRow)
-                        continue;
-
-                    grpExists = true;
-                    break;
-                }
-
-                if (grpExists)
-                    _compositeToyBundlesInCatalog.Add(grpRow);
-            }
-
             if (_mandatoryDildoCatalogEntry == null)
             {
                 foreach (SceneToyTemplate t in _catalogToyTemplates)
                 {
                     if (t.AtomTypeName != "Dildo")
                         continue;
-
                     _mandatoryDildoCatalogEntry = t;
                     break;
                 }
             }
 
-            return (_catalogToyTemplates.Count > 0) ||
-                (_compositeToyBundlesInCatalog.Count > 0);
+            return _catalogToyTemplates.Count > 0;
         }
 
         private bool EnsureToyCatalogFresh()
@@ -1189,10 +537,8 @@ namespace geesp0t
                 p = DefaultCatalogSceneRelativePath;
 
             if (_catalogToyTemplates != null &&
-                _compositeToyBundlesInCatalog != null &&
                 _catalogPathLastLoaded == p)
-                return (_catalogToyTemplates.Count > 0) ||
-                    (_compositeToyBundlesInCatalog.Count > 0);
+                return _catalogToyTemplates.Count > 0;
 
             return TryRebuildToyCatalog(true);
         }
@@ -1273,102 +619,60 @@ namespace geesp0t
         }
 
         /// <remarks>
-        /// Variety across singleton templates and multi-atom prefab bundles
-        /// (wand + CollisionTrigger + AudioSource, vibrators …).
+        /// Prefer a catalog toy not yet spawned (by uid prefix scan). When every
+        /// row has an instance present, reuse the whole pool (duplicate ok).
         /// </remarks>
-        private CatalogVarietyToyPick PickVarietyCatalogToyPick()
+        private SceneToyTemplate PickVarietyToyTemplate()
         {
             SuperController svc;
             svc = SuperController.singleton;
 
-            List<CatalogVarietyToyPick> choices;
-            choices = new List<CatalogVarietyToyPick>();
+            int count;
+            count = (_catalogToyTemplates != null)
+                ? _catalogToyTemplates.Count
+                : 0;
 
-            if (_catalogToyTemplates != null)
-            {
-                foreach (SceneToyTemplate t in _catalogToyTemplates)
-                {
-                    if (IsCatalogToyInstanceInScene(t, svc))
-                        continue;
-
-                    choices.Add(
-                        CatalogVarietyToyPick.ForSingleTemplate(t));
-                }
-            }
-
-            if (_compositeToyBundlesInCatalog != null)
-            {
-                for (int c = 0; c < _compositeToyBundlesInCatalog.Count; c++)
-                {
-                    CatalogCompositeToyDef defC;
-                    defC = _compositeToyBundlesInCatalog[c];
-
-                    if (IsCompositeBundlePresentInScene(defC, svc))
-                        continue;
-
-                    choices.Add(CatalogVarietyToyPick.ForComposite(defC));
-                }
-            }
-
-            List<CatalogVarietyToyPick> bag;
-            if (choices.Count > 0)
-                bag = choices;
-            else
-            {
-                bag = new List<CatalogVarietyToyPick>();
-
-                if (_catalogToyTemplates != null)
-                {
-                    foreach (SceneToyTemplate t in _catalogToyTemplates)
-                        bag.Add(CatalogVarietyToyPick.ForSingleTemplate(t));
-                }
-
-                if (_compositeToyBundlesInCatalog != null)
-                {
-                    for (int cx = 0; cx < _compositeToyBundlesInCatalog.Count;
-                        cx++)
-                    {
-                        bag.Add(
-                            CatalogVarietyToyPick.ForComposite(
-                                _compositeToyBundlesInCatalog[cx]));
-                    }
-                }
-            }
-
-            if (bag.Count == 0)
+            if (count == 0)
                 return null;
 
-            if (bag.Count == 1)
-                return bag[0];
+            if (count == 1)
+                return _catalogToyTemplates[0];
 
-            string lastScr;
-            lastScr = _lastSceneToySourceId;
+            List<SceneToyTemplate> absent;
+            absent = new List<SceneToyTemplate>();
+
+            foreach (SceneToyTemplate t in _catalogToyTemplates)
+            {
+                if (!IsCatalogToyInstanceInScene(t, svc))
+                    absent.Add(t);
+            }
+
+            List<SceneToyTemplate> bag;
+            if (absent.Count > 0)
+                bag = absent;
+            else
+                bag = _catalogToyTemplates;
+
+            int bagCount;
+            bagCount = bag.Count;
 
             int guard;
+
             guard = 0;
 
-            while (guard < 128)
+            while (guard < 96)
             {
                 guard++;
 
-                CatalogVarietyToyPick pick;
-                pick = bag[UnityEngine.Random.Range(0, bag.Count)];
+                SceneToyTemplate pick;
+                pick = bag[UnityEngine.Random.Range(0, bagCount)];
 
-                if (lastScr == null ||
-                    bag.Count <= 1)
-                    return pick;
+                if (_lastSceneToySourceId != null &&
+                    pick.SceneAtomId == _lastSceneToySourceId &&
+                    bagCount > 1)
+                    continue;
 
-                if (pick.FromCompositeBundle)
-                {
-                    if (GrpVarietyScratchId(pick.Composite.Key) !=
-                        lastScr)
-                        return pick;
-                }
-                else
-                {
-                    if (pick.SingleToy.SceneAtomId != lastScr)
-                        return pick;
-                }
+                return pick;
             }
 
             return bag[0];
@@ -1649,107 +953,6 @@ namespace geesp0t
             StartCoroutine(CoSpawnToyAtHand());
         }
 
-        /// <remarks>Handles one singleton whitelist catalog row.</remarks>
-        private IEnumerator SpawnCatalogSingleToyCoroutine(
-            SceneToyTemplate tmpl)
-        {
-            SuperController svc;
-            svc = SuperController.singleton;
-
-            if (tmpl == null || svc == null)
-                yield break;
-
-            JSONClass atomJc;
-
-            atomJc = null;
-
-            try
-            {
-                atomJc = JSONNode.Parse(tmpl.SerializedAtomJson).
-                    AsObject;
-            }
-            catch (Exception ex)
-            {
-                SuperController.LogError(
-                    PluginName + ": toy template JSON: " +
-                        ex.Message);
-            }
-
-            if (atomJc == null)
-                yield break;
-
-            NeutralizeStoredWorldPose(atomJc);
-            ZeroSpringControlsInToyJson(atomJc);
-
-            string atomType;
-            atomType = tmpl.AtomTypeName;
-
-            string uidCandidate;
-
-            uidCandidate = null;
-
-            int tIdx;
-            for (tIdx = 0; tIdx < 32; tIdx++)
-            {
-                uidCandidate =
-                    SpawnUidPrefixForCatalogRow(tmpl) +
-                    Mathf.FloorToInt(Time.realtimeSinceStartup * 1000f) +
-                    "_" +
-                    UnityEngine.Random.Range(
-                        100000,
-                        999999999).ToString();
-
-                if (svc.GetAtomByUid(uidCandidate) == null)
-                    break;
-
-                uidCandidate = null;
-            }
-
-            if (uidCandidate == null)
-                yield break;
-
-            atomJc["id"] = uidCandidate;
-
-            yield return svc.AddAtomByType(atomType, uidCandidate);
-
-            Atom spawned;
-            spawned = svc.GetAtomByUid(uidCandidate);
-
-            if (spawned == null)
-                yield break;
-
-            try
-            {
-                spawned.PreRestore();
-                spawned.Restore(atomJc);
-                spawned.LateRestore(atomJc);
-                spawned.PostRestore();
-            }
-            catch (Exception exR)
-            {
-                SuperController.LogError(
-                    PluginName +
-                        ": Restore catalog toy: " +
-                        exR.Message);
-
-                try
-                {
-                    svc.RemoveAtom(spawned);
-                }
-                catch
-                {
-                }
-
-                yield break;
-            }
-
-            _waitingMandatoryFirstDildo = false;
-            _lastToyAtomTypeSpawned = atomType;
-            _lastSceneToySourceId = tmpl.SceneAtomId;
-
-            PlaceSpawnAtHand(spawned, false);
-        }
-
         private IEnumerator CoSpawnToyAtHand()
         {
             _spawnCoroutineRunning = true;
@@ -1762,62 +965,103 @@ namespace geesp0t
             {
                 if (cloneMode && EnsureToyCatalogFresh())
                 {
-                    SceneToyTemplate mandatoryTmpl;
-
-                    mandatoryTmpl = null;
+                    SceneToyTemplate tmpl = null;
 
                     if (_waitingMandatoryFirstDildo)
-                        mandatoryTmpl = PickMandatoryDildoOrNull();
+                        tmpl = PickMandatoryDildoOrNull();
+                    else
+                        tmpl = PickVarietyToyTemplate();
 
-                    if (_waitingMandatoryFirstDildo &&
-                        mandatoryTmpl != null)
+                    if (tmpl != null)
                     {
-                        IEnumerator singleM;
-
-                        singleM =
-                            SpawnCatalogSingleToyCoroutine(mandatoryTmpl);
-
-                        while (singleM.MoveNext())
-                            yield return singleM.Current;
-
-                        if (!_waitingMandatoryFirstDildo)
-                            yield break;
-                    }
-
-                    CatalogVarietyToyPick vpick;
-
-                    vpick = PickVarietyCatalogToyPick();
-
-                    if (vpick != null)
-                    {
-                        if (vpick.FromCompositeBundle)
+                        JSONClass atomJc = null;
+                        try
                         {
-                            IEnumerator compE;
-
-                            compE =
-                                CoSpawnCompositeToyBundle(vpick.Composite);
-
-                            while (compE.MoveNext())
-                                yield return compE.Current;
+                            atomJc = JSONNode.Parse(tmpl.SerializedAtomJson).
+                                AsObject;
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            IEnumerator sgE;
-
-                            sgE =
-                                SpawnCatalogSingleToyCoroutine(
-                                    vpick.SingleToy);
-
-                            while (sgE.MoveNext())
-                                yield return sgE.Current;
+                            SuperController.LogError(
+                                PluginName + ": toy template JSON: " +
+                                    ex.Message);
                         }
 
-                        yield break;
-                    }
+                        if (atomJc != null)
+                        {
+                            NeutralizeStoredWorldPose(atomJc);
+                            ZeroSpringControlsInToyJson(atomJc);
+                            string atomType = tmpl.AtomTypeName;
+                            string uidCandidate = null;
 
-                    SuperController.LogError(
-                        PluginName +
+                            int tIdx;
+                            for (tIdx = 0; tIdx < 32; tIdx++)
+                            {
+                                uidCandidate =
+                                    SpawnUidPrefixForCatalogRow(tmpl) +
+                                    Mathf.FloorToInt(
+                                        Time.realtimeSinceStartup *
+                                        1000f) + "_" +
+                                    UnityEngine.Random.Range(
+                                        100000,
+                                        999999999).ToString();
+
+                                if (svc.GetAtomByUid(uidCandidate) == null)
+                                    break;
+
+                                uidCandidate = null;
+                            }
+
+                            if (uidCandidate != null)
+                            {
+                                atomJc["id"] = uidCandidate;
+
+                                yield return svc.AddAtomByType(atomType,
+                                    uidCandidate);
+
+                                Atom spawned = svc.GetAtomByUid(uidCandidate);
+                                if (spawned != null)
+                                {
+                                    try
+                                    {
+                                        spawned.PreRestore();
+                                        spawned.Restore(atomJc);
+                                        spawned.LateRestore(atomJc);
+                                        spawned.PostRestore();
+                                        _waitingMandatoryFirstDildo =
+                                            false;
+
+                                        _lastToyAtomTypeSpawned = atomType;
+                                        _lastSceneToySourceId =
+                                            tmpl.SceneAtomId;
+
+                                        PlaceSpawnAtHand(spawned, false);
+
+                                        yield break;
+                                    }
+                                    catch (Exception exR)
+                                    {
+                                        SuperController.LogError(
+                                            PluginName +
+                                            ": Restore catalog toy: " +
+                                            exR.Message);
+
+                                        try
+                                        {
+                                            svc.RemoveAtom(spawned);
+                                        }
+                                        catch
+                                        {
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        SuperController.LogError(
+                            PluginName +
                             ": catalog clone failed — trying legacy spawn.");
+                    }
                 }
 
                 bool consumedMandatory = false;

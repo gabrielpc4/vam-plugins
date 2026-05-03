@@ -11,11 +11,10 @@ namespace geesp0t
     /// <summary>
     /// VR: left-hand Grab / index-trigger only spawns at the right hand so the
     /// right trigger stays normal grab. Clone mode restores toy storables from
-    /// catalog JSON (colors, scale, joint/spring presets). Fallback uses AddAtomByType plus
-    /// optional extras. First session spawn is catalog Dildo when present — only that
-    /// clone sets springControl to max stiffness in JSON before Restore; every other spawn
-    /// leaves springControl/storables untouched (catalog presets or VaM defaults). Oculus uses
-    /// OVR LTouch triggers when Oculus paths drive input.
+    /// catalog JSON (colors, scale, joint/spring presets). Fallback uses AddAtomByType
+    /// plus optional extras. Mandatory first-session Dildo: max segment springs in JSON
+    /// (catalog path) plus very transparent diffuse; later spawns use catalog defaults.
+    /// Oculus uses OVR LTouch triggers when Oculus paths drive input.
     /// </summary>
     public class DildoOnHands : MVRScript
     {
@@ -66,6 +65,8 @@ namespace geesp0t
         private JSONStorableFloat _tipExtraEulerRollDeg;
 
         private JSONStorableBool _spawnAtHandPivotOnly;
+
+        private JSONStorableFloat _mandatoryFirstDildoDiffuseAlpha;
 
         private JSONStorableString _extraToyAtomTypes;
 
@@ -214,6 +215,16 @@ namespace geesp0t
                     "Spawn exactly at hand (ignore offset sliders)",
                     true);
                 RegisterBool(_spawnAtHandPivotOnly);
+
+                _mandatoryFirstDildoDiffuseAlpha =
+                    new JSONStorableFloat(
+                        "Mandatory first Dildo diffuse alpha",
+                        0.12f,
+                        0.02f,
+                        1f,
+                        false);
+
+                RegisterFloat(_mandatoryFirstDildoDiffuseAlpha);
 
                 _extraToyAtomTypes = new JSONStorableString(
                     "Legacy fallback: extra atom types (one per line)",
@@ -876,6 +887,34 @@ namespace geesp0t
             fc.currentRotationState = FreeControllerV3.RotationState.On;
         }
 
+        /// <remarks>
+        /// Uses <see cref="MaterialOptions.color1Alpha"/> plus a diffuse re-apply —
+        /// VaM binds alpha there (RGB from picker HSV separately).
+        /// </remarks>
+        private void TryApplyMandatoryFirstDildoDiffuseTransparency(Atom spawned)
+        {
+            MaterialOptions mats;
+            Color cDiffuse;
+            float a;
+
+            if (spawned == null || spawned.type != "Dildo")
+                return;
+
+            mats = spawned.GetStorableByID("materials") as MaterialOptions;
+
+            if (mats == null)
+                return;
+
+            a = (_mandatoryFirstDildoDiffuseAlpha != null)
+                ? _mandatoryFirstDildoDiffuseAlpha.val
+                : 0.12f;
+
+            mats.color1Alpha = a;
+            cDiffuse = mats.color1CurrentColor;
+
+            mats.SetColor1(new Color(cDiffuse.r, cDiffuse.g, cDiffuse.b, 1f));
+        }
+
         private void PlaceSpawnAtHand(Atom spawned, bool leftHand)
         {
             if (spawned == null || _sc == null)
@@ -1061,6 +1100,12 @@ namespace geesp0t
                                 Atom spawned = svc.GetAtomByUid(uidCandidate);
                                 if (spawned != null)
                                 {
+                                    bool spawnWasMandatoryFirstDildo;
+
+                                    spawnWasMandatoryFirstDildo =
+                                        _waitingMandatoryFirstDildo &&
+                                        atomType == "Dildo";
+
                                     try
                                     {
                                         spawned.PreRestore();
@@ -1073,6 +1118,12 @@ namespace geesp0t
                                         _lastToyAtomTypeSpawned = atomType;
                                         _lastSceneToySourceId =
                                             tmpl.SceneAtomId;
+
+                                        if (spawnWasMandatoryFirstDildo)
+                                        {
+                                            TryApplyMandatoryFirstDildoDiffuseTransparency(
+                                                spawned);
+                                        }
 
                                         PlaceSpawnAtHand(spawned, false);
 
@@ -1168,6 +1219,12 @@ namespace geesp0t
                 _waitingMandatoryFirstDildo = false;
                 _lastToyAtomTypeSpawned = atomLegacy;
                 _lastSceneToySourceId = null;
+
+                if (consumedMandatory && atomLegacy == "Dildo")
+                {
+                    TryApplyMandatoryFirstDildoDiffuseTransparency(
+                        spawnedLegacy);
+                }
 
                 PlaceSpawnAtHand(spawnedLegacy, false);
             }

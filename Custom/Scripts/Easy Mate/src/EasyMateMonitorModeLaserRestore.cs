@@ -1,27 +1,36 @@
 using MeshVR;
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace geesp0t
 {
     /// <summary>
-    /// VaM’s <b>blue / red</b> controller “UI lasers” live under each motion controller as
-    /// <c>LaserPointer/LaserBeam</c> (see Weelco <c>IUILaserPointer</c>). Oculus path
-    /// <see cref="SuperController"/> uses <c>HideLeftController</c>/<c>HideRightController</c>, which disable
-    /// <b>every</b> <see cref="MeshRenderer"/> under the touch objects — that kills the beam while monitor mode
-    /// and HUD/menu logic often keep those hides active. The green lines toward atoms come from
-    /// <see cref="SelectionHUD"/> and are unrelated.
-    /// Runs from <see cref="EasyMateMonitorLaserCameraHook.OnPreRender"/> so it wins over later lifecycle hooks.
+    /// VaM’s blue/red controller UI lasers are not the green SelectionHUD
+    /// lines. The laser beam usually lives under a controller subtree such as
+    /// LaserPointer/LaserBeam, but some rigs differ, so this searches by
+    /// likely names and keeps re-applying in monitor mode.
     /// </summary>
     internal static class EasyMateMonitorModeLaserRestore
     {
-        /// <summary>Avoid a collapsed beam if nothing updates scale this frame.</summary>
+        /// <summary>
+        /// Avoid a collapsed beam if nothing updates scale this frame.
+        /// </summary>
         private const float MinBeamLocalScaleZ = 0.08f;
+
+        private const float HeartbeatSeconds = 1f;
 
         private static bool _featureEnabled;
 
         private static Camera _hookCamera;
 
-        /// <summary>Attach to <see cref="SuperController.MonitorCenterCamera"/> when it exists; cheap after first success.</summary>
+        private static float _nextHeartbeatTime;
+
+        private static readonly List<Transform> _laserNodes = new List<Transform>();
+
+        /// <summary>
+        /// Attach to <see cref="SuperController.MonitorCenterCamera"/>
+        /// when it exists; cheap after first success.
+        /// </summary>
         public static void EnsureMonitorCameraHook()
         {
             SuperController sc = SuperController.singleton;
@@ -44,31 +53,29 @@ namespace geesp0t
                 mc.gameObject.AddComponent<EasyMateMonitorLaserCameraHook>();
         }
 
-        /// <summary>Call from <see cref="EasyMate.LateUpdate"/>.</summary>
+        /// <summary>
+        /// Call from <see cref="EasyMate.LateUpdate"/>.
+        /// </summary>
         public static void NotifyEnabledAndCleanup(bool enabled)
         {
             _featureEnabled = enabled;
             EnsureMonitorCameraHook();
+            if (!enabled)
+                return;
+
+            if (Time.unscaledTime >= _nextHeartbeatTime)
+            {
+                _nextHeartbeatTime = Time.unscaledTime + HeartbeatSeconds;
+                AttemptRestore("heartbeat", true);
+            }
         }
 
-        /// <summary>Invoked from monitor camera immediately before it renders.</summary>
+        /// <summary>
+        /// Invoked from monitor camera immediately before it renders.
+        /// </summary>
         public static void BeforeMonitorCameraRender()
         {
-            if (!_featureEnabled)
-                return;
-
-            SuperController sc = SuperController.singleton;
-            if (sc == null || sc.isLoading || sc.IsMonitorOnly)
-                return;
-
-            if (!sc.isOVR && !sc.isOpenVR)
-                return;
-
-            if (sc.MonitorRig == null || !sc.MonitorRig.gameObject.activeSelf)
-                return;
-
-            RestoreUiLaserUnderMotion(MotionLeft(sc));
-            RestoreUiLaserUnderMotion(MotionRight(sc));
+            AttemptRestore("pre-render", false);
         }
 
         private static Transform MotionLeft(SuperController sc)
@@ -89,82 +96,145 @@ namespace geesp0t
             return null;
         }
 
-        /// <summary>
-        /// Walks only real children (includes inactive — unlike <see cref="Transform.Find"/>, which skips inactive branches).
-        /// </summary>
-        private static Transform FindChildPath(Transform root, string slashPath)
+        private static void AttemptRestore(string reason, bool logAttempt)
         {
-            if (root == null || string.IsNullOrEmpty(slashPath))
-                return null;
+            if (!_featureEnabled)
+                return;
 
-            string[] segments = slashPath.Split('/');
-            Transform current = root;
-            int si;
-            for (si = 0; si < segments.Length; si++)
+            SuperController sc = SuperController.singleton;
+            if (sc == null)
             {
-                string seg = segments[si];
-                if (seg.Length == 0)
-                    continue;
-
-                Transform found = null;
-                int ci;
-                int cc = current.childCount;
-                for (ci = 0; ci < cc; ci++)
-                {
-                    Transform ch = current.GetChild(ci);
-                    if (ch.name == seg)
-                    {
-                        found = ch;
-                        break;
-                    }
-                }
-
-                if (found == null)
-                    return null;
-                current = found;
+                if (logAttempt)
+                    SuperController.LogMessage(
+                        "EasyMate monitor laser restore [" + reason
+                        + "]: skipped (no SuperController)");
+                return;
             }
 
-            return current;
+            bool active =
+                !sc.isLoading
+                && !sc.IsMonitorOnly
+                && (sc.isOVR || sc.isOpenVR)
+                && sc.MonitorRig != null
+                && sc.MonitorRig.gameObject.activeSelf;
+
+            if (!active)
+            {
+                if (logAttempt)
+                {
+                    SuperController.LogMessage(
+                        "EasyMate monitor laser restore [" + reason + "]: "
+                        + "skipped"
+                        + " isLoading=" + sc.isLoading
+                        + " isMonitorOnly=" + sc.IsMonitorOnly
+                        + " isOVR=" + sc.isOVR
+                        + " isOpenVR=" + sc.isOpenVR
+                        + " monitorRig="
+                        + (sc.MonitorRig != null
+                            ? sc.MonitorRig.gameObject.activeSelf.ToString()
+                            : "null"));
+                }
+                return;
+            }
+
+            int leftFound = RestoreUiLaserUnderMotion(MotionLeft(sc));
+            int rightFound = RestoreUiLaserUnderMotion(MotionRight(sc));
+            if (logAttempt)
+            {
+                SuperController.LogMessage(
+                    "EasyMate monitor laser restore [" + reason + "]: "
+                    + "left=" + leftFound + " right=" + rightFound);
+            }
         }
 
-        private static void RestoreUiLaserUnderMotion(Transform motionRoot)
+        private static int RestoreUiLaserUnderMotion(Transform motionRoot)
         {
             if (motionRoot == null)
-                return;
+                return 0;
 
-            Transform laserPointer = FindChildPath(motionRoot, "LaserPointer");
-            if (laserPointer == null)
-                return;
+            _laserNodes.Clear();
+            CollectLikelyLaserNodes(motionRoot, _laserNodes);
 
-            laserPointer.gameObject.SetActive(true);
-
-            Transform beam = FindChildPath(motionRoot, "LaserPointer/LaserBeam");
-            if (beam != null)
+            int i;
+            for (i = 0; i < _laserNodes.Count; i++)
             {
-                beam.gameObject.SetActive(true);
-                Renderer[] beamRends = beam.GetComponentsInChildren<Renderer>(true);
-                int bi;
-                for (bi = 0; bi < beamRends.Length; bi++)
-                    beamRends[bi].enabled = true;
+                Transform t = _laserNodes[i];
+                if (t == null)
+                    continue;
 
-                Vector3 ls = beam.localScale;
-                if (ls.z < MinBeamLocalScaleZ)
-                    beam.localScale = new Vector3(ls.x, ls.y, MinBeamLocalScaleZ);
+                t.gameObject.SetActive(true);
+
+                Renderer[] rends = t.GetComponentsInChildren<Renderer>(true);
+                int ri;
+                for (ri = 0; ri < rends.Length; ri++)
+                    rends[ri].enabled = true;
+
+                if (LooksLikeBeam(t.name))
+                {
+                    Vector3 ls = t.localScale;
+                    if (ls.z < MinBeamLocalScaleZ)
+                    {
+                        t.localScale = new Vector3(
+                            ls.x,
+                            ls.y,
+                            MinBeamLocalScaleZ);
+                    }
+                }
             }
 
-            Transform dot = FindChildPath(motionRoot, "LaserPointer/LaserBeamDot");
-            if (dot != null)
-            {
-                dot.gameObject.SetActive(true);
-                Renderer[] dotRends = dot.GetComponentsInChildren<Renderer>(true);
-                int di;
-                for (di = 0; di < dotRends.Length; di++)
-                    dotRends[di].enabled = true;
-            }
+            return _laserNodes.Count;
+        }
+
+        private static void CollectLikelyLaserNodes(
+            Transform root,
+            List<Transform> results)
+        {
+            if (root == null)
+                return;
+
+            string nameLower = root.name != null
+                ? root.name.ToLowerInvariant()
+                : string.Empty;
+            if (IsLikelyLaserNode(nameLower))
+                results.Add(root);
+
+            int i;
+            int cc = root.childCount;
+            for (i = 0; i < cc; i++)
+                CollectLikelyLaserNodes(root.GetChild(i), results);
+        }
+
+        private static bool IsLikelyLaserNode(string nameLower)
+        {
+            if (string.IsNullOrEmpty(nameLower))
+                return false;
+
+            if (nameLower.Contains("laserpointer"))
+                return true;
+            if (nameLower.Contains("laserbeam"))
+                return true;
+            if (nameLower.Contains("beamdot"))
+                return true;
+            if (nameLower.Contains("laser") && nameLower.Contains("beam"))
+                return true;
+            if (nameLower.Contains("pointer") && nameLower.Contains("beam"))
+                return true;
+
+            return false;
+        }
+
+        private static bool LooksLikeBeam(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return false;
+            string nameLower = name.ToLowerInvariant();
+            return nameLower.Contains("beam")
+                && !nameLower.Contains("dot");
         }
 
         public static void OnPluginDestroy()
         {
+            _nextHeartbeatTime = 0f;
             if (_hookCamera != null)
             {
                 EasyMateMonitorLaserCameraHook hook = _hookCamera.GetComponent<EasyMateMonitorLaserCameraHook>();
@@ -175,7 +245,10 @@ namespace geesp0t
         }
     }
 
-    /// <summary>Bridge: <see cref="Camera.OnPreRender"/> for <see cref="SuperController.MonitorCenterCamera"/>.</summary>
+    /// <summary>
+    /// Bridge: <see cref="Camera.OnPreRender"/> for
+    /// <see cref="SuperController.MonitorCenterCamera"/>.
+    /// </summary>
     public class EasyMateMonitorLaserCameraHook : MonoBehaviour
     {
         private void OnPreRender()

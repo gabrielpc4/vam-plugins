@@ -450,14 +450,10 @@ namespace MorphMAS
                 string metaFileName = morph.morphName + ".vmi";
                 string deltasFileName = morph.morphName + ".vmb";
 
-                SaveJSON(morph.GetMetaJSON(), morphExportFolder + "/" + metaFileName, () =>
-                {
-                    morph.SaveDeltasToBinaryFile(morphExportFolder + "/" + deltasFileName);
-                    Log($"\"{morph.morphName}\" exported to: {morphExportFolder}");
-                }, () =>
-                {
-                    Log($"\"{morph.morphName}\" export canceled by user.");
-                }, null);
+                // VaM exposes SaveJSON(JSONClass, path) only; no dialog/callback overload.
+                SaveJSON(morph.GetMetaJSON(), morphExportFolder + "/" + metaFileName);
+                morph.SaveDeltasToBinaryFile(morphExportFolder + "/" + deltasFileName);
+                Log($"\"{morph.morphName}\" exported to: {morphExportFolder}");
             }
         }
 

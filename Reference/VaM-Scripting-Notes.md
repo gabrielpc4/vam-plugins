@@ -29,9 +29,10 @@ Examples to **avoid** in VaM-loaded scripts:
 
 The decompiled `Assembly-CSharp` reference and many community plugins assume Unity/VaM-era constraints; when adding new code under `Custom/Scripts`, match that conservative style.
 
-- The three custom areas you explicitly want us to understand are:
+- The main custom areas to keep in mind in this workspace are:
   - `Custom/Scripts/AutoMate`
   - `Custom/Scripts/Easy Mate`
+  - `Custom/Scripts/LFE` — **`KeyboardShortcuts`** (session-style rebinding UI; see below)
   - `Custom/Scripts/Passenger`
 
 ## Most Relevant Live Scripts
@@ -51,7 +52,7 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
 - **`Custom/Scripts/Easy Mate/VaMLogClipboardHud.cslist`**
   - Single source: `src/VaMLogClipboardHud.cs`.
   - **Why it exists:** The three VaM log buttons (**Copy Errors**, **Copy Console**, **Clear logs**) must still load if `EasyMate.cslist` fails to compile or `MainUIButtons` fails at runtime. They use the same `mainHUD` placement math as Easy Mate column **0** so the combined grid lines up.
-  - **Behavior:** Reads `SuperController.allErrorsText` / `allErrorsText2` and `allMessagesText` / `allMessagesText2`; copy uses `GUIUtility.systemCopyBuffer`; clear calls `ClearErrors()` and `ClearMessages()` (see decompiled `SuperController`).
+  - **Behavior:** Reads `SuperController.allErrorsText` / `allErrorsText2` and `allMessagesText` / `allMessagesText2`; copy uses `GUIUtility.systemCopyBuffer`; clear calls `ClearErrors()` and `ClearMessages()` (see decompiled `SuperController`). To **show/hide** those panels from the keyboard, **`LFE/KeyboardShortcuts`** exposes **`Error Log > Toggle`** and **`Message Log > Toggle`** (see **LFE / KeyboardShortcuts**).
   - **Not toggled** by Easy Mate `Show UI` / `Hide UI` (separate plugin); it always builds its small canvas in `Start()` if the plugin loads.
   - **Grid alignment:** Same canvas scale/position/`Translate(0, 0.2f, 0)` as `MainUIButtons`; button Y uses `0.50f - row * ySpacing` with `xSpacing = 0.22f`, `ySpacing = 0.05f`; log column only uses **column 0**, rows **0–2**.
 
@@ -152,6 +153,17 @@ Notes:
 - The duplicate file `Custom/Scripts/Passenger/Passenger.cs` was removed on purpose.
 - If the goal is "do what Passenger does" from a logic standpoint, `Custom/Scripts/Passenger.cs` remains the source of truth for future edits.
 
+### `LFE / KeyboardShortcuts` (LFE#9677)
+
+- **Root:** `Custom/Scripts/LFE/KeyboardShortcuts/`
+- **Plugin entry / VaM load path:** `src/KeyboardShortcuts.cslist` → lists every `Commands/*.cs`, `Extensions/*.cs`, `Models/*.cs`, `Utils/*.cs`, and **`Main/Plugin.cs`** (class **`LFE.KeyboardShortcuts.Main.Plugin`** : `MVRScript`).
+- **Purpose:** User-defined **keyboard (and axis) chords** bound to **commands** — camera move/look, Play/Edit, animation speed, atom add/select/delete/hide, selected-atom position/rotation nudges, **Selected Options** tab jumps (`AtomSelectTab`), scene new/open/save, world/time scale, graphics toggles (MSAA, pixel lights, soft body, etc.), **`HardReset`**, and per-atom / per-controller actions built from **`SuperController.GetSelectableAtoms()`** (including **Add Plugin**, **ShowUI** tabs per atom, **Plugin** actions on loaded plugins: bool/float/string chooser, show UI, call **`JSONStorableAction`**, etc.).
+- **Log / menu overlap:** Built-in commands **`ErrorLogToggle`** and **`MessageLogToggle`** (`Commands/ErrorLogToggle.cs`, `Commands/MessageLogToggle.cs`) open/close the same VaM panels whose text buffers **`VaMLogClipboardHud`** copies/clears — use either the Easy Mate log HUD buttons or LFE binds (or both).
+- **Runtime:** `Update()` matches bindings (`KeyChord.IsBeingPressed()`), respects **Unity UI** **`InputField`** focus (skips shortcuts while typing), and queues command execution via **`ViewModel`** / **`BindingEvent`**. **Axis** bindings get a final “reset” when keys release.
+- **Catalog:** New commands are **`yield return`**’d from **`Models/CommandFactory.BuildCommands()`**; groups **`[Global Actions]`** / **`[Selected Atom Actions]`** come from **`CommandConst`**; atom-specific groups use **`atom.uid`**.
+- **Caveat (from plugin header):** VaM’s **own** shortcuts (e.g. **T**, **E**) still fire; avoid overlapping chord choices when possible.
+- **Language note:** This tree uses **modern C#** patterns (e.g. interpolated strings, `var`) in places. VaM’s in-game compiler is stricter for some plugins — if you **merge** or **port** snippets into **`Easy Mate`**-style scripts, follow **C# 6.0** rules in these notes.
+
 ### `ImprovedPoV`
 
 - `Custom/Scripts/ImprovedPoV.cs`
@@ -201,6 +213,8 @@ Examples:
   - `src/VaMLogClipboardHud.cs` only — **separate** plugin for log copy/clear buttons (see **Easy Mate** notes above).
 - `Custom/Scripts/Easy Mate/AutoLoadEasyMate.cslist`
   - `src/AutoLoadEasyMate.cs`
+- `Custom/Scripts/LFE/KeyboardShortcuts/src/KeyboardShortcuts.cslist`
+  - multi-file bundle under `Commands/`, `Extensions/`, `Models/`, `Utils/`, `Main/` (see **LFE / KeyboardShortcuts** above).
 - `Custom/Scripts/Spankings/Spankings.cslist`
   - loads several source files under `octopussy`, `Deluxe`, and `Easy Moan`
 - `Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist`

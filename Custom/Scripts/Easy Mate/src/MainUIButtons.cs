@@ -51,6 +51,8 @@ namespace geesp0t
         private static int _hotkeyISnapPersonCycleNextIndex;
         /// <summary>After <see cref="TryVrRightHandOverHeadCylinderSnapGesture"/> fires, true until the hand leaves the zone.</summary>
         private static bool _vrOverHeadSnapGestureInsideLatch;
+        /// <summary><see cref="Time.unscaledTime"/> at last VR over-head snap.</summary>
+        private static float _vrOverHeadSnapLastTriggerUnscaledTime = -1000f;
         /// <summary>Set in <see cref="Init"/> so static possess coroutine can refresh HUD after merging plugins.</summary>
         private static System.Action _refreshPluginToggleLabelsStatic;
 
@@ -126,6 +128,9 @@ namespace geesp0t
         /// <summary>Hand must stay below this height above HMD along <c>up</c>
         /// (m) so random high reaches do not fire.</summary>
         private const float VrOverHeadSnapMaxHeightAlongHmdUpM = 0.34f;
+        /// <summary>Min seconds after a VR over-head snap before another can
+        /// fire (<see cref="Time.unscaledTime"/>).</summary>
+        private const float VrOverHeadSnapCooldownSeconds = 4f;
 
         /// <summary>Same anchor VaM uses for head possession (<c>headControl</c> transform / control), no Easy Mate offset.</summary>
         private static Vector3 GetPossessionMatchHeadSnapWorldPosition(FreeControllerV3 head)
@@ -533,7 +538,8 @@ namespace geesp0t
         /// If the right controller sits in a cylinder segment above the HMD
         /// (radial cap around headset <c>up</c>, not merely “somewhere higher”
         /// in world space), run the same path as the <b>I</b> key once per
-        /// entry until the hand exits.
+        /// entry until the hand exits, and not again until
+        /// <see cref="VrOverHeadSnapCooldownSeconds"/> have passed.
         /// </summary>
         private void TryVrRightHandOverHeadCylinderSnapGesture()
         {
@@ -573,7 +579,13 @@ namespace geesp0t
             {
                 if (!_vrOverHeadSnapGestureInsideLatch)
                 {
-                    HotkeySnapNearestHeadHideHandsThenSnap();
+                    float now = Time.unscaledTime;
+                    if (now - _vrOverHeadSnapLastTriggerUnscaledTime >=
+                        VrOverHeadSnapCooldownSeconds)
+                    {
+                        HotkeySnapNearestHeadHideHandsThenSnap();
+                        _vrOverHeadSnapLastTriggerUnscaledTime = now;
+                    }
                     _vrOverHeadSnapGestureInsideLatch = true;
                 }
             }

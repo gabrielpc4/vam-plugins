@@ -16,6 +16,7 @@ namespace geesp0t
 
         private static bool addedSessionPlugins = false;
         string[] sessionPlugins = new string[] {
+            "Custom/Scripts/Easy Mate/VaMLogClipboardHud.cslist",
             "Custom/Scripts/Easy Mate/EasyMate.cslist",
             "Custom/Scripts/AutoMate/SESSION_PLUGINS/Auto_Load_Person_Plugins.cslist",
         };

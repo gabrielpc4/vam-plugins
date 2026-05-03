@@ -172,9 +172,6 @@ namespace geesp0t
         UIDynamicButton snapMaleHeadButton = null;
         UIDynamicButton possessAlignSelectFemaleButton = null;
         UIDynamicButton possessAlignSelectMaleButton = null;
-        UIDynamicButton copyErrorLogButton = null;
-        UIDynamicButton copyMessageLogButton = null;
-        UIDynamicButton clearLogsButton = null;
 
         private static float _lastYDebugLogUnscaledTime = -1000f;
         private const float YDebugLogMinIntervalSeconds = 0.35f;
@@ -865,22 +862,19 @@ namespace geesp0t
 
             LookAtCamera();
 
-            const float logColButtonWidth = 118f;
+            // Columns 1–3 only; column 0 is VaMLogClipboardHud (separate plugin).
             const float emotionColButtonWidth = 132f;
             const float midColButtonWidth = 118f;
             const float rightColButtonWidth = 132f;
 
-            copyErrorLogButton = AddButton("Copy Errors", OnCopyErrorLogClicked, 0, 0, logColButtonWidth);
             emotionLiteHudButton = AddButton("E-Motion Lite", OnEmotionLiteHudClicked, 1, 0, emotionColButtonWidth);
             possessAlignSelectMaleButton = AddButton("Possess Male", PossessAlignSelectMaleIfAny, 2, 0, midColButtonWidth);
             removeUnderwearButton = AddButton("Remove underwear", RemoveUnderwearOnAllPersons, 3, 0, rightColButtonWidth);
 
-            copyMessageLogButton = AddButton("Copy Console", OnCopyMessageLogClicked, 0, 1, logColButtonWidth);
             emotionOriginalHudButton = AddButton("E-Motion Original", OnEmotionOriginalHudClicked, 1, 1, emotionColButtonWidth);
             possessAlignSelectFemaleButton = AddButton("Possess Female", PossessAlignSelectFirstFemale, 2, 1, midColButtonWidth);
             stripAllClothesButton = AddButton("Remove All Clothes", StripAllClothesOnAllPersons, 3, 1, rightColButtonWidth);
 
-            clearLogsButton = AddButton("Clear logs", OnClearLogsClicked, 0, 2, logColButtonWidth);
             emotionFinalHudButton = AddButton("E-Motion Final", OnEmotionFinalHudClicked, 1, 2, emotionColButtonWidth);
             snapMaleHeadButton = AddButton("Passenger Male", SnapRigToClosestMaleHead, 2, 2, midColButtonWidth);
             spankingsButton = AddButton("+ Spankings Male", OnSpankingsPluginToggleClicked, 3, 2, rightColButtonWidth);
@@ -917,12 +911,6 @@ namespace geesp0t
                 possessAlignSelectFemaleButton.gameObject.SetActive(setToActive);
             if (possessAlignSelectMaleButton != null)
                 possessAlignSelectMaleButton.gameObject.SetActive(setToActive);
-            if (copyErrorLogButton != null)
-                copyErrorLogButton.gameObject.SetActive(setToActive);
-            if (copyMessageLogButton != null)
-                copyMessageLogButton.gameObject.SetActive(setToActive);
-            if (clearLogsButton != null)
-                clearLogsButton.gameObject.SetActive(setToActive);
             if (setToActive)
             {
                 RefreshPluginToggleLabels();
@@ -1037,90 +1025,6 @@ namespace geesp0t
             catch (Exception e)
             {
                 SuperController.LogError("Exception caught: " + e);
-            }
-        }
-
-        private static string GetVaMErrorLogText(SuperController sc)
-        {
-            if (sc == null)
-                return string.Empty;
-            if (sc.allErrorsText != null && sc.allErrorsText.text != null)
-                return sc.allErrorsText.text;
-            if (sc.allErrorsText2 != null && sc.allErrorsText2.text != null)
-                return sc.allErrorsText2.text;
-            return string.Empty;
-        }
-
-        private static string GetVaMMessageLogText(SuperController sc)
-        {
-            if (sc == null)
-                return string.Empty;
-            if (sc.allMessagesText != null && sc.allMessagesText.text != null)
-                return sc.allMessagesText.text;
-            if (sc.allMessagesText2 != null && sc.allMessagesText2.text != null)
-                return sc.allMessagesText2.text;
-            return string.Empty;
-        }
-
-        private void OnCopyErrorLogClicked()
-        {
-            try
-            {
-                SuperController sc = SuperController.singleton;
-                string t = GetVaMErrorLogText(sc);
-                GUIUtility.systemCopyBuffer = t != null ? t : string.Empty;
-                if (t == null || t.Length == 0)
-                    SuperController.LogMessage(
-                        "Easy Mate: copied error log to clipboard (empty).");
-                else
-                    SuperController.LogMessage(
-                        "Easy Mate: copied error log to clipboard (" + t.Length
-                        + " chars).");
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError(
-                    "Easy Mate: copy error log to clipboard: " + e);
-            }
-        }
-
-        private void OnCopyMessageLogClicked()
-        {
-            try
-            {
-                SuperController sc = SuperController.singleton;
-                string t = GetVaMMessageLogText(sc);
-                GUIUtility.systemCopyBuffer = t != null ? t : string.Empty;
-                if (t == null || t.Length == 0)
-                    SuperController.LogMessage(
-                        "Easy Mate: copied console log to clipboard (empty).");
-                else
-                    SuperController.LogMessage(
-                        "Easy Mate: copied console log to clipboard (" + t.Length
-                        + " chars).");
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError(
-                    "Easy Mate: copy console log to clipboard: " + e);
-            }
-        }
-
-        private void OnClearLogsClicked()
-        {
-            try
-            {
-                SuperController sc = SuperController.singleton;
-                if (sc == null)
-                    return;
-                sc.ClearErrors();
-                sc.ClearMessages();
-                SuperController.LogMessage(
-                    "Easy Mate: cleared in-game error and message logs.");
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError("Easy Mate: clear in-game logs: " + e);
             }
         }
 

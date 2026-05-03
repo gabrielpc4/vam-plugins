@@ -63,15 +63,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="src/lib/MorphBuffer.cs" />
-    <Compile Include="src/lib/MorphFilters.cs" />
-    <Compile Include="src/lib/ScannedMorph.cs" />
-    <Compile Include="src/utils/DictUtils.cs" />
-    <Compile Include="src/utils/MorphsPreset.cs" />
-    <Compile Include="src/utils/UIUtils.cs" />
     <Compile Include="src/MorphMAS.cs" />
-
-    <Compile Include="CollarFinder.cs" />
   </ItemGroup>
 
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -1,500 +1,906 @@
+using System;
+using SimpleJSON;
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
-using Utils.MorphsPreset;
 using UnityEngine.UI;
-using Utils.UIUtils;
 
 namespace MorphMAS
 {
     public class MorphMAS : MVRScript
     {
-        private static int[] _shouldersVertices = new int[] { 13522, 187, 186, 11185, 11113, 11139, 211, 11114, 185, 257, 2710, 11115 };
-        private List<ScannedMorph> _scannedMainMorphs;
-        private List<ScannedMorph> _scannedGenitalMorphs;
-        private List<UIDynamic> _currentUI;
-        private List<UIDynamic> _morphPickingUI;
-        private List<UIDynamic> _exportMorphsUI;
-        private JSONStorableBool _splitHeadBodyStorable;
-        private JSONStorableBool _autoFixHeadHeightStorable;
-        private JSONStorableBool _exportHeadMorphStorable;
-        private JSONStorableBool _exportBodyMorphStorable;
-        private JSONStorableBool _exportWholeBodyMorphStorable;
-        private JSONStorableBool _exportGenitalMorphStorable;
-        private JSONStorableBool _exportAsPoseMorphStorable;
-        private JSONStorableString _morphsNameStorable;
-        private JSONStorableString _morphsCategoryStorable;
-        private JSONStorableString _exportLogStorable;
+        private static readonly string[] HeadRegionTokens = new string[]
+        {
+            "head",
+            "face",
+            "mouth",
+            "lips",
+            "eyelash",
+            "eye",
+            "eyebrow",
+            "ear",
+            "brow",
+            "nose",
+            "tooth",
+            "tongue",
+            "cheek",
+            "chin",
+            "jaw",
+            "forehead",
+            "temple",
+            "scalp",
+            "neck",
+            "cranium"
+        };
+
+        private JSONStorableUrl _donorPresetPath;
+        private JSONStorableString _statusLine;
+        private JSONStorableAction _applyAction;
 
         public override void Init()
         {
-            InitStorables();
-            ShowStartUI();
-        }
-
-        private void InitStorables()
-        {
-            _splitHeadBodyStorable = new JSONStorableBool("Splitted head/body morphs", false);
-            _splitHeadBodyStorable.setCallbackFunction += (bool newValue) => UpdateExportUI();
-            _autoFixHeadHeightStorable = new JSONStorableBool("Auto fix head height", false);
-            _exportHeadMorphStorable = new JSONStorableBool("Export head morph", false);
-            _exportBodyMorphStorable = new JSONStorableBool("Export body morph", false);
-            _exportWholeBodyMorphStorable = new JSONStorableBool("Export whole body morph", false);
-            _exportGenitalMorphStorable = new JSONStorableBool("Export genital morph", false);
-            _exportAsPoseMorphStorable = new JSONStorableBool("Export as pose morph", false);
-
-            _morphsNameStorable = new JSONStorableString("Morphs name:", "");
-            _morphsCategoryStorable = new JSONStorableString("Morphs category:", "");
-            _exportLogStorable = new JSONStorableString("Export log", "");
-        }
-
-        private void ResetUI()
-        {
-            UIUtils.RemoveUI(this, _currentUI);
-            UIUtils.RemoveUI(this, _morphPickingUI);
-            UIUtils.RemoveUI(this, _exportMorphsUI);
-            _currentUI = new List<UIDynamic>();
-        }
-
-        public void ShowStartUI()
-        {
-            ResetUI();
-
-            _currentUI.Add(UIUtils.CreateHeader(this, "Merge and split:", false, 30, Color.black, .1f));
-
-            JSONStorableBool disableAutoBehaviorsStorable = new JSONStorableBool("Disable auto behaviours", true);
-            UIDynamicToggle disableAutoBehaviorsToggle = CreateToggle(disableAutoBehaviorsStorable);
-            _currentUI.Add(disableAutoBehaviorsToggle);
-
-            JSONStorableBool disablePoseMorphsStorable = new JSONStorableBool("Disable pose morphs", true);
-            UIDynamicToggle disablePoseMorphsToggle = CreateToggle(disablePoseMorphsStorable);
-            _currentUI.Add(disablePoseMorphsToggle);
-
-            _currentUI.Add(UIUtils.CreateSpacer(this, 20));
-
-            UIDynamicButton nextStepButton = CreateButton("Next step →");
-            _currentUI.Add(nextStepButton);
-
-            nextStepButton.button.onClick.AddListener(() =>
+            try
             {
-                StartCoroutine(MorphPickingStep(disableAutoBehaviorsStorable.val, disablePoseMorphsStorable.val));
-            });
-
-            _currentUI.Add(UIUtils.CreateHeader(this, "Other:", true, 30, Color.black, .1f));
-
-            UIDynamicButton openMorphsFolderButton = CreateButton("Open morphs folder in explorer", true);
-            _currentUI.Add(openMorphsFolderButton);
-            openMorphsFolderButton.button.onClick.AddListener(() => SuperController.singleton.OpenFolderInExplorer("Custom/Atom/Person/Morphs"));
-        }
-
-        private void DisableAutoBehaviours()
-        {
-            DisableAutoBehaviour("AutoExpressions", "enabled");
-            DisableAutoBehaviour("AutoJawMouthMorph", "enabled");
-            DisableAutoBehaviour("BendFix", "enabled");
-            DisableAutoBehaviour("BreastInOut", "enabled");
-            DisableAutoBehaviour("EyelidControl", "blinkEnabled");
-            DisableAutoBehaviour("EyelidControl", "eyelidLookMorphsEnabled");
-            DisableAutoBehaviour("FemaleAnatomy", "enabled");
-            DisableAutoBehaviour("MaleAnatomy", "enabled");
-
-            // Eyelids morph don't get properly disabled :(
-            DAZCharacterSelector characterSelector = containingAtom.GetComponentInChildren<DAZCharacterSelector>();
-            DAZMorphBank bank1 = characterSelector.morphBank1;
-            DefaultMorphByUID(bank1, "Eyelids Bottom Up Left");
-            DefaultMorphByUID(bank1, "Eyelids Bottom Up Right");
-        }
-
-        private void DisableAutoBehaviour(string storableID, string boolParamName)
-        {
-            JSONStorableBool isAutoBehaviourEnabled = containingAtom.GetStorableByID(storableID)?.GetBoolJSONParam(boolParamName);
-            if (isAutoBehaviourEnabled != null && isAutoBehaviourEnabled.val == true)
-                isAutoBehaviourEnabled.val = false;
-        }
-
-        private void DefaultMorphByUID(DAZMorphBank bank, string morphUID)
-        {
-            DAZMorph morph = bank.GetMorphByUid(morphUID);
-            if (morph != null) morph.morphValue = morph.startValue;
-        }
-
-        private IEnumerator MorphPickingStep(bool disableAutoBehaviors, bool disablePoseMorphs)
-        {
-            if (disableAutoBehaviors)
-            {
-                DisableAutoBehaviours();
-                yield return new WaitForFixedUpdate();
-                yield return new WaitForEndOfFrame();
+                BuildUi();
             }
-            ShowMorphPickingUI();
-            ScanActiveMorphs();
-            if (disablePoseMorphs)
+            catch (Exception e)
             {
-                SetPoseMorphsState(false);
+                LogErrorShowHud(string.Concat(
+                    "[MorphMAS] Init failed: ",
+                    e.ToString()));
             }
         }
 
-        private void ShowMorphPickingUI()
+        private void BuildUi()
         {
-            ResetUI();
-
-            UIDynamicButton previousStepButton = CreateButton("← Previous step");
-            _currentUI.Add(previousStepButton);
-            previousStepButton.button.onClick.AddListener(ShowStartUI);
-
-            _currentUI.Add(UIUtils.CreateSpacer(this, 20));
-
-            UIDynamicButton rescanActiveMorphsButton = CreateButton("Relist active morphs");
-            _currentUI.Add(rescanActiveMorphsButton);
-            rescanActiveMorphsButton.button.onClick.AddListener(ScanActiveMorphs);
-
-            UIDynamicButton disablePoseMorphsButton = CreateButton("Disable pose morphs");
-            _currentUI.Add(disablePoseMorphsButton);
-            disablePoseMorphsButton.button.onClick.AddListener(() => SetPoseMorphsState(false));
-
-            UIDynamicButton enablePoseMorphsButton = CreateButton("Enable pose morphs");
-            _currentUI.Add(enablePoseMorphsButton);
-            enablePoseMorphsButton.button.onClick.AddListener(() => SetPoseMorphsState(true));
-
-            _currentUI.Add(UIUtils.CreateSpacer(this, 20));
-
-            UIDynamicButton nextStepButton = CreateButton("Next step →");
-            _currentUI.Add(nextStepButton);
-            nextStepButton.button.onClick.AddListener(() => ExportStep(true));
-        }
-
-        private void ScanActiveMorphs()
-        {
-            DAZCharacterSelector characterSelector = containingAtom.GetComponentInChildren<DAZCharacterSelector>();
-            DAZMorphBank bank1 = characterSelector.morphBank1;
-            DAZMorphBank bank2 = characterSelector.morphBank2;
-            DAZMorphBank bank3 = characterSelector.morphBank3;
-
-            _scannedMainMorphs = ScanActiveBankMorphs(new DAZMorphBank[] { bank1 });
-            _scannedGenitalMorphs = ScanActiveBankMorphs(new DAZMorphBank[] { bank2, bank3 });
-
-            UpdateMorphPickingUI();
-        }
-
-        private void UpdateMorphPickingUI()
-        {
-            UIUtils.RemoveUI(this, _morphPickingUI);
-            _morphPickingUI = new List<UIDynamic>();
-
-            _morphPickingUI.Add(UIUtils.CreateHeader(this, "Main morphs:", true, 30, Color.black, .1f));
-            List<UIDynamic> mainToggles = BuildMorphPickingToggles(_scannedMainMorphs);
-            _morphPickingUI.AddRange(mainToggles);
-
-            _morphPickingUI.Add(UIUtils.CreateSpacer(this, 25, true));
-            _morphPickingUI.Add(UIUtils.CreateHeader(this, "Genital morphs:", true, 30, Color.black, .1f));
-            List<UIDynamic> genitalToggles = BuildMorphPickingToggles(_scannedGenitalMorphs);
-            _morphPickingUI.AddRange(genitalToggles);
-        }
-
-        private List<UIDynamic> BuildMorphPickingToggles(List<ScannedMorph> scannedMorphs)
-        {
-            List<UIDynamic> morphToggles = new List<UIDynamic>();
-            foreach (ScannedMorph scannedMorph in scannedMorphs)
-            {
-                DAZMorph morph = scannedMorph.morph;
-
-                scannedMorph.enabled.setCallbackFunction = (bool isOn) =>
+            _donorPresetPath = new JSONStorableUrl(
+                "donorPresetPath",
+                string.Empty,
+                delegate(string newValue)
                 {
-                    if (isOn)
-                        scannedMorph.morph.morphValue = scannedMorph.value;
-                    else
-                        scannedMorph.morph.morphValue = scannedMorph.morph.startValue;
-                };
-                UIDynamic morphToggle = CreateToggle(scannedMorph.enabled, true);
-                morphToggles.Add(morphToggle);
-            }
-            return morphToggles;
-        }
+                    OnPresetPathChanged(newValue);
+                },
+                "json",
+                "Saves");
+            _donorPresetPath.showDirs = true;
+            RegisterUrl(_donorPresetPath);
 
-        private List<ScannedMorph> ScanActiveBankMorphs(DAZMorphBank[] morphBanks)
-        {
-            List<DAZMorph> activeBankMorphs = GetActiveBankMorphs(morphBanks);
-            List<ScannedMorph> scannedBankMorphs = new List<ScannedMorph>();
-
-            foreach (DAZMorph activeMorph in activeBankMorphs)
+            UIDynamicButton browseButton =
+                CreateButton("Browse donor Person/appearance .json");
+            if (browseButton != null && browseButton.button != null)
             {
-                scannedBankMorphs.Add(new ScannedMorph
-                {
-                    morph = activeMorph,
-                    value = activeMorph.morphValue,
-                    enabled = new JSONStorableBool(activeMorph.displayName, true),
-                });
+                _donorPresetPath.RegisterFileBrowseButton(
+                    browseButton.button);
             }
 
-            return scannedBankMorphs;
-        }
-
-        private List<DAZMorph> GetActiveBankMorphs(DAZMorphBank[] morphBanks)
-        {
-            List<DAZMorph> morphList = new List<DAZMorph>();
-            foreach (DAZMorphBank morphBank in morphBanks)
+            UIDynamicTextField pathField =
+                CreateTextField(_donorPresetPath, false);
+            if (pathField != null)
             {
-                if (morphBank == null) continue;
-                foreach (DAZMorph morph in morphBank.morphs)
-                {
-                    if (morph.active && morph.visible && morph.appliedValue != morph.jsonFloat.defaultVal)
+                pathField.height = 42f;
+            }
+
+            _applyAction = new JSONStorableAction(
+                "applyHeadAndHairFromPreset",
+                ApplyFromCurrentPreset);
+            RegisterAction(_applyAction);
+
+            UIDynamicButton applyButton =
+                CreateButton("Apply selected head + hair");
+            if (applyButton != null && applyButton.button != null)
+            {
+                applyButton.button.onClick.AddListener(
+                    delegate()
                     {
-                        morphList.Add(morph);
+                        ApplyFromCurrentPreset();
+                    });
+            }
+
+            UIDynamicButton openSavesButton =
+                CreateButton("Open Saves folder");
+            if (openSavesButton != null && openSavesButton.button != null)
+            {
+                openSavesButton.button.onClick.AddListener(
+                    delegate()
+                    {
+                        if (SuperController.singleton != null)
+                        {
+                            SuperController.singleton.OpenFolderInExplorer(
+                                "Saves");
+                        }
+                    });
+            }
+
+            _statusLine = new JSONStorableString(
+                "statusLine",
+                InitialStatusText());
+            RegisterString(_statusLine);
+
+            UIDynamicTextField statusField =
+                CreateTextField(_statusLine, false);
+            if (statusField != null)
+            {
+                statusField.height = 120f;
+                if (statusField.UItext != null)
+                {
+                    statusField.UItext.alignment = TextAnchor.UpperLeft;
+                }
+            }
+        }
+
+        private string InitialStatusText()
+        {
+            if (containingAtom == null || containingAtom.type != "Person")
+            {
+                return string.Concat(
+                    "Attach this plugin to the Person that should receive ",
+                    "the donor head + hair.");
+            }
+
+            return string.Concat(
+                "Recipient: ",
+                containingAtom.uid,
+                ". Browse a donor Person/appearance .json under Saves. ",
+                "Choosing a valid preset auto-applies head morphs + hair; ",
+                "the button can re-apply manually.");
+        }
+
+        private static void LogErrorShowHud(string message)
+        {
+            SuperController sc = SuperController.singleton;
+            if (sc != null && !sc.IsMonitorOnly)
+            {
+                sc.ShowMainHUD(true, false);
+            }
+            SuperController.LogError(message);
+            if (sc != null)
+            {
+                sc.OpenErrorLogPanel();
+                if (sc.errorLogPanel != null)
+                {
+                    Transform sub = sc.errorLogPanel.Find("Panel");
+                    if (sub != null)
+                    {
+                        sub.gameObject.SetActive(true);
                     }
                 }
             }
-            return morphList;
         }
 
-        private void SetPoseMorphsState(bool enabled)
+        private static string NormalizePresetPathInput(string rawVal)
         {
-            DisableScannedPoseMorphs(_scannedMainMorphs, enabled);
-            DisableScannedPoseMorphs(_scannedGenitalMorphs, enabled);
-        }
-
-        private void DisableScannedPoseMorphs(List<ScannedMorph> scannedMorphs, bool enabled)
-        {
-            foreach (ScannedMorph scannedMorph in scannedMorphs)
+            if (rawVal == null)
             {
-                if (scannedMorph.morph.isPoseControl)
-                    scannedMorph.enabled.val = enabled;
+                return string.Empty;
+            }
+
+            string trimmed = rawVal.Trim().Replace('\\', '/').Trim();
+            if (trimmed.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            int savesIndex = trimmed.IndexOf(
+                "/Saves/",
+                StringComparison.OrdinalIgnoreCase);
+            if (savesIndex >= 0)
+            {
+                return trimmed.Substring(savesIndex + 1).Trim();
+            }
+
+            if (trimmed.StartsWith("Saves/", StringComparison.OrdinalIgnoreCase))
+            {
+                return trimmed;
+            }
+
+            int customIndex = trimmed.IndexOf(
+                "/Custom/",
+                StringComparison.OrdinalIgnoreCase);
+            if (customIndex >= 0)
+            {
+                return trimmed.Substring(customIndex + 1).Trim();
+            }
+
+            if (trimmed.StartsWith(
+                "Custom/",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return trimmed;
+            }
+
+            return trimmed;
+        }
+
+        private void OnPresetPathChanged(string newValue)
+        {
+            string presetPath = NormalizePresetPathInput(newValue);
+            if (_statusLine == null)
+            {
+                return;
+            }
+
+            if (presetPath.Length == 0)
+            {
+                _statusLine.val =
+                    "Pick a donor Person/appearance .json under Saves.";
+                return;
+            }
+
+            _statusLine.val = string.Concat(
+                "Preset selected: ",
+                presetPath);
+
+            if (presetPath.EndsWith(
+                ".json",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                ApplyFromPresetFile(presetPath);
             }
         }
 
-        private void ExportStep(bool resetStorables = true)
+        private void ApplyFromCurrentPreset()
         {
-            if (resetStorables)
-            {
-                _splitHeadBodyStorable.val = true;
-                _autoFixHeadHeightStorable.val = true;
-                _exportHeadMorphStorable.val = true;
-                _exportBodyMorphStorable.val = true;
-                _exportWholeBodyMorphStorable.val = true;
-                _exportGenitalMorphStorable.val = true;
-                _exportAsPoseMorphStorable.val = false;
-
-                _morphsNameStorable.val = containingAtom.name;
-                _morphsCategoryStorable.val = "Characters";
-            }
-
-            ShowExportUI();
-            UpdateExportUI();
+            string presetPath = NormalizePresetPathInput(
+                _donorPresetPath != null ? _donorPresetPath.val : string.Empty);
+            ApplyFromPresetFile(presetPath);
         }
 
-        private void ShowExportUI()
+        private void ApplyFromPresetFile(string presetPath)
         {
-            ResetUI();
-
-            UIDynamicButton previousStepButton = CreateButton("← Previous step");
-            _currentUI.Add(previousStepButton);
-            previousStepButton.button.onClick.AddListener(() => StartCoroutine(MorphPickingStep(false, false)));
-
-            _currentUI.Add(UIUtils.CreateSpacer(this, 20));
-
-            _currentUI.Add(CreateToggle(_splitHeadBodyStorable));
-
-            _currentUI.Add(UIUtils.CreateHeader(this, "Morphs name:", true, 30, Color.black, .1f));
-            _currentUI.Add(UIUtils.CreateTextInput(this, _morphsNameStorable, true));
-
-            _currentUI.Add(UIUtils.CreateHeader(this, "Morphs category:", true, 30, Color.black, .1f));
-            _currentUI.Add(UIUtils.CreateTextInput(this, _morphsCategoryStorable, true));
-
-        }
-
-        private void UpdateExportUI()
-        {
-            UIUtils.RemoveUI(this, _exportMorphsUI);
-            _exportMorphsUI = new List<UIDynamic>();
-
-            if (_splitHeadBodyStorable.val)
-                _exportMorphsUI.Add(CreateToggle(_autoFixHeadHeightStorable));
-            _exportMorphsUI.Add(UIUtils.CreateSpacer(this, 10));
-
-            if (_splitHeadBodyStorable.val)
+            Atom recipientAtom;
+            string recipientErr;
+            if (!TryGetRecipientAtom(out recipientAtom, out recipientErr))
             {
-                _exportMorphsUI.Add(CreateToggle(_exportHeadMorphStorable));
-                _exportMorphsUI.Add(CreateToggle(_exportBodyMorphStorable));
+                SetStatus(recipientErr);
+                return;
             }
-            else
+
+            if (presetPath == null || presetPath.Length == 0)
             {
-                _exportMorphsUI.Add(CreateToggle(_exportWholeBodyMorphStorable));
+                SetStatus("Pick a donor Person/appearance .json first.");
+                return;
             }
-            _exportMorphsUI.Add(CreateToggle(_exportGenitalMorphStorable));
 
-            // _exportMorphsUI.Add(UIUtils.CreateSpacer(this, 10));
-            // _exportMorphsUI.Add(CreateToggle(_exportAsPoseMorphStorable));
-
-            _exportMorphsUI.Add(UIUtils.CreateSpacer(this, 20));
-
-            UIDynamicButton exportButton = CreateButton("Export morphs");
-            _exportMorphsUI.Add(exportButton);
-            exportButton.button.onClick.AddListener(() =>
+            JSONClass presetGeomJson;
+            JSONArray presetMorphArray;
+            string presetErr;
+            if (!TryReadPresetGeometry(
+                presetPath,
+                out presetGeomJson,
+                out presetMorphArray,
+                out presetErr))
             {
-                ExportMorphs();
-                ShowResultUI();
-            });
-        }
+                SetStatus(presetErr);
+                LogErrorShowHud(string.Concat(
+                    "[MorphMAS] ",
+                    presetErr));
+                return;
+            }
 
-        void ExportMorphs()
-        {
-            List<DAZMorph> exportedMorphs = new List<DAZMorph>();
-            DAZCharacterSelector characterSelector = containingAtom.GetComponentInChildren<DAZCharacterSelector>();
-            DAZMorphBank bank1 = characterSelector.morphBank1;
-            DAZMorphBank bank2 = characterSelector.morphBank2;
-
-            MorphBuffer mainBuffer = CreateScannedMorphBuffer(_scannedMainMorphs);
-            MorphBuffer genitalBuffer = CreateScannedMorphBuffer(_scannedGenitalMorphs);
-
-            if (_splitHeadBodyStorable.val)
+            DAZCharacterSelector recipientGeom = GetGeometry(recipientAtom);
+            GenerateDAZMorphsControlUI morphCtrl =
+                recipientGeom != null ? recipientGeom.morphsControlUI : null;
+            if (recipientGeom == null || morphCtrl == null)
             {
-                MorphBuffer headBuffer;
-                MorphBuffer bodyBuffer;
-                mainBuffer.ApplyFilter(MorphFilters.HeadFilter, out headBuffer, out bodyBuffer);
+                SetStatus("Recipient geometry or morph UI is not ready.");
+                return;
+            }
 
-                if (_autoFixHeadHeightStorable.val)
+            DisableAutoBehaviours(recipientAtom);
+            ResetPoseMorphs(recipientGeom);
+
+            int appliedHead = 0;
+            int missingOnTarget = 0;
+
+            for (int i = 0; i < presetMorphArray.Count; i++)
+            {
+                JSONClass morphJson = presetMorphArray[i].AsObject;
+                if (morphJson == null)
                 {
-                    float meanY = 0;
-                    foreach (int shoulderVertex in _shouldersVertices)
-                    {
-                        if (headBuffer.deltas.ContainsKey(shoulderVertex))
-                            meanY += headBuffer.deltas[shoulderVertex].y;
-                    }
-                    meanY = meanY / _shouldersVertices.Length;
-                    Vector3 headOffset = Vector3.up * meanY;
-
-                    headBuffer = headBuffer.ApplyOffsetOn(Vector3.up * -meanY, MorphFilters.HeadFilter);
-                    bodyBuffer = bodyBuffer.ApplyOffsetOn(Vector3.up * meanY, MorphFilters.HeadFilter);
-                }
-
-                if (_exportHeadMorphStorable.val)
-                    exportedMorphs.Add(headBuffer.ExportMorph(
-                        _morphsNameStorable.val + " - Head",
-                        _morphsCategoryStorable.val,
-                        bank1,
-                        _exportAsPoseMorphStorable.val
-                    ));
-                if (_exportBodyMorphStorable.val)
-                    exportedMorphs.Add(bodyBuffer.ExportMorph(
-                        _morphsNameStorable.val + " - Body",
-                        _morphsCategoryStorable.val,
-                        bank1,
-                        _exportAsPoseMorphStorable.val
-                    ));
-            }
-            else if (_exportWholeBodyMorphStorable.val)
-            {
-                exportedMorphs.Add(mainBuffer.ExportMorph(
-                    _morphsNameStorable.val + " - Complete",
-                    _morphsCategoryStorable.val,
-                    bank1,
-                    _exportAsPoseMorphStorable.val
-                ));
-            }
-
-            if (_exportGenitalMorphStorable.val)
-                exportedMorphs.Add(genitalBuffer.ExportMorph(
-                    _morphsNameStorable.val + " - Genital",
-                    _morphsCategoryStorable.val,
-                    bank2,
-                    _exportAsPoseMorphStorable.val
-                ));
-
-            SaveMorphs(exportedMorphs);
-        }
-
-        private MorphBuffer CreateScannedMorphBuffer(List<ScannedMorph> scannedMorphs)
-        {
-            MorphBuffer buffer = new MorphBuffer();
-
-            foreach (ScannedMorph scannedMorph in scannedMorphs)
-            {
-                if (!scannedMorph.enabled.val) continue;
-
-                DAZMorph morph = scannedMorph.morph;
-
-                foreach (DAZMorphVertex morphVertex in morph.deltas)
-                {
-                    buffer.AddDelta(morphVertex.vertex, morphVertex.delta, morph.morphValue);
-                }
-                foreach (DAZMorphFormula morphFormula in morph.formulas)
-                {
-                    if (
-                        morphFormula.targetType != DAZMorphFormulaTargetType.MCM
-                        && morphFormula.targetType != DAZMorphFormulaTargetType.MCMMult
-                        && morphFormula.targetType != DAZMorphFormulaTargetType.MorphValue
-                    )
-                        buffer.AddFormula(
-                            morphFormula.target,
-                            morphFormula.targetType,
-                            morphFormula.multiplier,
-                            morph.morphValue
-                        );
-                }
-            }
-
-            return buffer;
-        }
-
-        private void SaveMorphs(List<DAZMorph> morphs)
-        {
-            ResetLog();
-            foreach (DAZMorph morph in morphs)
-            {
-                if (morph.numDeltas == 0 && morph.formulas.Length == 0)
-                {
-                    Log($"\"{morph.morphName}\" was empty and has not been exported.");
                     continue;
                 }
 
-                string morphExportFolder = morph.morphBank.autoImportFolder;
-                string metaFileName = morph.morphName + ".vmi";
-                string deltasFileName = morph.morphName + ".vmb";
+                DAZMorph targetMorph =
+                    ResolveMorphFromPresetMorphJson(morphCtrl, morphJson);
+                if (targetMorph == null)
+                {
+                    missingOnTarget++;
+                    continue;
+                }
 
-                // VaM exposes SaveJSON(JSONClass, path) only; no dialog/callback overload.
-                SaveJSON(morph.GetMetaJSON(), morphExportFolder + "/" + metaFileName);
-                morph.SaveDeltasToBinaryFile(morphExportFolder + "/" + deltasFileName);
-                Log($"\"{morph.morphName}\" exported to: {morphExportFolder}");
+                if (targetMorph.disable || targetMorph.isPoseControl)
+                {
+                    continue;
+                }
+
+                if (!RegionMatchesHead(targetMorph))
+                {
+                    continue;
+                }
+
+                targetMorph.RestoreFromJSON(morphJson);
+                appliedHead++;
+            }
+
+            SmoothMorphBanks(recipientGeom);
+
+            int hairSynced = 0;
+            int hairSkipped = 0;
+            bool hairHandled = CopyHairSlotsFromPresetJson(
+                recipientGeom,
+                presetGeomJson,
+                ref hairSynced,
+                ref hairSkipped);
+
+            string hairStatus = hairHandled ?
+                string.Concat(
+                    "Hair synced ",
+                    hairSynced.ToString(),
+                    ", unavailable ",
+                    hairSkipped.ToString(),
+                    ".") :
+                "Preset had no hair section; current hair was left alone.";
+
+            string finalStatus = string.Concat(
+                "Applied ",
+                appliedHead.ToString(),
+                " head sliders from ",
+                presetPath,
+                ". Missing donor morphs on target: ",
+                missingOnTarget.ToString(),
+                ". ",
+                hairStatus);
+
+            SetStatus(finalStatus);
+            if (SuperController.singleton != null)
+            {
+                SuperController.singleton.Message(finalStatus);
             }
         }
 
-        private void ShowResultUI()
+        private void SetStatus(string message)
         {
-            ResetUI();
-
-            UIDynamicButton previousStepButton = CreateButton("← Previous step");
-            _currentUI.Add(previousStepButton);
-            previousStepButton.button.onClick.AddListener(() => ExportStep(false));
-
-            _currentUI.Add(UIUtils.CreateSpacer(this, 20));
-
-            _currentUI.Add(UIUtils.CreateHeader(this, "Export result:", false, 30, Color.black, .1f));
-            UIDynamicTextField logField = CreateTextField(_exportLogStorable);
-            _currentUI.Add(logField);
-
-            logField.height = 500;
-
-            _currentUI.Add(UIUtils.CreateSpacer(this, 20));
-
-            UIDynamicButton nextStepButton = CreateButton("Done");
-            _currentUI.Add(nextStepButton);
-            nextStepButton.button.onClick.AddListener(() => ShowStartUI());
-
-            UIDynamicButton openMorphsFolderButton = CreateButton("Open morphs folder in explorer");
-            _currentUI.Add(openMorphsFolderButton);
-            openMorphsFolderButton.button.onClick.AddListener(() => SuperController.singleton.OpenFolderInExplorer("Custom/Atom/Person/Morphs"));
-
-            _currentUI.Add(UIUtils.CreateHeader(this, "Note: created morphs will not appear in the morphs tab until you hard reset or restart the game.", false, 30, new Color(.3f, 0, 0), 5f));
+            if (_statusLine != null)
+            {
+                _statusLine.val = message;
+            }
         }
 
-        void ResetLog()
+        private bool TryGetRecipientAtom(out Atom recipientAtom, out string err)
         {
-            _exportLogStorable.val = "";
+            recipientAtom = containingAtom;
+            err = string.Empty;
+
+            if (recipientAtom == null || recipientAtom.type != "Person")
+            {
+                err = string.Concat(
+                    "Attach this plugin to the Person that should receive ",
+                    "the donor head + hair.");
+                return false;
+            }
+
+            if (!IsPersonReady(recipientAtom))
+            {
+                err = "Recipient morph bank is not ready yet.";
+                return false;
+            }
+
+            return true;
         }
 
-        void Log(string message)
+        private static bool IsPersonReady(Atom person)
         {
-            if (_exportLogStorable.val != "") message = "\n" + message;
-            _exportLogStorable.val += message;
+            if (person == null || person.type != "Person")
+            {
+                return false;
+            }
+
+            DAZCharacter dc = person.GetComponentInChildren<DAZCharacter>();
+            DAZCharacterSelector geom = GetGeometry(person);
+            return dc != null &&
+                geom != null &&
+                geom.morphsControlUI != null;
+        }
+
+        private static DAZCharacterSelector GetGeometry(Atom person)
+        {
+            if (person == null)
+            {
+                return null;
+            }
+
+            return person.GetStorableByID("geometry") as DAZCharacterSelector;
+        }
+
+        private static void DisableAutoBehaviours(Atom recipientAtom)
+        {
+            if (recipientAtom == null)
+            {
+                return;
+            }
+
+            DisableAutoBehaviour(recipientAtom, "AutoExpressions", "enabled");
+            DisableAutoBehaviour(recipientAtom, "AutoJawMouthMorph", "enabled");
+            DisableAutoBehaviour(recipientAtom, "BendFix", "enabled");
+            DisableAutoBehaviour(recipientAtom, "BreastInOut", "enabled");
+            DisableAutoBehaviour(recipientAtom, "EyelidControl", "blinkEnabled");
+            DisableAutoBehaviour(
+                recipientAtom,
+                "EyelidControl",
+                "eyelidLookMorphsEnabled");
+            DisableAutoBehaviour(recipientAtom, "FemaleAnatomy", "enabled");
+            DisableAutoBehaviour(recipientAtom, "MaleAnatomy", "enabled");
+
+            DAZCharacterSelector geom = GetGeometry(recipientAtom);
+            if (geom != null && geom.morphBank1 != null)
+            {
+                DefaultMorphByUID(geom.morphBank1, "Eyelids Bottom Up Left");
+                DefaultMorphByUID(geom.morphBank1, "Eyelids Bottom Up Right");
+            }
+        }
+
+        private static void DisableAutoBehaviour(
+            Atom recipientAtom,
+            string storableId,
+            string boolParamName)
+        {
+            if (recipientAtom == null)
+            {
+                return;
+            }
+
+            JSONStorable storable =
+                recipientAtom.GetStorableByID(storableId);
+            if (storable == null)
+            {
+                return;
+            }
+
+            JSONStorableBool enabledParam =
+                storable.GetBoolJSONParam(boolParamName);
+            if (enabledParam != null && enabledParam.val)
+            {
+                enabledParam.val = false;
+            }
+        }
+
+        private static void DefaultMorphByUID(DAZMorphBank bank, string morphUid)
+        {
+            if (bank == null || morphUid == null)
+            {
+                return;
+            }
+
+            DAZMorph morph = bank.GetMorphByUid(morphUid);
+            if (morph != null)
+            {
+                morph.morphValue = morph.startValue;
+            }
+        }
+
+        private static void ResetPoseMorphs(DAZCharacterSelector geom)
+        {
+            if (geom == null)
+            {
+                return;
+            }
+
+            ResetPoseMorphsInBank(geom.morphBank1);
+            ResetPoseMorphsInBank(geom.morphBank2);
+            ResetPoseMorphsInBank(geom.morphBank3);
+        }
+
+        private static void ResetPoseMorphsInBank(DAZMorphBank bank)
+        {
+            if (bank == null || bank.morphs == null)
+            {
+                return;
+            }
+
+            foreach (DAZMorph morph in bank.morphs)
+            {
+                if (morph != null && morph.isPoseControl)
+                {
+                    morph.SetDefaultValue();
+                }
+            }
+        }
+
+        private static void SmoothMorphBanks(DAZCharacterSelector geom)
+        {
+            if (geom == null)
+            {
+                return;
+            }
+
+            DAZCharacterRun run = geom.GetComponentInChildren<DAZCharacterRun>();
+            if (run != null)
+            {
+                run.SmoothApplyMorphs();
+                return;
+            }
+
+            if (geom.morphBank1 != null)
+            {
+                geom.morphBank1.ApplyMorphsImmediate();
+            }
+            if (geom.morphBank2 != null)
+            {
+                geom.morphBank2.ApplyMorphsImmediate();
+            }
+            if (geom.morphBank3 != null)
+            {
+                geom.morphBank3.ApplyMorphsImmediate();
+            }
+        }
+
+        private static bool RegionMatchesHead(DAZMorph morph)
+        {
+            if (morph == null)
+            {
+                return false;
+            }
+
+            string region = morph.resolvedRegionName;
+            if (region == null || region.Length == 0)
+            {
+                return false;
+            }
+
+            string lowered = region.ToLowerInvariant();
+            for (int i = 0; i < HeadRegionTokens.Length; i++)
+            {
+                string token = HeadRegionTokens[i];
+                if (lowered.IndexOf(token, StringComparison.Ordinal) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string CanonicalMorphOrHairId(string rawId)
+        {
+            if (rawId == null)
+            {
+                return string.Empty;
+            }
+
+            string trimmed = rawId.Trim();
+            if (trimmed.StartsWith("SELF:", StringComparison.Ordinal))
+            {
+                trimmed = trimmed.Substring("SELF:".Length).TrimStart();
+            }
+
+            return trimmed.Replace('\\', '/');
+        }
+
+        private static DAZMorph ResolveMorphFromPresetMorphJson(
+            GenerateDAZMorphsControlUI morphCtrl,
+            JSONClass morphJson)
+        {
+            if (morphCtrl == null || morphJson == null)
+            {
+                return null;
+            }
+
+            JSONNode uidNode = morphJson["uid"];
+            if (uidNode != null &&
+                uidNode.Value != null &&
+                uidNode.Value.Length > 0)
+            {
+                string rawUid = uidNode.Value.Trim();
+                DAZMorph byUid = morphCtrl.GetMorphByUid(rawUid);
+                if (byUid != null)
+                {
+                    return byUid;
+                }
+
+                string canonicalUid = CanonicalMorphOrHairId(rawUid);
+                DAZMorph byCanonicalUid =
+                    morphCtrl.GetMorphByUid(canonicalUid);
+                if (byCanonicalUid != null)
+                {
+                    return byCanonicalUid;
+                }
+            }
+
+            JSONNode nameNode = morphJson["name"];
+            if (nameNode != null &&
+                nameNode.Value != null &&
+                nameNode.Value.Length > 0)
+            {
+                return morphCtrl.GetMorphByDisplayName(nameNode.Value);
+            }
+
+            return null;
+        }
+
+        private static bool TryReadPresetGeometry(
+            string relativePathNormalized,
+            out JSONClass presetGeomJson,
+            out JSONArray presetMorphArray,
+            out string err)
+        {
+            presetGeomJson = null;
+            presetMorphArray = null;
+            err = string.Empty;
+
+            if (SuperController.singleton == null)
+            {
+                err = "SuperController unavailable.";
+                return false;
+            }
+
+            string jsonText =
+                SuperController.singleton.ReadFileIntoString(
+                    relativePathNormalized);
+            if (jsonText == null || jsonText.Length == 0)
+            {
+                err = string.Concat(
+                    "Empty or unreadable preset: ",
+                    relativePathNormalized);
+                return false;
+            }
+
+            JSONNode rootNode = JSON.Parse(jsonText);
+            JSONClass rootJson = rootNode != null ? rootNode.AsObject : null;
+            if (rootJson == null)
+            {
+                err = "Not valid JSON preset.";
+                return false;
+            }
+
+            presetGeomJson = FindGeometryPreset(rootJson);
+            if (presetGeomJson == null)
+            {
+                err = string.Concat(
+                    "No geometry section found in ",
+                    relativePathNormalized,
+                    ".");
+                return false;
+            }
+
+            JSONNode morphNode = presetGeomJson["morphs"];
+            presetMorphArray = morphNode != null ? morphNode.AsArray : null;
+            if (presetMorphArray == null)
+            {
+                err = "Preset geometry lacks morph array.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static JSONClass FindGeometryPreset(JSONClass rootJson)
+        {
+            if (rootJson == null)
+            {
+                return null;
+            }
+
+            JSONNode idNode = rootJson["id"];
+            if (idNode != null && idNode.Value == "geometry")
+            {
+                return rootJson;
+            }
+
+            JSONNode rootMorphsNode = rootJson["morphs"];
+            if (rootMorphsNode != null && rootMorphsNode.AsArray != null)
+            {
+                return rootJson;
+            }
+
+            JSONClass fromRootStorables = FindGeometryInStorables(
+                rootJson["storables"] != null ? rootJson["storables"].AsArray :
+                null);
+            if (fromRootStorables != null)
+            {
+                return fromRootStorables;
+            }
+
+            JSONArray atoms = rootJson["atoms"] != null ?
+                rootJson["atoms"].AsArray :
+                null;
+            if (atoms == null)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < atoms.Count; i++)
+            {
+                JSONClass atomJson = atoms[i].AsObject;
+                if (atomJson == null)
+                {
+                    continue;
+                }
+
+                string type = atomJson["type"];
+                if (type != "Person")
+                {
+                    continue;
+                }
+
+                JSONClass fromPersonStorables = FindGeometryInStorables(
+                    atomJson["storables"] != null ?
+                        atomJson["storables"].AsArray :
+                        null);
+                if (fromPersonStorables != null)
+                {
+                    return fromPersonStorables;
+                }
+            }
+
+            for (int i = 0; i < atoms.Count; i++)
+            {
+                JSONClass atomJson = atoms[i].AsObject;
+                if (atomJson == null)
+                {
+                    continue;
+                }
+
+                JSONClass fromAnyStorables = FindGeometryInStorables(
+                    atomJson["storables"] != null ?
+                        atomJson["storables"].AsArray :
+                        null);
+                if (fromAnyStorables != null)
+                {
+                    return fromAnyStorables;
+                }
+            }
+
+            return null;
+        }
+
+        private static JSONClass FindGeometryInStorables(JSONArray storables)
+        {
+            if (storables == null)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < storables.Count; i++)
+            {
+                JSONClass storableJson = storables[i].AsObject;
+                if (storableJson == null)
+                {
+                    continue;
+                }
+
+                JSONNode idNode = storableJson["id"];
+                if (idNode != null && idNode.Value == "geometry")
+                {
+                    return storableJson;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool CopyHairSlotsFromPresetJson(
+            DAZCharacterSelector recipientGeom,
+            JSONClass presetGeomJson,
+            ref int synced,
+            ref int skipped)
+        {
+            if (presetGeomJson == null || recipientGeom == null)
+            {
+                return false;
+            }
+
+            JSONNode hairNode = presetGeomJson["hair"];
+            if (hairNode == null)
+            {
+                return false;
+            }
+
+            recipientGeom.RemoveAllHair();
+
+            JSONArray hairArray = hairNode.AsArray;
+            if (hairArray != null)
+            {
+                for (int i = 0; i < hairArray.Count; i++)
+                {
+                    JSONClass itemJson = hairArray[i].AsObject;
+                    if (itemJson == null)
+                    {
+                        continue;
+                    }
+
+                    JSONNode enabledNode = itemJson["enabled"];
+                    if (enabledNode != null && !enabledNode.AsBool)
+                    {
+                        continue;
+                    }
+
+                    if (TryActivateHairFromIds(
+                        recipientGeom,
+                        itemJson["id"] != null ? itemJson["id"].Value : null,
+                        itemJson["internalId"] != null ?
+                            itemJson["internalId"].Value :
+                            null))
+                    {
+                        synced++;
+                    }
+                    else
+                    {
+                        skipped++;
+                    }
+                }
+
+                return true;
+            }
+
+            string singleHairId = hairNode.Value;
+            if (singleHairId != null && singleHairId.Length > 0)
+            {
+                if (TryActivateHairFromIds(recipientGeom, singleHairId, null))
+                {
+                    synced++;
+                }
+                else
+                {
+                    skipped++;
+                }
+                return true;
+            }
+
+            return true;
+        }
+
+        private static bool TryActivateHairFromIds(
+            DAZCharacterSelector recipientGeom,
+            string primaryId,
+            string backupId)
+        {
+            if (recipientGeom == null)
+            {
+                return false;
+            }
+
+            string activeId = ResolveHairActivationId(recipientGeom, primaryId);
+            if (activeId.Length == 0)
+            {
+                activeId = ResolveHairActivationId(recipientGeom, backupId);
+            }
+
+            if (activeId.Length == 0)
+            {
+                return false;
+            }
+
+            recipientGeom.SetActiveHairItem(activeId, true, false);
+            return true;
+        }
+
+        private static string ResolveHairActivationId(
+            DAZCharacterSelector recipientGeom,
+            string rawId)
+        {
+            if (recipientGeom == null || rawId == null)
+            {
+                return string.Empty;
+            }
+
+            string trimmedId = rawId.Trim();
+            if (trimmedId.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            DAZHairGroup byRaw = recipientGeom.GetHairItem(trimmedId);
+            if (byRaw != null)
+            {
+                return trimmedId;
+            }
+
+            string canonicalId = CanonicalMorphOrHairId(trimmedId);
+            DAZHairGroup byCanonical = recipientGeom.GetHairItem(canonicalId);
+            if (byCanonical != null)
+            {
+                return canonicalId;
+            }
+
+            return string.Empty;
         }
     }
 }

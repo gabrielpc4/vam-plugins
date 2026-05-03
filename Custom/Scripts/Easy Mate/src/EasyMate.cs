@@ -238,19 +238,7 @@ namespace geesp0t
                 if (SuperController.singleton == null || mainUIButtons == null)
                     yield break;
 
-                string elLoadDir;
-                string elSaveDir;
-                string elHaystack;
-                int elKeywordCount;
-                string elPathDetail;
-                bool pathRuleMerge = EasyMateEmotionPathKeywords.EvaluatePathRule(out elLoadDir, out elSaveDir, out elHaystack, out elKeywordCount, out elPathDetail);
-
-                SuperController.LogMessage(
-                    "EasyMate emotion path keywords [scene load]: currentLoadDir=\""
-                    + elLoadDir + "\" currentSaveDir=\"" + elSaveDir + "\" compareHaystack=\"" + elHaystack
-                    + "\" keywordCount=" + elKeywordCount + " pathRuleMatch="
-                    + pathRuleMerge + " (" + elPathDetail + ") → apply: "
-                    + (!pathRuleMerge ? "none (path rule)" : "E-MotionLite all Persons") + " | clothing touch fall-off: YES");
+                bool pathRuleMerge = EasyMateEmotionPathKeywords.MatchesCurrentScenePath();
 
                 if (pathRuleMerge)
                     mainUIButtons.MergeEmotionLiteForPathRuleOnAllPersonsOnly();

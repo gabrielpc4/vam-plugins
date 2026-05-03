@@ -55,6 +55,14 @@ namespace geesp0t
 
         private JSONStorableFloat _localEulerRollDeg;
 
+        private JSONStorableBool _builtInTipCorrections;
+
+        private JSONStorableFloat _tipExtraEulerPitchDeg;
+
+        private JSONStorableFloat _tipExtraEulerYawDeg;
+
+        private JSONStorableFloat _tipExtraEulerRollDeg;
+
         private JSONStorableString _extraToyAtomTypes;
 
         private bool _spawnCoroutineRunning;
@@ -167,6 +175,36 @@ namespace geesp0t
                 RegisterFloat(_localEulerPitchDeg);
                 RegisterFloat(_localEulerYawDeg);
                 RegisterFloat(_localEulerRollDeg);
+
+                _builtInTipCorrections = new JSONStorableBool(
+                    "Built-in tip direction per atom type (heuristic)",
+                    true);
+                RegisterBool(_builtInTipCorrections);
+
+                _tipExtraEulerPitchDeg =
+                    new JSONStorableFloat(
+                        "Extra tip euler pitch (deg)",
+                        0f,
+                        -180f,
+                        180f,
+                        false);
+                _tipExtraEulerYawDeg =
+                    new JSONStorableFloat(
+                        "Extra tip euler yaw (deg)",
+                        0f,
+                        -180f,
+                        180f,
+                        false);
+                _tipExtraEulerRollDeg =
+                    new JSONStorableFloat(
+                        "Extra tip euler roll (deg)",
+                        0f,
+                        -180f,
+                        180f,
+                        false);
+                RegisterFloat(_tipExtraEulerPitchDeg);
+                RegisterFloat(_tipExtraEulerYawDeg);
+                RegisterFloat(_tipExtraEulerRollDeg);
 
                 _extraToyAtomTypes = new JSONStorableString(
                     "Legacy fallback: extra atom types (one per line)",
@@ -564,6 +602,62 @@ namespace geesp0t
         }
 
         /// <summary>
+        /// Cheap per-type guesses so length tends away from palm. Meshes differ by
+        /// prefab ; turn Built-in hint off and use Extra euler sliders to tune.
+        /// </summary>
+        private static Quaternion TipHeuristicQuaternionForAtomType(
+            string atomType)
+        {
+            if (atomType == null)
+                return Quaternion.identity;
+
+            switch (atomType)
+            {
+                case "Dildo":
+                    // Often reads as world-up with default -90 grip; try +X spin.
+                    return Quaternion.Euler(90f, 0f, 0f);
+
+                case "ToyAH":
+                case "ToyBP":
+                    return Quaternion.Euler(0f, 180f, 0f);
+
+                case "Paddle":
+                    return Quaternion.identity;
+
+                default:
+                    return Quaternion.identity;
+            }
+        }
+
+        private Quaternion ComposeGripLocalTipRotation(Atom spawned)
+        {
+            Quaternion qOut;
+            qOut = Quaternion.identity;
+
+            bool useHint =
+                _builtInTipCorrections != null &&
+                _builtInTipCorrections.val;
+
+            if (useHint && spawned != null)
+                qOut =
+                    TipHeuristicQuaternionForAtomType(spawned.type);
+
+            Quaternion extras;
+            extras = Quaternion.Euler(
+                (_tipExtraEulerPitchDeg != null)
+                    ? _tipExtraEulerPitchDeg.val
+                    : 0f,
+                (_tipExtraEulerYawDeg != null)
+                    ? _tipExtraEulerYawDeg.val
+                    : 0f,
+                (_tipExtraEulerRollDeg != null)
+                    ? _tipExtraEulerRollDeg.val
+                    : 0f);
+
+            return qOut * extras;
+        }
+
+        /// <summary>
         /// Match scene presets that disable physics (kinematic), grab toggles, or axis
         /// locks — user cannot laser-grab otherwise.
         /// </summary>
@@ -600,7 +694,9 @@ namespace geesp0t
                     _localOffsetForward.val));
 
             Quaternion worldRot =
-                hand.rotation * LocalGripOffsetQuaternion();
+                hand.rotation *
+                    LocalGripOffsetQuaternion() *
+                    ComposeGripLocalTipRotation(spawned);
 
             UnlockMainPhysicsForGrab(fc);
             fc.transform.rotation = worldRot;

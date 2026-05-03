@@ -12,10 +12,9 @@ namespace geesp0t
     /// VR: left-hand Grab / index-trigger only spawns at the right hand so the
     /// right trigger stays normal grab. Clone mode restores toy storables from
     /// catalog JSON (colors, scale, joint/spring presets). Fallback uses AddAtomByType
-    /// plus optional extras. Mandatory first catalog Dildo uses the <b>second</b>
-    /// Dildo row in the catalog file order (bubbled first among dildos) for stiff springs
-    /// and spawn rules. Random diffuse per spawn; ToyBP Alpha Adjust -0.5. Oculus /
-    /// OpenVR triggers unchanged.
+    /// plus optional extras. Mandatory first catalog Dildo still gets stiff segment springs
+    /// in JSON. Each spawn assigns a random diffuse; ToyBP butt plugs additionally set
+    /// materials Alpha Adjust to -0.5. Oculus OVR/OpenVR triggers as usual.
     /// </summary>
     public class DildoOnHands : MVRScript
     {
@@ -433,7 +432,6 @@ namespace geesp0t
             }
         }
 
-        /// <summary>
         /// Catalog JSON is loaded and parsed once per catalog path for a VaM
         /// session (see <see cref="EnsureToyCatalogFresh"/> cache). Spawn does not
         /// re-open the file every trigger. Slim files with only
@@ -456,8 +454,6 @@ namespace geesp0t
 
             _catalogToyTemplates = new List<SceneToyTemplate>();
             _mandatoryDildoCatalogEntry = null;
-            List<SceneToyTemplate> dildoRowsInFileOrder;
-            dildoRowsInFileOrder = new List<SceneToyTemplate>();
             _catalogPathLastLoaded = desiredPath;
 
             if (_sc == null)
@@ -533,43 +529,21 @@ namespace geesp0t
                 _catalogToyTemplates.Add(row);
 
                 if (typeName == "Dildo")
-                    dildoRowsInFileOrder.Add(row);
+                {
+                    if (_mandatoryDildoCatalogEntry == null &&
+                        sceneUid == "Dildo")
+                        _mandatoryDildoCatalogEntry = row;
+                }
             }
 
-            // Second Dildo row in the catalog file gets mandatory first-spawn
-            // rules (stiff springs, etc.); bubble it ahead of earlier dildo rows
-            // so it reads as the first dildo in the toys list.
-            if (dildoRowsInFileOrder.Count >= 2)
-                _mandatoryDildoCatalogEntry = dildoRowsInFileOrder[1];
-            else if (dildoRowsInFileOrder.Count == 1)
-                _mandatoryDildoCatalogEntry = dildoRowsInFileOrder[0];
-
-            if (_mandatoryDildoCatalogEntry != null)
+            if (_mandatoryDildoCatalogEntry == null)
             {
-                int firstDildoIdx;
-                int mandatoryIdx;
-                SceneToyTemplate mv;
-
-                firstDildoIdx = -1;
-                mandatoryIdx = -1;
-
-                int li;
-                for (li = 0; li < _catalogToyTemplates.Count; li++)
+                foreach (SceneToyTemplate t in _catalogToyTemplates)
                 {
-                    if (_catalogToyTemplates[li].AtomTypeName != "Dildo")
+                    if (t.AtomTypeName != "Dildo")
                         continue;
-                    if (firstDildoIdx < 0)
-                        firstDildoIdx = li;
-                    if (_catalogToyTemplates[li] == _mandatoryDildoCatalogEntry)
-                        mandatoryIdx = li;
-                }
-
-                if (firstDildoIdx >= 0 &&
-                    mandatoryIdx > firstDildoIdx)
-                {
-                    mv = _mandatoryDildoCatalogEntry;
-                    _catalogToyTemplates.RemoveAt(mandatoryIdx);
-                    _catalogToyTemplates.Insert(firstDildoIdx, mv);
+                    _mandatoryDildoCatalogEntry = t;
+                    break;
                 }
             }
 

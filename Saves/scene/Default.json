@@ -401,7 +401,7 @@
             {
                "id": "Text",
                "fontSize": "68.28465",
-               "text": "To return to this chooser, press Open Scene from the menu, then scroll down and press MainMenu.json.\n\nIf you see plugin Errors, or the User Preferences menu appears, go to the Security tab and check the enable plugins box (enables important features of Easy Mate) then close the Virt-a-Mate (VAM) menu.\n\nTo open/close the the VAM menu, press B/Y on the Oculus Controllers or the menu button on the Vive.\n\nHold the menu button to drag the menu into position.\n\nThe menu shows important controller buttons like Select and Grab World (move).\n\nChoose a scene to load by pressing any image.\n\nIf you don't know how to use VAM, to load the MainMenu.json scene, or to Possess a player, start by opening the Basics & Getting Started Tutorial.\n\nTo dramatically speed up scene loading times, copy/move VAM to an SSD or USB 3.1 drive."
+               "text": "Para voltar a este seletor, abra o menu do VaM, vá em Scene, escolha Open Scene, role a lista até aparecer MainMenu.json e carregue o arquivo.\n\nSe surgirem erros de plugins ou o menu Preferências do usuário abrir, acesse a guia Security, em permissões de plugin marque sempre permitir plugins (necessários ao Easy Mate); feche Preferências quando terminar.\n\nPara abrir ou fechar o menu Role VaM no Oculus Touch use B/Y; no Vive use o botão Menu.\n\nSegure o botão Menu para arrastar o painel para onde quiser.\n\nNesse menu aparecem atalhos importantes como Select e Grab World (mover o mundo).\n\nToque em qualquer imagem de botão para carregar uma cena.\n\nSe você é novo no VaM, não sabe usar Possess ou carregar MainMenu.json comece pelo tutorial Basics & Getting Started.\n\nInstalar o VaM num SSD ou numa unidade USB 3.1 rápida melhora bem o tempo de carregamento das cenas.\n\n"
             },
             {
                "id": "Canvas",
@@ -467,7 +467,7 @@
             {
                "id": "Text",
                "fontSize": "42.83673",
-               "text": "C&G Studio recommends opening the VAM menu and checking Freeze Motion/Sound before loading a C&G Studio scene. Once the scene loads uncheck Freeze Motion/Sound for perfect sync."
+               "text": "C&G Studio recomenda abrir o menu do VaM e marcar Freeze Motion/Sound antes de carregar uma cena C&G. Depois que a cena carregar desmarque Freeze Motion/Sound para manter áudio e movimento sincronizados.\n\n"
             },
             {
                "id": "Canvas",
@@ -532,7 +532,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "LOOKS MENU\n\nPAGE 4\n\n\n\n\n\n"
+               "text": "Menu de aparências\nPágina 4"
             },
             {
                "id": "Canvas",
@@ -686,7 +686,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "1100_camgirltoys\n\nType: Story\nAuthor: Mofme CamGirlToys"
+               "text": "História\n1100_camgirltoys"
             },
             {
                "id": "Canvas",
@@ -907,7 +907,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Like a Dark Horse\n\nType: Dance\nAuthor: C&G Studio"
+               "text": "Dança\nLike a Dark Horse"
             },
             {
                "id": "Canvas",
@@ -1001,7 +1001,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "MENU PAGE 4\n\n\n"
+               "text": "Mais páginas\nPágina 4"
             },
             {
                "id": "Canvas",
@@ -1095,7 +1095,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Best Laid Plans\n\nType: Story\nAuthor: Driftdawg\n\n\n\n\n\n"
+               "text": "História\nBest Laid Plans"
             },
             {
                "id": "Canvas",
@@ -1189,7 +1189,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\nVAMasutra MENU\n\n\n\n\n\n\nType: Positions Menu\nAuthor: VAMDeluxe\n"
+               "text": "Menu de posições\nMenu VAMasutra"
             },
             {
                "id": "Canvas",
@@ -1283,7 +1283,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Seductive Witches\n\nType: Person\nAuthor: Zombie_Siris\n"
+               "text": "Pessoa\nSeductive Witches"
             },
             {
                "id": "Canvas",
@@ -1437,7 +1437,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Jen\n\nType: Person\nAuthor: REN\n"
+               "text": "Pessoa\nJen"
             },
             {
                "id": "Canvas",
@@ -1531,7 +1531,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Kay\n\nType: Person\nAuthor: REN\n"
+               "text": "Pessoa\nKay"
             },
             {
                "id": "Canvas",
@@ -1625,7 +1625,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Akissi\n\nType: Person\nAuthor: Tiseb29"
+               "text": "Pessoa\nAkissi"
             },
             {
                "id": "Canvas",
@@ -1719,7 +1719,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Shell\n\nType: Person\nAuthor: Thatcrazysob89\n"
+               "text": "Pessoa\nShell"
             },
             {
                "id": "Canvas",
@@ -1813,7 +1813,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Garry\n\nType: Person\nAuthor: Tiseb29"
+               "text": "Pessoa\nGarry"
             },
             {
                "id": "Canvas",
@@ -1907,7 +1907,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "LOOKS MENU\n\nPAGE 1\n\n\n\n\n\n"
+               "text": "Menu de aparências\nPágina 1"
             },
             {
                "id": "Canvas",
@@ -2001,7 +2001,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Jessika's Bedroom\n\nType: Story\nAuthor: sapuzex\n\n\n\n"
+               "text": "História\nJessika's Bedroom"
             },
             {
                "id": "Canvas",
@@ -2095,7 +2095,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Rainy Mood Missionary\n\nType: Missionary Scene\nAuthor: internetpornguide\n"
+               "text": "Missionário\nRainy Mood Missionary"
             },
             {
                "id": "Canvas",
@@ -2189,7 +2189,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "LOOKS MENU\n\nPAGE 2\n\n\n\n\n\n"
+               "text": "Menu de aparências\nPágina 2"
             },
             {
                "id": "Canvas",
@@ -2283,7 +2283,7 @@
             {
                "id": "Text",
                "fontSize": "48.67876",
-               "text": "MADE POSSIBLE BY ALL THE FREE REDDIT POSTERS\nAcidbubbles, AdamAnt5, Alter3go, Almadiel, alphajaehoon, AmineKunai, Angerush, aracon (Discord), bamair1984 (Discord), bangzam, Blazedust, BlenderB_Rodriguez, BraveDave28, ClassSweeb (Weeb), CluelessVamUser, Crafty_Moment, CrealityX, CosmicFTW, Damarmau, Darqmystik, djsoapyknuckles (Discord), dmachisi, DaxVAMLooks, DJ_clem, Doc0ctopuss, Driftdawg, Driver505, dysondyson551, Electric Dreams (Discord), Extraltodeus, EvilAsh, Fenix71230, FlyingTitus, fnarwal1, GabiRX, GalaxyTimeMachine, gog_stream, GNARKILLGUCH, hashasq, haste321, hazmhox, HornyScumbag01, Hornimaru, Hunting-Succcubus, infiniteya, InkedGirls, internetpornguide, IRIN455, IsaacNewtongue, ivansx, Jakuubz, JayJayWon, JB_Vamcreates, jim3030, Juno, karmageddonVAM, KDollMASTA (Discord), kemenate, Khajiirah, Keifomofutu, KinkySexPanda, l3auer, MacGruber_VR, MaFaVaM, MammothVanilla8, Matt_Richards1, MaxRupert, Miki, ModsCreatorx, Mofme69, Molmark, Mr. Orange (Discord), MrMooloo, Nando2Bot, NaughtyVaM, nihilisticdrone, NooN (Deviant), NoStage3, Nuflauer, NutkinChan, OkGooglePickAName, OppsyVAM, oronan, Paranaux, physis123, PixelProprietor, ploppl, PornstarDesigns (InkedGirls), prestigitis, PutzPower, Qipao1, QitianDashengYeye, razor053, random (Discord), RayWing, Reddituser4616, rezzabae (LoversLab), rkenfl (Discord), rockdaniel55, SarahEliha, seamonkey89, selchidhVR, skaldrom Discord, skippy111taz01 (Discord), Skybox3D, slapsterjoe, SomePatriotGuy, soni666, Sorrow446, Stenzelo, Strauzek (Discord), SunTzu (Discord), SupaRioAmateur, SuperVAM-Heroines, Taylhappi, Teddingtons, terror68, TheBooMoon, TheGreatCornholio2, TheOriginalBatatis, TheSniper (Discord), TheWizardOfWoo, Thatcrazysob89, Timbo (Discord), Tiseb29, toddwithfries, TornCreations (Discord), Upyerbutt, VaM_Star, VAMboi (Discord), VaMBooster, VaMChan, Vamfan, VAMUMU, VariousScientists42, VeeRifter, Vikoncy, Virt-a-Create, Virtamouse, VirtualREM, Vonic (Discord), VRAdultFun, VRHell, wolmarc (Discord), WhyIFindThisSexy, WithFlyingColor, Wxroopl, X_Duke, XgrumpyX (SCAMP on Discord), Xranthalos, xstatic38, yelowf, Zendart85, ZinoZelvet, Zizuar, 3xboom. Special thanks to VAMDeluxe for VAMasatura, Dollmaster, Scenes & More."
+               "text": "VIABILIZADO PELA COMUNIDADE QUE POSTA GRATUITAMENTE NO REDDIT\nAcidbubbles, AdamAnt5, Alter3go, Almadiel, alphajaehoon, AmineKunai, Angerush, aracon (Discord), bamair1984 (Discord), bangzam, Blazedust, BlenderB_Rodriguez, BraveDave28, ClassSweeb (Weeb), CluelessVamUser, Crafty_Moment, CrealityX, CosmicFTW, Damarmau, Darqmystik, djsoapyknuckles (Discord), dmachisi, DaxVAMLooks, DJ_clem, Doc0ctopuss, Driftdawg, Driver505, dysondyson551, Electric Dreams (Discord), Extraltodeus, EvilAsh, Fenix71230, FlyingTitus, fnarwal1, GabiRX, GalaxyTimeMachine, gog_stream, GNARKILLGUCH, hashasq, haste321, hazmhox, HornyScumbag01, Hornimaru, Hunting-Succcubus, infiniteya, InkedGirls, internetpornguide, IRIN455, IsaacNewtongue, ivansx, Jakuubz, JayJayWon, JB_Vamcreates, jim3030, Juno, karmageddonVAM, KDollMASTA (Discord), kemenate, Khajiirah, Keifomofutu, KinkySexPanda, l3auer, MacGruber_VR, MaFaVaM, MammothVanilla8, Matt_Richards1, MaxRupert, Miki, ModsCreatorx, Mofme69, Molmark, Mr. Orange (Discord), MrMooloo, Nando2Bot, NaughtyVaM, nihilisticdrone, NooN (Deviant), NoStage3, Nuflauer, NutkinChan, OkGooglePickAName, OppsyVAM, oronan, Paranaux, physis123, PixelProprietor, ploppl, PornstarDesigns (InkedGirls), prestigitis, PutzPower, Qipao1, QitianDashengYeye, razor053, random (Discord), RayWing, Reddituser4616, rezzabae (LoversLab), rkenfl (Discord), rockdaniel55, SarahEliha, seamonkey89, selchidhVR, skaldrom Discord, skippy111taz01 (Discord), Skybox3D, slapsterjoe, SomePatriotGuy, soni666, Sorrow446, Stenzelo, Strauzek (Discord), SunTzu (Discord), SupaRioAmateur, SuperVAM-Heroines, Taylhappi, Teddingtons, terror68, TheBooMoon, TheGreatCornholio2, TheOriginalBatatis, TheSniper (Discord), TheWizardOfWoo, Thatcrazysob89, Timbo (Discord), Tiseb29, toddwithfries, TornCreations (Discord), Upyerbutt, VaM_Star, VAMboi (Discord), VaMBooster, VaMChan, Vamfan, VAMUMU, VariousScientists42, VeeRifter, Vikoncy, Virt-a-Create, Virtamouse, VirtualREM, Vonic (Discord), VRAdultFun, VRHell, wolmarc (Discord), WhyIFindThisSexy, WithFlyingColor, Wxroopl, X_Duke, XgrumpyX (SCAMP on Discord), Xranthalos, xstatic38, yelowf, Zendart85, ZinoZelvet, Zizuar, 3xboom. Special thanks to VAMDeluxe for VAMasatura, Dollmaster, Scenes & More."
             },
             {
                "id": "Canvas",
@@ -2349,7 +2349,7 @@
             {
                "id": "Text",
                "fontSize": "46.43918",
-               "text": "SUPPORT THE CREATORS AND GET MORE CONTENT ON PATREON!\n\nVIRT-A-MATE\nMeshed VR: patreon.com/meshedvr\n\nSCENES\nSapuzex: patreon.com/sapuzex/\nC&G Studio (Gato87): patreon.com/user/posts?u=9712247\nWadeVRX: patreon.com/WadeVRX\n\nMODELS\nAshAuryn: patreon.com/ashauryn\nGenericMale51 / NoOC game characters: patreon.com/user?u=18591191\nInkedGirls: patreon.com/InkedGirls\nJackaroo: patreon.com/Jackaroo\nNiko3DX: patreon.com/niko3dx/\nOeshii: patreon.com/oeshii/\nParanaux: patreon.com/Paranaux/\nRen: patreon.com/RenVR/\nRukk / potentiallyabird: patreon.com/rukk\n\nCLOTHING AND HAIR\n50 Shades: patreon.com/VR_50_shades\nAmineKunai: patreon.com/user?u=23760949\nAnything Fashion VR: patreon.com/AnythingFashionVR\nDillDoe: patreon.com/DillDoe\nenerys85: patreon.com/enerys85\nNoStage3: patreon.com/nostage3\nRoac22: patreon.com/Roac\nVaMChan: patreon.com/user?u=8418929\nVince / Virtacreate: patreon.com/Virtacreate\n\nASSET BUNDLES\nSkybox3D: patreon.com/skybox3D\nVamStar: patreon.com/user?u=28836227\nVamfan: patreon.com/VamXfan\nZendart85: patreon.com/Zendart85"
+               "text": "APOIE OS CRIADORES E VEJA MAIS CONTEÚDO NO PATREON!\n\nVIRT-A-MATE\nMeshed VR: patreon.com/meshedvr\n\nCENAS\nSapuzex: patreon.com/sapuzex/\nC&G Studio (Gato87): patreon.com/user/posts?u=9712247\nWadeVRX: patreon.com/WadeVRX\n\nMODELOS\nAshAuryn: patreon.com/ashauryn\nGenericMale51 / NoOC game characters: patreon.com/user?u=18591191\nInkedGirls: patreon.com/InkedGirls\nJackaroo: patreon.com/Jackaroo\nNiko3DX: patreon.com/niko3dx/\nOeshii: patreon.com/oeshii/\nParanaux: patreon.com/Paranaux/\nRen: patreon.com/RenVR/\nRukk / potentiallyabird: patreon.com/rukk\n\nROUPAS E CABELOS\n50 Shades: patreon.com/VR_50_shades\nAmineKunai: patreon.com/user?u=23760949\nAnything Fashion VR: patreon.com/AnythingFashionVR\nDillDoe: patreon.com/DillDoe\nenerys85: patreon.com/enerys85\nNoStage3: patreon.com/nostage3\nRoac22: patreon.com/Roac\nVaMChan: patreon.com/user?u=8418929\nVince / Virtacreate: patreon.com/Virtacreate\n\nPACOTES DE RECURSOS\nSkybox3D: patreon.com/skybox3D\nVamStar: patreon.com/user?u=28836227\nVamfan: patreon.com/VamXfan\nZendart85: patreon.com/Zendart85"
             },
             {
                "id": "Canvas",
@@ -2415,7 +2415,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "LOOKS MENU\n\nPAGE 3\n\n\n\n\n\n"
+               "text": "Menu de aparências\nPágina 3"
             },
             {
                "id": "Canvas",
@@ -2509,7 +2509,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Hey Mama - Trap Mix\n\nType: Dance &\nPartial Strip\nAuthor: C&G Studio"
+               "text": "Dança e …\nHey Mama - Trap Mix"
             },
             {
                "id": "Canvas",
@@ -2603,7 +2603,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Late Nite Dance\n\nType: Dance Near Me\n& Strip\nAuthor: C&G Studio"
+               "text": "Dança perto de mim\nLate Nite Dance"
             },
             {
                "id": "Canvas",
@@ -2697,7 +2697,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Yolanda X Rose Jerk-Off and BJ (FUTA)\n\nType: Configurable Scene\nHJ & BJ with Internet porn\nAuthor: slapsterjoe\n"
+               "text": "Cena configurável\nYolanda X Rose Jerk-Off and BJ (FUTA)"
             },
             {
                "id": "Canvas",
@@ -2791,7 +2791,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "LOOKS MENU\n\nPAGE 5\n\n\n\n\n\n"
+               "text": "Menu de aparências\nPágina 5"
             },
             {
                "id": "Canvas",
@@ -2885,7 +2885,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Blue\n\nType: Person\nAuthor: MammothVanilla8\n"
+               "text": "Pessoa\nBlue"
             },
             {
                "id": "Canvas",
@@ -2979,7 +2979,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Makeout Session\n\n\n\nType: Kissing and Touching\nAuthor: VAMDeluxe"
+               "text": "Beijos e carícias\nMakeout Session"
             },
             {
                "id": "Canvas",
@@ -3073,7 +3073,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "MENU PAGE 3\n\n\n"
+               "text": "Mais páginas\nPágina 3"
             },
             {
                "id": "Canvas",
@@ -3167,7 +3167,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "LOOKS MENU\n\nPAGE 6\n\n\n\n\n\n"
+               "text": "Cenas\nA Dressing Room"
             },
             {
                "id": "Canvas",
@@ -3261,7 +3261,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "N3D Annie\n\nType: Person\nAuthor: Niko3DX\n"
+               "text": "Pessoa\nN3D Annie"
             },
             {
                "id": "Canvas",
@@ -3355,7 +3355,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Hacker Cracker\n\nType: Story\nAuthor: Taylhappi"
+               "text": "História\nHacker Cracker"
             },
             {
                "id": "Canvas",
@@ -3449,7 +3449,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\nSpanking, Press Next for Reverse Cowgirl Spanking\nAuthor: Doc0ctopuss\nUser Preferences - VR 2 - VR Hands must be set to Male 1 or 2 to spank."
+               "text": "História\nSpanking, Press Next for Reverse Cowgirl Spanking"
             },
             {
                "id": "Canvas",
@@ -3543,7 +3543,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\nCrack of Dawn\n\n\nType: Story\nAuthor: Driftdawg"
+               "text": "História\nCrack of Dawn"
             },
             {
                "id": "Canvas",
@@ -3637,7 +3637,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Not So Rude Awakening\n\nType: Riding Scene\nAuthor: Nuflauer\n"
+               "text": "Cavalgada\nNot So Rude Awakening"
             },
             {
                "id": "Canvas",
@@ -3731,7 +3731,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Perrine and Pablo\n\nType: Story\nAuthor: sapuzex\n\n"
+               "text": "História\nPerrine and Pablo"
             },
             {
                "id": "Canvas",
@@ -3825,7 +3825,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "SIMULATING\nSEX\n\nType: Tutorial\nAuthor: geesp0t"
+               "text": "Tutorial\nSimulação sexual"
             },
             {
                "id": "Canvas",
@@ -3919,7 +3919,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "EASY MIX\n\n& SCENE\nBUILDING\n\nType: Tutorial\nAuthor: geesp0t"
+               "text": "Tutorial\nEasy Mix e construção de cenas"
             },
             {
                "id": "Canvas",
@@ -4013,7 +4013,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "No Matter\n\nType: Dance\nAuthor: C&G Studio"
+               "text": "Dança\nNo Matter"
             },
             {
                "id": "Canvas",
@@ -4107,7 +4107,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Worthy\n\nType: Dance\nAuthor: C&G Studio"
+               "text": "Dança\nWorthy"
             },
             {
                "id": "Canvas",
@@ -4201,7 +4201,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Call Me\n\nType: Dance\nAuthor: C&G Studio"
+               "text": "Dança\nCall Me"
             },
             {
                "id": "Canvas",
@@ -4295,7 +4295,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Yolanda - BBC Mod\n\nType: Configurable Scene\nHJ & BJ with Internet porn\nAuthor: slapsterjoe\nMod: geesp0t\n"
+               "text": "Cena configurável\nYolanda - BBC Mod"
             },
             {
                "id": "Canvas",
@@ -4389,7 +4389,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Touchy Booty Shake\n\nType: Lap Dance\nAuthor: C&G Studio"
+               "text": "Dança no colo\nTouchy Booty Shake"
             },
             {
                "id": "Canvas",
@@ -4543,7 +4543,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Amnesia - CAMRIDE\n\nType: Dance\nAuthor: Amnesia"
+               "text": "Dança\nAmnesia - CAMRIDE"
             },
             {
                "id": "Canvas",
@@ -4637,7 +4637,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "N3D Nat\n\nType: Dance\nAuthor: Niko3DX"
+               "text": "Dança\nN3D Nat"
             },
             {
                "id": "Canvas",
@@ -4791,7 +4791,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Do the work\n\nType: Dance"
+               "text": "Dança\nDo the work"
             },
             {
                "id": "Canvas",
@@ -4885,7 +4885,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Bondage and Pole Dance\n\nType: Story\nAuthor: sapuzex\n"
+               "text": "História\nBondage and Pole Dance"
             },
             {
                "id": "Canvas",
@@ -4979,7 +4979,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "Math Lesson\n\nType: Story\nAuthor: sapuzex\n\n\n\n"
+               "text": "História\nMath Lesson"
             },
             {
                "id": "Canvas",
@@ -5133,7 +5133,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "BASICS &\nGETTING\nSTARTED\n\nType: Tutorial\nAuthor: geesp0t\n\nPress here to learn buttons and set up Virt-a-Mate."
+               "text": "Tutorial\nBásicos e primeiros passos"
             },
             {
                "id": "Canvas",
@@ -5227,7 +5227,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "PLAYING\nWITH\nPEOPLE\n\n&\nNEW EASY\nBUTTONS\n\nType: Tutorial\nAuthor: geesp0t"
+               "text": "Tutorial\nJogando com pessoas e novos botões fáceis"
             },
             {
                "id": "Canvas",
@@ -5321,7 +5321,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "MENU PAGE 2\n\n\n"
+               "text": "Mais páginas\nPágina 2"
             },
             {
                "id": "Canvas",

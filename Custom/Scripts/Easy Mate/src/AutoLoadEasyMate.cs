@@ -18,6 +18,7 @@ namespace geesp0t
         string[] sessionPlugins = new string[] {
             "Custom/Scripts/Easy Mate/VaMLogClipboardHud.cslist",
             "Custom/Scripts/Easy Mate/EasyMate.cslist",
+            "Custom/Scripts/DildoOnHands/DildoOnHands.cslist",
             "Custom/Scripts/AutoMate/SESSION_PLUGINS/Auto_Load_Person_Plugins.cslist",
         };
 

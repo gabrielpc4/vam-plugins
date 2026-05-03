@@ -44,13 +44,11 @@ namespace geesp0t
 
         private Coroutine _mergeSpankingsAfterGripCo;
 
-        private Coroutine _postSceneLoadFreezeCo;
-
         private bool _prevSuperLoading;
 
-        private bool _sceneLoadFreezeForcedHoldActive;
+        private bool _sceneLoadFreezeCheckboxSnapshot;
 
-        private bool _sceneLoadFreezeCheckboxToRestore;
+        private bool _sceneLoadFreezeAppliedForCurrentLoad;
 
         private bool _sceneLoadFreezeWatchPrimed;
 
@@ -116,15 +114,11 @@ namespace geesp0t
         public JSONStorableFloat possessAutoUnpossessFeetMaxHorizontalM;
 
         /// <summary>
-        /// After each scene load finishes, forces VaM Animation “Freeze Animations /
-        /// Sound” (same as <see cref="SuperController.SetFreezeAnimation"/>) for
-        /// <see cref="sceneLoadFreezeHoldSeconds"/>, then restores the checkbox state
-        /// from just before hold.
+        /// When true (default), snapshots the Animation “Freeze Animations / Sound”
+        /// checkbox when a load starts, turns freeze on for the load, then restores
+        /// the snapshot as soon as loading finishes.
         /// </summary>
         public JSONStorableBool autoFreezeAnimAndSoundBrieflyAfterSceneLoad;
-
-        /// <summary>Realtime seconds to keep freeze on after SuperController finishes loading.</summary>
-        public JSONStorableFloat sceneLoadFreezeHoldSeconds;
 
         public override void Init()
         {
@@ -165,17 +159,10 @@ namespace geesp0t
             RegisterFloat(possessAutoUnpossessFeetMaxHorizontalM);
 
             autoFreezeAnimAndSoundBrieflyAfterSceneLoad =
-                new JSONStorableBool("Hold freeze animations/audio after scene load (2 s)", true);
+                new JSONStorableBool(
+                    "Freeze animations/audio during scene loads",
+                    true);
             RegisterBool(autoFreezeAnimAndSoundBrieflyAfterSceneLoad);
-
-            sceneLoadFreezeHoldSeconds = new JSONStorableFloat(
-                "Post-load freeze hold (realtime seconds)",
-                2f,
-                0f,
-                60f,
-                true,
-                true);
-            RegisterFloat(sceneLoadFreezeHoldSeconds);
 
             mergeEmotionWhenLongMocapEndsNoLoop = new JSONStorableBool("Merge E-Motion Final on females when long mocap ends (no loop)", true);
             RegisterBool(mergeEmotionWhenLongMocapEndsNoLoop);
@@ -515,9 +502,7 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// When <see cref="SuperController.isLoading"/> clears, animations/sound unpause unless
-        /// <see cref="SuperController.SetFreezeAnimation"/> stayed on; forcing true briefly masks
-        /// audio/mocap pop while storables hydrate.
+        /// Syncs <see cref="SuperController.SetFreezeAnimation"/> with load start/end.
         /// </summary>
         private void TickPostSceneLoadFreezeAnimAndSound(SuperController sc)
         {
@@ -532,82 +517,31 @@ namespace geesp0t
                 return;
             }
 
-            if (!nowLoading && _prevSuperLoading)
-                BeginPostSceneLoadFreezeHold(sc);
-            else if (nowLoading && !_prevSuperLoading)
-                CancelOrFinishPostSceneLoadFreezeHold();
+            bool useSync = autoFreezeAnimAndSoundBrieflyAfterSceneLoad != null &&
+                autoFreezeAnimAndSoundBrieflyAfterSceneLoad.val;
+
+            if (nowLoading && !_prevSuperLoading)
+            {
+                if (useSync)
+                {
+                    _sceneLoadFreezeCheckboxSnapshot =
+                        SnapshotUserFreezeAnimationCheckbox(sc);
+                    _sceneLoadFreezeAppliedForCurrentLoad = true;
+                    sc.SetFreezeAnimation(true);
+                }
+            }
+            else if (!nowLoading && _prevSuperLoading)
+            {
+                if (_sceneLoadFreezeAppliedForCurrentLoad)
+                {
+                    SuperController sc2 = SuperController.singleton;
+                    if (sc2 != null)
+                        sc2.SetFreezeAnimation(_sceneLoadFreezeCheckboxSnapshot);
+                    _sceneLoadFreezeAppliedForCurrentLoad = false;
+                }
+            }
 
             _prevSuperLoading = nowLoading;
-        }
-
-        private void CancelOrFinishPostSceneLoadFreezeHold()
-        {
-            if (_postSceneLoadFreezeCo == null)
-                return;
-
-            StopCoroutine(_postSceneLoadFreezeCo);
-            _postSceneLoadFreezeCo = null;
-
-            SuperController sc = SuperController.singleton;
-            if (_sceneLoadFreezeForcedHoldActive && sc != null)
-                sc.SetFreezeAnimation(_sceneLoadFreezeCheckboxToRestore);
-            _sceneLoadFreezeForcedHoldActive = false;
-        }
-
-        private void BeginPostSceneLoadFreezeHold(SuperController sc)
-        {
-            if (autoFreezeAnimAndSoundBrieflyAfterSceneLoad == null ||
-                !autoFreezeAnimAndSoundBrieflyAfterSceneLoad.val)
-            {
-                CancelOrFinishPostSceneLoadFreezeHold();
-                return;
-            }
-
-            CancelOrFinishPostSceneLoadFreezeHold();
-
-            _sceneLoadFreezeCheckboxToRestore = SnapshotUserFreezeAnimationCheckbox(sc);
-
-            float holdSec =
-                sceneLoadFreezeHoldSeconds != null ? sceneLoadFreezeHoldSeconds.val : 2f;
-
-            _postSceneLoadFreezeCo = StartCoroutine(
-                CoHoldFreezeThenRestoreAnimationSound(sc, holdSec));
-        }
-
-        private IEnumerator CoHoldFreezeThenRestoreAnimationSound(
-            SuperController sc,
-            float holdRealtimeSeconds)
-        {
-            bool resumeCheckbox = _sceneLoadFreezeCheckboxToRestore;
-
-            _sceneLoadFreezeForcedHoldActive = true;
-
-            if (sc == null)
-            {
-                _sceneLoadFreezeForcedHoldActive = false;
-                _postSceneLoadFreezeCo = null;
-                yield break;
-            }
-
-            if (holdRealtimeSeconds <= 0f)
-            {
-                sc.SetFreezeAnimation(resumeCheckbox);
-                _sceneLoadFreezeForcedHoldActive = false;
-                _postSceneLoadFreezeCo = null;
-                yield break;
-            }
-
-            sc.SetFreezeAnimation(true);
-            yield return new WaitForSecondsRealtime(holdRealtimeSeconds);
-
-            resumeCheckbox = _sceneLoadFreezeCheckboxToRestore;
-
-            SuperController scLate = SuperController.singleton;
-            if (scLate != null)
-                scLate.SetFreezeAnimation(resumeCheckbox);
-
-            _sceneLoadFreezeForcedHoldActive = false;
-            _postSceneLoadFreezeCo = null;
         }
 
         private void LogError(string error)
@@ -824,6 +758,14 @@ namespace geesp0t
 
         void OnDestroy()
         {
+            if (_sceneLoadFreezeAppliedForCurrentLoad &&
+                SuperController.singleton != null)
+            {
+                SuperController.singleton.SetFreezeAnimation(
+                    _sceneLoadFreezeCheckboxSnapshot);
+                _sceneLoadFreezeAppliedForCurrentLoad = false;
+            }
+
             if (SuperController.singleton != null)
             {
                 SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
@@ -847,8 +789,6 @@ namespace geesp0t
                 StopCoroutine(_mergeSpankingsAfterGripCo);
                 _mergeSpankingsAfterGripCo = null;
             }
-
-            CancelOrFinishPostSceneLoadFreezeHold();
 
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
             EasyMateMonitorModeLaserRestore.OnPluginDestroy();

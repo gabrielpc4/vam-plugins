@@ -40,39 +40,58 @@ namespace geesp0t
                 pluginLabelJSON.val = PluginName;
                 _sc = SuperController.singleton;
 
-                _listenEnabled = new JSONStorableBool("Listen for VR trigger",
-                    true,
-                    (_) => { });
+                _listenEnabled = new JSONStorableBool(
+                    "Listen for VR trigger",
+                    true);
+
                 RegisterBool(_listenEnabled);
 
                 _localOffsetForward =
-                    new JSONStorableFloat("Hand local offset forward (m)", 0.05f,
-                        (_) => { }, -0.2f, 0.2f, conforming: false,
-                        discreteValues: false);
+                    new JSONStorableFloat(
+                        "Hand local offset forward (m)",
+                        0.05f,
+                        -0.2f,
+                        0.2f,
+                        false);
                 _localOffsetRight =
-                    new JSONStorableFloat("Hand local offset right (m)", 0f,
-                        (_) => { }, -0.2f, 0.2f, conforming: false,
-                        discreteValues: false);
+                    new JSONStorableFloat(
+                        "Hand local offset right (m)",
+                        0f,
+                        -0.2f,
+                        0.2f,
+                        false);
                 _localOffsetUp =
-                    new JSONStorableFloat("Hand local offset up (m)", -0.02f,
-                        (_) => { }, -0.2f, 0.2f, conforming: false,
-                        discreteValues: false);
+                    new JSONStorableFloat(
+                        "Hand local offset up (m)",
+                        -0.02f,
+                        -0.2f,
+                        0.2f,
+                        false);
                 RegisterFloat(_localOffsetForward);
                 RegisterFloat(_localOffsetRight);
                 RegisterFloat(_localOffsetUp);
 
                 _localEulerPitchDeg =
-                    new JSONStorableFloat("Hand local euler pitch (deg)", -90f,
-                        (_) => { }, -180f, 180f, conforming: false,
-                        discreteValues: false);
+                    new JSONStorableFloat(
+                        "Hand local euler pitch (deg)",
+                        -90f,
+                        -180f,
+                        180f,
+                        false);
                 _localEulerYawDeg =
-                    new JSONStorableFloat("Hand local euler yaw (deg)", 0f,
-                        (_) => { }, -180f, 180f, conforming: false,
-                        discreteValues: false);
+                    new JSONStorableFloat(
+                        "Hand local euler yaw (deg)",
+                        0f,
+                        -180f,
+                        180f,
+                        false);
                 _localEulerRollDeg =
-                    new JSONStorableFloat("Hand local euler roll (deg)", 0f,
-                        (_) => { }, -180f, 180f, conforming: false,
-                        discreteValues: false);
+                    new JSONStorableFloat(
+                        "Hand local euler roll (deg)",
+                        0f,
+                        -180f,
+                        180f,
+                        false);
                 RegisterFloat(_localEulerPitchDeg);
                 RegisterFloat(_localEulerYawDeg);
                 RegisterFloat(_localEulerRollDeg);

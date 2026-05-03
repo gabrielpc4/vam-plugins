@@ -42,16 +42,6 @@ namespace geesp0t
 
         private Coroutine _mergeSpankingsAfterGripCo;
 
-        private Coroutine _postSceneLoadUnfreezeCo;
-
-        private bool _prevSuperLoading;
-
-        private bool _sceneLoadFreezeCheckboxSnapshot;
-
-        private bool _sceneLoadFreezeAppliedForCurrentLoad;
-
-        private bool _sceneLoadFreezeWatchPrimed;
-
         public JSONStorableAction hideUI;
         public JSONStorableAction showUI;
 
@@ -110,20 +100,6 @@ namespace geesp0t
         public JSONStorableFloat possessAutoUnpossessFeetMaxHorizontalM;
 
         /// <summary>
-        /// When true (default), snapshots the Animation “Freeze Animations / Sound”
-        /// checkbox when a load starts, turns freeze on for the load, then restores
-        /// the snapshot after <see cref="sceneLoadUnfreezeDelaySeconds"/> realtime
-        /// once loading finishes.
-        /// </summary>
-        public JSONStorableBool autoFreezeAnimAndSoundBrieflyAfterSceneLoad;
-
-        /// <summary>
-        /// Realtime delay after loading ends before restoring the Animation freeze
-        /// checkbox.
-        /// </summary>
-        public JSONStorableFloat sceneLoadUnfreezeDelaySeconds;
-
-        /// <summary>
         /// While <see cref="SuperController.isLoading"/> is true, disables
         /// renderers on CustomUnityAsset atoms that use DillDoe cum /
         /// <c>Fluid.assetbundle</c>, then restores prior enabled state after
@@ -168,21 +144,6 @@ namespace geesp0t
                 0.35f,
                 5f);
             RegisterFloat(possessAutoUnpossessFeetMaxHorizontalM);
-
-            autoFreezeAnimAndSoundBrieflyAfterSceneLoad =
-                new JSONStorableBool(
-                    "Freeze animations/audio during scene loads",
-                    true);
-            RegisterBool(autoFreezeAnimAndSoundBrieflyAfterSceneLoad);
-
-            sceneLoadUnfreezeDelaySeconds = new JSONStorableFloat(
-                "Seconds after load before unfreeze (realtime)",
-                3f,
-                0f,
-                60f,
-                true,
-                true);
-            RegisterFloat(sceneLoadUnfreezeDelaySeconds);
 
             hideFluidCumMeshDuringSceneLoad = new JSONStorableBool(
                 "Hide DillDoe cum mesh during scene load",
@@ -426,115 +387,6 @@ namespace geesp0t
             }
         }
 
-        private static bool SnapshotUserFreezeAnimationCheckbox(SuperController sc)
-        {
-            if (sc == null)
-                return false;
-            if (sc.freezeAnimationToggle != null)
-                return sc.freezeAnimationToggle.isOn;
-            if (sc.freezeAnimationToggleAlt != null)
-                return sc.freezeAnimationToggleAlt.isOn;
-            return false;
-        }
-
-        /// <summary>
-        /// Stops delayed unfreeze. If restoring, reapplies checkbox snapshot so a
-        /// new load’s Snapshot reflects user intent rather than leftover forced freeze.
-        /// </summary>
-        private void CancelPendingPostSceneLoadUnfreeze(bool restoreSnapshotIfApplicable)
-        {
-            if (_postSceneLoadUnfreezeCo != null)
-            {
-                StopCoroutine(_postSceneLoadUnfreezeCo);
-                _postSceneLoadUnfreezeCo = null;
-            }
-
-            if (restoreSnapshotIfApplicable &&
-                _sceneLoadFreezeAppliedForCurrentLoad &&
-                SuperController.singleton != null)
-            {
-                SuperController.singleton.SetFreezeAnimation(
-                    _sceneLoadFreezeCheckboxSnapshot);
-            }
-
-            _sceneLoadFreezeAppliedForCurrentLoad = false;
-        }
-
-        private IEnumerator CoUnfreezeAnimationAfterDelay(float delayRealtimeSeconds)
-        {
-            if (delayRealtimeSeconds > 0f)
-                yield return new WaitForSecondsRealtime(delayRealtimeSeconds);
-
-            SuperController sc2 = SuperController.singleton;
-            if (sc2 != null)
-                sc2.SetFreezeAnimation(_sceneLoadFreezeCheckboxSnapshot);
-            _sceneLoadFreezeAppliedForCurrentLoad = false;
-            _postSceneLoadUnfreezeCo = null;
-        }
-
-        /// <summary>
-        /// Syncs <see cref="SuperController.SetFreezeAnimation"/> with load start/end.
-        /// </summary>
-        private void TickPostSceneLoadFreezeAnimAndSound(SuperController sc)
-        {
-            if (sc == null)
-                return;
-            bool nowLoading = sc.isLoading;
-
-            if (!_sceneLoadFreezeWatchPrimed)
-            {
-                _prevSuperLoading = nowLoading;
-                _sceneLoadFreezeWatchPrimed = true;
-                return;
-            }
-
-            bool useSync = autoFreezeAnimAndSoundBrieflyAfterSceneLoad != null &&
-                autoFreezeAnimAndSoundBrieflyAfterSceneLoad.val;
-
-            if (nowLoading && !_prevSuperLoading)
-            {
-                CancelPendingPostSceneLoadUnfreeze(true);
-                if (useSync)
-                {
-                    _sceneLoadFreezeCheckboxSnapshot =
-                        SnapshotUserFreezeAnimationCheckbox(sc);
-                    _sceneLoadFreezeAppliedForCurrentLoad = true;
-                    sc.SetFreezeAnimation(true);
-                }
-            }
-            else if (!nowLoading && _prevSuperLoading)
-            {
-                if (_sceneLoadFreezeAppliedForCurrentLoad)
-                {
-                    float delaySec =
-                        sceneLoadUnfreezeDelaySeconds != null
-                            ? sceneLoadUnfreezeDelaySeconds.val
-                            : 3f;
-
-                    if (_postSceneLoadUnfreezeCo != null)
-                    {
-                        StopCoroutine(_postSceneLoadUnfreezeCo);
-                        _postSceneLoadUnfreezeCo = null;
-                    }
-
-                    if (delaySec <= 0f)
-                    {
-                        if (SuperController.singleton != null)
-                            SuperController.singleton.SetFreezeAnimation(
-                                _sceneLoadFreezeCheckboxSnapshot);
-                        _sceneLoadFreezeAppliedForCurrentLoad = false;
-                    }
-                    else
-                    {
-                        _postSceneLoadUnfreezeCo = StartCoroutine(
-                            CoUnfreezeAnimationAfterDelay(delaySec));
-                    }
-                }
-            }
-
-            _prevSuperLoading = nowLoading;
-        }
-
         private void LogError(string error)
         {
             SuperController.LogError(error);
@@ -649,9 +501,6 @@ namespace geesp0t
         void Update()
         {
             SuperController scFsm = SuperController.singleton;
-            if (scFsm != null)
-                TickPostSceneLoadFreezeAnimAndSound(scFsm);
-
             EasyMateFluidCumHideDuringSceneLoad.Tick(
                 hideFluidCumMeshDuringSceneLoad != null &&
                     hideFluidCumMeshDuringSceneLoad.val,
@@ -755,8 +604,6 @@ namespace geesp0t
         void OnDestroy()
         {
             EasyMateFluidCumHideDuringSceneLoad.OnPluginDestroy();
-
-            CancelPendingPostSceneLoadUnfreeze(true);
 
             if (SuperController.singleton != null)
             {

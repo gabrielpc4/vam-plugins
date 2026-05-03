@@ -7,17 +7,21 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// <b>K</b> hotkey: logs navigation / monitor / height / WindowCamera / <c>[CameraRig]</c> values,
-    /// writes a request JSON, and runs <c>tools/patch_scene_initial_camera.py</c> to update the loaded scene’s main
-    /// <c>.json</c> (see <c>Reference/VaM-Camera-Initial-Scene-Pose.md</c>). Scene folder comes from
-    /// <see cref="SuperController.currentLoadDir"/>.
+    /// <b>K</b> hotkey: logs navigation / monitor / height / WindowCamera /
+    /// <c>[CameraRig]</c> values, writes a request JSON, and runs
+    /// <c>tools/patch_scene_initial_camera.py</c> to update the loaded scene’s
+    /// main <c>.json</c> (see
+    /// <c>Reference/VaM-Camera-Initial-Scene-Pose.md</c>).
+    /// Scene folder comes from <see cref="SuperController.currentLoadDir"/>.
     /// </summary>
     public static class EasyMateKSceneCameraPatch
     {
         public const string PatchScriptRelative = "Custom/Scripts/Easy Mate/tools/patch_scene_initial_camera.py";
         public const string RequestJsonRelative = "Custom/Scripts/Easy Mate/tools/last_scene_camera_patch_request.json";
 
-        /// <summary>Append-only log next to the Python script (relative to VaM install).</summary>
+        /// <summary>
+        /// Append-only log next to the Python script (relative to VaM install).
+        /// </summary>
         public const string PatchToolLogRelative = "Custom/Scripts/Easy Mate/tools/last_scene_camera_patch_log.txt";
 
         public static void TryRunFromHotkey()

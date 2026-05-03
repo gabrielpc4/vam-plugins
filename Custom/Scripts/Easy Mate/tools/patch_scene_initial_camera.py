@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 """
 Patch VaM scene JSON (initial camera / rig / monitor peel) from a request file
-written by EasyMate (EasyMateKSceneCameraPatch). See Reference/VaM-Camera-Initial-Scene-Pose.md.
+written by EasyMate (EasyMateKSceneCameraPatch). See
+Reference/VaM-Camera-Initial-Scene-Pose.md.
 
 Usage:
   python patch_scene_initial_camera.py <scene_folder_abs> <request_json_abs>
 
-Creates <scene>.json.backup once (if missing), then patches the main scene JSON in
-scene_folder using string-preserving replacements (suited to very large files).
+Creates <scene>.json.backup once (if missing), then patches the main scene JSON
+in scene_folder using string-preserving replacements (suited to very large
+files).
 """
 from __future__ import print_function
 

@@ -12,7 +12,21 @@ using SimpleJSON;
 
 namespace geesp0t
 {
-    // World-space HUD: Ctrl+Shift+S = toggle Spankings off / merge onto Persons missing it; Possess+Align+Select (F/M/P) merges Spankings onto other Persons missing it when at least one possessed hand on the target; F = freeze animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; K = write camera/rig patch request + run Python on current scene JSON (currentLoadDir); E-Motion HUD column (Lite / Original / Final / remove all) swaps packs via TryReplaceEmotionFamilyWithExactPath; I = hide hands + closest Person head snap; P = Possess+Align+Select closest Person by head; O = unpossess all; C = cycle Female then Male Persons (uid), Edit + Selected Options + root control.
+    // World-space HUD: Ctrl+Shift+S = toggle Spankings off / merge onto Persons
+    // missing it; Possess+Align+Select (F/M/P) merges Spankings onto other
+    // Persons
+    // missing it when at least one possessed hand on the target; F = freeze
+    // animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR,
+    // else plain Y; K = write camera/rig patch request + run Python on current
+    // scene JSON
+    // (currentLoadDir); E-Motion HUD column (Lite / Original / Final / remove
+    // all)
+    // swaps packs via TryReplaceEmotionFamilyWithExactPath; I = hide hands +
+    // closest Person head snap; P = Possess+Align+Select closest Person by
+    // head;
+    // O = unpossess all; C = cycle Female then Male Persons (uid), Edit +
+    // Selected
+    // Options + root control.
     public class MainUIButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
@@ -173,14 +187,39 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Call from session plugin <c>Update</c>. <b>Ctrl+Shift+S</b> toggles Spankings (same as HUD <b>+/- Spankings</b>): removes when everyone has it; otherwise merges onto Persons that do not.
-        /// <b>Y</b> logs look camera / HMD-related poses (debounced ~0.35s). With Oculus or OpenVR active, hold <b>Shift+Y</b> so the controller Y binding does not spam logs; <c>XRSettings.enabled</c> alone is not used for that gate (it often stays true with drivers while using the desktop keyboard).
-        /// E-Motion packs are merged only via HUD buttons (<b>E-Motion Lite</b>, <b>Original</b>, <b>Final</b>, <b>Remove all</b>), each replacing other family entries first.
-        /// <b>O</b> stops auto-possess and <see cref="SuperController.ClearPossess"/>. <b>I</b> hides VR hand models then snaps the rig to the <b>closest Person head</b> to the look camera (same rules as <b>Snap F</b> for female, <b>Snap M</b> for male).
-        /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD buttons on the <b>closest Person by head</b> to the look/center camera (not alphabetically first F/M).
-        /// <b>C</b> (without Shift, Ctrl, or Alt) cycles visible Person atoms in order: all <b>female</b> then all <b>male</b> (by atom uid), switches to <b>Edit</b>, shows the main HUD, opens <b>Selected Options</b>, and selects each atom’s root <c>control</c> (or the first free controller if there is no <c>control</c>).
-        /// <b>F</b> toggles VaM <b>Freeze animation</b> (same as the main HUD toggle).
-        /// <b>K</b> logs navigation rig / monitor peel / <c>WindowCamera</c> / <c>playerHeightAdjust</c> and runs <see cref="EasyMateKSceneCameraPatch"/> (Python patch of the main scene JSON under <see cref="SuperController.currentLoadDir"/>). Blocked when Ctrl/Alt is held (same gate as O/I/P).
+        /// Call from session plugin <c>Update</c>. <b>Ctrl+Shift+S</b>
+        /// toggles Spankings (same as HUD <b>+/- Spankings</b>): removes when
+        /// everyone has it; otherwise merges onto Persons that do not.
+        /// <b>Y</b> logs look camera / HMD-related poses (debounced ~0.35s).
+        /// With Oculus or OpenVR active, hold <b>Shift+Y</b> so the controller
+        /// Y binding does not spam logs; <c>XRSettings.enabled</c> alone is not
+        /// used for that gate (it often stays true with drivers while using the
+        /// desktop keyboard).
+        /// E-Motion packs are merged only via HUD buttons
+        /// (<b>E-Motion Lite</b>,
+        /// <b>Original</b>, <b>Final</b>, <b>Remove all</b>), each replacing
+        /// other family entries first.
+        /// <b>O</b> stops auto-possess and
+        /// <see cref="SuperController.ClearPossess"/>.
+        /// <b>I</b> hides VR hand models then snaps the rig to the <b>closest
+        /// Person head</b> to the look camera (same rules as <b>Snap F</b> for
+        /// female, <b>Snap M</b> for male).
+        /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD
+        /// buttons on the <b>closest Person by head</b> to the look/center
+        /// camera (not alphabetically first F/M).
+        /// <b>C</b> (without Shift, Ctrl, or Alt) cycles visible Person atoms
+        /// in order: all <b>female</b> then all <b>male</b> (by atom uid),
+        /// switches to <b>Edit</b>, shows the main HUD, opens
+        /// <b>Selected Options</b>,
+        /// and selects each atom's root <c>control</c> (or the first free
+        /// controller if there is no <c>control</c>).
+        /// <b>F</b> toggles VaM <b>Freeze animation</b> (same as the main HUD
+        /// toggle).
+        /// <b>K</b> logs navigation rig / monitor peel / <c>WindowCamera</c> /
+        /// <c>playerHeightAdjust</c> and runs
+        /// <see cref="EasyMateKSceneCameraPatch"/> (Python patch of the main
+        /// scene JSON under <see cref="SuperController.currentLoadDir"/>).
+        /// Blocked when Ctrl/Alt is held (same gate as O/I/P).
         /// Skips while VaM is loading or a Unity UI text field has focus.
         /// </summary>
         public void ProcessHotkeysUpdate()

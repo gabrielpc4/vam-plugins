@@ -10,7 +10,8 @@ namespace geesp0t
     /// capacitive (<c>OVRInput.Touch</c> on LTouch/RTouch); on OpenVR (SteamVR, including
     /// Virtual Desktop), <see cref="SuperController.GetLeftUIPointerShow"/> /
     /// <see cref="SuperController.GetRightUIPointerShow"/> (SteamVR TargetShow per hand).
-    /// Hides when that input is inactive.
+    /// Hides when that input is inactive. Oculus and OpenVR paths are combined (OR), so
+    /// either runtime is supported without preferring one over the other.
     /// </summary>
     internal static class EasyMateMonitorModeLaserRestore
     {
@@ -71,45 +72,59 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Left “show UI pointer” / X capacitive on Quest; SteamVR TargetShow left on
-        /// OpenVR.
+        /// True when left UI-aim should show the beam: Oculus X capacitive (LTouch), or
+        /// OpenVR SteamVR TargetShow via <see cref="SuperController.GetLeftUIPointerShow"/>.
+        /// Both are evaluated so mixed or overlapping flags still work.
         /// </summary>
         private static bool CapTouchLeft(SuperController sc)
         {
-            if (sc.isOVR)
-                return OVRInput.Get(OVRInput.Touch.Three, OVRInput.Controller.LTouch);
-            if (sc.isOpenVR)
-                return sc.GetLeftUIPointerShow();
-            return false;
+            bool ovr =
+                sc.isOVR
+                && OVRInput.Get(OVRInput.Touch.Three, OVRInput.Controller.LTouch);
+            bool openVr = sc.isOpenVR && sc.GetLeftUIPointerShow();
+            return ovr || openVr;
         }
 
         /// <summary>
-        /// Right “show UI pointer” / A capacitive on Quest; SteamVR TargetShow right
-        /// on OpenVR.
+        /// True when right UI-aim should show the beam: Oculus A capacitive (RTouch), or
+        /// OpenVR TargetShow via <see cref="SuperController.GetRightUIPointerShow"/>.
         /// </summary>
         private static bool CapTouchRight(SuperController sc)
         {
-            if (sc.isOVR)
-                return OVRInput.Get(OVRInput.Touch.One, OVRInput.Controller.RTouch);
-            if (sc.isOpenVR)
-                return sc.GetRightUIPointerShow();
-            return false;
+            bool ovr =
+                sc.isOVR && OVRInput.Get(OVRInput.Touch.One, OVRInput.Controller.RTouch);
+            bool openVr = sc.isOpenVR && sc.GetRightUIPointerShow();
+            return ovr || openVr;
         }
 
+        /// <summary>
+        /// Motion-controller aim origin: OVR touch rig first, else OpenVR vive rig, then
+        /// whichever reference SuperController still has (covers odd monitor/transition
+        /// states).
+        /// </summary>
         private static Transform MotionLeft(SuperController sc)
         {
             if (sc.isOVR && sc.touchObjectLeft != null)
                 return sc.touchObjectLeft;
             if (sc.isOpenVR && sc.viveObjectLeft != null)
                 return sc.viveObjectLeft;
+            if (sc.touchObjectLeft != null)
+                return sc.touchObjectLeft;
+            if (sc.viveObjectLeft != null)
+                return sc.viveObjectLeft;
             return null;
         }
 
+        /// <summary>Same as <see cref="MotionLeft"/> for the right controller.</summary>
         private static Transform MotionRight(SuperController sc)
         {
             if (sc.isOVR && sc.touchObjectRight != null)
                 return sc.touchObjectRight;
             if (sc.isOpenVR && sc.viveObjectRight != null)
+                return sc.viveObjectRight;
+            if (sc.touchObjectRight != null)
+                return sc.touchObjectRight;
+            if (sc.viveObjectRight != null)
                 return sc.viveObjectRight;
             return null;
         }

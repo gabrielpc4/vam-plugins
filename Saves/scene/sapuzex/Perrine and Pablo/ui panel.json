@@ -169,7 +169,7 @@
             }, 
             {
                "id" : "Text", 
-               "text" : "Espere ela terminar o banho"
+               "text" : "Esperar ela terminar o banho"
             }, 
             {
                "id" : "Canvas", 
@@ -491,7 +491,7 @@
             }, 
             {
                "id" : "Text", 
-               "text" : "Entre no chuveiro com ela"
+               "text" : "Entrar no chuveiro com ela"
             }, 
             {
                "id" : "Canvas", 
@@ -576,7 +576,7 @@
             }, 
             {
                "id" : "Text", 
-               "text" : "Elogie ela"
+               "text" : "Elogiar ela"
             }, 
             {
                "id" : "Canvas", 

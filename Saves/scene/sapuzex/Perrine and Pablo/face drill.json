@@ -983,7 +983,7 @@
             }, 
             {
                "id" : "Text", 
-               "text" : "Pegue ela de quatro"
+               "text" : "Pegar ela de quatro"
             }, 
             {
                "id" : "Canvas", 
@@ -1076,7 +1076,7 @@
             {
                "id" : "Text", 
                "fontSize" : "90", 
-               "text" : "Deite ela no travesseiro e enfie o dedo"
+               "text" : "Deitar ela no travesseiro e enfiar o dedo"
             }, 
             {
                "id" : "Canvas", 

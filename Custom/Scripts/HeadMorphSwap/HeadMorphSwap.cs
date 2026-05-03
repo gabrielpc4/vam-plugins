@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using SimpleJSON;
 /// <summary>
 /// Copies head / face morphs from Saves/Person .json presets OR from another
 /// Person in the scene. If a preset path is set it wins over the scene donor.

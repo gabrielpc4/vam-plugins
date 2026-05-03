@@ -121,7 +121,7 @@ namespace geesp0t
 
             UIDynamicButton button = CreateHudButton(name, width, 40);
             button.button.onClick.AddListener(callback);
-            button.transform.Translate(column * xSpacing, 0.45f - row * ySpacing, 0, Space.Self);
+            button.transform.Translate(column * xSpacing, 0.50f - row * ySpacing, 0, Space.Self);
             button.textColor = accessTextColor;
             button.buttonColor = accessButtonColor;
         }

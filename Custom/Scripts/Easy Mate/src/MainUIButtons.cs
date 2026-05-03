@@ -879,8 +879,8 @@ namespace geesp0t
             snapMaleHeadButton = AddButton("Passenger Male", SnapRigToClosestMaleHead, 2, 2, midColButtonWidth);
             spankingsButton = AddButton("+ Spankings Male", OnSpankingsPluginToggleClicked, 3, 2, rightColButtonWidth);
 
-            emotionRemoveAllHudButton = AddButton("Remove E-Motion", OnEmotionRemoveAllHudClicked, 2, 3, emotionColButtonWidth);
-            snapFemaleHeadButton = AddButton("Passenger Female", SnapRigToClosestFemaleHead, 3, 3, rightColButtonWidth);
+            emotionRemoveAllHudButton = AddButton("Remove E-Motion", OnEmotionRemoveAllHudClicked, 1, 3, emotionColButtonWidth);
+            snapFemaleHeadButton = AddButton("Passenger Female", SnapRigToClosestFemaleHead, 2, 3, midColButtonWidth);
 
             RefreshPluginToggleLabels();
 
@@ -939,7 +939,7 @@ namespace geesp0t
 
             UIDynamicButton button = CreateButton(name, width, 40);
             button.button.onClick.AddListener(callback);
-            button.transform.Translate(column * xSpacing, 0.45f - row * ySpacing, 0, Space.Self);
+            button.transform.Translate(column * xSpacing, 0.50f - row * ySpacing, 0, Space.Self);
             ColorButton(button, accessTextColor, accessButtonColor);
 
             return button;

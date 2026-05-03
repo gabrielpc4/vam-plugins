@@ -98,9 +98,8 @@ namespace geesp0t
         public JSONStorableFloat longMocapMinSecondsForEmotionMerge;
 
         /// <summary>
-        /// When true (default), draws blue/red <see cref="LineRenderer"/> beams from each VR
-        /// controller to that side’s <c>LaserBeamDot</c> while main monitor mode is on (stock UI
-        /// mesh lasers often disappear there). Off when monitor mode is off.
+        /// When true (default), shows thin cylinder “beams” along each motion controller’s
+        /// forward axis while main monitor mode is on; hidden when monitor mode is off.
         /// </summary>
         public JSONStorableBool restoreMonitorModeControllerLaser;
 
@@ -181,7 +180,7 @@ namespace geesp0t
             RegisterFloat(longMocapMinSecondsForEmotionMerge);
 
             restoreMonitorModeControllerLaser = new JSONStorableBool(
-                "Monitor mode: LineRenderer to LaserBeamDot",
+                "Monitor mode: forward cylinder beams",
                 true);
             RegisterBool(restoreMonitorModeControllerLaser);
 

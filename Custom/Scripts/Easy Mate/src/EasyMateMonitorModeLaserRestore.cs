@@ -1,53 +1,54 @@
-using System;
 using MeshVR;
 using UnityEngine;
 
 namespace geesp0t
 {
     /// <summary>
-    /// When main monitor mode is on, draws simple <see cref="LineRenderer"/> beams from
-    /// each motion controller to that side’s <c>LaserBeamDot</c> (VaM / Weelco layout).
-    /// Stock mesh lasers often hide in that mode; these lines are independent and toggle
-    /// with <see cref="SuperController.MonitorRig"/> activation.
+    /// With main monitor mode on (<see cref="SuperController.MonitorRig"/> active), shows a
+    /// thin cylinder per hand aligned to each motion controller’s <c>forward</c> (length scales
+    /// with <see cref="SuperController.worldScale"/>). Independent of stock UI lasers; hides when
+    /// monitor mode or the plugin toggle is off.
     /// </summary>
     internal static class EasyMateMonitorModeLaserRestore
     {
-        private const float BaseLineWidth = 0.003f;
+        /// <summary>World-space beam radius before applying worldScale.</summary>
+        private const float BaseRadiusM = 0.0015f;
+
+        /// <summary>Beam length along aim (m), multiplied by worldScale.</summary>
+        private const float BeamLengthM = 5f;
 
         private static GameObject _root;
 
-        private static LineRenderer _lineLeft;
+        private static Transform _beamLeft;
 
-        private static LineRenderer _lineRight;
+        private static Transform _beamRight;
 
-        /// <summary>
-        /// Call each <see cref="EasyMate.LateUpdate"/> with the plugin toggle value.
-        /// </summary>
+        /// <summary>Call from <see cref="EasyMate.LateUpdate"/> with plugin toggle.</summary>
         public static void Tick(bool featureEnabled)
         {
             SuperController sc = SuperController.singleton;
             if (!featureEnabled || sc == null)
             {
-                HideLasers();
+                HideBeams();
                 return;
             }
 
             if (sc.isLoading || sc.IsMonitorOnly || (!sc.isOVR && !sc.isOpenVR))
             {
-                HideLasers();
+                HideBeams();
                 return;
             }
 
             if (sc.MonitorRig == null || !sc.MonitorRig.gameObject.activeSelf)
             {
-                HideLasers();
+                HideBeams();
                 return;
             }
 
-            EnsureLasers(sc);
+            EnsureBeams(sc);
 
-            UpdateSide(sc, MotionLeft(sc), _lineLeft);
-            UpdateSide(sc, MotionRight(sc), _lineRight);
+            UpdateBeam(sc, MotionLeft(sc), _beamLeft);
+            UpdateBeam(sc, MotionRight(sc), _beamRight);
         }
 
         private static Transform MotionLeft(SuperController sc)
@@ -68,177 +69,110 @@ namespace geesp0t
             return null;
         }
 
-        private static void EnsureLasers(SuperController sc)
+        private static void EnsureBeams(SuperController sc)
         {
-            if (_lineLeft != null && _lineRight != null && _root != null)
+            if (_beamLeft != null && _beamRight != null && _root != null)
                 return;
 
             if (_root == null)
             {
-                _root = new GameObject("EasyMateMonitorDotLasers");
+                _root = new GameObject("EasyMateMonitorForwardBeams");
                 _root.transform.SetParent(sc.transform, false);
             }
 
-            if (_lineLeft == null)
-                _lineLeft = CreateLineChild(_root.transform, "MonitorDotLaserLeft", Color.blue);
-            if (_lineRight == null)
-                _lineRight = CreateLineChild(_root.transform, "MonitorDotLaserRight", Color.red);
-        }
-
-        private static LineRenderer CreateLineChild(
-            Transform parent,
-            string name,
-            Color color)
-        {
-            GameObject go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            LineRenderer lr = go.AddComponent<LineRenderer>();
-            lr.useWorldSpace = true;
-            lr.positionCount = 2;
-            lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            lr.receiveShadows = false;
-            Shader sh = Shader.Find("Unlit/Color");
-            if (sh != null)
-            {
-                Material mat = new Material(sh);
-                mat.SetColor("_Color", color);
-                lr.material = mat;
-            }
-
-            lr.enabled = false;
-            return lr;
-        }
-
-        private static void UpdateSide(
-            SuperController sc,
-            Transform motion,
-            LineRenderer line)
-        {
-            if (motion == null || line == null)
-            {
-                if (line != null)
-                    line.enabled = false;
-                return;
-            }
-
-            Transform dot = FindLaserBeamDotUnder(motion);
-            if (dot == null)
-            {
-                line.enabled = false;
-                return;
-            }
-
-            float w = BaseLineWidth * sc.worldScale;
-            if (w < 0.0005f)
-                w = 0.0005f;
-
-            line.startWidth = w;
-            line.endWidth = w;
-            line.SetPosition(0, motion.position);
-            line.SetPosition(1, dot.position);
-            line.enabled = true;
+            if (_beamLeft == null)
+                _beamLeft = CreateCylinder(_root.transform, "MonitorBeamLeft", Color.blue);
+            if (_beamRight == null)
+                _beamRight = CreateCylinder(_root.transform, "MonitorBeamRight", Color.red);
         }
 
         /// <summary>
-        /// Prefab path per Weelco <c>IUIHitPointer</c>, then name fallback.
+        /// Unity cylinder: height 2 on local Y, radius 0.5 on X/Z at scale 1.
         /// </summary>
-        private static Transform FindLaserBeamDotUnder(Transform motionRoot)
+        private static Transform CreateCylinder(
+            Transform parent,
+            string objectName,
+            Color color)
         {
-            if (motionRoot == null)
-                return null;
-
-            Transform byPath = FindChildPath(motionRoot, "LaserPointer/LaserBeamDot");
-            if (byPath != null)
-                return byPath;
-
-            return FindTransformRecursive(motionRoot, IsLaserBeamDotName);
-        }
-
-        private static bool IsLaserBeamDotName(string name)
-        {
-            if (string.IsNullOrEmpty(name))
-                return false;
-            string lower = name.ToLowerInvariant();
-            return lower.Contains("laserbeamd")
-                || lower.Contains("beamdot");
-        }
-
-        private static Transform FindChildPath(Transform root, string slashPath)
-        {
-            if (root == null || string.IsNullOrEmpty(slashPath))
-                return null;
-
-            string[] segments = slashPath.Split('/');
-            Transform current = root;
-            int si;
-            for (si = 0; si < segments.Length; si++)
+            GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            go.name = objectName;
+            go.transform.SetParent(parent, false);
+            Collider col = go.GetComponent<Collider>();
+            if (col != null)
+                UnityEngine.Object.Destroy(col);
+            MeshRenderer mr = go.GetComponent<MeshRenderer>();
+            if (mr != null)
             {
-                string seg = segments[si];
-                if (seg.Length == 0)
-                    continue;
-
-                Transform found = null;
-                int ci;
-                int cc = current.childCount;
-                for (ci = 0; ci < cc; ci++)
+                Shader sh = Shader.Find("Unlit/Color");
+                if (sh != null)
                 {
-                    Transform ch = current.GetChild(ci);
-                    if (ch.name == seg)
-                    {
-                        found = ch;
-                        break;
-                    }
+                    Material mat = new Material(sh);
+                    mat.SetColor("_Color", color);
+                    mr.material = mat;
                 }
 
-                if (found == null)
-                    return null;
-                current = found;
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                mr.receiveShadows = false;
             }
 
-            return current;
+            go.SetActive(false);
+            return go.transform;
         }
 
-        private static Transform FindTransformRecursive(
-            Transform node,
-            Func<string, bool> nameMatch)
+        private static void UpdateBeam(
+            SuperController sc,
+            Transform motion,
+            Transform beam)
         {
-            if (node == null || nameMatch == null)
-                return null;
-
-            if (nameMatch(node.name))
-                return node;
-
-            int i;
-            int cc = node.childCount;
-            for (i = 0; i < cc; i++)
+            if (motion == null || beam == null)
             {
-                Transform found = FindTransformRecursive(node.GetChild(i), nameMatch);
-                if (found != null)
-                    return found;
+                if (beam != null)
+                    beam.gameObject.SetActive(false);
+                return;
             }
 
-            return null;
+            float ws = sc.worldScale;
+            if (ws < 0.01f)
+                ws = 0.01f;
+
+            float len = BeamLengthM * ws;
+            float radiusWorld = BaseRadiusM * ws;
+            if (radiusWorld < 0.0003f)
+                radiusWorld = 0.0003f;
+
+            Quaternion align = Quaternion.FromToRotation(Vector3.up, motion.forward);
+            beam.rotation = align;
+            beam.position = motion.position + motion.forward * (len * 0.5f);
+
+            float halfHeightScale = len * 0.5f;
+            float radialScale = radiusWorld / 0.5f;
+            beam.localScale = new Vector3(
+                radialScale,
+                halfHeightScale,
+                radialScale);
+
+            beam.gameObject.SetActive(true);
         }
 
-        private static void HideLasers()
+        private static void HideBeams()
         {
-            if (_lineLeft != null)
-                _lineLeft.enabled = false;
-            if (_lineRight != null)
-                _lineRight.enabled = false;
+            if (_beamLeft != null)
+                _beamLeft.gameObject.SetActive(false);
+            if (_beamRight != null)
+                _beamRight.gameObject.SetActive(false);
         }
 
         public static void OnPluginDestroy()
         {
-            HideLasers();
+            HideBeams();
             if (_root != null)
             {
                 UnityEngine.Object.Destroy(_root);
                 _root = null;
             }
 
-            _lineLeft = null;
-            _lineRight = null;
+            _beamLeft = null;
+            _beamRight = null;
         }
     }
 }

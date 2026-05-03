@@ -1,14 +1,14 @@
 using MeshVR;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace geesp0t
 {
     /// <summary>
     /// With main monitor mode on (<see cref="SuperController.MonitorRig"/> active), shows a
-    /// thin blue/red cylinder per hand along the controller <c>forward</c> only when a physics ray
-    /// hits an active, interactable <see cref="Button"/> in the collider’s parents. Max length scales
-    /// with <see cref="SuperController.worldScale"/>; visible length ends at the hit.
+    /// thin blue (left) / red (right) cylinder along each motion controller’s forward
+    /// while the user rests a finger on the Quest face-button capacitive sensor: X on
+    /// the left controller (OVR Touch.Three + LTouch) and A on the right (Touch.One + RTouch).
+    /// Hides on release. OpenVR has no matching capacitive signal; beams stay off there.
     /// </summary>
     internal static class EasyMateMonitorModeLaserRestore
     {
@@ -19,7 +19,7 @@ namespace geesp0t
         /// <summary>World-space beam radius before applying worldScale.</summary>
         private const float BaseRadiusM = 0.0015f;
 
-        /// <summary>Max aim ray length (m), multiplied by worldScale.</summary>
+        /// <summary>Beam length along aim (m), multiplied by worldScale.</summary>
         private const float BeamLengthM = 5f;
 
         private static GameObject _root;
@@ -28,7 +28,9 @@ namespace geesp0t
 
         private static Transform _beamRight;
 
-        /// <summary>Call from <see cref="EasyMate.LateUpdate"/> with plugin toggle.</summary>
+        /// <summary>
+        /// Call from <see cref="EasyMate.LateUpdate"/> with plugin toggle.
+        /// </summary>
         public static void Tick(bool featureEnabled)
         {
             SuperController sc = SuperController.singleton;
@@ -52,8 +54,28 @@ namespace geesp0t
 
             EnsureBeams(sc);
 
-            UpdateBeam(sc, MotionLeft(sc), _beamLeft);
-            UpdateBeam(sc, MotionRight(sc), _beamRight);
+            if (!sc.isOVR)
+            {
+                HideBeams();
+                return;
+            }
+
+            bool capLeft = OVRInput.Get(
+                OVRInput.Touch.Three,
+                OVRInput.Controller.LTouch);
+            bool capRight = OVRInput.Get(
+                OVRInput.Touch.One,
+                OVRInput.Controller.RTouch);
+
+            if (capLeft)
+                UpdateBeamForward(sc, MotionLeft(sc), _beamLeft);
+            else
+                HideOne(_beamLeft);
+
+            if (capRight)
+                UpdateBeamForward(sc, MotionRight(sc), _beamRight);
+            else
+                HideOne(_beamRight);
         }
 
         private static Transform MotionLeft(SuperController sc)
@@ -125,15 +147,14 @@ namespace geesp0t
             return go.transform;
         }
 
-        private static void UpdateBeam(
+        private static void UpdateBeamForward(
             SuperController sc,
             Transform motion,
             Transform beam)
         {
             if (motion == null || beam == null)
             {
-                if (beam != null)
-                    beam.gameObject.SetActive(false);
+                HideOne(beam);
                 return;
             }
 
@@ -141,18 +162,7 @@ namespace geesp0t
             if (ws < 0.01f)
                 ws = 0.01f;
 
-            float maxLen = BeamLengthM * ws;
-            RaycastHit hit;
-            if (!TryNearestUIButtonHit(motion, maxLen, out hit))
-            {
-                beam.gameObject.SetActive(false);
-                return;
-            }
-
-            float len = hit.distance;
-            if (len < 0.02f * ws)
-                len = 0.02f * ws;
-
+            float len = BeamLengthM * ws;
             float radiusWorld = BaseRadiusM * ws;
             if (radiusWorld < 0.0003f)
                 radiusWorld = 0.0003f;
@@ -171,66 +181,16 @@ namespace geesp0t
             beam.gameObject.SetActive(true);
         }
 
-        /// <summary>
-        /// Pick the closest raycast hit whose hierarchy has an interactable UI
-        /// <see cref="Button"/>.
-        /// </summary>
-        private static bool TryNearestUIButtonHit(
-            Transform motion,
-            float maxDistance,
-            out RaycastHit outHit)
+        private static void HideOne(Transform beam)
         {
-            outHit = default(RaycastHit);
-            if (motion == null || maxDistance <= 0f)
-                return false;
-
-            RaycastHit[] hits = Physics.RaycastAll(
-                motion.position,
-                motion.forward,
-                maxDistance,
-                -1,
-                QueryTriggerInteraction.Collide);
-
-            if (hits == null || hits.Length == 0)
-                return false;
-
-            float bestDist = float.MaxValue;
-            RaycastHit best = default(RaycastHit);
-            Button bestBtn = null;
-            int i;
-            for (i = 0; i < hits.Length; i++)
-            {
-                RaycastHit h = hits[i];
-                if (h.collider == null)
-                    continue;
-
-                Button b = h.collider.GetComponentInParent<Button>();
-                if (b == null)
-                    continue;
-                if (!b.isActiveAndEnabled || !b.interactable)
-                    continue;
-
-                if (h.distance < bestDist)
-                {
-                    bestDist = h.distance;
-                    best = h;
-                    bestBtn = b;
-                }
-            }
-
-            if (bestBtn == null)
-                return false;
-
-            outHit = best;
-            return true;
+            if (beam != null)
+                beam.gameObject.SetActive(false);
         }
 
         private static void HideBeams()
         {
-            if (_beamLeft != null)
-                _beamLeft.gameObject.SetActive(false);
-            if (_beamRight != null)
-                _beamRight.gameObject.SetActive(false);
+            HideOne(_beamLeft);
+            HideOne(_beamRight);
         }
 
         public static void OnPluginDestroy()

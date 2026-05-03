@@ -98,8 +98,9 @@ namespace geesp0t
         public JSONStorableFloat longMocapMinSecondsForEmotionMerge;
 
         /// <summary>
-        /// When true (default), in main monitor mode shows blue/red cylinder aim beams only
-        /// when the controller ray hits an interactable <see cref="UnityEngine.UI.Button"/>.
+        /// When true (default), in main monitor mode on Quest (Oculus), shows blue/red
+        /// aim cylinders while resting a finger on X (left) or A (right) capacitive touch;
+        /// hides on release. No OpenVR support for this gesture.
         /// </summary>
         public JSONStorableBool restoreMonitorModeControllerLaser;
 
@@ -193,7 +194,7 @@ namespace geesp0t
             RegisterFloat(longMocapMinSecondsForEmotionMerge);
 
             restoreMonitorModeControllerLaser = new JSONStorableBool(
-                "Monitor mode: aim cylinders on UI Button hit",
+                "Monitor mode: beams on Quest X/A capacitive touch",
                 true);
             RegisterBool(restoreMonitorModeControllerLaser);
 

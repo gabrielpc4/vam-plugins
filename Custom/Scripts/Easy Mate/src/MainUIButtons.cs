@@ -1035,6 +1035,9 @@ namespace geesp0t
             RefreshPluginToggleLabels();
 
             canvas.transform.Translate(0, 0.2f, 0);
+            // Same as EasyMate Hide UI — start collapsed until Show UI /
+            // user toggles visibility.
+            ShowUI(false);
         }
 
         public void ShowUI(bool setToActive)

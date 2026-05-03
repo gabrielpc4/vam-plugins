@@ -59,7 +59,8 @@ namespace geesp0t
         /// (see <see cref="EasyMateGripHandVisibility"/>); a possessed hand side stays sphere. Collisions stay off while both
         /// sides sphere. The <b>first</b> such grip press this scene queues a merge of <b>Spankings</b> onto <b>female</b> <c>Person</c> atoms only
         /// that do not already have the plugin (deferred; merge-only), then after <b>4</b> seconds re-checks and merges again if any female still
-        /// lacks the plugin, regardless of whether hands become articulated.
+        /// lacks the plugin — unless <c>Custom/Scripts/Easy Mate/spankings_grip_merge_block_path_keywords.txt</c> matches current load/save dirs (same
+        /// substring rules as <c>emotion_path_keywords.txt</c>), in which case no grip Spankings merge runs. Hands still toggle regardless.
         /// </summary>
         public JSONStorableBool gripTogglesHandVisibility;
 
@@ -153,6 +154,8 @@ namespace geesp0t
         {
             if (mainUIButtons == null)
                 return;
+            if (EasyMateSpankingsGripBlockPathKeywords.CurrentSceneBlocksGripSpankingsMerge())
+                return;
             if (_mergeSpankingsAfterGripCo != null)
                 StopCoroutine(_mergeSpankingsAfterGripCo);
             _mergeSpankingsAfterGripCo = StartCoroutine(CoMergeSpankingsAfterGripDeferred());
@@ -166,13 +169,18 @@ namespace geesp0t
                 yield return null;
                 if (mainUIButtons == null)
                     yield break;
+                if (EasyMateSpankingsGripBlockPathKeywords
+                    .CurrentSceneBlocksGripSpankingsMerge())
+                    yield break;
                 mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
                 yield return new WaitForSeconds(4f);
-                if (mainUIButtons != null &&
-                    mainUIButtons.AnyFemalePersonMissingSpankings())
-                {
+                if (mainUIButtons == null)
+                    yield break;
+                if (EasyMateSpankingsGripBlockPathKeywords
+                    .CurrentSceneBlocksGripSpankingsMerge())
+                    yield break;
+                if (mainUIButtons.AnyFemalePersonMissingSpankings())
                     mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
-                }
             }
             finally
             {

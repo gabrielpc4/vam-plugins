@@ -10,3 +10,6 @@
 # Examples (uncomment or replace with your own):
 # saves/scene/mypack/nsfw-free
 # photostudio
+
+# Mofme CamGirlToys scenes (folder only; substring on load/save dirs)
+camgirltoys

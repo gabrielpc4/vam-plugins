@@ -7,7 +7,7 @@ using SimpleJSON;
 
 namespace geesp0t
 {
-    /// <summary>Runs lifecycle callbacks late so monitor-mode laser redraw wins over other plugins’ <see cref="LateUpdate"/>.</summary>
+    /// <summary>Runs lifecycle callbacks late for overlap release and monitor dot lasers.</summary>
     [DefaultExecutionOrder(32000)]
     public class EasyMate : MVRScript
     {
@@ -104,9 +104,9 @@ namespace geesp0t
         public JSONStorableBool mergeEmotionOriginalOnMaleWithoutHeadFaceMocap;
 
         /// <summary>
-        /// When true (default), restores per-controller <c>LaserPointer/LaserBeam</c> mesh lasers (blue/red UI rays)
-        /// during main-monitor mode after VaM’s Oculus hide-hand path disables their <see cref="MeshRenderer"/>s.
-        /// Does not affect green <see cref="SelectionHUD"/> lines toward atoms.
+        /// When true (default), draws blue/red <see cref="LineRenderer"/> beams from each VR
+        /// controller to that side’s <c>LaserBeamDot</c> while main monitor mode is on (stock UI
+        /// mesh lasers often disappear there). Off when monitor mode is off.
         /// </summary>
         public JSONStorableBool restoreMonitorModeControllerLaser;
 
@@ -175,7 +175,9 @@ namespace geesp0t
                 true);
             RegisterBool(mergeEmotionOriginalOnMaleWithoutHeadFaceMocap);
 
-            restoreMonitorModeControllerLaser = new JSONStorableBool("Restore VR UI laser (LaserPointer) in monitor mode", true);
+            restoreMonitorModeControllerLaser = new JSONStorableBool(
+                "Monitor mode: LineRenderer to LaserBeamDot",
+                true);
             RegisterBool(restoreMonitorModeControllerLaser);
 
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
@@ -270,8 +272,6 @@ namespace geesp0t
                 EasyMateHeadSnapPovRuntime.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
             EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
-
-            EasyMateMonitorModeLaserRestore.EnsureMonitorCameraHook();
         }
 
         /// <summary>
@@ -753,7 +753,7 @@ namespace geesp0t
             EasyMateMotionAnimationEmotionEnd.LateTick(mocapEmotionEnd, mocapMinSec, mainUIButtons);
 
             bool monitorLaser = restoreMonitorModeControllerLaser != null && restoreMonitorModeControllerLaser.val;
-            EasyMateMonitorModeLaserRestore.NotifyEnabledAndCleanup(monitorLaser);
+            EasyMateMonitorModeLaserRestore.Tick(monitorLaser);
         }
 
         void OnDestroy()

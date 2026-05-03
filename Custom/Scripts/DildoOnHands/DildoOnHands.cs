@@ -883,7 +883,8 @@ namespace geesp0t
         /// </remarks>
         private const string MATERIAL_FLOAT_ALPHA_ADJUST = "Alpha Adjust";
 
-        /// <remarks>User-requested butt-plug preset for see-through plugs.</remarks>
+        /// <remarks>Alternate label some meshes use vs engine default.</remarks>
+        private const string MATERIAL_FLOAT_ALPHA_ADJUST_ALT = "Alpha Adjustment";
         private const float ToyBpAlphaAdjustPreset = -0.5f;
 
         private static Color RandomToyDiffuseRgb()
@@ -933,12 +934,18 @@ namespace geesp0t
             if (jst == null)
                 return;
 
-            if (!jst.IsFloatJSONParam(MATERIAL_FLOAT_ALPHA_ADJUST))
-                return;
-
-            jst.SetFloatParamValue(
-                MATERIAL_FLOAT_ALPHA_ADJUST,
-                ToyBpAlphaAdjustPreset);
+            if (jst.IsFloatJSONParam(MATERIAL_FLOAT_ALPHA_ADJUST))
+            {
+                jst.SetFloatParamValue(
+                    MATERIAL_FLOAT_ALPHA_ADJUST,
+                    ToyBpAlphaAdjustPreset);
+            }
+            else if (jst.IsFloatJSONParam(MATERIAL_FLOAT_ALPHA_ADJUST_ALT))
+            {
+                jst.SetFloatParamValue(
+                    MATERIAL_FLOAT_ALPHA_ADJUST_ALT,
+                    ToyBpAlphaAdjustPreset);
+            }
         }
 
         private void PlaceSpawnAtHand(Atom spawned, bool leftHand)

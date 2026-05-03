@@ -1,15 +1,18 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using MeshVR;
 using UnityEngine;
 
 namespace geesp0t
 {
     /// <summary>
-    /// VR Grab (Quest / Touch / SteamVR) spawns vanilla sex toy atoms at the
-    /// pressed hand pose. First spawn each session is always Dildo; later
-    /// spawns alternate among built-in toy types without repeating twice in a
-    /// row. OVR LT/RT index trigger fallback when isOVR/isOpenVR unset.
+    /// VR Grab spawns atoms at the hand pose (VaM Grab = index trigger). First
+    /// successful spawn each session is always Dildo. Later picks a different
+    /// type than last from built-ins plus lines in Extra toy atom types (paste
+    /// names from VaM Add Atom / Toys popup on your PC). Custom/Assets in this
+    /// repo bundle list has no extra toy defs. OVR LT/RT fallback when Oculus
+    /// paths are inactive.
     /// </summary>
     public class DildoOnHands : MVRScript
     {
@@ -38,6 +41,9 @@ namespace geesp0t
         private JSONStorableFloat _localEulerYawDeg;
 
         private JSONStorableFloat _localEulerRollDeg;
+
+        /// <summary>Optional AddAtom type names one per line (VAR / menu).</summary>
+        private JSONStorableString _extraToyAtomTypes;
 
         private bool _spawnCoroutineRunning;
 
@@ -108,6 +114,12 @@ namespace geesp0t
                 RegisterFloat(_localEulerPitchDeg);
                 RegisterFloat(_localEulerYawDeg);
                 RegisterFloat(_localEulerRollDeg);
+
+                _extraToyAtomTypes = new JSONStorableString(
+                    "Extra toy atom types (one name per line)",
+                    "");
+                _extraToyAtomTypes.storeType = JSONStorableParam.StoreType.Full;
+                RegisterString(_extraToyAtomTypes);
             }
             catch (Exception e)
             {
@@ -115,9 +127,66 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Random vanilla toy type unlike the prior successful spawn.</summary>
+        private static void AppendTypeIfDistinct(List<string> dest, string t)
+        {
+            if (dest == null || t == null)
+                return;
+            string trimmed;
+            trimmed = t.Trim();
+            if (trimmed.Length == 0)
+                return;
+            foreach (string existing in dest)
+            {
+                if (existing == trimmed)
+                    return;
+            }
+
+            dest.Add(trimmed);
+        }
+
+        /// <summary>Built-in suspects plus trimmed lines from storables UI.</summary>
+        private List<string> BuildVarietyToyTypePool()
+        {
+            List<string> pool;
+            pool = new List<string>();
+            foreach (string s in VarietyToyAtomTypes)
+            {
+                AppendTypeIfDistinct(pool, s);
+            }
+
+            try
+            {
+                if (_extraToyAtomTypes == null ||
+                    string.IsNullOrEmpty(_extraToyAtomTypes.val))
+                    return pool;
+                string[] lines;
+                lines = _extraToyAtomTypes.val.Split(new char[] {
+                    '\r',
+                    '\n'
+                }, StringSplitOptions.RemoveEmptyEntries);
+
+                foreach (string line in lines)
+                {
+                    AppendTypeIfDistinct(pool, line);
+                }
+            }
+            catch (Exception ex)
+            {
+                SuperController.LogError(
+                    PluginName + ": extra toy atom type parse: " + ex.Message);
+            }
+
+            return pool;
+        }
+
+        /// <summary>Random pool entry unlike prior successful spawn.</summary>
         private string PickRandomToyDifferentFromLast()
         {
+            List<string> pool;
+            pool = BuildVarietyToyTypePool();
+            if (pool.Count == 0)
+                return "Dildo";
+
             string last;
             last = _lastToyAtomTypeSpawned;
             int guard;
@@ -125,23 +194,22 @@ namespace geesp0t
             while (guard < 64)
             {
                 string candidate;
-                candidate = VarietyToyAtomTypes[
-                    UnityEngine.Random.Range(0,
-                        VarietyToyAtomTypes.Length)];
+                candidate =
+                    pool[UnityEngine.Random.Range(0, pool.Count)];
                 guard++;
-                if (VarietyToyAtomTypes.Length <= 1)
+                if (pool.Count <= 1)
                     return candidate;
                 if (last == null || candidate != last)
                     return candidate;
             }
 
             string fallback;
-            fallback = VarietyToyAtomTypes[0];
-            if (VarietyToyAtomTypes.Length <= 1)
+            fallback = pool[0];
+            if (pool.Count <= 1)
                 return fallback;
             if (fallback != last)
                 return fallback;
-            return VarietyToyAtomTypes[1];
+            return pool[1];
         }
 
         private Transform ResolveHandWorldTransform(SuperController sc,

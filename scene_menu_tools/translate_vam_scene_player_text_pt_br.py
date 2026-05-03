@@ -10,6 +10,10 @@ Flows:
   * ``--dry-run``: print atom id + old text; no write.
   * ``--list-texts``: only list every ``Text`` storable ``text`` (deduped paths).
 
+Before overwriting, copies the scene to ``<name>.json.bak`` only when that
+``.bak`` file does not exist yet (first run preserves the pre-edit copy).
+Pass ``--no-backup`` to skip.
+
 Avoid translating paths, hashes, GUIDs or technical ids: only storable ids listed in
 TEXT_STORABLE_IDS and only the explicit ``text`` field on those storables.
 
@@ -110,9 +114,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Print atom id + each Text ``text``, then exit (no write)",
     )
     p.add_argument(
-        "--backup",
+        "--no-backup",
         action="store_true",
-        help="Copy input to same path + ``.bak`` before overwrite",
+        help="Do not copy the current file to ``.bak`` before overwrite",
     )
     return p.parse_args(argv)
 
@@ -153,7 +157,6 @@ def main(argv: list[str]) -> int:
 
     before = iter_text_storable_texts(scene)
     n = apply_map_to_text_storables(scene, mapping)
-    after = iter_text_storable_texts(scene)
 
     if args.dry_run:
         print(f"Would replace {n} Text storable(s).")
@@ -169,10 +172,13 @@ def main(argv: list[str]) -> int:
     serialized = dump_scene(scene)
     validate_roundtrip(serialized)
 
-    if args.backup:
+    if not args.no_backup:
         bak = path.with_suffix(path.suffix + ".bak")
-        shutil.copy2(path, bak)
-        print(f"Backup: {bak}")
+        if bak.is_file():
+            print(f"Backup skipped (already exists): {bak}")
+        else:
+            shutil.copy2(path, bak)
+            print(f"Backup: {bak}")
 
     path.write_text(serialized, encoding="utf-8", newline="\n")
     print(f"Wrote {path} ({n} Text storables updated)")

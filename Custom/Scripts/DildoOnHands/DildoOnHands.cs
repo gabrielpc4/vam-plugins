@@ -6,14 +6,22 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// VR: VaM Grab (= index trigger on Quest / Oculus Touch SteamVR) adds one
-    /// vanilla Dildo atom if none exist, placed once at the triggering-hand
-    /// pose. If XR runs without isOVR/isOpenVR, uses LT/RT index-trigger OVR
-    /// presses as fallback.
+    /// VR Grab (Quest / Touch / SteamVR) spawns vanilla sex toy atoms at the
+    /// pressed hand pose. First spawn each session is always Dildo; later
+    /// spawns alternate among built-in toy types without repeating twice in a
+    /// row. OVR LT/RT index trigger fallback when isOVR/isOpenVR unset.
     /// </summary>
     public class DildoOnHands : MVRScript
     {
-        public const string PluginName = "DildoOnHands";
+        public const string PluginName = "HandSpawnToy";
+
+        private static readonly string[] VarietyToyAtomTypes =
+        {
+            "Dildo",
+            "ToyAH",
+            "ToyBP",
+            "Paddle",
+        };
 
         private SuperController _sc;
 
@@ -32,6 +40,11 @@ namespace geesp0t
         private JSONStorableFloat _localEulerRollDeg;
 
         private bool _spawnCoroutineRunning;
+
+        /// <summary>First trigger after Init must spawn Dildo only.</summary>
+        private bool _waitingMandatoryFirstDildo = true;
+
+        private string _lastToyAtomTypeSpawned;
 
         public override void Init()
         {
@@ -102,24 +115,33 @@ namespace geesp0t
             }
         }
 
-        private bool SceneHasAnyDildoAlready()
+        /// <summary>Random vanilla toy type unlike the prior successful spawn.</summary>
+        private string PickRandomToyDifferentFromLast()
         {
-            if (_sc == null)
-                return true;
-            try
+            string last;
+            last = _lastToyAtomTypeSpawned;
+            int guard;
+            guard = 0;
+            while (guard < 64)
             {
-                foreach (Atom a in _sc.GetAtoms())
-                {
-                    if (a == null || a.type != "Dildo")
-                        continue;
-                    return true;
-                }
-            }
-            catch
-            {
+                string candidate;
+                candidate = VarietyToyAtomTypes[
+                    UnityEngine.Random.Range(0,
+                        VarietyToyAtomTypes.Length)];
+                guard++;
+                if (VarietyToyAtomTypes.Length <= 1)
+                    return candidate;
+                if (last == null || candidate != last)
+                    return candidate;
             }
 
-            return false;
+            string fallback;
+            fallback = VarietyToyAtomTypes[0];
+            if (VarietyToyAtomTypes.Length <= 1)
+                return fallback;
+            if (fallback != last)
+                return fallback;
+            return VarietyToyAtomTypes[1];
         }
 
         private Transform ResolveHandWorldTransform(SuperController sc,
@@ -175,9 +197,6 @@ namespace geesp0t
         {
             if (_listenEnabled == null || !_listenEnabled.val || _sc == null ||
                 _sc.isLoading || _spawnCoroutineRunning)
-                return;
-
-            if (SceneHasAnyDildoAlready())
                 return;
 
             bool xrOn = UnityEngine.XR.XRSettings.enabled ||
@@ -242,16 +261,27 @@ namespace geesp0t
             else
                 pickLeft = true;
 
-            StartCoroutine(CoSpawnDildoAtHand(pickLeft));
+            StartCoroutine(CoSpawnToyAtHand(pickLeft));
         }
 
-        private IEnumerator CoSpawnDildoAtHand(bool leftHandPreferred)
+        private IEnumerator CoSpawnToyAtHand(bool leftHandPreferred)
         {
             _spawnCoroutineRunning = true;
             try
             {
-                if (SceneHasAnyDildoAlready())
-                    yield break;
+                bool consumedMandatoryFirst;
+                consumedMandatoryFirst = false;
+
+                string atomType;
+                if (_waitingMandatoryFirstDildo)
+                {
+                    atomType = "Dildo";
+                    consumedMandatoryFirst = true;
+                }
+                else
+                {
+                    atomType = PickRandomToyDifferentFromLast();
+                }
 
                 string uid;
                 Atom clash;
@@ -266,21 +296,33 @@ namespace geesp0t
                     clash = svc.GetAtomByUid(uid);
                     tries++;
                     if (tries > 32)
+                    {
+                        if (consumedMandatoryFirst)
+                            _waitingMandatoryFirstDildo = true;
                         yield break;
+                    }
                 }
                 while (clash != null);
 
-                yield return svc.AddAtomByType("Dildo", uid);
+                yield return svc.AddAtomByType(atomType, uid);
 
                 Atom spawned = svc.GetAtomByUid(uid);
                 if (spawned == null)
                 {
                     SuperController.LogError(
-                        PluginName + ": failed to spawn Dildo.");
+                        PluginName +
+                        ": failed to spawn toy atom '" +
+                        atomType +
+                        "'.");
+
+                    if (consumedMandatoryFirst)
+                        _waitingMandatoryFirstDildo = true;
 
                     yield break;
                 }
 
+                _waitingMandatoryFirstDildo = false;
+                _lastToyAtomTypeSpawned = atomType;
                 PlaceSpawnAtHand(spawned, leftHandPreferred);
             }
             finally

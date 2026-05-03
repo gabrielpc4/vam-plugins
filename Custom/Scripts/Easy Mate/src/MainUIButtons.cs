@@ -624,6 +624,32 @@ namespace geesp0t
             }
         }
 
+        /// <summary>
+        /// Merges <see cref="PluginEMotion"/> on each male <c>Person</c> with no motion clip on head, neck,
+        /// or eye target (avoid stacking E-Motion head driver on authored scene mocap).
+        /// </summary>
+        public void MergeEmotionOriginalOnMalePersonsWithoutHeadFaceMotionClip()
+        {
+            try
+            {
+                foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
+                {
+                    if (at == null || !IsMalePerson(at))
+                        continue;
+                    if (EasyMateHeadFaceMotionProbe.PersonHasHeadFaceMotionClip(at))
+                        continue;
+                    TryReplaceEmotionFamilyWithExactPath(at, PluginEMotion);
+                }
+
+                RefreshPluginToggleLabels();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "E-Motion Original merge on males (no head/neck/gaze mocap): " + e);
+            }
+        }
+
         /// <summary>Installs <see cref="PluginEMotionLite"/> on every Person when the load/save path rule matches. Same merge as <see cref="MergeEmotionLiteOnAllPersonsOnly"/>.</summary>
         public void MergeEmotionLiteForPathRuleOnAllPersonsOnly()
         {
@@ -1412,6 +1438,12 @@ namespace geesp0t
                 return false;
             DAZCharacter d = a.GetComponentInChildren<DAZCharacter>();
             return d != null && !d.isMale;
+        }
+
+        /// <summary>Male <c>Person</c> (VaM geometry); complements <see cref="IsPersonFemale"/>.</summary>
+        public static bool IsMalePerson(Atom a)
+        {
+            return a != null && a.type == "Person" && !IsPersonFemale(a);
         }
 
         private static List<Atom> FemalePersonsByUid()

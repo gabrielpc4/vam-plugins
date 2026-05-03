@@ -1,4 +1,5 @@
 src/EasyMate.cs
+src/EasyMateKSceneCameraPatch.cs
 src/EasyMateEmotionPathKeywords.cs
 src/EasyMateGripHandVisibility.cs
 src/EasyMateMonitorModeLaserRestore.cs

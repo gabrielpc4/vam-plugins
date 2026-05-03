@@ -12,7 +12,7 @@ using SimpleJSON;
 
 namespace geesp0t
 {
-    // World-space HUD: Ctrl+Shift+S = toggle Spankings off / merge onto Persons missing it; Possess+Align+Select (F/M/P) merges Spankings onto other Persons missing it when at least one possessed hand on the target; F = freeze animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; E-Motion HUD column (Lite / Original / Final / remove all) swaps packs via TryReplaceEmotionFamilyWithExactPath; I = hide hands + closest Person head snap; P = Possess+Align+Select closest Person by head; O = unpossess all; C = cycle Female then Male Persons (uid), Edit + Selected Options + root control.
+    // World-space HUD: Ctrl+Shift+S = toggle Spankings off / merge onto Persons missing it; Possess+Align+Select (F/M/P) merges Spankings onto other Persons missing it when at least one possessed hand on the target; F = freeze animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR, else plain Y; K = write camera/rig patch request + run Python on current scene JSON (currentLoadDir); E-Motion HUD column (Lite / Original / Final / remove all) swaps packs via TryReplaceEmotionFamilyWithExactPath; I = hide hands + closest Person head snap; P = Possess+Align+Select closest Person by head; O = unpossess all; C = cycle Female then Male Persons (uid), Edit + Selected Options + root control.
     public class MainUIButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
@@ -180,6 +180,7 @@ namespace geesp0t
         /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD buttons on the <b>closest Person by head</b> to the look/center camera (not alphabetically first F/M).
         /// <b>C</b> (without Shift, Ctrl, or Alt) cycles visible Person atoms in order: all <b>female</b> then all <b>male</b> (by atom uid), switches to <b>Edit</b>, shows the main HUD, opens <b>Selected Options</b>, and selects each atom’s root <c>control</c> (or the first free controller if there is no <c>control</c>).
         /// <b>F</b> toggles VaM <b>Freeze animation</b> (same as the main HUD toggle).
+        /// <b>K</b> logs navigation rig / monitor peel / <c>WindowCamera</c> / <c>playerHeightAdjust</c> and runs <see cref="EasyMateKSceneCameraPatch"/> (Python patch of the main scene JSON under <see cref="SuperController.currentLoadDir"/>). Blocked when Ctrl/Alt is held (same gate as O/I/P).
         /// Skips while VaM is loading or a Unity UI text field has focus.
         /// </summary>
         public void ProcessHotkeysUpdate()
@@ -210,6 +211,20 @@ namespace geesp0t
             if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl) ||
                 Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
                 return;
+
+            if (Input.GetKeyDown(KeyCode.K))
+            {
+                try
+                {
+                    EasyMateKSceneCameraPatch.TryRunFromHotkey();
+                }
+                catch (Exception e)
+                {
+                    SuperController.LogError("K hotkey (patch scene JSON camera / rig): " + e);
+                }
+
+                return;
+            }
 
             if (Input.GetKeyDown(KeyCode.O))
             {

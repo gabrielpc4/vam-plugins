@@ -1045,6 +1045,11 @@ namespace geesp0t
             UIDynamicButton uiButton = button.GetComponent<UIDynamicButton>();
             uiButton.label = name;
             uiButton.buttonText.fontSize = 18;
+            if (uiButton.buttonText != null)
+            {
+                // Default prefab centers text vertically; top-align for multi-line
+                uiButton.buttonText.alignment = TextAnchor.UpperCenter;
+            }
             return uiButton;
         }
 

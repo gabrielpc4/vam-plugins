@@ -7,8 +7,8 @@ namespace geesp0t
 {
     /// <summary>
     /// VR: VaM Grab (= index trigger on Quest / Oculus Touch SteamVR) adds one
-    /// vanilla Dildo atom if none exist; LateUpdate keeps it aligned to that
-    /// hand. If XR runs without isOVR/isOpenVR, uses LT/RT index-trigger OVR
+    /// vanilla Dildo atom if none exist, placed once at the triggering-hand
+    /// pose. If XR runs without isOVR/isOpenVR, uses LT/RT index-trigger OVR
     /// presses as fallback.
     /// </summary>
     public class DildoOnHands : MVRScript
@@ -30,10 +30,6 @@ namespace geesp0t
         private JSONStorableFloat _localEulerYawDeg;
 
         private JSONStorableFloat _localEulerRollDeg;
-
-        private Atom _heldDildo;
-
-        private bool _followLeftHand;
 
         private bool _spawnCoroutineRunning;
 
@@ -87,17 +83,6 @@ namespace geesp0t
             }
         }
 
-        private static Atom ResolveHeldStillValid(Atom cand)
-        {
-            if (cand == null)
-                return null;
-            if (!cand.on || !cand.gameObject.activeInHierarchy)
-                return null;
-            if (cand.type != "Dildo")
-                return null;
-            return cand;
-        }
-
         private bool SceneHasAnyDildoAlready()
         {
             if (_sc == null)
@@ -139,7 +124,7 @@ namespace geesp0t
                 _localEulerRollDeg.val);
         }
 
-        private void AlignOneFrameToHand(Atom spawned, bool leftHand)
+        private void PlaceSpawnAtHand(Atom spawned, bool leftHand)
         {
             if (spawned == null || _sc == null)
                 return;
@@ -167,29 +152,12 @@ namespace geesp0t
             fc.transform.position = worldPos;
         }
 
-        private void LateUpdate()
-        {
-            Atom dildo = ResolveHeldStillValid(_heldDildo);
-            _heldDildo = dildo;
-            if (dildo == null)
-                return;
-            AlignOneFrameToHand(dildo, _followLeftHand);
-        }
-
         private void Update()
         {
             if (_listenEnabled == null || !_listenEnabled.val || _sc == null ||
                 _sc.isLoading || _spawnCoroutineRunning)
                 return;
 
-            Atom heldDup = ResolveHeldStillValid(_heldDildo);
-            if (heldDup != null)
-            {
-                _heldDildo = heldDup;
-                return;
-            }
-
-            _heldDildo = null;
             if (SceneHasAnyDildoAlready())
                 return;
 
@@ -255,18 +223,14 @@ namespace geesp0t
             else
                 pickLeft = true;
 
-            StartCoroutine(CoSpawnHeldDildo(pickLeft));
+            StartCoroutine(CoSpawnDildoAtHand(pickLeft));
         }
 
-        private IEnumerator CoSpawnHeldDildo(bool leftHandPreferred)
+        private IEnumerator CoSpawnDildoAtHand(bool leftHandPreferred)
         {
             _spawnCoroutineRunning = true;
             try
             {
-                Atom heldDup = ResolveHeldStillValid(_heldDildo);
-                if (heldDup != null)
-                    yield break;
-
                 if (SceneHasAnyDildoAlready())
                     yield break;
 
@@ -298,9 +262,7 @@ namespace geesp0t
                     yield break;
                 }
 
-                _followLeftHand = leftHandPreferred;
-                AlignOneFrameToHand(spawned, leftHandPreferred);
-                _heldDildo = spawned;
+                PlaceSpawnAtHand(spawned, leftHandPreferred);
             }
             finally
             {

@@ -233,7 +233,7 @@ namespace geesp0t
             HideLasers();
             if (_root != null)
             {
-                Object.Destroy(_root);
+                UnityEngine.Object.Destroy(_root);
                 _root = null;
             }
 

@@ -12,9 +12,9 @@ namespace geesp0t
     /// VR: left-hand Grab / index-trigger only spawns at the right hand so the
     /// right trigger stays normal grab. Clone mode restores toy storables from
     /// catalog JSON (colors, scale, joint/spring presets). Fallback uses AddAtomByType
-    /// plus optional extras. Mandatory first-session Dildo: max segment springs in JSON
-    /// (catalog path) plus very transparent diffuse; later spawns use catalog defaults.
-    /// Oculus uses OVR LTouch triggers when Oculus paths drive input.
+    /// plus optional extras. Mandatory first catalog Dildo still gets stiff segment springs
+    /// in JSON. Each spawn assigns a random diffuse; ToyBP butt plugs additionally set
+    /// materials Alpha Adjust to -0.5. Oculus OVR/OpenVR triggers as usual.
     /// </summary>
     public class DildoOnHands : MVRScript
     {
@@ -65,8 +65,6 @@ namespace geesp0t
         private JSONStorableFloat _tipExtraEulerRollDeg;
 
         private JSONStorableBool _spawnAtHandPivotOnly;
-
-        private JSONStorableFloat _mandatoryFirstDildoDiffuseAlpha;
 
         private JSONStorableString _extraToyAtomTypes;
 
@@ -215,16 +213,6 @@ namespace geesp0t
                     "Spawn exactly at hand (ignore offset sliders)",
                     true);
                 RegisterBool(_spawnAtHandPivotOnly);
-
-                _mandatoryFirstDildoDiffuseAlpha =
-                    new JSONStorableFloat(
-                        "Mandatory first Dildo diffuse alpha",
-                        0.12f,
-                        0.02f,
-                        1f,
-                        false);
-
-                RegisterFloat(_mandatoryFirstDildoDiffuseAlpha);
 
                 _extraToyAtomTypes = new JSONStorableString(
                     "Legacy fallback: extra atom types (one per line)",
@@ -887,32 +875,70 @@ namespace geesp0t
             fc.currentRotationState = FreeControllerV3.RotationState.On;
         }
 
+        private const string MATERIALS_STORE_ID = "materials";
+
         /// <remarks>
-        /// Uses <see cref="MaterialOptions.color1Alpha"/> plus a diffuse re-apply —
-        /// VaM binds alpha there (RGB from picker HSV separately).
+        /// VaM exposes this float on toy <see cref="MaterialOptions"/> as "Alpha Adjust"
+        /// (shader ~_AlphaAdjust); used for butt-plug transparency.
         /// </remarks>
-        private void TryApplyMandatoryFirstDildoDiffuseTransparency(Atom spawned)
+        private const string MATERIAL_FLOAT_ALPHA_ADJUST = "Alpha Adjust";
+
+        /// <remarks>User-requested butt-plug preset for see-through plugs.</remarks>
+        private const float ToyBpAlphaAdjustPreset = -0.5f;
+
+        private static Color RandomToyDiffuseRgb()
         {
-            MaterialOptions mats;
-            Color cDiffuse;
-            float a;
+            float hVal;
+            float sVal;
+            float vVal;
+            Color cRgb;
 
-            if (spawned == null || spawned.type != "Dildo")
+            hVal = UnityEngine.Random.Range(0f, 1f);
+            sVal = UnityEngine.Random.Range(0.49f, 1f);
+            vVal = UnityEngine.Random.Range(0.52f, 1f);
+
+            cRgb = HSVColorPicker.HSVToRGB(hVal, sVal, vVal);
+
+            return new Color(cRgb.r, cRgb.g, cRgb.b, 1f);
+        }
+
+        /// <summary>
+        /// After Restore/catalog JSON: replaces Diffuse Color (HSV-derived) once per spawn;
+        /// ToyBP also drives Alpha Adjust for transparency meshes.
+        /// </summary>
+        private static void ApplySpawnToyMaterialLook(Atom spawned)
+        {
+            MaterialOptions matsOpt;
+            JSONStorable jst;
+            Color cRand;
+
+            if (spawned == null)
                 return;
 
-            mats = spawned.GetStorableByID("materials") as MaterialOptions;
+            matsOpt =
+                spawned.GetStorableByID(MATERIALS_STORE_ID) as MaterialOptions;
 
-            if (mats == null)
+            if (matsOpt == null)
                 return;
 
-            a = (_mandatoryFirstDildoDiffuseAlpha != null)
-                ? _mandatoryFirstDildoDiffuseAlpha.val
-                : 0.12f;
+            cRand = RandomToyDiffuseRgb();
+            matsOpt.color1Alpha = 1f;
+            matsOpt.SetColor1(cRand);
 
-            mats.color1Alpha = a;
-            cDiffuse = mats.color1CurrentColor;
+            if (spawned.type != "ToyBP")
+                return;
 
-            mats.SetColor1(new Color(cDiffuse.r, cDiffuse.g, cDiffuse.b, 1f));
+            jst = matsOpt as JSONStorable;
+
+            if (jst == null)
+                return;
+
+            if (!jst.IsFloatJSONParam(MATERIAL_FLOAT_ALPHA_ADJUST))
+                return;
+
+            jst.SetFloatParamValue(
+                MATERIAL_FLOAT_ALPHA_ADJUST,
+                ToyBpAlphaAdjustPreset);
         }
 
         private void PlaceSpawnAtHand(Atom spawned, bool leftHand)
@@ -1100,12 +1126,6 @@ namespace geesp0t
                                 Atom spawned = svc.GetAtomByUid(uidCandidate);
                                 if (spawned != null)
                                 {
-                                    bool spawnWasMandatoryFirstDildo;
-
-                                    spawnWasMandatoryFirstDildo =
-                                        _waitingMandatoryFirstDildo &&
-                                        atomType == "Dildo";
-
                                     try
                                     {
                                         spawned.PreRestore();
@@ -1119,11 +1139,7 @@ namespace geesp0t
                                         _lastSceneToySourceId =
                                             tmpl.SceneAtomId;
 
-                                        if (spawnWasMandatoryFirstDildo)
-                                        {
-                                            TryApplyMandatoryFirstDildoDiffuseTransparency(
-                                                spawned);
-                                        }
+                                        ApplySpawnToyMaterialLook(spawned);
 
                                         PlaceSpawnAtHand(spawned, false);
 
@@ -1220,11 +1236,7 @@ namespace geesp0t
                 _lastToyAtomTypeSpawned = atomLegacy;
                 _lastSceneToySourceId = null;
 
-                if (consumedMandatory && atomLegacy == "Dildo")
-                {
-                    TryApplyMandatoryFirstDildoDiffuseTransparency(
-                        spawnedLegacy);
-                }
+                ApplySpawnToyMaterialLook(spawnedLegacy);
 
                 PlaceSpawnAtHand(spawnedLegacy, false);
             }

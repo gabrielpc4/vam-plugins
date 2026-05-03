@@ -646,13 +646,19 @@ namespace octopussy
                 return;
 
             voiceRand.playNow = playMoansHighPriority.val;
-            if (voiceRand.playRandomDelayedIfClear(headAudio.audioSource,
+            bool queued = voiceRand.playRandomDelayedIfClear(headAudio.audioSource,
                     volumeMultiplier,
                     0.1f,
-                    0.8f))
+                    0.8f);
+            if (queued)
             {
                 lastQueuedHeadMoanTime = now;
+                return;
             }
+
+            AudioSource hs = headAudio.audioSource;
+            if (hs != null && hs.isPlaying && !playMoansHighPriority.val)
+                lastQueuedHeadMoanTime = now;
         }
 
         void spankTrigger()

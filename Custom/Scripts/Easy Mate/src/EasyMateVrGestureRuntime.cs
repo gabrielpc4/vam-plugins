@@ -136,8 +136,6 @@ namespace geesp0t
         /// </summary>
         private static class DualHandHmdRelativeEulerPossessClosestFemale
         {
-            private const string LogPrefix = "Easy Mate VR hand euler:";
-
             private const float DwellSeconds = 3f;
             private const float CooldownSeconds = 10f;
 
@@ -148,12 +146,6 @@ namespace geesp0t
             /// (stops re-trigger while holding through cooldown).
             /// </summary>
             private static bool _dwellArmed = true;
-            private static bool _prevBothHandsPose;
-            /// <summary>
-            /// One log per cooldown-wait episode while holding pose, not each
-            /// frame.
-            /// </summary>
-            private static bool _loggedCooldownSkipThisCycle;
 
             public static void ProcessUpdate(Action boundAction)
             {
@@ -189,27 +181,10 @@ namespace geesp0t
                     EasyMateVrEulerPossessPoseCheck.RightMatches(rightEuler);
                 bool poseOk = leftOk && rightOk;
 
-                if (poseOk != _prevBothHandsPose)
-                {
-                    if (poseOk)
-                    {
-                        SuperController.LogMessage(
-                            LogPrefix + " both-hands pose ON (dwell if armed).");
-                    }
-                    else
-                    {
-                        SuperController.LogMessage(
-                            LogPrefix + " both-hands pose OFF; dwell cleared, re-armed.");
-                    }
-
-                    _prevBothHandsPose = poseOk;
-                }
-
                 if (EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed())
                 {
                     _dwellAccumUnscaled = 0f;
                     _dwellArmed = true;
-                    _loggedCooldownSkipThisCycle = false;
                     return;
                 }
 
@@ -217,7 +192,6 @@ namespace geesp0t
                 {
                     _dwellAccumUnscaled = 0f;
                     _dwellArmed = true;
-                    _loggedCooldownSkipThisCycle = false;
                     return;
                 }
 
@@ -234,25 +208,7 @@ namespace geesp0t
                     return;
 
                 if (now - _lastTriggerUnscaledTime < CooldownSeconds)
-                {
-                    if (!_loggedCooldownSkipThisCycle)
-                    {
-                        SuperController.LogMessage(
-                            LogPrefix + " dwell done but cooldown active (" +
-                            CooldownSeconds.ToString("F0") + "s).");
-                        _loggedCooldownSkipThisCycle = true;
-                    }
-
                     return;
-                }
-
-                _loggedCooldownSkipThisCycle = false;
-                SuperController.LogMessage(
-                    LogPrefix + " TRIGGER possess closest female; eulerRelHMD L " +
-                    EasyMateVrEulerPossessPoseCheck.FormatEuler(leftEuler) +
-                    " R " +
-                    EasyMateVrEulerPossessPoseCheck.FormatEuler(rightEuler) +
-                    ". Exit pose once before another dwell.");
 
                 boundAction();
                 _lastTriggerUnscaledTime = now;

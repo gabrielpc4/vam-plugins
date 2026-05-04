@@ -1624,6 +1624,29 @@ namespace geesp0t
             return left ? sc.leftHand : sc.rightHand;
         }
 
+        private static Vector3 GetPassengerHeadTargetWorldPosition(
+            FreeControllerV3 head)
+        {
+            if (head != null && head.containingAtom != null)
+            {
+                List<Rigidbody> bodies = head.containingAtom.linkableRigidbodies;
+                if (bodies != null)
+                {
+                    foreach (Rigidbody rb in bodies)
+                    {
+                        if (rb != null && rb.name == "head")
+                            return rb.position;
+                    }
+                }
+            }
+
+            if (head != null && head.followWhenOff != null)
+                return head.followWhenOff.position;
+            if (head != null && head.possessPoint != null)
+                return head.possessPoint.position;
+            return head != null ? head.control.position : Vector3.zero;
+        }
+
         private static bool TryPrepareHeadForPossessAndAlign(SuperController sc, FreeControllerV3 head, out string error)
         {
             error = null;
@@ -1658,12 +1681,10 @@ namespace geesp0t
                     navigationRig.rotation = q * navigationRig.rotation;
                 }
 
-                // Match Passenger: move the rig to the head, not the head to
-                // the HMD. Use the untouched head pose to compute the rig
-                // delta, then bind possession directly without another
-                // PossessMoveAndAlignTo warp.
-                Vector3 possessAnchor = head.possessPoint != null ? head.possessPoint.position : head.control.position;
-                Vector3 delta = possessAnchor - possessor.autoSnapPoint.position;
+                // Match Passenger's default "head" target when available so
+                // the HMD lands where Passenger would place it.
+                Vector3 headTarget = GetPassengerHeadTargetWorldPosition(head);
+                Vector3 delta = headTarget - possessor.autoSnapPoint.position;
                 Vector3 targetRigPos = navigationRig.position + delta;
                 float verticalDelta = Vector3.Dot(targetRigPos - navigationRig.position, up);
                 targetRigPos += up * (0f - verticalDelta);

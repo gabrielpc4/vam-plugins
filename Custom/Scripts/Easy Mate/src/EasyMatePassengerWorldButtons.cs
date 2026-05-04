@@ -994,9 +994,24 @@ namespace geesp0t
 
             Quaternion neutralRotation =
                 GetPassengerNeutralHeadControlRotation(headControl);
-            return Quaternion.Angle(
-                headControl.control.rotation,
-                neutralRotation) <= HeadNeutralizeAngleToleranceDegrees;
+            Vector3 currentEulerAngles =
+                headControl.control.rotation.eulerAngles;
+            Vector3 targetEulerAngles =
+                neutralRotation.eulerAngles;
+
+            float xDeltaDegrees = Mathf.Abs(
+                NormalizeSignedEulerAngle(
+                    currentEulerAngles.x - targetEulerAngles.x));
+            float yDeltaDegrees = Mathf.Abs(
+                NormalizeSignedEulerAngle(
+                    currentEulerAngles.y - targetEulerAngles.y));
+            float zDeltaDegrees = Mathf.Abs(
+                NormalizeSignedEulerAngle(
+                    currentEulerAngles.z - targetEulerAngles.z));
+
+            return xDeltaDegrees <= HeadNeutralizeAngleToleranceDegrees &&
+                yDeltaDegrees <= HeadNeutralizeAngleToleranceDegrees &&
+                zDeltaDegrees <= HeadNeutralizeAngleToleranceDegrees;
         }
 
         private static Quaternion GetPassengerNeutralHeadControlRotation(

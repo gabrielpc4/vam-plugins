@@ -24,6 +24,8 @@ namespace geesp0t
         private const float PositionSmoothingSeconds = 0.05345887f;
         private const float PositionOffsetZMeters = 0.1149023f;
         private const float PendingActivationTimeoutSeconds = 3f;
+        private const int InitialHeadNeutralizeFrames = 2;
+        private const float HeadNeutralizeAngleToleranceDegrees = 1.5f;
 
         private const float PalmHudHideSecondsAfterHandsPossessTrigger = 5f;
 
@@ -47,6 +49,8 @@ namespace geesp0t
             -1f;
 
         private static bool _passengerVrHandsPossessionStartedThisSession;
+        private static bool _waitingForInitialTeleportAfterHeadNeutralize;
+        private static int _initialHeadNeutralizeFramesRemaining;
 
         public static bool IsFemalePassengerModeActiveOrPending()
         {
@@ -242,6 +246,8 @@ namespace geesp0t
                 _possessor = null;
                 _currentRotationVelocity = Quaternion.identity;
                 _currentPositionVelocity = Vector3.zero;
+                _waitingForInitialTeleportAfterHeadNeutralize = false;
+                _initialHeadNeutralizeFramesRemaining = 0;
             }
         }
 
@@ -365,8 +371,13 @@ namespace geesp0t
             _currentPositionVelocity = Vector3.zero;
             _isFemalePassengerModeActive = true;
             _passengerVrHandsPossessionStartedThisSession = false;
+            _waitingForInitialTeleportAfterHeadNeutralize = true;
+            _initialHeadNeutralizeFramesRemaining =
+                InitialHeadNeutralizeFrames;
 
-            ApplyPassengerPose(superController, true);
+            FreeControllerV3 headControl =
+                femalePerson.GetStorableByID("headControl") as FreeControllerV3;
+            ForcePassengerHeadControlNeutralRotation(headControl);
 
             SuperController.LogMessage(
                 "Easy Mate Be the girl: press any VR grip or trigger to possess the model's hands.");
@@ -409,11 +420,33 @@ namespace geesp0t
                 return;
             }
 
+            bool initialTeleportCompletedThisTurn = false;
+            if (_waitingForInitialTeleportAfterHeadNeutralize)
+            {
+                ForcePassengerHeadControlNeutralRotation(headControl);
+
+                if (_initialHeadNeutralizeFramesRemaining > 0)
+                {
+                    _initialHeadNeutralizeFramesRemaining--;
+                    return;
+                }
+
+                if (!IsPassengerHeadControlNeutralized(headControl))
+                {
+                    return;
+                }
+
+                ApplyPassengerPose(superController, true);
+                _waitingForInitialTeleportAfterHeadNeutralize = false;
+                initialTeleportCompletedThisTurn = true;
+            }
+
             TryStartPassengerVrHandsFromUserPress(superController);
 
             try
             {
-                ApplyPassengerPose(superController, false);
+                if (!initialTeleportCompletedThisTurn)
+                    ApplyPassengerPose(superController, false);
                 ApplyPassengerHeadRotationFollow(superController, headControl);
             }
             catch (Exception exception)
@@ -916,6 +949,46 @@ namespace geesp0t
                 vector.x,
                 vector.y,
                 vector.z);
+        }
+
+        private static float NormalizePassengerHeadLocalAngle(float angleDegrees)
+        {
+            if (angleDegrees > 180f)
+                return angleDegrees - 360f;
+
+            return angleDegrees;
+        }
+
+        private static void ForcePassengerHeadControlNeutralRotation(
+            FreeControllerV3 headControl)
+        {
+            if (headControl == null || headControl.control == null)
+                return;
+
+            headControl.currentRotationState = FreeControllerV3.RotationState.On;
+            headControl.control.localRotation = Quaternion.identity;
+
+            if (headControl.followWhenOff != null)
+                headControl.followWhenOff.localRotation = Quaternion.identity;
+        }
+
+        private static bool IsPassengerHeadControlNeutralized(
+            FreeControllerV3 headControl)
+        {
+            if (headControl == null || headControl.control == null)
+                return false;
+
+            Vector3 localEulerAngles = headControl.control.localEulerAngles;
+            float xAngleDegrees = Mathf.Abs(
+                NormalizePassengerHeadLocalAngle(localEulerAngles.x));
+            float yAngleDegrees = Mathf.Abs(
+                NormalizePassengerHeadLocalAngle(localEulerAngles.y));
+            float zAngleDegrees = Mathf.Abs(
+                NormalizePassengerHeadLocalAngle(localEulerAngles.z));
+
+            return xAngleDegrees <= HeadNeutralizeAngleToleranceDegrees &&
+                yAngleDegrees <= HeadNeutralizeAngleToleranceDegrees &&
+                zAngleDegrees <= HeadNeutralizeAngleToleranceDegrees;
         }
 
         private static Vector3 GetPassengerNeutralForward(

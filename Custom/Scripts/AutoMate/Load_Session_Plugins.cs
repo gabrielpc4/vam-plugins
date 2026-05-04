@@ -15,10 +15,10 @@ namespace geesp0t
         // Add the Load_Session_Plugins.cs (or ADD_ME_TO_ATOM_IN_DEFAULT_JSON_SCENE.cslist) to one atom in your default.json scene
 
         // Add all sessions plugins you want to load here
-        // Add all person plugins you want to load in PersonSessionPlugins.cslist
+        // Add all person plugins you want to load in SESSION_PLUGINS/Auto_Load_Person_Plugins.cslist
 
         string[] sessionPlugins = new string[] {
-            "Custom/Scripts/AutoMate/PersonSessionPlugins.cslist",
+            "Custom/Scripts/AutoMate/SESSION_PLUGINS/Auto_Load_Person_Plugins.cslist",
         };
 
         string[] desktopSessionPlugins = new string[] {

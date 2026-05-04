@@ -443,12 +443,11 @@ namespace geesp0t
                 navigationRig.rotation;
             Vector3 navigationRigPositionBefore =
                 navigationRig.position;
+            string desiredHeadRotationSourceName;
             Quaternion desiredHeadRotation =
-                _femalePassengerHeadRigidbody.transform.rotation;
-            desiredHeadRotation *= Quaternion.Euler(
-                RotationOffsetXDegrees,
-                0f,
-                0f);
+                BuildPassengerDesiredHeadRotation(
+                    navigationRig.up,
+                    out desiredHeadRotationSourceName);
             Quaternion navigationRigRotation = desiredHeadRotation;
             Quaternion headRotationDelta = Quaternion.identity;
             if (activeThisTurn)
@@ -514,6 +513,8 @@ namespace geesp0t
                     FormatEulerForDebug(navigationRigRotationBefore) +
                     " desiredHeadRot=" +
                     FormatEulerForDebug(desiredHeadRotation) +
+                    " desiredHeadRotSource=" +
+                    desiredHeadRotationSourceName +
                     " headDelta=" +
                     FormatEulerForDebug(headRotationDelta) +
                     " rigAfter=" +
@@ -915,6 +916,84 @@ namespace geesp0t
                 vector.x,
                 vector.y,
                 vector.z);
+        }
+
+        private static Vector3 GetPassengerNeutralForward(
+            Vector3 upAxis,
+            out string sourceName)
+        {
+            sourceName = "none";
+            Vector3 neutralForward = Vector3.zero;
+
+            if (_femalePassengerTargetPerson != null)
+            {
+                neutralForward = Vector3.ProjectOnPlane(
+                    _femalePassengerTargetPerson.transform.forward,
+                    upAxis);
+                if (neutralForward.sqrMagnitude >= 1e-10f)
+                    sourceName = "person.transform.forward";
+
+                if (neutralForward.sqrMagnitude < 1e-10f)
+                {
+                    FreeControllerV3 chest =
+                        _femalePassengerTargetPerson.GetStorableByID(
+                            "chestControl") as FreeControllerV3;
+                    if (chest != null && chest.control != null)
+                    {
+                        neutralForward = Vector3.ProjectOnPlane(
+                            chest.control.forward,
+                            upAxis);
+                        if (neutralForward.sqrMagnitude >= 1e-10f)
+                            sourceName = "chestControl.forward";
+                    }
+                }
+            }
+
+            if (neutralForward.sqrMagnitude < 1e-10f &&
+                _femalePassengerHeadRigidbody != null)
+            {
+                neutralForward = Vector3.ProjectOnPlane(
+                    _femalePassengerHeadRigidbody.transform.forward,
+                    upAxis);
+                if (neutralForward.sqrMagnitude >= 1e-10f)
+                    sourceName = "headRigidbody.forward";
+            }
+
+            return neutralForward;
+        }
+
+        private static Quaternion BuildPassengerDesiredHeadRotation(
+            Vector3 upAxis,
+            out string sourceName)
+        {
+            sourceName = "none";
+            if (_femalePassengerHeadRigidbody == null)
+                return Quaternion.identity;
+
+            Quaternion headRotationWithOffset =
+                _femalePassengerHeadRigidbody.transform.rotation *
+                Quaternion.Euler(
+                    RotationOffsetXDegrees,
+                    0f,
+                    0f);
+            float pitchDegrees = NormalizeSignedEulerAngle(
+                headRotationWithOffset.eulerAngles.x);
+
+            Vector3 neutralForward = GetPassengerNeutralForward(
+                upAxis,
+                out sourceName);
+            if (neutralForward.sqrMagnitude < 1e-10f)
+                return headRotationWithOffset;
+
+            neutralForward.Normalize();
+
+            Quaternion neutralRotation = Quaternion.LookRotation(
+                neutralForward,
+                upAxis);
+            return neutralRotation * Quaternion.Euler(
+                pitchDegrees,
+                0f,
+                0f);
         }
 
         private static Quaternion KeepOnlyDownwardPitch(

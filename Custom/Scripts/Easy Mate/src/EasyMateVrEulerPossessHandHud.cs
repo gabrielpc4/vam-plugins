@@ -11,7 +11,9 @@ namespace geesp0t
     /// <b>Próxima cena</b>. With at least one Person, <b>Possuir</b> opens
     /// <b>Mulher</b> (top, Quest face <b>B</b>) and <b>Homem</b> (bottom,
     /// <b>A</b>) — Unity often sends no laser hits to this palm canvas, so
-    /// those face buttons run the actions. VaM menu shortcut still dismisses
+    /// face buttons are polled (OVR <c>RTouch</c>; OpenVR Menu / Select).
+    /// The whole HUD, including this row, only shows while the right-hand
+    /// euler window matches. VaM menu shortcut still dismisses
     /// the main UI into this step when a Person exists. Leaving the palm pose
     /// closes the HUD (no third “back” button). Billboard faces the HMD.
     /// </summary>
@@ -85,8 +87,7 @@ namespace geesp0t
                 return;
             }
 
-            if (!_genderChooseStepActive &&
-                !EasyMateVrEulerPossessPoseCheck.RightHandOnlyMatchTriggerWindow(sc))
+            if (!EasyMateVrEulerPossessPoseCheck.RightHandOnlyMatchTriggerWindow(sc))
             {
                 SetVisible(false);
                 return;
@@ -151,10 +152,8 @@ namespace geesp0t
 
             if (_genderChooseStepActive && !possessed)
             {
-                bool mulherB =
-                    EasyMateVrInput.PollRightTouchSecondaryFaceButtonDown(sc);
-                bool homemA =
-                    EasyMateVrInput.PollRightTouchPrimaryFaceButtonDown(sc);
+                bool mulherB = EasyMateVrInput.PollPalmHudMulherChoiceDown(sc);
+                bool homemA = EasyMateVrInput.PollPalmHudHomemChoiceDown(sc);
                 if (mulherB && homemA)
                     InvokeGenderMulherChoice();
                 else if (mulherB)
@@ -228,6 +227,7 @@ namespace geesp0t
 
         private static void InvokeGenderMulherChoice()
         {
+            DismissVaMOverlayUiIfAny();
             MainUIButtons.RequestPossessVrPalmHudByGender(true);
             _genderChooseStepActive = false;
             RefreshGenderVersusMainRows(
@@ -236,10 +236,18 @@ namespace geesp0t
 
         private static void InvokeGenderHomemChoice()
         {
+            DismissVaMOverlayUiIfAny();
             MainUIButtons.RequestPossessVrPalmHudByGender(false);
             _genderChooseStepActive = false;
             RefreshGenderVersusMainRows(
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
+        }
+
+        private static void DismissVaMOverlayUiIfAny()
+        {
+            SuperController sc = SuperController.singleton;
+            if (sc != null)
+                sc.activeUI = SuperController.ActiveUI.None;
         }
 
         private static Sprite WhiteSprite()

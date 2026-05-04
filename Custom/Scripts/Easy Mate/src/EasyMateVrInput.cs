@@ -58,55 +58,47 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Quest / Link RTouch face <b>A</b> (primary). Unity UI on the
-        /// palm HUD often gets no pointer rays; this drives <b>Homem</b>.
+        /// Palm HUD <b>Mulher (B)</b>: OVR <c>RTouch</c> face B only
+        /// (avoids left-hand Y); OpenVR uses
+        /// <see cref="SuperController.GetMenuShow"/> (SteamVR Menu binding,
+        /// often right B — may fire for either hand depending on bindings).
         /// </summary>
-        public static bool PollRightTouchPrimaryFaceButtonDown(SuperController sc)
+        public static bool PollPalmHudMulherChoiceDown(SuperController sc)
         {
-            if (sc == null || !ShouldPollOculusStyleRightFaceButtons(sc))
+            if (sc == null)
                 return false;
-            try
-            {
-                return OVRInput.GetDown(
-                    OVRInput.Button.One,
-                    OVRInput.Controller.RTouch);
-            }
-            catch
-            {
-                return false;
-            }
+            if (sc.isOVR)
+                return TryOvrRightTouchButtonDown(OVRInput.Button.Two);
+            if (sc.isOpenVR)
+                return sc.GetMenuShow();
+            if (XrHeadsetLikelyOn(sc))
+                return TryOvrRightTouchButtonDown(OVRInput.Button.Two);
+            return false;
         }
 
         /// <summary>
-        /// Quest / Link RTouch face <b>B</b> (secondary). Drives
-        /// <b>Mulher</b> on the palm gender row (VaM menu uses system
-        /// handling; avoid relying on this when the main menu is open).
+        /// Palm HUD <b>Homem (A)</b>: OVR <c>RTouch</c> face A only; OpenVR
+        /// uses <see cref="SuperController.GetRightSelect"/> (SteamVR
+        /// Select on the right hand).
         /// </summary>
-        public static bool PollRightTouchSecondaryFaceButtonDown(SuperController sc)
+        public static bool PollPalmHudHomemChoiceDown(SuperController sc)
         {
-            if (sc == null || !ShouldPollOculusStyleRightFaceButtons(sc))
+            if (sc == null)
                 return false;
-            try
-            {
-                return OVRInput.GetDown(
-                    OVRInput.Button.Two,
-                    OVRInput.Controller.RTouch);
-            }
-            catch
-            {
-                return false;
-            }
+            if (sc.isOVR)
+                return TryOvrRightTouchButtonDown(OVRInput.Button.One);
+            if (sc.isOpenVR)
+                return sc.GetRightSelect();
+            if (XrHeadsetLikelyOn(sc))
+                return TryOvrRightTouchButtonDown(OVRInput.Button.One);
+            return false;
         }
 
-        private static bool ShouldPollOculusStyleRightFaceButtons(SuperController sc)
+        private static bool TryOvrRightTouchButtonDown(OVRInput.Button button)
         {
-            if (sc.isOVR)
-                return true;
-            if (!XrHeadsetLikelyOn(sc))
-                return false;
             try
             {
-                return OVRInput.IsControllerConnected(OVRInput.Controller.RTouch);
+                return OVRInput.GetDown(button, OVRInput.Controller.RTouch);
             }
             catch
             {

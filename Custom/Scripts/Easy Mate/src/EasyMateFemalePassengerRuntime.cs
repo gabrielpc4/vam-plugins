@@ -1020,16 +1020,11 @@ namespace geesp0t
                 NormalizeSignedEulerAngle(
                     currentEulerAngles.z - targetEulerAngles.z));
 
-            Vector3 upAxis = headControl.GetUpPossessAxis();
-            if (upAxis.sqrMagnitude < 1e-10f)
-                upAxis = headControl.control.up;
-            if (upAxis.sqrMagnitude < 1e-10f)
-                upAxis = Vector3.up;
-            upAxis.Normalize();
-
             string sourceName;
+            Vector3 upAxis;
             Vector3 neutralForward = GetPassengerNeutralForward(
-                upAxis,
+                headControl,
+                out upAxis,
                 out sourceName);
 
             SuperController.LogMessage(
@@ -1093,20 +1088,19 @@ namespace geesp0t
         private static Quaternion GetPassengerNeutralHeadControlRotation(
             FreeControllerV3 headControl)
         {
-            Vector3 upAxis = headControl.GetUpPossessAxis();
-            if (upAxis.sqrMagnitude < 1e-10f)
-                upAxis = headControl.control.up;
-            if (upAxis.sqrMagnitude < 1e-10f)
-                upAxis = Vector3.up;
-            upAxis.Normalize();
-
             string sourceName;
+            Vector3 upAxis;
             Vector3 neutralForward = GetPassengerNeutralForward(
-                upAxis,
+                headControl,
+                out upAxis,
                 out sourceName);
             if (neutralForward.sqrMagnitude < 1e-10f)
                 neutralForward = Vector3.ProjectOnPlane(
                     headControl.control.forward,
+                    upAxis);
+            if (neutralForward.sqrMagnitude < 1e-10f)
+                neutralForward = Vector3.ProjectOnPlane(
+                    Vector3.forward,
                     upAxis);
             if (neutralForward.sqrMagnitude < 1e-10f)
                 neutralForward = Vector3.forward;
@@ -1132,10 +1126,12 @@ namespace geesp0t
         }
 
         private static Vector3 GetPassengerNeutralForward(
-            Vector3 upAxis,
+            FreeControllerV3 headControl,
+            out Vector3 upAxis,
             out string sourceName)
         {
             sourceName = "none";
+            upAxis = Vector3.up;
             Vector3 neutralForward = Vector3.zero;
 
             if (_femalePassengerTargetPerson != null)
@@ -1145,6 +1141,10 @@ namespace geesp0t
                         "chestControl") as FreeControllerV3;
                 if (chest != null && chest.control != null)
                 {
+                    upAxis = chest.control.up;
+                    if (upAxis.sqrMagnitude < 1e-10f)
+                        upAxis = Vector3.up;
+                    upAxis.Normalize();
                     neutralForward = Vector3.ProjectOnPlane(
                         chest.control.forward,
                         upAxis);
@@ -1159,6 +1159,10 @@ namespace geesp0t
                             "pelvisControl") as FreeControllerV3;
                     if (pelvis != null && pelvis.control != null)
                     {
+                        upAxis = pelvis.control.up;
+                        if (upAxis.sqrMagnitude < 1e-10f)
+                            upAxis = Vector3.up;
+                        upAxis.Normalize();
                         neutralForward = Vector3.ProjectOnPlane(
                             pelvis.control.forward,
                             upAxis);
@@ -1174,6 +1178,10 @@ namespace geesp0t
                             "abdomenControl") as FreeControllerV3;
                     if (abdomen != null && abdomen.control != null)
                     {
+                        upAxis = abdomen.control.up;
+                        if (upAxis.sqrMagnitude < 1e-10f)
+                            upAxis = Vector3.up;
+                        upAxis.Normalize();
                         neutralForward = Vector3.ProjectOnPlane(
                             abdomen.control.forward,
                             upAxis);
@@ -1184,6 +1192,10 @@ namespace geesp0t
 
                 if (neutralForward.sqrMagnitude < 1e-10f)
                 {
+                    upAxis = _femalePassengerTargetPerson.transform.up;
+                    if (upAxis.sqrMagnitude < 1e-10f)
+                        upAxis = Vector3.up;
+                    upAxis.Normalize();
                     neutralForward = Vector3.ProjectOnPlane(
                         _femalePassengerTargetPerson.transform.forward,
                         upAxis);
@@ -1195,11 +1207,24 @@ namespace geesp0t
             if (neutralForward.sqrMagnitude < 1e-10f &&
                 _femalePassengerHeadRigidbody != null)
             {
+                upAxis = _femalePassengerHeadRigidbody.transform.up;
+                if (upAxis.sqrMagnitude < 1e-10f)
+                    upAxis = Vector3.up;
+                upAxis.Normalize();
                 neutralForward = Vector3.ProjectOnPlane(
                     _femalePassengerHeadRigidbody.transform.forward,
                     upAxis);
                 if (neutralForward.sqrMagnitude >= 1e-10f)
                     sourceName = "headRigidbody.forward";
+            }
+
+            if (neutralForward.sqrMagnitude < 1e-10f &&
+                headControl != null && headControl.control != null)
+            {
+                upAxis = headControl.control.up;
+                if (upAxis.sqrMagnitude < 1e-10f)
+                    upAxis = Vector3.up;
+                upAxis.Normalize();
             }
 
             return neutralForward;

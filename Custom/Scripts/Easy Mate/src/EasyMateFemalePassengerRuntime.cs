@@ -462,15 +462,6 @@ namespace geesp0t
                     rotationEulerAngles.y,
                     0f);
 
-                if (RotationSmoothingSeconds > 0f)
-                {
-                    navigationRigRotation = SmoothDamp(
-                        navigationRig.rotation,
-                        navigationRigRotation,
-                        ref _currentRotationVelocity,
-                        RotationSmoothingSeconds);
-                }
-
                 navigationRig.rotation = navigationRigRotation;
 
                 SuperController.LogMessage(

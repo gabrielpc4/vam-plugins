@@ -1630,7 +1630,7 @@ namespace geesp0t
         {
             if (head != null && head.containingAtom != null)
             {
-                List<Rigidbody> bodies = head.containingAtom.linkableRigidbodies;
+                Rigidbody[] bodies = head.containingAtom.linkableRigidbodies;
                 if (bodies != null)
                 {
                     foreach (Rigidbody rb in bodies)

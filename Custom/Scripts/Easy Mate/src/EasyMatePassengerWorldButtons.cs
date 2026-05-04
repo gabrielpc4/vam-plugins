@@ -452,6 +452,10 @@ namespace geesp0t
 
                 navigationRig.position = positionOffset;
 
+                ApplyPassengerFirstSnapLateralCenter(
+                    superController,
+                    motionControllerHead);
+
                 SuperController.LogMessage(
                     "EasyMate DEBUG passenger buttons first teleport: " +
                     "person=" +
@@ -512,6 +516,64 @@ namespace geesp0t
 
                 navigationRig.position = positionOffset;
             }
+        }
+
+        /// <summary>
+        /// First snap: shift the rig along the person&apos;s left-right axis so the
+        /// HMD sits on the torso midline (sagittal plane through chest/pelvis).
+        /// </summary>
+        private static void ApplyPassengerFirstSnapLateralCenter(
+            SuperController superController,
+            Transform motionControllerHead)
+        {
+            if (superController == null || motionControllerHead == null ||
+                _femalePassengerTargetPerson == null)
+            {
+                return;
+            }
+
+            Transform navigationRig = superController.navigationRig;
+            if (navigationRig == null)
+            {
+                return;
+            }
+
+            FreeControllerV3 torso =
+                _femalePassengerTargetPerson.GetStorableByID("chestControl") as FreeControllerV3;
+            if (torso == null || torso.control == null)
+            {
+                torso =
+                    _femalePassengerTargetPerson.GetStorableByID("pelvisControl") as FreeControllerV3;
+            }
+            if (torso == null || torso.control == null)
+            {
+                torso =
+                    _femalePassengerTargetPerson.GetStorableByID("abdomenControl") as FreeControllerV3;
+            }
+            if (torso == null || torso.control == null)
+            {
+                return;
+            }
+
+            Vector3 up = navigationRig.up;
+            if (up.sqrMagnitude < 1e-12f)
+            {
+                up = Vector3.up;
+            }
+            up.Normalize();
+
+            Vector3 lateralAxis = Vector3.ProjectOnPlane(torso.control.right, up);
+            if (lateralAxis.sqrMagnitude < 1e-10f)
+            {
+                return;
+            }
+            lateralAxis.Normalize();
+
+            Vector3 midReference = torso.control.position;
+            Vector3 hmdWorld = motionControllerHead.position;
+            float lateralSigned = Vector3.Dot(hmdWorld - midReference, lateralAxis);
+            Vector3 correction = -lateralSigned * lateralAxis;
+            navigationRig.position += correction;
         }
 
         private static void ApplyPassengerHeadRotationFollow(

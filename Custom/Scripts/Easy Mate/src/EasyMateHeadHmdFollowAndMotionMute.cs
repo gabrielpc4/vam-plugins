@@ -9,7 +9,7 @@ namespace geesp0t
     /// (<c>suspendRotationPlayback</c>). We do <b>not</b>
     /// overwrite head world rotation each LateUpdate: doing so broke possess snap /
     /// horizontal yaw alignment, fought ImprovedPoV eye offsets, and dropped the
-    /// comfortable body / neck behavior. Timeline/MAC susp.is still enforced here.
+    /// comfortable body / neck behavior. Timeline/MAC suspension is still enforced here.
     /// Passenger pre-possess still calls
     /// <see cref="ApplyCenterEyeWorldRotationToHead"/> explicitly.
     /// </summary>

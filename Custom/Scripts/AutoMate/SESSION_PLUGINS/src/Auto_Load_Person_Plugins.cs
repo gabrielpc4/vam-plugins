@@ -63,14 +63,14 @@ namespace geesp0t
         private bool isLoading = true;
         private float loadingTimeCounter = 0;
 
-        private sealed class SceneLightIntensityBackupEntry
+        private sealed class SceneLightAtomBackupEntry
         {
-            public Light sceneLight;
-            public float savedIntensity;
+            public string atomUid;
+            public bool savedOn;
         }
 
-        private readonly List<SceneLightIntensityBackupEntry> sceneLightIntensityBackupList = new List<SceneLightIntensityBackupEntry>();
-        private bool sceneLightIntensityBackupActive = false;
+        private readonly List<SceneLightAtomBackupEntry> sceneLightAtomBackupList = new List<SceneLightAtomBackupEntry>();
+        private bool sceneLightAtomBackupActive = false;
         private bool wasSuperControllerLoading = false;
 
         private const float sceneLightRestoreDelayAfterLoadSeconds = 30f;
@@ -851,34 +851,34 @@ namespace geesp0t
 
             if (superControllerLoading != wasSuperControllerLoading)
             {
-                LightIntensityDebugLog(string.Format("SuperController.isLoading {0} -> {1}", wasSuperControllerLoading, superControllerLoading));
+                LightAtomDebugLog(string.Format("SuperController.isLoading {0} -> {1}", wasSuperControllerLoading, superControllerLoading));
             }
 
             if (superControllerLoading && !wasSuperControllerLoading)
             {
                 try
                 {
-                    BackupSceneLightsAndZeroIntensity();
+                    BackupLightAtomsForSceneLoad();
                 }
                 catch (Exception lightsBackupException)
                 {
-                    SuperController.LogError("[Auto_Load_Person_Plugins] BackupSceneLightsAndZeroIntensity failed: " + lightsBackupException);
+                    SuperController.LogError("[Auto_Load_Person_Plugins] BackupLightAtomsForSceneLoad failed: " + lightsBackupException);
                 }
             }
 
             if (!superControllerLoading && wasSuperControllerLoading)
             {
-                LightIntensityDebugLog("Scene load finished (SuperController.isLoading became false).");
+                LightAtomDebugLog("Scene load finished (SuperController.isLoading became false).");
 
-                if (sceneLightIntensityBackupActive)
+                if (sceneLightAtomBackupActive)
                 {
-                    LightIntensityDebugLog(string.Format("Light restore scheduled in {0} seconds (realtime).", sceneLightRestoreDelayAfterLoadSeconds));
+                    LightAtomDebugLog(string.Format("Light atom restore scheduled in {0} seconds (realtime).", sceneLightRestoreDelayAfterLoadSeconds));
                     sceneLightRestoreDelayedPending = true;
                     sceneLightRestoreDueRealtime = Time.realtimeSinceStartup + sceneLightRestoreDelayAfterLoadSeconds;
                 }
                 else
                 {
-                    LightIntensityDebugLog("No light backup is active; delayed restore not scheduled.");
+                    LightAtomDebugLog("No light atom backup is active; delayed restore not scheduled.");
                 }
             }
 
@@ -886,12 +886,12 @@ namespace geesp0t
             {
                 try
                 {
-                    LightIntensityDebugLog("Running delayed RestoreSceneLightsFromBackup.");
-                    RestoreSceneLightsFromBackup();
+                    LightAtomDebugLog("Running delayed RestoreLightAtomsFromBackup.");
+                    RestoreLightAtomsFromBackup();
                 }
                 catch (Exception lightsRestoreException)
                 {
-                    SuperController.LogError("[Auto_Load_Person_Plugins] RestoreSceneLightsFromBackup (delayed after scene load) failed: " + lightsRestoreException);
+                    SuperController.LogError("[Auto_Load_Person_Plugins] RestoreLightAtomsFromBackup (delayed after scene load) failed: " + lightsRestoreException);
                 }
             }
 
@@ -918,7 +918,7 @@ namespace geesp0t
             // in the first block so the second "if (sceneChanged && ...)" never ran (silent skip after scene load).
             if (sceneChanged && !SuperController.singleton.isLoading)
             {
-                LightIntensityDebugLog("Session plugin: sceneChanged block (person plugins / ~1s after load gate).");
+                LightAtomDebugLog("Session plugin: sceneChanged block (person plugins / ~1s after load gate).");
                 Log("Scene finished loading (session plugin)");
                 sceneChanged = false;
                 appliedPersonPlugins = false;
@@ -1025,16 +1025,16 @@ namespace geesp0t
 
         void OnDestroy()
         {
-            if (sceneLightIntensityBackupActive)
+            if (sceneLightAtomBackupActive)
             {
-                LightIntensityDebugLog("OnDestroy: restoring lights before unload.");
+                LightAtomDebugLog("OnDestroy: restoring light atoms before unload.");
                 try
                 {
-                    RestoreSceneLightsFromBackup();
+                    RestoreLightAtomsFromBackup();
                 }
                 catch (Exception lightsRestoreException)
                 {
-                    SuperController.LogError("[Auto_Load_Person_Plugins] RestoreSceneLightsFromBackup in OnDestroy failed: " + lightsRestoreException);
+                    SuperController.LogError("[Auto_Load_Person_Plugins] RestoreLightAtomsFromBackup in OnDestroy failed: " + lightsRestoreException);
                 }
             }
 
@@ -1044,89 +1044,113 @@ namespace geesp0t
             // Log("SessionPluginBooter Destroyed");
         }
 
-        void BackupSceneLightsAndZeroIntensity()
+        bool IsVaMLightAtom(Atom sceneAtom)
         {
-            LightIntensityDebugLog("BackupSceneLightsAndZeroIntensity entered.");
-
-            if (sceneLightIntensityBackupActive)
+            if (sceneAtom == null)
             {
-                LightIntensityDebugLog("Prior backup was active; restoring before new backup.");
-                RestoreSceneLightsFromBackup();
+                return false;
             }
 
-            sceneLightIntensityBackupList.Clear();
-
-            Light[] sceneLights = UnityEngine.Object.FindObjectsOfType(typeof(Light)) as Light[];
-            if (sceneLights == null)
+            if (sceneAtom.destroyed)
             {
-                LightIntensityDebugLog("FindObjectsOfType(Light) returned null; no intensities changed.");
-                return;
+                return false;
             }
 
-            LightIntensityDebugLog(string.Format("FindObjectsOfType(Light) found {0} component(s).", sceneLights.Length));
-
-            for (int lightIndex = 0; lightIndex < sceneLights.Length; lightIndex++)
+            if (sceneAtom.type == "InvisibleLight")
             {
-                Light sceneLight = sceneLights[lightIndex];
+                return true;
+            }
 
-                if (sceneLight == null)
+            if (sceneAtom.category == "Light")
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        void BackupLightAtomsForSceneLoad()
+        {
+            LightAtomDebugLog("BackupLightAtomsForSceneLoad entered.");
+
+            if (sceneLightAtomBackupActive)
+            {
+                LightAtomDebugLog("Prior backup was active; restoring before new backup.");
+                RestoreLightAtomsFromBackup();
+            }
+
+            sceneLightAtomBackupList.Clear();
+
+            IEnumerable<Atom> allAtoms = SuperController.singleton.GetAtoms();
+
+            foreach (Atom sceneAtom in allAtoms)
+            {
+                if (!IsVaMLightAtom(sceneAtom))
                 {
-                    LightIntensityDebugLog(string.Format("Index {0}: Light reference is null; skip.", lightIndex));
                     continue;
                 }
 
-                float intensityBefore = sceneLight.intensity;
-                string lightDescription = sceneLight.name;
+                bool wasOn = sceneAtom.on;
+                string atomUid = sceneAtom.uid;
 
-                LightIntensityDebugLog(string.Format("Try set intensity on \"{0}\" (index {1}): {2} -> 0", lightDescription, lightIndex, intensityBefore));
+                LightAtomDebugLog(string.Format("Light atom \"{0}\" uid=\"{1}\": on {2} -> false", sceneAtom.name, atomUid, wasOn));
 
-                SceneLightIntensityBackupEntry backupEntry = new SceneLightIntensityBackupEntry();
-                backupEntry.sceneLight = sceneLight;
-                backupEntry.savedIntensity = intensityBefore;
-                sceneLightIntensityBackupList.Add(backupEntry);
-                sceneLight.intensity = 0f;
+                SceneLightAtomBackupEntry backupEntry = new SceneLightAtomBackupEntry();
+                backupEntry.atomUid = atomUid;
+                backupEntry.savedOn = wasOn;
+                sceneLightAtomBackupList.Add(backupEntry);
 
-                LightIntensityDebugLog(string.Format("After assign, \"{0}\" intensity read-back: {1}", lightDescription, sceneLight.intensity));
+                sceneAtom.SetOn(false);
+
+                LightAtomDebugLog(string.Format("After SetOn(false), uid=\"{0}\" read-back on: {1}", atomUid, sceneAtom.on));
             }
 
-            sceneLightIntensityBackupActive = true;
-            LightIntensityDebugLog(string.Format("Backup complete; {0} light(s) stored, backup active.", sceneLightIntensityBackupList.Count));
+            if (sceneLightAtomBackupList.Count > 0)
+            {
+                sceneLightAtomBackupActive = true;
+                LightAtomDebugLog(string.Format("Backup complete; {0} light atom(s) stored, backup active.", sceneLightAtomBackupList.Count));
+            }
+            else
+            {
+                sceneLightAtomBackupActive = false;
+                LightAtomDebugLog("No VaM light atoms (InvisibleLight / category Light) found; backup not active.");
+            }
         }
 
-        void RestoreSceneLightsFromBackup()
+        void RestoreLightAtomsFromBackup()
         {
-            LightIntensityDebugLog("RestoreSceneLightsFromBackup entered.");
+            LightAtomDebugLog("RestoreLightAtomsFromBackup entered.");
             sceneLightRestoreDelayedPending = false;
 
-            if (!sceneLightIntensityBackupActive)
+            if (!sceneLightAtomBackupActive)
             {
-                LightIntensityDebugLog("No backup active; restore exits without changes.");
+                LightAtomDebugLog("No backup active; restore exits without changes.");
                 return;
             }
 
-            LightIntensityDebugLog(string.Format("Restoring {0} backup entry/entries.", sceneLightIntensityBackupList.Count));
+            LightAtomDebugLog(string.Format("Restoring {0} backup entry/entries.", sceneLightAtomBackupList.Count));
 
-            for (int entryIndex = 0; entryIndex < sceneLightIntensityBackupList.Count; entryIndex++)
+            for (int entryIndex = 0; entryIndex < sceneLightAtomBackupList.Count; entryIndex++)
             {
-                SceneLightIntensityBackupEntry backupEntry = sceneLightIntensityBackupList[entryIndex];
-                Light sceneLight = backupEntry.sceneLight;
+                SceneLightAtomBackupEntry backupEntry = sceneLightAtomBackupList[entryIndex];
+                Atom sceneAtom = SuperController.singleton.GetAtomByUid(backupEntry.atomUid);
 
-                if (sceneLight != null)
+                if (sceneAtom != null && IsVaMLightAtom(sceneAtom))
                 {
-                    float intensityBefore = sceneLight.intensity;
-                    LightIntensityDebugLog(string.Format("Try restore \"{0}\": current {1} -> saved {2}", sceneLight.name, intensityBefore, backupEntry.savedIntensity));
-                    sceneLight.intensity = backupEntry.savedIntensity;
-                    LightIntensityDebugLog(string.Format("After restore, \"{0}\" read-back: {1}", sceneLight.name, sceneLight.intensity));
+                    bool onBefore = sceneAtom.on;
+                    LightAtomDebugLog(string.Format("Try restore uid=\"{0}\": on now {1} -> saved {2}", backupEntry.atomUid, onBefore, backupEntry.savedOn));
+                    sceneAtom.SetOn(backupEntry.savedOn);
+                    LightAtomDebugLog(string.Format("After SetOn, uid=\"{0}\" read-back on: {1}", backupEntry.atomUid, sceneAtom.on));
                 }
                 else
                 {
-                    LightIntensityDebugLog(string.Format("Entry {0}: Light was destroyed; skip restore.", entryIndex));
+                    LightAtomDebugLog(string.Format("Entry {0} uid=\"{1}\": atom missing or not a light atom; skip.", entryIndex, backupEntry.atomUid));
                 }
             }
 
-            sceneLightIntensityBackupList.Clear();
-            sceneLightIntensityBackupActive = false;
-            LightIntensityDebugLog("Restore complete; backup cleared.");
+            sceneLightAtomBackupList.Clear();
+            sceneLightAtomBackupActive = false;
+            LightAtomDebugLog("Restore complete; backup cleared.");
         }
 
         void Log(string msg)
@@ -1135,7 +1159,7 @@ namespace geesp0t
                 SuperController.LogMessage(msg);
         }
 
-        void LightIntensityDebugLog(string messageBody)
+        void LightAtomDebugLog(string messageBody)
         {
             string timeText = DateTime.Now.ToString("HH:mm:ss.fff");
             SuperController.LogMessage("[Auto_Load_Person_Plugins lights] " + timeText + " " + messageBody);

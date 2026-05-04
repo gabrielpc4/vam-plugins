@@ -141,8 +141,7 @@ public class ImprovedPoV : MVRScript
         try
         {
             {
-                // TESTING: very strong default so offset is obvious; lower before shipping.
-                _cameraDepthJSON = new JSONStorableFloat("Camera depth", 0.22f, 0f, 0.5f, false);
+                _cameraDepthJSON = new JSONStorableFloat("Camera depth", 0.17f, 0f, 0.5f, false);
                 RegisterFloat(_cameraDepthJSON);
                 var cameraDepthSlider = CreateSlider(_cameraDepthJSON, false);
                 cameraDepthSlider.slider.onValueChanged.AddListener(delegate (float val)
@@ -152,7 +151,7 @@ public class ImprovedPoV : MVRScript
             }
 
             {
-                _cameraHeightJSON = new JSONStorableFloat("Camera height", 0f, -0.05f, 0.05f, false);
+                _cameraHeightJSON = new JSONStorableFloat("Camera height", 0.06f, -0.05f, 0.1f, false);
                 RegisterFloat(_cameraHeightJSON);
                 var cameraHeightSlider = CreateSlider(_cameraHeightJSON, false);
                 cameraHeightSlider.slider.onValueChanged.AddListener(delegate (float val)

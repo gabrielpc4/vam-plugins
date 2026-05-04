@@ -14,4 +14,5 @@ src/EasyMateVrInput.cs
 src/EasyMateVrEulerPossessPoseCheck.cs
 src/EasyMateVrGestureRuntime.cs
 src/MainUIButtons.cs
+src/EasyMateVrEulerPossessHandHud.cs
 src/EasyMatePossessFootDistanceAutoRelease.cs

@@ -639,6 +639,7 @@ namespace geesp0t
 
             bool monitorLaser = restoreMonitorModeControllerLaser != null && restoreMonitorModeControllerLaser.val;
             EasyMateMonitorModeLaserRestore.Tick(monitorLaser);
+            EasyMateVrEulerPossessHandHud.Tick();
         }
 
         void OnDestroy()
@@ -664,6 +665,7 @@ namespace geesp0t
 
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
             EasyMateMonitorModeLaserRestore.OnPluginDestroy();
+            EasyMateVrEulerPossessHandHud.OnPluginDestroy();
             EasyMateHeadSnapPovRuntime.End();
             if (mainUIButtons != null) mainUIButtons.OnDestroy();
         }

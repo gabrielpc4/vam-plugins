@@ -599,6 +599,14 @@ namespace geesp0t
             ClearAllPossession(string.IsNullOrEmpty(logMessage) ? null : logMessage);
         }
 
+        /// <summary>
+        /// VR palm HUD: same as dual-hand euler possess (closest female by head).
+        /// </summary>
+        public static void RequestPossessClosestFemaleByVrHandHud()
+        {
+            PossessAlignSelectClosestFemaleByHeadToCamera();
+        }
+
         /// <summary>Merges <see cref="PluginEMotionLite"/> onto every Person (HUD). Removes other E-Motion family entries first.</summary>
         public void MergeEmotionLiteOnAllPersonsOnly()
         {

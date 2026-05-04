@@ -65,6 +65,7 @@ namespace geesp0t
         private static bool _personGenderListsCacheValid;
         private static List<Atom> _cachedFemalePersonsByUid;
         private static List<Atom> _cachedMalePersonsByUid;
+        private static float _lastPossessAlignDebugLogTime = -1000f;
 
         private static void InvalidatePersonGenderCaches()
         {
@@ -1906,6 +1907,25 @@ namespace geesp0t
             return left ? sc.leftHand : sc.rightHand;
         }
 
+        private static string FormatEulerForDebug(Quaternion rotation)
+        {
+            Vector3 eulerAngles = rotation.eulerAngles;
+            return string.Format(
+                "({0:F2}, {1:F2}, {2:F2})",
+                eulerAngles.x,
+                eulerAngles.y,
+                eulerAngles.z);
+        }
+
+        private static string FormatVectorForDebug(Vector3 vector)
+        {
+            return string.Format(
+                "({0:F4}, {1:F4}, {2:F4})",
+                vector.x,
+                vector.y,
+                vector.z);
+        }
+
         private static Vector3 GetPassengerHeadTargetWorldPosition(
             FreeControllerV3 head)
         {
@@ -1957,8 +1977,14 @@ namespace geesp0t
                 if (Vector3.Dot(upPossessAxis, up) < 0f && Vector3.Dot(motionControllerHead.up, up) > 0f)
                     desiredForward = -desiredForward;
 
+                float signedAngle = 0f;
+                Quaternion rigRotationBeforeAlign = navigationRig.rotation;
                 if (fromDirection.sqrMagnitude > 1e-8f && desiredForward.sqrMagnitude > 1e-8f)
                 {
+                    signedAngle = Vector3.SignedAngle(
+                        fromDirection,
+                        desiredForward,
+                        up);
                     Quaternion q = Quaternion.FromToRotation(fromDirection, desiredForward);
                     navigationRig.rotation = q * navigationRig.rotation;
                 }
@@ -1980,6 +2006,34 @@ namespace geesp0t
                     euler.y = 0f;
                     euler.z = 0f;
                     sc.MonitorCenterCamera.transform.localEulerAngles = euler;
+                }
+
+                if (Time.unscaledTime - _lastPossessAlignDebugLogTime > 0.25f)
+                {
+                    _lastPossessAlignDebugLogTime = Time.unscaledTime;
+                    SuperController.LogMessage(
+                        "EasyMate DEBUG possess align: " +
+                        "head=" + head.name +
+                        " hmdRot=" +
+                        FormatEulerForDebug(motionControllerHead.rotation) +
+                        " rigBefore=" +
+                        FormatEulerForDebug(rigRotationBeforeAlign) +
+                        " rigAfter=" +
+                        FormatEulerForDebug(navigationRig.rotation) +
+                        " headForward=" +
+                        FormatVectorForDebug(forwardPossessAxis) +
+                        " headUp=" +
+                        FormatVectorForDebug(upPossessAxis) +
+                        " fromDir=" +
+                        FormatVectorForDebug(fromDirection) +
+                        " desiredDir=" +
+                        FormatVectorForDebug(desiredForward) +
+                        " signedAngle=" +
+                        signedAngle.ToString("F2") +
+                        " headTarget=" +
+                        FormatVectorForDebug(headTarget) +
+                        " autoSnapPos=" +
+                        FormatVectorForDebug(possessor.autoSnapPoint.position));
                 }
 
                 return TryLinkHeadToMotionControllerHead(motionControllerHead, head, out error);

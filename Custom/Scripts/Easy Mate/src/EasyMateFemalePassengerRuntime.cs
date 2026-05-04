@@ -437,6 +437,8 @@ namespace geesp0t
                     superController.centerCameraTarget != null ?
                     superController.centerCameraTarget.transform :
                     null;
+                Quaternion navigationRigRotationBefore =
+                    navigationRig.rotation;
                 Quaternion desiredHeadRotation =
                     _femalePassengerHeadRigidbody.transform.rotation;
                 desiredHeadRotation *= Quaternion.Euler(
@@ -444,9 +446,10 @@ namespace geesp0t
                     0f,
                     0f);
                 Quaternion navigationRigRotation = desiredHeadRotation;
+                Quaternion headRotationDelta = Quaternion.identity;
                 if (motionControllerHead != null)
                 {
-                    Quaternion headRotationDelta =
+                    headRotationDelta =
                         desiredHeadRotation *
                         Quaternion.Inverse(motionControllerHead.rotation);
                     navigationRigRotation =
@@ -469,6 +472,29 @@ namespace geesp0t
                 }
 
                 navigationRig.rotation = navigationRigRotation;
+
+                SuperController.LogMessage(
+                    "EasyMate DEBUG passenger first teleport: " +
+                    "person=" +
+                    (_femalePassengerTargetPerson != null ?
+                        _femalePassengerTargetPerson.uid :
+                        "null") +
+                    " hmdRot=" +
+                    FormatEulerForDebug(
+                        motionControllerHead != null ?
+                        motionControllerHead.rotation :
+                        Quaternion.identity) +
+                    " rigBefore=" +
+                    FormatEulerForDebug(navigationRigRotationBefore) +
+                    " desiredHeadRot=" +
+                    FormatEulerForDebug(desiredHeadRotation) +
+                    " headDelta=" +
+                    FormatEulerForDebug(headRotationDelta) +
+                    " rigAfter=" +
+                    FormatEulerForDebug(navigationRig.rotation) +
+                    " charHeadRot=" +
+                    FormatEulerForDebug(
+                        _femalePassengerHeadRigidbody.transform.rotation));
             }
 
             Vector3 up = navigationRig.up;
@@ -769,6 +795,16 @@ namespace geesp0t
             currentVelocity.w = (result.w - current.w) * deltaTimeInverse;
 
             return new Quaternion(result.x, result.y, result.z, result.w);
+        }
+
+        private static string FormatEulerForDebug(Quaternion rotation)
+        {
+            Vector3 eulerAngles = rotation.eulerAngles;
+            return string.Format(
+                "({0:F2}, {1:F2}, {2:F2})",
+                eulerAngles.x,
+                eulerAngles.y,
+                eulerAngles.z);
         }
     }
 }

@@ -44,7 +44,9 @@ namespace geesp0t
             if (horiz.sqrMagnitude <= maxSq)
                 return;
 
-            MainUIButtons.RequestClearAllPossession(null);
+            MainUIButtons.RequestClearAllPossession(
+                null,
+                advanceVrPalmHudGenderCycle: true);
             _cooldownUntil = Time.time + 0.35f;
         }
 

@@ -453,7 +453,8 @@ namespace geesp0t
                 if (!SceneHasAnyActivePossession())
                     return;
                 MainUIButtons.RequestClearAllPossession(
-                    "EasyMate: ClearPossess after scene load (possession was active).");
+                    "EasyMate: ClearPossess after scene load (possession was active).",
+                    advanceVrPalmHudGenderCycle: false);
             }
             catch (Exception e)
             {

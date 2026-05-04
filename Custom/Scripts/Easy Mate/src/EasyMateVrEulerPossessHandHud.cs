@@ -8,10 +8,14 @@ namespace geesp0t
     /// When the <b>right hand alone</b> matches the HMD-relative euler
     /// window for the VR possess rule, shows a small world UI on
     /// <c>rightHand</c>: one top button — <b>Possuir</b> or <b>Despossuir</b>
-    /// (Brazilian Portuguese) by state — plus <b>Próxima cena</b>; or press
-    /// the VaM menu button (<b>B</b> on Quest, SteamVR menu) when <b>not</b>
-    /// possessed to dismiss the main UI after 100ms and run the dual-hand
-    /// possess flow. Billboard faces the HMD so labels read correctly from
+    /// (Brazilian Portuguese) by state — plus <b>Próxima cena</b>. If the
+    /// scene has more than one Person and both a woman and a man,
+    /// <b>Possuir</b> opens a second step: <b>Mulher</b> (top),
+    /// <b>Homem</b>, <b>Voltar</b>. Press the VaM menu button
+    /// (<b>B</b> on Quest, SteamVR menu) when <b>not</b>
+    /// possessed to dismiss the main UI after 100ms and run possess when
+    /// no Mulher/Homem choice is needed (mixed-gender scenes log a hint).
+    /// Billboard faces the HMD so labels read correctly from
     /// the player's view.
     /// </summary>
     internal static class EasyMateVrEulerPossessHandHud
@@ -25,6 +29,14 @@ namespace geesp0t
         private static Text _possessRowText;
 
         private static Button _btnProximaCena;
+
+        private static Button _btnMulher;
+
+        private static Button _btnHomem;
+
+        private static Button _btnVoltar;
+
+        private static bool _genderChooseStepActive;
 
         private static bool _listenersAttached;
 
@@ -122,23 +134,23 @@ namespace geesp0t
             SetVisible(true);
 
             bool possessed = EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed();
-            if (_possessRowText != null)
-                _possessRowText.text = possessed ? "Despossuir" : "Possuir";
-            if (_possessRowImage != null)
-            {
-                _possessRowImage.color = possessed ?
-                    PossessRowDespossuirColor :
-                    PossessRowPossuirColor;
-            }
+            if (possessed)
+                _genderChooseStepActive = false;
+
+            RefreshGenderVersusMainRows(possessed);
+
             if (_btnPossessRow != null)
                 _btnPossessRow.interactable = true;
             if (_btnProximaCena != null)
-            {
-                _btnProximaCena.gameObject.SetActive(true);
                 _btnProximaCena.interactable = true;
-            }
+            if (_btnMulher != null)
+                _btnMulher.interactable = true;
+            if (_btnHomem != null)
+                _btnHomem.interactable = true;
+            if (_btnVoltar != null)
+                _btnVoltar.interactable = true;
 
-            if (sc.GetMenuShow() && !possessed)
+            if (sc.GetMenuShow() && !possessed && !_genderChooseStepActive)
                 MainUIButtons.RequestVrPalmHudMenuButtonPossessAfterDismissMenu();
         }
 
@@ -154,6 +166,10 @@ namespace geesp0t
             _possessRowImage = null;
             _possessRowText = null;
             _btnProximaCena = null;
+            _btnMulher = null;
+            _btnHomem = null;
+            _btnVoltar = null;
+            _genderChooseStepActive = false;
             _listenersAttached = false;
             _whiteSprite = null;
         }
@@ -162,6 +178,33 @@ namespace geesp0t
         {
             if (_root != null)
                 _root.SetActive(v);
+            if (!v)
+                _genderChooseStepActive = false;
+        }
+
+        private static void RefreshGenderVersusMainRows(bool possessed)
+        {
+            bool gender = _genderChooseStepActive && !possessed;
+            if (_btnMulher != null)
+                _btnMulher.gameObject.SetActive(gender);
+            if (_btnHomem != null)
+                _btnHomem.gameObject.SetActive(gender);
+            if (_btnVoltar != null)
+                _btnVoltar.gameObject.SetActive(gender);
+            if (_btnPossessRow != null)
+                _btnPossessRow.gameObject.SetActive(!gender);
+            if (_btnProximaCena != null)
+                _btnProximaCena.gameObject.SetActive(!gender);
+
+            if (gender || _possessRowText == null)
+                return;
+            _possessRowText.text = possessed ? "Despossuir" : "Possuir";
+            if (_possessRowImage != null)
+            {
+                _possessRowImage.color = possessed ?
+                    PossessRowDespossuirColor :
+                    PossessRowPossuirColor;
+            }
         }
 
         private static Sprite WhiteSprite()
@@ -192,12 +235,50 @@ namespace geesp0t
                     if (EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed())
                     {
                         MainUIButtons.RequestClearAllPossession(
-                            "Easy Mate: Despossuir (VR mão).");
+                            "Easy Mate: Despossuir (VR mão).",
+                            advanceVrPalmHudGenderCycle: true);
+                    }
+                    else if (MainUIButtons.VrPalmHudNeedsGenderChoiceStep())
+                    {
+                        _genderChooseStepActive = true;
+                        RefreshGenderVersusMainRows(false);
                     }
                     else
                     {
-                        MainUIButtons.RequestPossessClosestFemaleByVrHandHud();
+                        MainUIButtons.RequestPossessVrPalmHudAutoWithoutGenderMenu();
                     }
+                });
+            }
+
+            if (_btnMulher != null)
+            {
+                _btnMulher.onClick.AddListener(delegate
+                {
+                    MainUIButtons.RequestPossessVrPalmHudByGender(true);
+                    _genderChooseStepActive = false;
+                    RefreshGenderVersusMainRows(
+                        EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
+                });
+            }
+
+            if (_btnHomem != null)
+            {
+                _btnHomem.onClick.AddListener(delegate
+                {
+                    MainUIButtons.RequestPossessVrPalmHudByGender(false);
+                    _genderChooseStepActive = false;
+                    RefreshGenderVersusMainRows(
+                        EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
+                });
+            }
+
+            if (_btnVoltar != null)
+            {
+                _btnVoltar.onClick.AddListener(delegate
+                {
+                    _genderChooseStepActive = false;
+                    RefreshGenderVersusMainRows(
+                        EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
                 });
             }
 
@@ -277,6 +358,36 @@ namespace geesp0t
                 new Vector2(0.95f, 0.48f),
                 new Color(0.14f, 0.32f, 0.52f, 0.92f),
                 20);
+
+            _btnMulher = CreateHandButton(
+                _root.transform,
+                "MulherBtn",
+                "Mulher",
+                new Vector2(0.05f, 0.66f),
+                new Vector2(0.95f, 0.98f),
+                PossessRowPossuirColor,
+                20);
+            _btnMulher.gameObject.SetActive(false);
+
+            _btnHomem = CreateHandButton(
+                _root.transform,
+                "HomemBtn",
+                "Homem",
+                new Vector2(0.05f, 0.35f),
+                new Vector2(0.95f, 0.63f),
+                new Color(0.14f, 0.32f, 0.52f, 0.92f),
+                20);
+            _btnHomem.gameObject.SetActive(false);
+
+            _btnVoltar = CreateHandButton(
+                _root.transform,
+                "VoltarBtn",
+                "Voltar",
+                new Vector2(0.05f, 0.02f),
+                new Vector2(0.95f, 0.32f),
+                new Color(0.22f, 0.22f, 0.26f, 0.92f),
+                18);
+            _btnVoltar.gameObject.SetActive(false);
         }
 
         private static void StretchFull(GameObject go)

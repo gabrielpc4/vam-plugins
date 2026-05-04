@@ -55,6 +55,10 @@ namespace geesp0t
         private static Coroutine _vrPalmHudMenuConfirmCo;
         /// <summary>Next index for <see cref="HotkeySnapNearestHeadHideHandsThenSnap"/> among <see cref="AllPersonsSortedByUidForISnapCycle"/>.</summary>
         private static int _hotkeyISnapPersonCycleNextIndex;
+        /// <summary>VR palm HUD: rotate <b>Mulher</b> target (uid-sorted list) after unpossess.</summary>
+        private static int _vrPalmHudFemaleCycleIndex;
+        /// <summary>VR palm HUD: rotate <b>Homem</b> target (uid-sorted list) after unpossess.</summary>
+        private static int _vrPalmHudMaleCycleIndex;
         /// <summary>Set in <see cref="Init"/> so static possess coroutine can refresh HUD after merging plugins.</summary>
         private static System.Action _refreshPluginToggleLabelsStatic;
 
@@ -203,7 +207,8 @@ namespace geesp0t
                 delegate()
                 {
                     RequestClearAllPossession(
-                        "Easy Mate: VR over-HMD hand — cleared possession.");
+                        "Easy Mate: VR over-HMD hand — cleared possession.",
+                        advanceVrPalmHudGenderCycle: true);
                 };
             _vrGestureBindings.TriggerPossessAlignSelectClosestFemaleByHead =
                 delegate() { PossessAlignSelectClosestFemaleByHeadToCamera(); };
@@ -297,7 +302,9 @@ namespace geesp0t
             {
                 try
                 {
-                    ClearAllPossession("Easy Mate: O — cleared possession.");
+                    ClearAllPossession(
+                        "Easy Mate: O — cleared possession.",
+                        advanceVrPalmHudGenderCycle: true);
                 }
                 catch (Exception e)
                 {
@@ -584,14 +591,23 @@ namespace geesp0t
             }
         }
 
-        private static void ClearAllPossession(string logMessage)
+        private static void ClearAllPossession(
+            string logMessage,
+            bool advanceVrPalmHudGenderCycle)
         {
             SuperController sc = SuperController.singleton;
             if (sc == null)
                 return;
+            bool hadPossessed =
+                EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed();
             StopAutoPossessRoutine();
             sc.ClearPossess();
             UnlinkStrayHmdLinkedFreeControllersAndNaturalizeHeads(sc);
+            if (advanceVrPalmHudGenderCycle && hadPossessed)
+            {
+                _vrPalmHudFemaleCycleIndex++;
+                _vrPalmHudMaleCycleIndex++;
+            }
             if (!string.IsNullOrEmpty(logMessage))
                 SuperController.LogMessage(logMessage);
         }
@@ -703,17 +719,113 @@ namespace geesp0t
         }
 
         /// <summary>Stops Easy Mate auto-possess coroutine and <see cref="SuperController.ClearPossess"/> (for hotkeys and auto-release).</summary>
-        public static void RequestClearAllPossession(string logMessage)
+        public static void RequestClearAllPossession(
+            string logMessage,
+            bool advanceVrPalmHudGenderCycle = false)
         {
-            ClearAllPossession(string.IsNullOrEmpty(logMessage) ? null : logMessage);
+            ClearAllPossession(
+                string.IsNullOrEmpty(logMessage) ? null : logMessage,
+                advanceVrPalmHudGenderCycle);
         }
 
         /// <summary>
-        /// VR palm HUD: same as dual-hand euler possess (closest female by head).
+        /// VR palm HUD: show <b>Mulher</b> / <b>Homem</b> when the scene has
+        /// at least one of each gender and more than one Person.
+        /// </summary>
+        public static bool VrPalmHudNeedsGenderChoiceStep()
+        {
+            EnsurePersonGenderCaches();
+            int nF = _cachedFemalePersonsByUid != null ?
+                _cachedFemalePersonsByUid.Count : 0;
+            int nM = _cachedMalePersonsByUid != null ?
+                _cachedMalePersonsByUid.Count : 0;
+            return nF > 0 && nM > 0 && (nF + nM) > 1;
+        }
+
+        /// <summary>
+        /// VR palm HUD: possess one Person of the chosen gender using the
+        /// uid-sorted list and <see cref="_vrPalmHudFemaleCycleIndex"/> /
+        /// <see cref="_vrPalmHudMaleCycleIndex"/> (same routine as VR euler).
+        /// </summary>
+        public static void RequestPossessVrPalmHudByGender(bool female)
+        {
+            EnsurePersonGenderCaches();
+            List<Atom> list = female ?
+                _cachedFemalePersonsByUid :
+                _cachedMalePersonsByUid;
+            if (list == null || list.Count == 0)
+            {
+                SuperController.LogMessage(
+                    female
+                        ? "Easy Mate: VR mão — nenhuma Person feminina."
+                        : "Easy Mate: VR mão — nenhuma Person masculina.");
+                return;
+            }
+
+            int idx = female ?
+                _vrPalmHudFemaleCycleIndex :
+                _vrPalmHudMaleCycleIndex;
+            Atom target = list[idx % list.Count];
+            StartAutoPossessRoutine(target, VrEulerPossessLabel);
+        }
+
+        /// <summary>
+        /// VR palm HUD: exactly one Person, or several Persons of a single
+        /// gender — uses rotation indices (no Mulher/Homem submenu).
+        /// </summary>
+        public static void RequestPossessVrPalmHudAutoWithoutGenderMenu()
+        {
+            EnsurePersonGenderCaches();
+            int nF = _cachedFemalePersonsByUid != null ?
+                _cachedFemalePersonsByUid.Count : 0;
+            int nM = _cachedMalePersonsByUid != null ?
+                _cachedMalePersonsByUid.Count : 0;
+            int total = nF + nM;
+            if (total <= 0)
+            {
+                SuperController.LogMessage(
+                    "Easy Mate: VR mão — nenhuma Person na cena.");
+                return;
+            }
+
+            if (VrPalmHudNeedsGenderChoiceStep())
+            {
+                SuperController.LogMessage(
+                    "Easy Mate: VR mão — escolha Mulher ou Homem no menu da mão.");
+                return;
+            }
+
+            if (total == 1)
+            {
+                Atom only = nF == 1 ?
+                    _cachedFemalePersonsByUid[0] :
+                    _cachedMalePersonsByUid[0];
+                StartAutoPossessRoutine(only, VrEulerPossessLabel);
+                return;
+            }
+
+            if (nF > 0 && nM == 0)
+            {
+                int i = _vrPalmHudFemaleCycleIndex % nF;
+                StartAutoPossessRoutine(
+                    _cachedFemalePersonsByUid[i],
+                    VrEulerPossessLabel);
+                return;
+            }
+
+            int j = _vrPalmHudMaleCycleIndex % nM;
+            StartAutoPossessRoutine(
+                _cachedMalePersonsByUid[j],
+                VrEulerPossessLabel);
+        }
+
+        /// <summary>
+        /// VR palm HUD entry (legacy name): same as
+        /// <see cref="RequestPossessVrPalmHudAutoWithoutGenderMenu"/>.
         /// </summary>
         public static void RequestPossessClosestFemaleByVrHandHud()
         {
-            PossessAlignSelectClosestFemaleByHeadToCamera();
+            RequestPossessVrPalmHudAutoWithoutGenderMenu();
         }
 
         /// <summary>
@@ -740,7 +852,13 @@ namespace geesp0t
                 SuperController sc = SuperController.singleton;
                 if (sc != null)
                     sc.activeUI = SuperController.ActiveUI.None;
-                PossessAlignSelectClosestFemaleByHeadToCamera();
+                if (VrPalmHudNeedsGenderChoiceStep())
+                {
+                    SuperController.LogMessage(
+                        "Easy Mate: menu — cena com mulher e homem: use o painel na mão (Mulher/Homem).");
+                }
+                else
+                    RequestPossessVrPalmHudAutoWithoutGenderMenu();
             }
             finally
             {

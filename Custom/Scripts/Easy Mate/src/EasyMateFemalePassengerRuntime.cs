@@ -21,7 +21,7 @@ namespace geesp0t
         private const float PositionOffsetZMeters = 0.1149023f;
         private const float PendingActivationTimeoutSeconds = 3f;
 
-        private const float PassengerHandsStartDelaySeconds = 1f;
+        private const float PassengerHandsStartDelaySeconds = 3f;
 
         private static MVRScript _sessionPluginHost;
 

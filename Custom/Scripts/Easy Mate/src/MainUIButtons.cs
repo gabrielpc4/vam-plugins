@@ -2136,7 +2136,6 @@ namespace geesp0t
                 }
 
                 sc.SelectModePossess(true);
-                StartAutoPossessConfirmRoutine(null, leftHand, rightHand);
 
                 yield return null;
                 yield return null;
@@ -2172,8 +2171,16 @@ namespace geesp0t
                         yield return null;
                 }
 
-                if (!leftDone || !rightDone)
+                try
+                {
                     sc.SelectModeOff();
+                }
+                catch (Exception selectModeException)
+                {
+                    SuperController.LogError(
+                        "Easy Mate passenger hands SelectModeOff: " +
+                        selectModeException.Message);
+                }
 
                 string leftState = leftDone ? "ok" : "failed";
                 string rightState = rightDone ? "ok" : "failed";

@@ -45,14 +45,14 @@ namespace geesp0t
                 return;
             }
 
-            SyncMonitorCameraToVrHeadset(sc);
-
             bool monitorModeActive = IsMonitorModeActive(sc);
             if (!monitorModeActive)
             {
                 HideBeams();
                 return;
             }
+
+            SyncMonitorCameraToVrHeadset(sc);
 
             if (!featureEnabled)
             {
@@ -156,49 +156,33 @@ namespace geesp0t
             if (sc == null)
                 return false;
 
-            if (!ShouldSyncMonitorCamera(sc))
+            if (sc.isLoading || sc.IsMonitorOnly || (!sc.isOVR && !sc.isOpenVR))
                 return false;
 
             return sc.MonitorRig != null && sc.MonitorRig.gameObject.activeSelf;
         }
 
-        private static bool ShouldSyncMonitorCamera(SuperController sc)
-        {
-            if (sc == null)
-                return false;
-
-            return !sc.isLoading && !sc.IsMonitorOnly && (sc.isOVR || sc.isOpenVR);
-        }
-
         private static void SyncMonitorCameraToVrHeadset(SuperController sc)
         {
-            if (!ShouldSyncMonitorCamera(sc))
+            if (!IsMonitorModeActive(sc))
                 return;
 
             Camera monitorCamera = sc.MonitorCenterCamera;
             if (monitorCamera == null)
             {
-                if (IsMonitorModeActive(sc))
-                {
-                    LogMonitorCameraSyncIssue(
-                        "Easy Mate monitor camera sync: MonitorCenterCamera is missing while monitor mode is active.");
-                }
-
+                LogMonitorCameraSyncIssue(
+                    "Easy Mate monitor camera sync: MonitorCenterCamera is missing while monitor mode is active.");
                 return;
             }
 
-            Camera sourceCamera = sc.lookCamera;
+            Camera sourceCamera = GetLiveVrHeadCamera(sc, monitorCamera);
             Transform sourceTransform = sourceCamera != null
                 ? sourceCamera.transform
-                : (sc.centerCameraTarget != null ? sc.centerCameraTarget.transform : null);
+                : null;
             if (sourceTransform == null)
             {
-                if (IsMonitorModeActive(sc))
-                {
-                    LogMonitorCameraSyncIssue(
-                        "Easy Mate monitor camera sync: no VR headset camera/target found while monitor mode is active.");
-                }
-
+                LogMonitorCameraSyncIssue(
+                    "Easy Mate monitor camera sync: no live VR headset camera found while monitor mode is active.");
                 return;
             }
 
@@ -217,6 +201,45 @@ namespace geesp0t
                 if (Mathf.Abs(monitorCamera.farClipPlane - sourceCamera.farClipPlane) > 0.001f)
                     monitorCamera.farClipPlane = sourceCamera.farClipPlane;
             }
+        }
+
+        private static Camera GetLiveVrHeadCamera(
+            SuperController sc,
+            Camera monitorCamera)
+        {
+            if (sc == null)
+                return null;
+
+            if (sc.isOVR && sc.OVRCenterCamera != null &&
+                sc.OVRCenterCamera != monitorCamera &&
+                sc.OVRCenterCamera.gameObject.activeInHierarchy)
+            {
+                return sc.OVRCenterCamera;
+            }
+
+            if (sc.isOpenVR && sc.ViveCenterCamera != null &&
+                sc.ViveCenterCamera != monitorCamera &&
+                sc.ViveCenterCamera.gameObject.activeInHierarchy)
+            {
+                return sc.ViveCenterCamera;
+            }
+
+            if (sc.lookCamera != null &&
+                sc.lookCamera != monitorCamera &&
+                sc.lookCamera.gameObject.activeInHierarchy)
+            {
+                return sc.lookCamera;
+            }
+
+            if (CameraTarget.centerTarget != null &&
+                CameraTarget.centerTarget.targetCamera != null &&
+                CameraTarget.centerTarget.targetCamera != monitorCamera &&
+                CameraTarget.centerTarget.targetCamera.gameObject.activeInHierarchy)
+            {
+                return CameraTarget.centerTarget.targetCamera;
+            }
+
+            return null;
         }
 
         private static void LogMonitorCameraSyncIssue(string message)

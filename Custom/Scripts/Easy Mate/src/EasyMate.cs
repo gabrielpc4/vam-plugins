@@ -108,6 +108,14 @@ namespace geesp0t
         public JSONStorableBool hideFluidCumMeshDuringSceneLoad;
 
         /// <summary>
+        /// World <see cref="TextMesh"/> in front of HMD: hand pos, euler
+        /// (world, HMD-relative, local), fwd/up/right, quat, dist, dotFwd,
+        /// palmDot for <c>leftHand</c>/<c>rightHand</c> and OVR/OpenVR roots
+        /// (<see cref="EasyMateVrHandRotationDebugHud"/>).
+        /// </summary>
+        public JSONStorableBool showVrHandRotationDebugHud;
+
+        /// <summary>
         /// Restore navigation rig, monitor orientation, and player height after a
         /// load when VaM stays in the same <see cref="SuperController.currentLoadDir"/>
         /// (e.g. switching between JSON files inside one chapter folder).
@@ -177,6 +185,11 @@ namespace geesp0t
                 "Monitor mode: beams (Quest X/A touch or SteamVR TargetShow)",
                 true);
             RegisterBool(restoreMonitorModeControllerLaser);
+
+            showVrHandRotationDebugHud = new JSONStorableBool(
+                "VR hand rotation debug HUD (world text)",
+                true);
+            RegisterBool(showVrHandRotationDebugHud);
 
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
@@ -638,6 +651,10 @@ namespace geesp0t
 
             bool monitorLaser = restoreMonitorModeControllerLaser != null && restoreMonitorModeControllerLaser.val;
             EasyMateMonitorModeLaserRestore.Tick(monitorLaser);
+
+            bool handHud = showVrHandRotationDebugHud != null &&
+                showVrHandRotationDebugHud.val;
+            EasyMateVrHandRotationDebugHud.Tick(handHud);
         }
 
         void OnDestroy()
@@ -663,6 +680,7 @@ namespace geesp0t
 
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
             EasyMateMonitorModeLaserRestore.OnPluginDestroy();
+            EasyMateVrHandRotationDebugHud.OnPluginDestroy();
             EasyMateHeadSnapPovRuntime.End();
             if (mainUIButtons != null) mainUIButtons.OnDestroy();
         }

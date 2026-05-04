@@ -22,7 +22,7 @@ namespace geesp0t
     // (currentLoadDir); E-Motion HUD: Lite / Original / M-F gender / Final /
     // remove-all; swaps via TryReplaceEmotionFamilyWithExactPath; I / VR gestures
     // (see EasyMateVrGestureRuntime) e.g. over-HMD hand zone → same as I; ~3 s
-    // ~3 s both palms toward HMD (loose) → Possess+Align+Select closest
+    // ~3 s dual-hand HMD-relative euler windows → Possess+Align+Select closest
     // female; P =
     // Possess+Align+Select closest Person by head;
     // O = unpossess all; C = cycle Female then Male Persons (uid), Edit +
@@ -219,9 +219,8 @@ namespace geesp0t
         /// <b>Person</b> heads by uid (same rules as <b>Passenger Female</b> /
         /// <b>Passenger Male</b> per figure). VR: <see cref="EasyMateVrGestureRuntime"/> — e.g.
         /// right hand over the HMD (height + lateral cap), 4s cooldown, once per visit until
-        /// the hand exits; ~3s with both palms loosely facing the HMD triggers
-        /// Possess+Align+Select for the closest female by head; more gestures can use the
-        /// same pipeline.
+        /// the hand exits; ~3s dual-hand euler vs HMD triggers Possess+Align+Select for
+        /// the closest female by head; more gestures can use the same pipeline.
         /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD
         /// buttons on the <b>closest Person by head</b> to the look/center
         /// camera (not alphabetically first F/M).
@@ -1664,7 +1663,7 @@ namespace geesp0t
 
         /// <summary>
         /// Closest female <c>Person</c> by head to look/center camera
-        /// (VR palm-gesture binding); same routine as <b>P</b> but female-only.
+        /// (VR dual-hand euler gesture); same routine as <b>P</b> but female-only.
         /// </summary>
         private static void PossessAlignSelectClosestFemaleByHeadToCamera()
         {
@@ -1674,11 +1673,11 @@ namespace geesp0t
             if (target == null)
             {
                 SuperController.LogMessage(
-                    "Easy Mate: VR palm — no female Person in scene.");
+                    "Easy Mate: VR hand euler — no female Person in scene.");
                 return;
             }
 
-            StartAutoPossessRoutine(target, "VR palm");
+            StartAutoPossessRoutine(target, "VR euler");
         }
 
         private static void PossessAlignSelectFirstFemale()

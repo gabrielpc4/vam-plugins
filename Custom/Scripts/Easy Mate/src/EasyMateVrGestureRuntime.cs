@@ -16,8 +16,9 @@ namespace geesp0t
         public Action TriggerISnapSameAsKeyI;
 
         /// <summary>
-        /// Possess + Align + Select closest female by head when both palms face
-        /// the HMD (~3s dwell; not keyboard <b>P</b>, which uses any gender).
+        /// Possess + Align + Select closest female when both
+        /// <c>leftHand</c>/<c>rightHand</c> match HMD-relative euler windows
+        /// (~3s dwell; not keyboard <b>P</b>).
         /// </summary>
         public Action TriggerPossessAlignSelectClosestFemaleByHead;
    }
@@ -35,7 +36,7 @@ namespace geesp0t
                 return;
             OverHeadRightHandGesture.ProcessUpdate(
                 bindings.TriggerISnapSameAsKeyI);
-            PalmGazePossessClosestFemale.ProcessUpdate(
+            DualHandHmdRelativeEulerPossessClosestFemale.ProcessUpdate(
                 bindings.TriggerPossessAlignSelectClosestFemaleByHead);
         }
 
@@ -126,36 +127,38 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Both hands toward HMD (~3s dwell); after a fire, leave the pose once
-        /// before another dwell (avoids repeat while holding through cooldown).
+        /// Both hands: HMD-relative euler on <c>leftHand</c>/<c>rightHand</c>
+        /// (~3s dwell); release pose once after trigger before the next dwell.
         /// </summary>
-        private static class PalmGazePossessClosestFemale
+        private static class DualHandHmdRelativeEulerPossessClosestFemale
         {
-            private const string LogPrefix = "Easy Mate VR palm:";
+            private const string LogPrefix = "Easy Mate VR hand euler:";
 
             private const float DwellSeconds = 3f;
             private const float CooldownSeconds = 4f;
-            private const float MinHandCamDistM = 0.12f;
-            private const float MaxHandCamDistM = 1.05f;
-            /// <summary>
-            /// Palm plane ~toward face (max dot of ±local axes vs hand→HMD).
-            /// Calibrated OpenVR <c>leftHand</c>: palms ~0.93–0.95, backs
-            /// ~0.79/0.89, sideways ~0.65–0.76; both hands must exceed this.
-            /// </summary>
-            private const float MinPalmFacingDotLoose = 0.90f;
-            /// <summary>
-            /// Hand must sit in front of HMD (not behind); dot(camFwd, toHand).
-            /// </summary>
-            private const float MinCamForwardDotToHand = -0.08f;
+
+            /// <summary>Left: euler X &gt; this (degrees, 0–360).</summary>
+            private const float LeftMinEulerX = 300f;
+
+            /// <summary>Left: Z strictly between these (degrees).</summary>
+            private const float LeftMinEulerZ = 30f;
+            private const float LeftMaxEulerZ = 90f;
+
+            /// <summary>Right: euler X &gt; this (degrees, 0–360).</summary>
+            private const float RightMinEulerX = 300f;
+
+            /// <summary>Right: Z strictly between these (degrees).</summary>
+            private const float RightMinEulerZ = 290f;
+            private const float RightMaxEulerZ = 330f;
 
             private static float _dwellAccumUnscaled;
             private static float _lastTriggerUnscaledTime = -1000f;
             /// <summary>
             /// After a fire, false until both-hands pose has been left once
-            /// (stops re-trigger while still holding palms through cooldown).
+            /// (stops re-trigger while holding through cooldown).
             /// </summary>
             private static bool _dwellArmed = true;
-            private static bool _prevBothPalmsZone;
+            private static bool _prevBothHandsPose;
             /// <summary>
             /// One log per cooldown-wait episode while holding pose, not each
             /// frame.
@@ -173,9 +176,9 @@ namespace geesp0t
                 if (!(sc.isOVR || sc.isOpenVR || XRSettings.enabled))
                     return;
 
-                Transform camTf = sc.lookCamera != null
-                    ? sc.lookCamera.transform
-                    : null;
+                Transform camTf = sc.lookCamera != null ?
+                    sc.lookCamera.transform :
+                    null;
                 if (camTf == null && sc.centerCameraTarget != null)
                     camTf = sc.centerCameraTarget.transform;
                 if (camTf == null)
@@ -184,20 +187,22 @@ namespace geesp0t
                 Transform lh = sc.leftHand;
                 Transform rh = sc.rightHand;
 
-                float leftDot = -1f;
-                float rightDot = -1f;
+                Vector3 leftEuler;
+                Vector3 rightEuler;
                 bool leftOk = lh != null &&
-                    TryGetPalmFacingDotLoose(lh, camTf, out leftDot);
+                    TryHmdRelativeEuler360(lh, camTf, out leftEuler) &&
+                    LeftMatches(leftEuler);
                 bool rightOk = rh != null &&
-                    TryGetPalmFacingDotLoose(rh, camTf, out rightDot);
-                bool palmGaze = leftOk && rightOk;
+                    TryHmdRelativeEuler360(rh, camTf, out rightEuler) &&
+                    RightMatches(rightEuler);
+                bool poseOk = leftOk && rightOk;
 
-                if (palmGaze != _prevBothPalmsZone)
+                if (poseOk != _prevBothHandsPose)
                 {
-                    if (palmGaze)
+                    if (poseOk)
                     {
                         SuperController.LogMessage(
-                            LogPrefix + " both-hands pose ON (dwell only if armed).");
+                            LogPrefix + " both-hands pose ON (dwell if armed).");
                     }
                     else
                     {
@@ -205,10 +210,10 @@ namespace geesp0t
                             LogPrefix + " both-hands pose OFF; dwell cleared, re-armed.");
                     }
 
-                    _prevBothPalmsZone = palmGaze;
+                    _prevBothHandsPose = poseOk;
                 }
 
-                if (!palmGaze)
+                if (!poseOk)
                 {
                     _dwellAccumUnscaled = 0f;
                     _dwellArmed = true;
@@ -243,9 +248,9 @@ namespace geesp0t
 
                 _loggedCooldownSkipThisCycle = false;
                 SuperController.LogMessage(
-                    LogPrefix + " TRIGGER possess closest female (L palm axis dot " +
-                    leftDot.ToString("F2") + ", R " + rightDot.ToString("F2") +
-                    "). Exit pose once before another dwell.");
+                    LogPrefix + " TRIGGER possess closest female; eulerRelHMD L " +
+                    FormatEuler(leftEuler) + " R " + FormatEuler(rightEuler) +
+                    ". Exit pose once before another dwell.");
 
                 boundAction();
                 _lastTriggerUnscaledTime = now;
@@ -253,75 +258,67 @@ namespace geesp0t
                 _dwellArmed = false;
             }
 
-            private static float BestLocalAxisDotToward(
-                Transform hand,
-                Vector3 unitTowardCam)
+            private static string FormatEuler(Vector3 e)
             {
-                if (hand == null || unitTowardCam.sqrMagnitude < 1e-6f)
-                    return -1f;
-
-                float best = -1f;
-                float d;
-
-                d = Vector3.Dot(hand.forward, unitTowardCam);
-                if (d > best)
-                    best = d;
-                d = Vector3.Dot(-hand.forward, unitTowardCam);
-                if (d > best)
-                    best = d;
-                d = Vector3.Dot(hand.up, unitTowardCam);
-                if (d > best)
-                    best = d;
-                d = Vector3.Dot(-hand.up, unitTowardCam);
-                if (d > best)
-                    best = d;
-                d = Vector3.Dot(hand.right, unitTowardCam);
-                if (d > best)
-                    best = d;
-                d = Vector3.Dot(-hand.right, unitTowardCam);
-                if (d > best)
-                    best = d;
-
-                return best;
+                return "(" +
+                    e.x.ToString("F1") + "," +
+                    e.y.ToString("F1") + "," +
+                    e.z.ToString("F1") + ")";
             }
 
             /// <summary>
-            /// True when distance + forward hemisphere + palm dot pass; outputs
-            /// best axis dot toward cam for logging.
+            /// HMD-relative rotation of <paramref name="hand"/>; euler per axis
+            /// in [0, 360).
             /// </summary>
-            private static bool TryGetPalmFacingDotLoose(
+            private static bool TryHmdRelativeEuler360(
                 Transform hand,
-                Transform camTf,
-                out float bestAxisDotTowardCam)
+                Transform hmdTf,
+                out Vector3 euler360)
             {
-                bestAxisDotTowardCam = -1f;
-                if (hand == null || camTf == null)
+                euler360 = Vector3.zero;
+                if (hand == null || hmdTf == null)
                     return false;
+                Quaternion rel =
+                    Quaternion.Inverse(hmdTf.rotation) * hand.rotation;
+                Vector3 e = rel.eulerAngles;
+                euler360.x = NormalizeEuler360(e.x);
+                euler360.y = NormalizeEuler360(e.y);
+                euler360.z = NormalizeEuler360(e.z);
+                return true;
+            }
 
-                Vector3 camPos = camTf.position;
-                Vector3 camFwd = camTf.forward;
-                if (camFwd.sqrMagnitude < 1e-10f)
+            private static float NormalizeEuler360(float degrees)
+            {
+                float d = degrees % 360f;
+                if (d < 0f)
+                    d += 360f;
+                return d;
+            }
+
+            private static bool LeftMatches(Vector3 e)
+            {
+                float x = e.x;
+                float z = e.z;
+                if (x <= LeftMinEulerX)
                     return false;
-                camFwd.Normalize();
-
-                Vector3 toHand = hand.position - camPos;
-                float dist = toHand.magnitude;
-                if (dist < MinHandCamDistM || dist > MaxHandCamDistM)
+                if (z <= LeftMinEulerZ)
                     return false;
-
-                Vector3 dirToHand = toHand * (1f / dist);
-                if (Vector3.Dot(camFwd, dirToHand) < MinCamForwardDotToHand)
+                if (z >= LeftMaxEulerZ)
                     return false;
+                return true;
+            }
 
-                Vector3 towardCam = camPos - hand.position;
-                float tcMag = towardCam.magnitude;
-                if (tcMag < 1e-5f)
+            private static bool RightMatches(Vector3 e)
+            {
+                float x = e.x;
+                float z = e.z;
+                if (x <= RightMinEulerX)
                     return false;
-                towardCam = towardCam * (1f / tcMag);
-
-                float best = BestLocalAxisDotToward(hand, towardCam);
-                bestAxisDotTowardCam = best;
-                return best >= MinPalmFacingDotLoose;
+                if (z <= RightMinEulerZ)
+                    return false;
+                if (z >= RightMaxEulerZ)
+                    return false;
+                return true;
             }
         }
     }

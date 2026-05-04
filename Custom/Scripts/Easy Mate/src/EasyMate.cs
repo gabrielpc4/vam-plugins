@@ -452,9 +452,8 @@ namespace geesp0t
             {
                 if (!SceneHasAnyActivePossession())
                     return;
-                // SuperController.ClearPossess() — see Reference/Assembly-CSharp-decompiled/SuperController.cs
-                SuperController.singleton.ClearPossess();
-                SuperController.LogMessage("EasyMate: ClearPossess after scene load (possession was active).");
+                MainUIButtons.RequestClearAllPossession(
+                    "EasyMate: ClearPossess after scene load (possession was active).");
             }
             catch (Exception e)
             {

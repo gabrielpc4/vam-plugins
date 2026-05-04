@@ -182,8 +182,8 @@ namespace geesp0t
                 Transform lh = sc.leftHand;
                 Transform rh = sc.rightHand;
 
-                float leftDot;
-                float rightDot;
+                float leftDot = -1f;
+                float rightDot = -1f;
                 bool leftOk = lh != null &&
                     TryGetPalmFacingDotLoose(lh, camTf, out leftDot);
                 bool rightOk = rh != null &&

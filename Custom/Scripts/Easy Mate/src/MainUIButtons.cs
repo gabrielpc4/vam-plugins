@@ -663,10 +663,6 @@ namespace geesp0t
                         fc.possessed = false;
                         fc.startedPossess = false;
 
-                        EasyMateHeadHmdFollowAndMotionMute.ClearHeadHmdLinkMotionSuspension(
-                            a,
-                            fc);
-
                         if (isHead)
                             TryRestoreNaturalHeadPose(fc, a);
                     }
@@ -2031,9 +2027,6 @@ namespace geesp0t
 
             try
             {
-                EasyMateHeadHmdFollowAndMotionMute.ApplyHeadHmdLinkMotionSuspension(
-                    head);
-
                 head.possessed = true;
 
                 FreeControllerV3.SelectLinkState linkState =

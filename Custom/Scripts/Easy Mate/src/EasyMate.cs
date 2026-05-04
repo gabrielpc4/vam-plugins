@@ -652,7 +652,6 @@ namespace geesp0t
             EasyMateMonitorModeLaserRestore.Tick(monitorLaser);
             EasyMateVrEulerPossessHandHud.Tick();
             EasyMateFemalePassengerRuntime.Tick(this);
-            EasyMateHeadHmdFollowAndMotionMute.LateTick(SuperController.singleton);
         }
 
         void OnDestroy()

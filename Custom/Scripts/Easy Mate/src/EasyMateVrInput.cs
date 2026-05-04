@@ -223,6 +223,37 @@ namespace geesp0t
             return false;
         }
 
+        /// <summary>
+        /// Female passenger VR hands start: any controller <b>trigger or grip</b> press
+        /// this frame. Uses <see cref="SuperController.GetLeftGrab"/> /
+        /// <see cref="SuperController.GetLeftHoldGrab"/> (and right), which match VaM&apos;s
+        /// Oculus trigger vs grip mapping including <c>oculusSwapGrabAndTrigger</c>.
+        /// </summary>
+        public static bool PollVrAnyTriggerOrGripPressDown(SuperController sc)
+        {
+            if (sc == null)
+            {
+                return false;
+            }
+
+            if (!sc.isOVR && !sc.isOpenVR && !XrHeadsetLikelyOn(sc))
+            {
+                return false;
+            }
+
+            try
+            {
+                return sc.GetLeftGrab() ||
+                    sc.GetRightGrab() ||
+                    sc.GetLeftHoldGrab() ||
+                    sc.GetRightHoldGrab();
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         /// <summary>OVR path matches <see cref="SuperController.GetLeftHoldGrab"/> (<c>Controller.Touch</c>).</summary>
         private static bool OvrLeftGripPhysicalDown()
         {

@@ -13,6 +13,8 @@ namespace geesp0t
     /// OpenVR via <c>SuperController</c>) spawns at the right hand. Clone mode restores
     /// catalog storables (colors, scale, presets). Fallback: AddAtomByType. Mandatory
     /// first catalog Dildo still gets stiff segment springs in JSON. ToyBP Alpha Adjust, etc.
+    /// Runtime spawns use uids prefixed with <see cref="SpawnedToyUidPrefix"/>; those atoms
+    /// are removed when a new scene load starts (<c>SuperController.isLoading</c> edge).
     /// </summary>
     public class DildoOnHands : MVRScript
     {
@@ -23,6 +25,11 @@ namespace geesp0t
         /// work too if you paste their path here.
         public const string DefaultCatalogSceneRelativePath =
             "Custom/Scripts/DildoOnHands/handspawn_toy_atoms.json";
+
+        /// <summary>
+        /// Catalog clones: <c>HandSpawnToy__…</c>; legacy: <c>HandSpawnToy_…</c> — both match.
+        /// </summary>
+        private static readonly string SpawnedToyUidPrefix = PluginName + "_";
 
         private static readonly string[] VarietyToyAtomTypes =
         {
@@ -68,6 +75,8 @@ namespace geesp0t
 
         private bool _spawnCoroutineRunning;
 
+        private bool _sceneWasLoading;
+
         private bool _waitingMandatoryFirstDildo = true;
 
         private string _lastToyAtomTypeSpawned;
@@ -107,6 +116,7 @@ namespace geesp0t
             {
                 pluginLabelJSON.val = PluginName;
                 _sc = SuperController.singleton;
+                _sceneWasLoading = _sc != null && _sc.isLoading;
 
                 _vrToySpawnListenEnabled = new JSONStorableBool(
                     "Listen for VR toy spawn (right thumbstick click)",
@@ -1100,11 +1110,66 @@ namespace geesp0t
             }
         }
 
+        /// <summary>
+        /// Drops HandSpawnToy spawns when loading begins so stale toys do not linger
+        /// across scene changes.
+        /// </summary>
+        private static void RemoveSpawnedHandSpawnToyAtoms()
+        {
+            SuperController svc;
+
+            svc = SuperController.singleton;
+            if (svc == null)
+                return;
+
+            List<Atom> snapshot;
+            List<Atom> toRemove;
+
+            snapshot = svc.GetAtoms();
+            toRemove = new List<Atom>();
+
+            foreach (Atom atom in snapshot)
+            {
+                string uid;
+
+                if (atom == null)
+                    continue;
+
+                uid = atom.uid;
+                if (uid != null && uid.StartsWith(SpawnedToyUidPrefix))
+                    toRemove.Add(atom);
+            }
+
+            foreach (Atom atom in toRemove)
+            {
+                try
+                {
+                    svc.RemoveAtom(atom);
+                }
+                catch (Exception ex)
+                {
+                    SuperController.LogError(
+                        PluginName +
+                            ": remove spawned toy on load start: " +
+                            ex.Message);
+                }
+            }
+        }
+
         private void Update()
         {
+            if (_sc == null)
+                return;
+
+            bool loadingNow;
+
+            loadingNow = _sc.isLoading;
+            if (loadingNow && !_sceneWasLoading)
+                RemoveSpawnedHandSpawnToyAtoms();
+            _sceneWasLoading = loadingNow;
+
             if (_vrToySpawnListenEnabled == null ||
                 !_vrToySpawnListenEnabled.val ||
-                _sc == null ||
                 _sc.isLoading ||
                 _spawnCoroutineRunning)
                 return;

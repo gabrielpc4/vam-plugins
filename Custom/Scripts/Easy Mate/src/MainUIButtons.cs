@@ -51,6 +51,7 @@ namespace geesp0t
 
         private static MVRScript _pluginHost;
         private static Coroutine _autoPossessCoroutine;
+        private static Coroutine _autoPossessConfirmCo;
         private static Coroutine _vrPalmHudMenuConfirmCo;
         /// <summary>Next index for <see cref="HotkeySnapNearestHeadHideHandsThenSnap"/> among <see cref="AllPersonsSortedByUidForISnapCycle"/>.</summary>
         private static int _hotkeyISnapPersonCycleNextIndex;
@@ -1800,10 +1801,60 @@ namespace geesp0t
 
         private static void StopAutoPossessRoutine()
         {
+            if (_pluginHost != null && _autoPossessConfirmCo != null)
+            {
+                _pluginHost.StopCoroutine(_autoPossessConfirmCo);
+                _autoPossessConfirmCo = null;
+            }
+
             if (_pluginHost != null && _autoPossessCoroutine != null)
             {
                 _pluginHost.StopCoroutine(_autoPossessCoroutine);
                 _autoPossessCoroutine = null;
+            }
+        }
+
+        private static void StartAutoPossessConfirmRoutine(
+            FreeControllerV3 head,
+            FreeControllerV3 leftHand,
+            FreeControllerV3 rightHand)
+        {
+            if (_pluginHost == null)
+                return;
+
+            if (_autoPossessConfirmCo != null)
+            {
+                _pluginHost.StopCoroutine(_autoPossessConfirmCo);
+                _autoPossessConfirmCo = null;
+            }
+
+            _autoPossessConfirmCo = _pluginHost.StartCoroutine(
+                AutoPossessConfirmAfterDelayCo(head, leftHand, rightHand));
+        }
+
+        private static IEnumerator AutoPossessConfirmAfterDelayCo(
+            FreeControllerV3 head,
+            FreeControllerV3 leftHand,
+            FreeControllerV3 rightHand)
+        {
+            try
+            {
+                yield return new WaitForSecondsRealtime(1f);
+
+                SuperController sc = SuperController.singleton;
+                if (sc == null)
+                    yield break;
+
+                bool anyPossessed =
+                    (head != null && head.possessed) ||
+                    (leftHand != null && leftHand.possessed) ||
+                    (rightHand != null && rightHand.possessed);
+                if (anyPossessed)
+                    sc.SelectModeOff();
+            }
+            finally
+            {
+                _autoPossessConfirmCo = null;
             }
         }
 
@@ -2006,6 +2057,7 @@ namespace geesp0t
 
                 sc.SelectController(head, false);
                 sc.SelectModePossess(true);
+                StartAutoPossessConfirmRoutine(head, leftHand, rightHand);
 
                 yield return null;
                 yield return null;

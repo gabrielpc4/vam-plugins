@@ -7,18 +7,19 @@ namespace geesp0t
     /// <summary>
     /// When the <b>right hand alone</b> matches the HMD-relative euler
     /// window for the VR possess rule, shows a small world UI on
-    /// <c>rightHand</c>: <b>Próxima cena</b> on the <b>upper</b> row and
+    /// <c>rightHand</c> (back of hand / watch pose): <b>Próxima cena</b> on the
+    /// <b>upper</b> row and
     /// <b>Possuir</b> / <b>Despossuir</b> on the <b>lower</b> row.
     /// <b>Upper</b> row (<b>Próxima cena</b>): face <b>B</b> / OpenVR menu, or tap the button.
     /// <b>Lower</b> row (<b>Possuir</b> / <b>Despossuir</b>): face <b>A</b> / OpenVR select.
     /// While possessed, <b>A</b> or <b>B</b>
     /// triggers Despossuir. Unity often
-    /// sends no laser hits to this palm canvas, so face buttons are polled.
+    /// sends no laser hits to this hand canvas, so face buttons are polled.
     /// The whole HUD, including this row, only shows while the right-hand
     /// euler window matches.
     /// <b>Gender step:</b> <b>Homem (B)</b> upper row, <b>Mulher (A)</b> lower row.
     /// VaM menu shortcut still dismisses the main UI into this step when a Person exists.
-    /// Leaving the palm pose closes the HUD (no third “back” button). Billboard faces the HMD.
+    /// Leaving the pose closes the HUD (no third “back” button). Billboard faces the HMD.
     /// </summary>
     internal static class EasyMateVrEulerPossessHandHud
     {
@@ -49,11 +50,12 @@ namespace geesp0t
             new Color(0.5f, 0.14f, 0.14f, 0.92f);
 
         /// <summary>
-        /// Local offset on <c>rightHand</c> (meters in hand space). Negative
-        /// X tends toward the palm on OpenVR / OVR right controllers.
+        /// Local offset on <c>rightHand</c> (meters in hand space). Positive
+        /// X is the dorsum / watch side on OpenVR / OVR right controllers
+        /// (palm-facing HUD used negative X with the same Y,Z magnitudes).
         /// </summary>
-        private static readonly Vector3 LocalPalmOffset =
-            new Vector3(-0.065f, 0.012f, 0.025f);
+        private static readonly Vector3 LocalHandHudOffset =
+            new Vector3(0.065f, 0.012f, 0.025f);
 
         private const float CanvasWidthPx = 260f;
 
@@ -112,7 +114,7 @@ namespace geesp0t
             if (_root.transform.parent != rh)
                 _root.transform.SetParent(rh, false);
 
-            _root.transform.localPosition = LocalPalmOffset;
+            _root.transform.localPosition = LocalHandHudOffset;
 
             Transform hmdTf = EasyMateVrEulerPossessPoseCheck.ResolveHmdTransform(sc);
             if (hmdTf != null)

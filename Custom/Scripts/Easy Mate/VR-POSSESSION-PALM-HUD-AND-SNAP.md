@@ -25,7 +25,8 @@ Hand-off doc for another LLM or developer. All paths live under
   right hand leaves the euler window, **`SetVisible(false)`** runs and
   **`_genderChooseStepActive` is cleared** (no separate “Back” control).
 - **Attach point:** Canvas parented to **`SuperController.rightHand`** with a
-  fixed **local** offset (`LocalPalmOffset`), billboard-style toward the HMD.
+  fixed **local** offset (`LocalHandHudOffset`, **positive X** = back of hand /
+  watch side; palm-era HUD used **negative X** with same Y,Z), billboard-style toward the HMD.
 - **World-space `Canvas` + `GraphicRaycaster`:** VaM’s VR UI lasers often
   **do not** click these buttons; gender choices are driven by **polled**
   controller input (see §5).
@@ -37,7 +38,7 @@ Hand-off doc for another LLM or developer. All paths live under
 - **VaM system menu (`GetMenuShow`):** While **not** in the gender step and
   **not** possessed, if **`VrPalmHudNeedsGenderChoiceStep()`** and user opens
   the menu, the HUD dismisses **`activeUI`**, sets **`RequestGenderChooseStep()`**,
-  and refreshes to the gender row (must still hold palm pose to see it).
+  and refreshes to the gender row (must still hold the hand HUD pose to see it).
 
 **After choosing Mulher or Homem:** `DismissVaMOverlayUiIfAny()` sets
 `SuperController.activeUI = None` to avoid the OpenVR menu binding leaving

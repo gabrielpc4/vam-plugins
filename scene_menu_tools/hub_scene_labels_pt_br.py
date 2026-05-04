@@ -82,6 +82,8 @@ _SCENE_TITLE_NORMALIZED_PT_BR: dict[str, str] = {
     "hacker cracker": "Hacker cracker",
     "touchy booty shake": "Rebolado sensível",
     "not so rude awakening": "Um despertar nada rude",
+    # acidbubbles Passenger scene stem → hub line 2
+    "pass": "Passageiro",
     "no matter": "Não importa",
     "worthy": "Valor",
     "call me": "Me liga",
@@ -385,10 +387,13 @@ def build_scene_hub_label_pt_br(
     button_id: str,
     scene_hub_path: str,
     old_full_text: str | None,
+    ignore_frozen_prior: bool = False,
 ) -> str:
     hub = scene_hub_path.strip().replace("\\", "/")
     typ = resolve_type_pt_br(button_id, hub, old_full_text or "")
-    if old_full_text is not None:
+    if ignore_frozen_prior:
+        title_base = polish_title_line(scene_title_stem.strip(), hub)
+    elif old_full_text is not None:
         frozen = split_prior_pt_br_two_line_hub_label(old_full_text, hub)
         if frozen is not None:
             title_base = frozen[1]

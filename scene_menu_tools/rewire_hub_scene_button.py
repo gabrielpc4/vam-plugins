@@ -11,7 +11,10 @@ Rewire **one** main-hub ``UIButton`` so it loads a chosen scene:
   matches that file).
 - UIButton ``Text`` becomes **two-line pt-BR** (tipo, then nome) via
   ``hub_scene_labels_pt_br``.
-- Then run ``inject_default_scene_thumbnails.py`` for ``_SceneThumb_*`` vs ``MainMenu_Original.json``.
+- Runs ``inject_default_scene_thumbnails.py`` (unless ``--no-thumbnails``) so
+  ``_SceneThumb_*`` overlays match LoadScene paths vs ``MainMenu_Original.json``;
+  then copies ``Default.json`` → ``MainMenu.json`` again (inject only rewrites
+  Default).
 
 See: ``SCENE_MENU_AND_THUMBS.md``
 
@@ -31,6 +34,7 @@ import argparse
 import json
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
@@ -230,6 +234,21 @@ def replace_text_storable_for_button(text: str, button_id: str, new_text: str) -
     return text[: m.start(3)] + json.dumps(new_text) + text[m.end(3) :]
 
 
+def extract_uibutton_text_from_raw_hub(text: str, button_id: str) -> str | None:
+    """Current ``Text`` storables ``text`` JSON string for ``button_id``, or None."""
+    m = re.search(
+        rf'("id"\s*:\s*"{re.escape(button_id)}"[\s\S]{{0,16000}}?)'
+        r'("id"\s*:\s*"Text"[\s\S]*?"text"\s*:\s*)("[^"]*")',
+        text,
+    )
+    if not m:
+        return None
+    try:
+        return json.loads(m.group(3))
+    except json.JSONDecodeError:
+        return None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
@@ -276,6 +295,11 @@ def main() -> int:
         help="Folder under Saves/scene for --pack-name / --list-pack-dirs (use . for top level).",
     )
     ap.add_argument("--dry-run", action="store_true", help="Print actions; do not write files.")
+    ap.add_argument(
+        "--no-thumbnails",
+        action="store_true",
+        help="Skip inject_default_scene_thumbnails.py after editing Default.json.",
+    )
     args = ap.parse_args()
 
     script_here = Path(__file__).resolve()
@@ -318,7 +342,18 @@ def main() -> int:
     rel_for_author = title_src.relative_to(scene_root)
     scene_title = title_src.stem
     author = resolve_label_author(author_json_src, rel_for_author)
-    label = build_scene_hub_label_pt_br(scene_title, bid, hub_rel, None)
+
+    default_path = scene_root / "Default.json"
+    main_menu_path = scene_root / "MainMenu.json"
+
+    if not default_path.is_file():
+        raise SystemExit(f"Missing hub scene: {default_path}")
+
+    raw = default_path.read_text(encoding="utf-8")
+    old_txt = extract_uibutton_text_from_raw_hub(raw, bid)
+    label = build_scene_hub_label_pt_br(
+        scene_title, bid, hub_rel, old_txt, ignore_frozen_prior=True
+    )
 
     print(f"VaM root:        {va_root}")
     print(f"Button id:       {bid}")
@@ -333,13 +368,6 @@ def main() -> int:
     if author and author.strip():
         print(f"(Author from scene, not on label: {author.strip()})")
 
-    default_path = scene_root / "Default.json"
-    main_menu_path = scene_root / "MainMenu.json"
-
-    if not default_path.is_file():
-        raise SystemExit(f"Missing hub scene: {default_path}")
-
-    raw = default_path.read_text(encoding="utf-8")
     try:
         out = replace_scene_after_button(raw, bid, hub_rel)
         out = replace_text_storable_for_button(out, bid, label)
@@ -349,10 +377,13 @@ def main() -> int:
     if args.dry_run:
         if out != raw:
             print(f"WOULD WRITE: {default_path}")
-            print(f"WOULD COPY:  {default_path} -> {main_menu_path}")
         else:
-            print(f"NO CHANGE to Default.json (button wiring + label already match).")
-            print(f"(Non-dry run would still copy Default.json -> MainMenu.json to sync.)")
+            print("NO CHANGE to Default.json (button wiring + label already match).")
+        if not args.no_thumbnails:
+            print("WOULD RUN: inject_default_scene_thumbnails.py")
+        else:
+            print("(Skipping thumbnail inject: --no-thumbnails)")
+        print(f"WOULD COPY:  {default_path} -> {main_menu_path}")
         return 0
 
     if out != raw:
@@ -360,6 +391,21 @@ def main() -> int:
         print(f"WROTE: {default_path}")
     else:
         print(f"NO CHANGE: {default_path} (button fields)")
+
+    if not args.no_thumbnails:
+        inj = _TOOLS_DIR / "inject_default_scene_thumbnails.py"
+        r = subprocess.run(
+            [sys.executable, str(inj)],
+            cwd=str(va_root),
+        )
+        if r.returncode != 0:
+            print(
+                "WARNING: inject_default_scene_thumbnails.py exited with",
+                r.returncode,
+                file=sys.stderr,
+            )
+        else:
+            print(f"RAN: {inj.name}")
 
     shutil.copyfile(default_path, main_menu_path)
     print(f"COPIED: {default_path} -> {main_menu_path}")

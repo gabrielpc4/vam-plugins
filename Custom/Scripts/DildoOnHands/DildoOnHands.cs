@@ -5,6 +5,7 @@ using System.Globalization;
 using MeshVR;
 using SimpleJSON;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace geesp0t
 {
@@ -100,6 +101,9 @@ namespace geesp0t
 
         private SceneToyTemplate _mandatoryDildoCatalogEntry;
 
+        /// <summary>Plugin UI: toggles VR toy spawn trigger; label shows ON/OFF.</summary>
+        private UIDynamicButton _toyTriggerMainButton;
+
         public override void Init()
         {
             try
@@ -109,9 +113,22 @@ namespace geesp0t
 
                 _listenEnabled = new JSONStorableBool(
                     "Listen for VR trigger",
-                    true);
+                    true,
+                    OnListenForVrTriggerChanged);
 
+                _listenEnabled.storeType = JSONStorableParam.StoreType.Full;
                 RegisterBool(_listenEnabled);
+
+                _toyTriggerMainButton = CreateButton(
+                    ToyTriggerMainButtonLabel(),
+                    false);
+
+                if (_toyTriggerMainButton != null &&
+                    _toyTriggerMainButton.button != null)
+                {
+                    _toyTriggerMainButton.button.onClick.AddListener(
+                        OnToyTriggerMainButtonClicked);
+                }
 
                 _cloneFromCatalogScene = new JSONStorableBool(
                     "Clone toys from catalog scene JSON",
@@ -224,6 +241,45 @@ namespace geesp0t
             {
                 SuperController.LogError(PluginName + " Init: " + e);
             }
+        }
+
+        public override void InitUI()
+        {
+            base.InitUI();
+            RefreshToyTriggerMainButtonLabel();
+        }
+
+        private static string ToyTriggerMainButtonLabelForState(bool enabled)
+        {
+            if (enabled)
+                return "Toy trigger: ON (click to disable)";
+            return "Toy trigger: OFF (click to enable)";
+        }
+
+        private string ToyTriggerMainButtonLabel()
+        {
+            if (_listenEnabled == null)
+                return "Toy trigger: ?";
+            return ToyTriggerMainButtonLabelForState(_listenEnabled.val);
+        }
+
+        private void RefreshToyTriggerMainButtonLabel()
+        {
+            if (_toyTriggerMainButton == null)
+                return;
+            _toyTriggerMainButton.label = ToyTriggerMainButtonLabel();
+        }
+
+        private void OnListenForVrTriggerChanged(bool newVal)
+        {
+            RefreshToyTriggerMainButtonLabel();
+        }
+
+        private void OnToyTriggerMainButtonClicked()
+        {
+            if (_listenEnabled == null)
+                return;
+            _listenEnabled.val = !_listenEnabled.val;
         }
 
         private static void AppendTypeIfDistinct(List<string> dest, string t)

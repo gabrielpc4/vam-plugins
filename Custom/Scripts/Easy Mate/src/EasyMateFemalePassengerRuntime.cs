@@ -70,6 +70,8 @@ namespace geesp0t
                 }
             }
 
+            EasyMatePassengerHandPrePossessSnapshot.DiscardSnapshot();
+
             StopPassengerMode();
             ClearPendingPassengerModeActivation();
         }
@@ -157,6 +159,8 @@ namespace geesp0t
                 }
             }
 
+            EasyMatePassengerHandPrePossessSnapshot.RestoreAfterPossessClearThenDiscardSnapshot();
+
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
         }
 
@@ -211,6 +215,7 @@ namespace geesp0t
         public static void OnPluginDestroy()
         {
             MainUIButtons.StopVrPassengerHandsRoutine();
+            EasyMatePassengerHandPrePossessSnapshot.DiscardSnapshot();
             StopPassengerMode();
             ClearPendingPassengerModeActivation();
             _sessionPluginHost = null;
@@ -680,6 +685,8 @@ namespace geesp0t
                 yield break;
             }
 
+            EasyMatePassengerHandPrePossessSnapshot.CaptureFromPersonBeforeHandPossess(
+                resolvedFemalePerson);
             MainUIButtons.StartVrPassengerHandsRoutine(resolvedFemalePerson);
         }
 

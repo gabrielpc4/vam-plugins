@@ -602,6 +602,7 @@ namespace geesp0t
             EasyMateHeadSnapPovRuntime.EndSnapSession();
             EasyMateFemalePassengerRuntime.StopPassengerMode();
             sc.ClearPossess();
+            EasyMatePassengerHandPrePossessSnapshot.RestoreAfterPossessClearThenDiscardSnapshot();
             UnlinkStrayHmdLinkedFreeControllersAndNaturalizeHeads(sc);
             try
             {

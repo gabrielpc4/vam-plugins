@@ -63,6 +63,16 @@ namespace geesp0t
         private bool isLoading = true;
         private float loadingTimeCounter = 0;
 
+        private sealed class SceneLightIntensityBackupEntry
+        {
+            public Light sceneLight;
+            public float savedIntensity;
+        }
+
+        private readonly List<SceneLightIntensityBackupEntry> sceneLightIntensityBackupList = new List<SceneLightIntensityBackupEntry>();
+        private bool sceneLightIntensityBackupActive = false;
+        private bool wasSuperControllerLoading = false;
+
         public class PluginSet
         {
             public string buttonName;
@@ -833,6 +843,34 @@ namespace geesp0t
             if (keyboardShortcuts != null)
                 keyboardShortcuts.ProcessHotkeysUpdate();
 
+            bool superControllerLoading = SuperController.singleton.isLoading;
+
+            if (superControllerLoading && !wasSuperControllerLoading)
+            {
+                try
+                {
+                    BackupSceneLightsAndZeroIntensity();
+                }
+                catch (Exception lightsBackupException)
+                {
+                    SuperController.LogError("[Auto_Load_Person_Plugins] BackupSceneLightsAndZeroIntensity failed: " + lightsBackupException);
+                }
+            }
+
+            if (!superControllerLoading && wasSuperControllerLoading)
+            {
+                try
+                {
+                    RestoreSceneLightsFromBackup();
+                }
+                catch (Exception lightsRestoreException)
+                {
+                    SuperController.LogError("[Auto_Load_Person_Plugins] RestoreSceneLightsFromBackup failed: " + lightsRestoreException);
+                }
+            }
+
+            wasSuperControllerLoading = superControllerLoading;
+
             //once finished loading, apply
             if (SuperController.singleton.isLoading)
             {
@@ -960,10 +998,78 @@ namespace geesp0t
 
         void OnDestroy()
         {
+            if (sceneLightIntensityBackupActive)
+            {
+                try
+                {
+                    RestoreSceneLightsFromBackup();
+                }
+                catch (Exception lightsRestoreException)
+                {
+                    SuperController.LogError("[Auto_Load_Person_Plugins] RestoreSceneLightsFromBackup in OnDestroy failed: " + lightsRestoreException);
+                }
+            }
+
             SuperController.singleton.onAtomUIDsChangedHandlers -= new SuperController.OnAtomUIDsChanged(this.AtomUIDChange);
             if (keyboardShortcuts != null)
                 keyboardShortcuts.OnDestroy();
             // Log("SessionPluginBooter Destroyed");
+        }
+
+        void BackupSceneLightsAndZeroIntensity()
+        {
+            if (sceneLightIntensityBackupActive)
+            {
+                RestoreSceneLightsFromBackup();
+            }
+
+            sceneLightIntensityBackupList.Clear();
+
+            Light[] sceneLights = UnityEngine.Object.FindObjectsOfType(typeof(Light)) as Light[];
+            if (sceneLights == null)
+            {
+                return;
+            }
+
+            for (int lightIndex = 0; lightIndex < sceneLights.Length; lightIndex++)
+            {
+                Light sceneLight = sceneLights[lightIndex];
+
+                if (sceneLight == null)
+                {
+                    continue;
+                }
+
+                SceneLightIntensityBackupEntry backupEntry = new SceneLightIntensityBackupEntry();
+                backupEntry.sceneLight = sceneLight;
+                backupEntry.savedIntensity = sceneLight.intensity;
+                sceneLightIntensityBackupList.Add(backupEntry);
+                sceneLight.intensity = 0f;
+            }
+
+            sceneLightIntensityBackupActive = true;
+        }
+
+        void RestoreSceneLightsFromBackup()
+        {
+            if (!sceneLightIntensityBackupActive)
+            {
+                return;
+            }
+
+            for (int entryIndex = 0; entryIndex < sceneLightIntensityBackupList.Count; entryIndex++)
+            {
+                SceneLightIntensityBackupEntry backupEntry = sceneLightIntensityBackupList[entryIndex];
+                Light sceneLight = backupEntry.sceneLight;
+
+                if (sceneLight != null)
+                {
+                    sceneLight.intensity = backupEntry.savedIntensity;
+                }
+            }
+
+            sceneLightIntensityBackupList.Clear();
+            sceneLightIntensityBackupActive = false;
         }
 
         void Log(string msg)

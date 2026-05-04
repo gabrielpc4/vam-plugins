@@ -9,11 +9,11 @@ namespace geesp0t
     /// window for the VR possess rule, shows a small world UI on
     /// <c>rightHand</c>: <b>Próxima cena</b> on the <b>upper</b> row and
     /// <b>Possuir</b> / <b>Despossuir</b> on the <b>lower</b> row.
-    /// <b>Right thumbstick click</b> activates the lower row (possess flow);
-    /// on Oculus / XR, <b>right face B</b> fires <b>Próxima cena</b> while
-    /// this two-row panel is shown. With at least one female Person,
-    /// <b>Possuir</b> opens <b>Mulher</b> (Quest face <b>B</b> on the
-    /// gender-only step — OpenVR still uses Menu for that step). Unity often
+    /// <b>Next scene</b> is triggered <b>only</b> by face <b>B</b> (or OpenVR
+    /// menu) while this panel shows the two main rows, or by tapping
+    /// <b>Próxima cena</b>. With at least one female Person,
+    /// <b>Possuir</b> opens <b>Mulher</b>; on the Mulher-only step, B still
+    /// confirms Mulher (not next scene). Unity often
     /// sends no laser hits to this palm canvas, so face buttons are polled.
     /// The whole HUD, including this row, only shows while the right-hand
     /// euler window matches. VaM menu shortcut still dismisses
@@ -39,13 +39,6 @@ namespace geesp0t
         private static bool _genderChooseStepActive;
 
         private static bool _listenersAttached;
-
-        /// <summary>
-        /// When true, <see cref="EasyMateNxtUiQuestThumbstick"/> routes right
-        /// thumbstick to the Possuir/Despossuir row instead of next scene.
-        /// Set each <c>LateUpdate</c> from <see cref="Tick"/>.
-        /// </summary>
-        internal static bool PalmHudWantsThumbstickForPossessRow;
 
         private static Sprite _whiteSprite;
 
@@ -77,8 +70,6 @@ namespace geesp0t
 
         internal static void Tick()
         {
-            PalmHudWantsThumbstickForPossessRow = false;
-
             SuperController sc = SuperController.singleton;
             if (sc == null || sc.isLoading)
             {
@@ -155,8 +146,7 @@ namespace geesp0t
 
             RefreshGenderVersusMainRows(possessed);
 
-            bool genderChooseStepShowing = _genderChooseStepActive && !possessed;
-            PalmHudWantsThumbstickForPossessRow = !genderChooseStepShowing;
+            bool onMulherOnlyPanel = _genderChooseStepActive && !possessed;
 
             if (_btnPossessRow != null)
                 _btnPossessRow.interactable = true;
@@ -167,29 +157,30 @@ namespace geesp0t
             if (_btnHomem != null)
                 _btnHomem.interactable = true;
 
-            if (genderChooseStepShowing)
+            if (onMulherOnlyPanel)
             {
                 bool mulherB = EasyMateVrInput.PollPalmHudMulherChoiceDown(sc);
                 if (mulherB)
-                    InvokeGenderMulherChoice();
-            }
-
-            if (sc.GetMenuShow() && !possessed && !_genderChooseStepActive)
-            {
-                if (MainUIButtons.VrPalmHudNeedsGenderChoiceStep())
                 {
-                    sc.activeUI = SuperController.ActiveUI.None;
-                    RequestGenderChooseStep();
-                    RefreshGenderVersusMainRows(false);
+                    InvokeGenderMulherChoice();
                 }
-                else
-                    MainUIButtons.RequestVrPalmHudMenuButtonPossessAfterDismissMenu();
             }
 
-            if (!genderChooseStepShowing)
+            if (sc.GetMenuShow() && !possessed && !_genderChooseStepActive &&
+                MainUIButtons.VrPalmHudNeedsGenderChoiceStep())
+            {
+                sc.activeUI = SuperController.ActiveUI.None;
+                RequestGenderChooseStep();
+                RefreshGenderVersusMainRows(false);
+            }
+
+            bool blockProximaBForMulherStep = _genderChooseStepActive && !possessed;
+            if (!blockProximaBForMulherStep)
             {
                 if (EasyMateVrInput.PollPalmHudProximaCenaFaceBDown(sc))
+                {
                     MainUIButtons.RequestFireNextSceneUiButton();
+                }
             }
         }
 
@@ -209,7 +200,6 @@ namespace geesp0t
             _btnHomem = null;
             _genderChooseStepActive = false;
             _listenersAttached = false;
-            PalmHudWantsThumbstickForPossessRow = false;
             _whiteSprite = null;
         }
 
@@ -288,17 +278,6 @@ namespace geesp0t
             {
                 MainUIButtons.RequestPossessVrPalmHudAutoWithoutGenderMenu();
             }
-        }
-
-        internal static bool TryConsumeThumbstickClickForPalmPossessRow()
-        {
-            if (!PalmHudWantsThumbstickForPossessRow)
-            {
-                return false;
-            }
-
-            InvokePossessRowPrimaryAction();
-            return true;
         }
 
         private static Sprite WhiteSprite()

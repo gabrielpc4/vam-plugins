@@ -11,7 +11,9 @@ src/EasyMateHeadSnapPovRuntime.cs
 src/EasyMateNxtUiQuestThumbstick.cs
 src/EasyMateOverlapFullGrabRelease.cs
 src/EasyMateVrInput.cs
+src/EasyMateVrEulerPossessPoseCheck.cs
 src/EasyMateVrGestureRuntime.cs
+src/EasyMateVrEulerGestureTestHud.cs
 src/EasyMateVrHandRotationDebugHud.cs
 src/MainUIButtons.cs
 src/EasyMatePossessFootDistanceAutoRelease.cs

@@ -116,6 +116,12 @@ namespace geesp0t
         public JSONStorableBool showVrHandRotationDebugHud;
 
         /// <summary>
+        /// HMD-facing text: HMD-relative euler per hand + cube green when the
+        /// euler possess angle window is satisfied (ignores dwell/cooldown).
+        /// </summary>
+        public JSONStorableBool showVrEulerPossessGestureTestHud;
+
+        /// <summary>
         /// Oculus / OpenVR: log full hand/HMD pose dump on right trigger press
         /// (<see cref="SuperController.GetRightGrab"/>).
         /// </summary>
@@ -196,6 +202,11 @@ namespace geesp0t
                 "VR hand rotation debug HUD (world text)",
                 false);
             RegisterBool(showVrHandRotationDebugHud);
+
+            showVrEulerPossessGestureTestHud = new JSONStorableBool(
+                "VR euler possess angle test HUD (text + cube)",
+                true);
+            RegisterBool(showVrEulerPossessGestureTestHud);
 
             logVrHandPoseOnRightTrigger = new JSONStorableBool(
                 "VR: log hand pose on right trigger",
@@ -667,6 +678,10 @@ namespace geesp0t
                 showVrHandRotationDebugHud.val;
             EasyMateVrHandRotationDebugHud.Tick(handHud);
 
+            bool eulerTestHud = showVrEulerPossessGestureTestHud != null &&
+                showVrEulerPossessGestureTestHud.val;
+            EasyMateVrEulerGestureTestHud.Tick(eulerTestHud);
+
             SuperController scHandLog = SuperController.singleton;
             if (scHandLog != null &&
                 !scHandLog.isLoading &&
@@ -703,6 +718,7 @@ namespace geesp0t
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
             EasyMateMonitorModeLaserRestore.OnPluginDestroy();
             EasyMateVrHandRotationDebugHud.OnPluginDestroy();
+            EasyMateVrEulerGestureTestHud.OnPluginDestroy();
             EasyMateHeadSnapPovRuntime.End();
             if (mainUIButtons != null) mainUIButtons.OnDestroy();
         }

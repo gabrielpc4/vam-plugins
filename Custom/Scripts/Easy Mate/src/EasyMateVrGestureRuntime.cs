@@ -137,20 +137,6 @@ namespace geesp0t
             private const float DwellSeconds = 3f;
             private const float CooldownSeconds = 10f;
 
-            /// <summary>Left: euler X &gt; this (degrees, 0–360).</summary>
-            private const float LeftMinEulerX = 300f;
-
-            /// <summary>Left: Z strictly between these (degrees).</summary>
-            private const float LeftMinEulerZ = 30f;
-            private const float LeftMaxEulerZ = 90f;
-
-            /// <summary>Right: euler X &gt; this (degrees, 0–360).</summary>
-            private const float RightMinEulerX = 300f;
-
-            /// <summary>Right: Z strictly between these (degrees).</summary>
-            private const float RightMinEulerZ = 290f;
-            private const float RightMaxEulerZ = 330f;
-
             private static float _dwellAccumUnscaled;
             private static float _lastTriggerUnscaledTime = -1000f;
             /// <summary>
@@ -176,11 +162,7 @@ namespace geesp0t
                 if (!(sc.isOVR || sc.isOpenVR || XRSettings.enabled))
                     return;
 
-                Transform camTf = sc.lookCamera != null ?
-                    sc.lookCamera.transform :
-                    null;
-                if (camTf == null && sc.centerCameraTarget != null)
-                    camTf = sc.centerCameraTarget.transform;
+                Transform camTf = EasyMateVrEulerPossessPoseCheck.ResolveHmdTransform(sc);
                 if (camTf == null)
                     return;
 
@@ -190,11 +172,17 @@ namespace geesp0t
                 Vector3 leftEuler;
                 Vector3 rightEuler;
                 bool leftOk = lh != null &&
-                    TryHmdRelativeEuler360(lh, camTf, out leftEuler) &&
-                    LeftMatches(leftEuler);
+                    EasyMateVrEulerPossessPoseCheck.TryHmdRelativeEuler360(
+                        lh,
+                        camTf,
+                        out leftEuler) &&
+                    EasyMateVrEulerPossessPoseCheck.LeftMatches(leftEuler);
                 bool rightOk = rh != null &&
-                    TryHmdRelativeEuler360(rh, camTf, out rightEuler) &&
-                    RightMatches(rightEuler);
+                    EasyMateVrEulerPossessPoseCheck.TryHmdRelativeEuler360(
+                        rh,
+                        camTf,
+                        out rightEuler) &&
+                    EasyMateVrEulerPossessPoseCheck.RightMatches(rightEuler);
                 bool poseOk = leftOk && rightOk;
 
                 if (poseOk != _prevBothHandsPose)
@@ -249,76 +237,15 @@ namespace geesp0t
                 _loggedCooldownSkipThisCycle = false;
                 SuperController.LogMessage(
                     LogPrefix + " TRIGGER possess closest female; eulerRelHMD L " +
-                    FormatEuler(leftEuler) + " R " + FormatEuler(rightEuler) +
+                    EasyMateVrEulerPossessPoseCheck.FormatEuler(leftEuler) +
+                    " R " +
+                    EasyMateVrEulerPossessPoseCheck.FormatEuler(rightEuler) +
                     ". Exit pose once before another dwell.");
 
                 boundAction();
                 _lastTriggerUnscaledTime = now;
                 _dwellAccumUnscaled = 0f;
                 _dwellArmed = false;
-            }
-
-            private static string FormatEuler(Vector3 e)
-            {
-                return "(" +
-                    e.x.ToString("F1") + "," +
-                    e.y.ToString("F1") + "," +
-                    e.z.ToString("F1") + ")";
-            }
-
-            /// <summary>
-            /// HMD-relative rotation of <paramref name="hand"/>; euler per axis
-            /// in [0, 360).
-            /// </summary>
-            private static bool TryHmdRelativeEuler360(
-                Transform hand,
-                Transform hmdTf,
-                out Vector3 euler360)
-            {
-                euler360 = Vector3.zero;
-                if (hand == null || hmdTf == null)
-                    return false;
-                Quaternion rel =
-                    Quaternion.Inverse(hmdTf.rotation) * hand.rotation;
-                Vector3 e = rel.eulerAngles;
-                euler360.x = NormalizeEuler360(e.x);
-                euler360.y = NormalizeEuler360(e.y);
-                euler360.z = NormalizeEuler360(e.z);
-                return true;
-            }
-
-            private static float NormalizeEuler360(float degrees)
-            {
-                float d = degrees % 360f;
-                if (d < 0f)
-                    d += 360f;
-                return d;
-            }
-
-            private static bool LeftMatches(Vector3 e)
-            {
-                float x = e.x;
-                float z = e.z;
-                if (x <= LeftMinEulerX)
-                    return false;
-                if (z <= LeftMinEulerZ)
-                    return false;
-                if (z >= LeftMaxEulerZ)
-                    return false;
-                return true;
-            }
-
-            private static bool RightMatches(Vector3 e)
-            {
-                float x = e.x;
-                float z = e.z;
-                if (x <= RightMinEulerX)
-                    return false;
-                if (z <= RightMinEulerZ)
-                    return false;
-                if (z >= RightMaxEulerZ)
-                    return false;
-                return true;
             }
         }
     }

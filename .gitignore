@@ -34,6 +34,7 @@ Custom/**
 # Later rules win; * does not cross '/' so each path segment is checked.
 *pose*
 *Pose*
+!Custom/Scripts/Easy Mate/src/EasyMateVrEulerPossessPoseCheck.cs
 *appearance*
 *Appearance*
 

@@ -1021,7 +1021,7 @@ namespace geesp0t
         {
             float pitchDegrees = NormalizeSignedEulerAngle(
                 rotation.eulerAngles.x);
-            if (pitchDegrees > 0f)
+            if (pitchDegrees > 0f && pitchDegrees <= 90f)
                 return pitchDegrees;
 
             return 0f;

@@ -157,6 +157,9 @@ namespace geesp0t
                 }
             }
 
+            EasyMatePassengerHandPrePossessSnapshot
+                .RestoreAfterPossessClearThenDiscardSnapshot();
+
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
         }
 
@@ -211,6 +214,7 @@ namespace geesp0t
         public static void OnPluginDestroy()
         {
             MainUIButtons.StopVrPassengerHandsRoutine();
+            EasyMatePassengerHandPrePossessSnapshot.DiscardSnapshot();
             StopPassengerMode();
             ClearPendingPassengerModeActivation();
             _sessionPluginHost = null;
@@ -318,6 +322,9 @@ namespace geesp0t
             _previousPlayerHeightAdjust =
                 superController.playerHeightAdjust;
 
+            EasyMatePassengerHandPrePossessSnapshot
+                .CaptureHeadFromPersonBeforePassengerFollow(femalePerson);
+
             _femalePassengerTargetPerson = femalePerson;
             _femalePassengerHeadRigidbody = headRigidbody;
             _currentRotationVelocity = Quaternion.identity;
@@ -367,6 +374,7 @@ namespace geesp0t
             try
             {
                 ApplyPassengerPose(superController, false);
+                ApplyPassengerHeadRotationFollow(superController, headControl);
             }
             catch (Exception exception)
             {
@@ -503,6 +511,35 @@ namespace geesp0t
                 }
 
                 navigationRig.position = positionOffset;
+            }
+        }
+
+        private static void ApplyPassengerHeadRotationFollow(
+            SuperController superController,
+            FreeControllerV3 headControl)
+        {
+            if (superController == null || headControl == null ||
+                headControl.control == null)
+            {
+                return;
+            }
+
+            Transform motionControllerHead =
+                superController.centerCameraTarget != null ?
+                superController.centerCameraTarget.transform :
+                null;
+            if (motionControllerHead == null)
+            {
+                return;
+            }
+
+            headControl.currentRotationState = FreeControllerV3.RotationState.On;
+            headControl.control.rotation = motionControllerHead.rotation;
+
+            if (headControl.followWhenOff != null)
+            {
+                headControl.followWhenOff.rotation =
+                    motionControllerHead.rotation;
             }
         }
 

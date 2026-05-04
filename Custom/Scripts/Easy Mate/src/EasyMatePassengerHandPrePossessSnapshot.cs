@@ -4,12 +4,24 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// Saves each Person hand <see cref="FreeControllerV3"/> pose, link target, and
-    /// position/rotation state (including Comply) before Easy Mate possesses hands for
-    /// Passenger mode; restores them after <see cref="SuperController.ClearPossess"/>.
+    /// Saves Passenger target head rotation state plus each Person hand
+    /// <see cref="FreeControllerV3"/> pose, link target, and
+    /// position/rotation state before Easy Mate overrides them; restores them
+    /// after <see cref="SuperController.ClearPossess"/>.
     /// </summary>
     internal static class EasyMatePassengerHandPrePossessSnapshot
     {
+        private sealed class HeadRotationSnapshot
+        {
+            internal bool HasData;
+
+            internal Quaternion WorldRotation;
+
+            internal FreeControllerV3.RotationState RotationState;
+
+            internal string LinkRigidbodyKey;
+        }
+
         private sealed class HandSideSnapshot
         {
             internal bool HasData;
@@ -29,25 +41,28 @@ namespace geesp0t
 
         private static HandSideSnapshot _rightHandSnapshot;
 
+        private static HeadRotationSnapshot _headSnapshot;
+
         private static string _capturedTargetPersonUid;
+
+        public static void CaptureHeadFromPersonBeforePassengerFollow(Atom person)
+        {
+            if (!TryCaptureTargetPerson(person))
+            {
+                return;
+            }
+
+            FreeControllerV3 head =
+                person.GetStorableByID("headControl") as FreeControllerV3;
+            _headSnapshot = CaptureHeadRotation(head);
+        }
 
         public static void CaptureFromPersonBeforeHandPossess(Atom person)
         {
-            DiscardSnapshot();
-
-            if (person == null || person.type != "Person" ||
-                string.IsNullOrEmpty(person.uid))
+            if (!TryCaptureTargetPerson(person))
             {
                 return;
             }
-
-            SuperController sc = SuperController.singleton;
-            if (sc == null)
-            {
-                return;
-            }
-
-            _capturedTargetPersonUid = person.uid;
 
             FreeControllerV3 leftHand =
                 person.GetStorableByID("lHandControl") as FreeControllerV3;
@@ -78,16 +93,19 @@ namespace geesp0t
                 person.GetStorableByID("lHandControl") as FreeControllerV3;
             FreeControllerV3 rightHand =
                 person.GetStorableByID("rHandControl") as FreeControllerV3;
+            FreeControllerV3 head =
+                person.GetStorableByID("headControl") as FreeControllerV3;
 
             try
             {
+                RestoreHeadRotation(head, _headSnapshot, sc);
                 RestoreOneHand(sc, leftHand, _leftHandSnapshot);
                 RestoreOneHand(sc, rightHand, _rightHandSnapshot);
             }
             catch (Exception exception)
             {
                 SuperController.LogError(
-                    "Easy Mate: restoring pre-passenger hand state failed: " +
+                    "Easy Mate: restoring pre-passenger head/hand state failed: " +
                     exception.Message);
             }
             finally
@@ -98,9 +116,65 @@ namespace geesp0t
 
         public static void DiscardSnapshot()
         {
+            _headSnapshot = null;
             _leftHandSnapshot = null;
             _rightHandSnapshot = null;
             _capturedTargetPersonUid = null;
+        }
+
+        private static bool TryCaptureTargetPerson(Atom person)
+        {
+            if (person == null || person.type != "Person" ||
+                string.IsNullOrEmpty(person.uid))
+            {
+                return false;
+            }
+
+            SuperController sc = SuperController.singleton;
+            if (sc == null)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(_capturedTargetPersonUid) &&
+                _capturedTargetPersonUid != person.uid)
+            {
+                DiscardSnapshot();
+            }
+
+            _capturedTargetPersonUid = person.uid;
+            return true;
+        }
+
+        private static HeadRotationSnapshot CaptureHeadRotation(
+            FreeControllerV3 headControl)
+        {
+            if (headControl == null)
+            {
+                return null;
+            }
+
+            HeadRotationSnapshot snapshot = new HeadRotationSnapshot();
+            snapshot.HasData = true;
+            if (headControl.control != null)
+            {
+                snapshot.WorldRotation = headControl.control.rotation;
+            }
+
+            snapshot.RotationState = headControl.currentRotationState;
+
+            snapshot.LinkRigidbodyKey = null;
+            Rigidbody linkBody = headControl.linkToRB;
+            if (linkBody != null)
+            {
+                string linkKey;
+                if (TryBuildRigidbodyLinkKey(linkBody, out linkKey))
+                {
+                    snapshot.LinkRigidbodyKey = linkKey;
+                }
+            }
+
+            return snapshot;
         }
 
         private static HandSideSnapshot CaptureOneHand(FreeControllerV3 handControl)
@@ -183,6 +257,75 @@ namespace geesp0t
         {
             return state == FreeControllerV3.RotationState.ParentLink ||
                 state == FreeControllerV3.RotationState.PhysicsLink;
+        }
+
+        private static void RestoreHeadRotation(
+            FreeControllerV3 headControl,
+            HeadRotationSnapshot snapshot,
+            SuperController sc)
+        {
+            if (headControl == null || snapshot == null || !snapshot.HasData ||
+                sc == null)
+            {
+                return;
+            }
+
+            headControl.possessed = false;
+
+            headControl.SelectLinkToRigidbody(
+                null,
+                FreeControllerV3.SelectLinkState.PositionAndRotation,
+                false,
+                false);
+
+            Rigidbody linkBody = null;
+            if (!string.IsNullOrEmpty(snapshot.LinkRigidbodyKey))
+            {
+                linkBody =
+                    sc.RigidbodyNameToRigidbody(snapshot.LinkRigidbodyKey);
+            }
+
+            bool rotationLinked =
+                IsRotationLinkState(snapshot.RotationState);
+            bool usePhysicalLink =
+                snapshot.RotationState ==
+                FreeControllerV3.RotationState.PhysicsLink;
+
+            if (linkBody != null && rotationLinked)
+            {
+                headControl.SelectLinkToRigidbody(
+                    linkBody,
+                    FreeControllerV3.SelectLinkState.Rotation,
+                    usePhysicalLink,
+                    true);
+            }
+            else if (linkBody == null && rotationLinked &&
+                !string.IsNullOrEmpty(snapshot.LinkRigidbodyKey))
+            {
+                SuperController.LogMessage(
+                    "Easy Mate: pre-passenger head rotation link \"" +
+                    snapshot.LinkRigidbodyKey +
+                    "\" is missing; restoring world head rotation only.");
+            }
+
+            FreeControllerV3.RotationState rotationToApply =
+                snapshot.RotationState;
+            if (linkBody == null && rotationLinked)
+            {
+                rotationToApply = FreeControllerV3.RotationState.On;
+            }
+
+            headControl.currentRotationState = rotationToApply;
+
+            if (headControl.control != null)
+            {
+                headControl.control.rotation = snapshot.WorldRotation;
+            }
+
+            if (headControl.followWhenOff != null)
+            {
+                headControl.followWhenOff.rotation = snapshot.WorldRotation;
+            }
         }
 
         private static FreeControllerV3.SelectLinkState InferSelectLinkState(

@@ -393,6 +393,8 @@ namespace geesp0t
                 null;
             Quaternion navigationRigRotationBefore =
                 navigationRig.rotation;
+            Vector3 navigationRigPositionBefore =
+                navigationRig.position;
             Quaternion desiredHeadRotation =
                 _femalePassengerHeadRigidbody.transform.rotation;
             desiredHeadRotation *= Quaternion.Euler(
@@ -418,29 +420,6 @@ namespace geesp0t
 
             navigationRig.rotation = navigationRigRotation;
 
-            SuperController.LogMessage(
-                "EasyMate DEBUG passenger buttons first teleport: " +
-                "person=" +
-                (_femalePassengerTargetPerson != null ?
-                    _femalePassengerTargetPerson.uid :
-                    "null") +
-                " hmdRot=" +
-                FormatEulerForDebug(
-                    motionControllerHead != null ?
-                    motionControllerHead.rotation :
-                    Quaternion.identity) +
-                " rigBefore=" +
-                FormatEulerForDebug(navigationRigRotationBefore) +
-                " desiredHeadRot=" +
-                FormatEulerForDebug(desiredHeadRotation) +
-                " headDelta=" +
-                FormatEulerForDebug(headRotationDelta) +
-                " rigAfter=" +
-                FormatEulerForDebug(navigationRig.rotation) +
-                " charHeadRot=" +
-                FormatEulerForDebug(
-                    _femalePassengerHeadRigidbody.transform.rotation));
-
             Vector3 up = navigationRig.up;
             Vector3 targetPosition =
                 _femalePassengerHeadRigidbody.position +
@@ -462,6 +441,49 @@ namespace geesp0t
                     positionOffset + up * -playerHeightAdjustOffset;
                 superController.playerHeightAdjust +=
                     playerHeightAdjustOffset;
+
+                SuperController.LogMessage(
+                    "EasyMate DEBUG passenger buttons first teleport: " +
+                    "person=" +
+                    (_femalePassengerTargetPerson != null ?
+                        _femalePassengerTargetPerson.uid :
+                        "null") +
+                    " hmdRot=" +
+                    FormatEulerForDebug(
+                        motionControllerHead != null ?
+                        motionControllerHead.rotation :
+                        Quaternion.identity) +
+                    " rigBefore=" +
+                    FormatEulerForDebug(navigationRigRotationBefore) +
+                    " desiredHeadRot=" +
+                    FormatEulerForDebug(desiredHeadRotation) +
+                    " headDelta=" +
+                    FormatEulerForDebug(headRotationDelta) +
+                    " rigAfter=" +
+                    FormatEulerForDebug(navigationRig.rotation) +
+                    " charHeadRot=" +
+                    FormatEulerForDebug(
+                        _femalePassengerHeadRigidbody.transform.rotation) +
+                    " hmdPos=" +
+                    FormatVectorForDebug(
+                        motionControllerHead != null ?
+                        motionControllerHead.position :
+                        Vector3.zero) +
+                    " rigPosBefore=" +
+                    FormatVectorForDebug(navigationRigPositionBefore) +
+                    " targetPos=" +
+                    FormatVectorForDebug(targetPosition) +
+                    " autoSnapPos=" +
+                    FormatVectorForDebug(_possessor.autoSnapPoint.position) +
+                    " posOffset=" +
+                    FormatVectorForDebug(positionOffset) +
+                    " rigPosAfter=" +
+                    FormatVectorForDebug(navigationRig.position) +
+                    " charHeadPos=" +
+                    FormatVectorForDebug(
+                        _femalePassengerHeadRigidbody.position) +
+                    " playerHeightAdjustOffset=" +
+                    playerHeightAdjustOffset.ToString("F4"));
             }
             else
             {
@@ -806,6 +828,15 @@ namespace geesp0t
                 eulerAngles.x,
                 eulerAngles.y,
                 eulerAngles.z);
+        }
+
+        private static string FormatVectorForDebug(Vector3 vector)
+        {
+            return string.Format(
+                "({0:F4}, {1:F4}, {2:F4})",
+                vector.x,
+                vector.y,
+                vector.z);
         }
     }
 }

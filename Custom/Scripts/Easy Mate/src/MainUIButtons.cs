@@ -156,6 +156,37 @@ namespace geesp0t
             return snapPitchDegrees;
         }
 
+        private static Vector3 GetNeutralHeadFacingForward(
+            FreeControllerV3 head,
+            Vector3 upAxis)
+        {
+            if (head == null)
+                return Vector3.zero;
+
+            Vector3 neutralForward = Vector3.zero;
+            Atom person = head.containingAtom;
+            if (person != null)
+            {
+                FreeControllerV3 chest =
+                    person.GetStorableByID("chestControl") as FreeControllerV3;
+                if (chest != null && chest.control != null)
+                {
+                    neutralForward = Vector3.ProjectOnPlane(
+                        chest.control.forward,
+                        upAxis);
+                }
+            }
+
+            if (neutralForward.sqrMagnitude < 1e-10f)
+            {
+                neutralForward = Vector3.ProjectOnPlane(
+                    head.GetForwardPossessAxis(),
+                    upAxis);
+            }
+
+            return neutralForward;
+        }
+
         MVRScript plugin;
 
         private Camera _mainCamera;
@@ -1931,7 +1962,6 @@ namespace geesp0t
 
             try
             {
-                Vector3 forwardPossessAxis = head.GetForwardPossessAxis();
                 Vector3 upPossessAxis = head.GetUpPossessAxis();
                 Vector3 up = navigationRig.up;
                 // Match OneShotSnapRigToPersonHead: use actual look camera forward so
@@ -1940,7 +1970,9 @@ namespace geesp0t
                     ? sc.lookCamera.transform
                     : motionControllerHead;
                 Vector3 fromDirection = Vector3.ProjectOnPlane(headingReference.forward, up);
-                Vector3 desiredForward = Vector3.ProjectOnPlane(forwardPossessAxis, navigationRig.up);
+                Vector3 desiredForward = GetNeutralHeadFacingForward(
+                    head,
+                    navigationRig.up);
                 if (Vector3.Dot(upPossessAxis, up) < 0f && Vector3.Dot(headingReference.up, up) > 0f)
                     desiredForward = -desiredForward;
 
@@ -1972,7 +2004,13 @@ namespace geesp0t
 
                 if (sc.MonitorCenterCamera != null)
                 {
-                    sc.MonitorCenterCamera.transform.LookAt(head.transform.position + forwardPossessAxis);
+                    Vector3 monitorLookForward = desiredForward;
+                    if (monitorLookForward.sqrMagnitude < 1e-10f)
+                        monitorLookForward = Vector3.ProjectOnPlane(
+                            headingReference.forward,
+                            up);
+                    sc.MonitorCenterCamera.transform.LookAt(
+                        head.transform.position + monitorLookForward);
                     Vector3 euler = sc.MonitorCenterCamera.transform.localEulerAngles;
                     euler.y = 0f;
                     euler.z = 0f;

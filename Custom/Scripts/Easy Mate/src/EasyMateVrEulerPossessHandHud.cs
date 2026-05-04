@@ -7,11 +7,14 @@ namespace geesp0t
     /// <summary>
     /// When the <b>right hand alone</b> matches the HMD-relative euler
     /// window for the VR possess rule, shows a small world UI on
-    /// <c>rightHand</c>: <b>Possuir</b> or <b>Despossuir</b> plus
-    /// <b>Próxima cena</b>. With at least one female Person, <b>Possuir</b>
-    /// opens <b>Mulher</b> (Quest face <b>B</b>) for the Passenger-style
-    /// female flow. Unity often sends no laser hits to this palm canvas, so
-    /// the face button is also polled (OVR <c>RTouch</c>; OpenVR Menu).
+    /// <c>rightHand</c>: <b>Próxima cena</b> on the <b>upper</b> row and
+    /// <b>Possuir</b> / <b>Despossuir</b> on the <b>lower</b> row.
+    /// <b>Right thumbstick click</b> activates the lower row (possess flow);
+    /// on Oculus / XR, <b>right face B</b> fires <b>Próxima cena</b> while
+    /// this two-row panel is shown. With at least one female Person,
+    /// <b>Possuir</b> opens <b>Mulher</b> (Quest face <b>B</b> on the
+    /// gender-only step — OpenVR still uses Menu for that step). Unity often
+    /// sends no laser hits to this palm canvas, so face buttons are polled.
     /// The whole HUD, including this row, only shows while the right-hand
     /// euler window matches. VaM menu shortcut still dismisses
     /// the main UI into this step when a Person exists. Leaving the palm pose
@@ -36,6 +39,13 @@ namespace geesp0t
         private static bool _genderChooseStepActive;
 
         private static bool _listenersAttached;
+
+        /// <summary>
+        /// When true, <see cref="EasyMateNxtUiQuestThumbstick"/> routes right
+        /// thumbstick to the Possuir/Despossuir row instead of next scene.
+        /// Set each <c>LateUpdate</c> from <see cref="Tick"/>.
+        /// </summary>
+        internal static bool PalmHudWantsThumbstickForPossessRow;
 
         private static Sprite _whiteSprite;
 
@@ -67,6 +77,8 @@ namespace geesp0t
 
         internal static void Tick()
         {
+            PalmHudWantsThumbstickForPossessRow = false;
+
             SuperController sc = SuperController.singleton;
             if (sc == null || sc.isLoading)
             {
@@ -143,6 +155,9 @@ namespace geesp0t
 
             RefreshGenderVersusMainRows(possessed);
 
+            bool genderChooseStepShowing = _genderChooseStepActive && !possessed;
+            PalmHudWantsThumbstickForPossessRow = !genderChooseStepShowing;
+
             if (_btnPossessRow != null)
                 _btnPossessRow.interactable = true;
             if (_btnProximaCena != null)
@@ -152,7 +167,7 @@ namespace geesp0t
             if (_btnHomem != null)
                 _btnHomem.interactable = true;
 
-            if (_genderChooseStepActive && !possessed)
+            if (genderChooseStepShowing)
             {
                 bool mulherB = EasyMateVrInput.PollPalmHudMulherChoiceDown(sc);
                 if (mulherB)
@@ -169,6 +184,12 @@ namespace geesp0t
                 }
                 else
                     MainUIButtons.RequestVrPalmHudMenuButtonPossessAfterDismissMenu();
+            }
+
+            if (!genderChooseStepShowing)
+            {
+                if (EasyMateVrInput.PollPalmHudProximaCenaFaceBDown(sc))
+                    MainUIButtons.RequestFireNextSceneUiButton();
             }
         }
 
@@ -188,6 +209,7 @@ namespace geesp0t
             _btnHomem = null;
             _genderChooseStepActive = false;
             _listenersAttached = false;
+            PalmHudWantsThumbstickForPossessRow = false;
             _whiteSprite = null;
         }
 
@@ -250,6 +272,35 @@ namespace geesp0t
                 sc.activeUI = SuperController.ActiveUI.None;
         }
 
+        private static void InvokePossessRowPrimaryAction()
+        {
+            if (EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending() ||
+                EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed())
+            {
+                EasyMateFemalePassengerRuntime.RequestStopForPalmHud();
+            }
+            else if (MainUIButtons.VrPalmHudNeedsGenderChoiceStep())
+            {
+                RequestGenderChooseStep();
+                RefreshGenderVersusMainRows(false);
+            }
+            else
+            {
+                MainUIButtons.RequestPossessVrPalmHudAutoWithoutGenderMenu();
+            }
+        }
+
+        internal static bool TryConsumeThumbstickClickForPalmPossessRow()
+        {
+            if (!PalmHudWantsThumbstickForPossessRow)
+            {
+                return false;
+            }
+
+            InvokePossessRowPrimaryAction();
+            return true;
+        }
+
         private static Sprite WhiteSprite()
         {
             if (_whiteSprite != null)
@@ -275,20 +326,7 @@ namespace geesp0t
             {
                 _btnPossessRow.onClick.AddListener(delegate
                 {
-                    if (EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending() ||
-                        EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed())
-                    {
-                        EasyMateFemalePassengerRuntime.RequestStopForPalmHud();
-                    }
-                    else if (MainUIButtons.VrPalmHudNeedsGenderChoiceStep())
-                    {
-                        RequestGenderChooseStep();
-                        RefreshGenderVersusMainRows(false);
-                    }
-                    else
-                    {
-                        MainUIButtons.RequestPossessVrPalmHudAutoWithoutGenderMenu();
-                    }
+                    InvokePossessRowPrimaryAction();
                 });
             }
 
@@ -357,8 +395,8 @@ namespace geesp0t
             cb.colorMultiplier = 1f;
             _btnPossessRow.colors = cb;
             RectTransform pbrt = possessGo.GetComponent<RectTransform>();
-            pbrt.anchorMin = new Vector2(0.05f, 0.52f);
-            pbrt.anchorMax = new Vector2(0.95f, 0.98f);
+            pbrt.anchorMin = new Vector2(0.05f, 0.02f);
+            pbrt.anchorMax = new Vector2(0.95f, 0.48f);
             pbrt.offsetMin = new Vector2(4f, 3f);
             pbrt.offsetMax = new Vector2(-4f, -3f);
             GameObject possessTextGo = new GameObject("Text");
@@ -380,8 +418,8 @@ namespace geesp0t
                 _root.transform,
                 "ProximaCenaBtn",
                 "Próxima cena",
-                new Vector2(0.05f, 0.02f),
-                new Vector2(0.95f, 0.48f),
+                new Vector2(0.05f, 0.52f),
+                new Vector2(0.95f, 0.98f),
                 new Color(0.14f, 0.32f, 0.52f, 0.92f),
                 20);
 

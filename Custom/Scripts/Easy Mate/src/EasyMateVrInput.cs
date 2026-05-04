@@ -58,6 +58,31 @@ namespace geesp0t
         }
 
         /// <summary>
+        /// Palm HUD main rows: <b>Próxima cena</b> shortcut on
+        /// <c>RTouch</c> face <b>B</b> (Oculus / XR path only). OpenVR uses
+        /// laser or the on-panel button; Menu is unchanged.
+        /// </summary>
+        public static bool PollPalmHudProximaCenaFaceBDown(SuperController sc)
+        {
+            if (sc == null || sc.isOpenVR)
+            {
+                return false;
+            }
+
+            if (sc.isOVR)
+            {
+                return TryOvrRightTouchButtonDown(OVRInput.Button.Two);
+            }
+
+            if (XrHeadsetLikelyOn(sc))
+            {
+                return TryOvrRightTouchButtonDown(OVRInput.Button.Two);
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Palm HUD <b>Mulher (B)</b>: OVR <c>RTouch</c> face B only
         /// (avoids left-hand Y); OpenVR uses
         /// <see cref="SuperController.GetMenuShow"/> (SteamVR Menu binding,
@@ -66,13 +91,25 @@ namespace geesp0t
         public static bool PollPalmHudMulherChoiceDown(SuperController sc)
         {
             if (sc == null)
+            {
                 return false;
+            }
+
             if (sc.isOVR)
+            {
                 return TryOvrRightTouchButtonDown(OVRInput.Button.Two);
+            }
+
             if (sc.isOpenVR)
+            {
                 return sc.GetMenuShow();
+            }
+
             if (XrHeadsetLikelyOn(sc))
+            {
                 return TryOvrRightTouchButtonDown(OVRInput.Button.Two);
+            }
+
             return false;
         }
 

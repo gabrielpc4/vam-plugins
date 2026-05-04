@@ -621,7 +621,6 @@ namespace geesp0t
 
             if (!SuperController.singleton.isLoading)
             {
-                EasyMateNxtUiQuestThumbstick.Tick();
                 if (mainUIButtons != null)
                     mainUIButtons.ProcessHotkeysUpdate();
             }
@@ -652,6 +651,7 @@ namespace geesp0t
             EasyMateMonitorModeLaserRestore.Tick(monitorLaser);
             EasyMateVrEulerPossessHandHud.Tick();
             EasyMateFemalePassengerRuntime.Tick(this);
+            EasyMateNxtUiQuestThumbstick.Tick();
         }
 
         void OnDestroy()

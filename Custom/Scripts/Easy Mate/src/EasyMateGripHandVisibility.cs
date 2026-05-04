@@ -242,14 +242,25 @@ namespace geesp0t
         {
             if (sc == null)
                 return;
-            ApplySingleControl(sc.commonHandModelControl);
-            ApplySingleControl(sc.alternateControllerHandModelControl);
+            bool anyPersonPossessed = AnyPersonHeadOrHandPossessed();
+            ApplySingleControl(sc.commonHandModelControl, anyPersonPossessed);
+            ApplySingleControl(
+                sc.alternateControllerHandModelControl,
+                anyPersonPossessed);
         }
 
-        private static void ApplySingleControl(HandModelControl h)
+        private static void ApplySingleControl(
+            HandModelControl h,
+            bool anyPersonPossessed)
         {
             if (h == null)
                 return;
+
+            if (anyPersonPossessed)
+            {
+                ApplyNoneOnSingleControl(h);
+                return;
+            }
 
             h.leftHandEnabled = true;
             h.rightHandEnabled = true;

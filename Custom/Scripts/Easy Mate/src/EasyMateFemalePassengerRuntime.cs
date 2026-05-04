@@ -451,6 +451,9 @@ namespace geesp0t
             {
                 if (motionControllerHead != null)
                 {
+                    desiredHeadRotation = KeepOnlyDownwardPitch(
+                        desiredHeadRotation,
+                        motionControllerHead.rotation);
                     headRotationDelta =
                         desiredHeadRotation *
                         Quaternion.Inverse(motionControllerHead.rotation);
@@ -830,6 +833,32 @@ namespace geesp0t
                 vector.x,
                 vector.y,
                 vector.z);
+        }
+
+        private static Quaternion KeepOnlyDownwardPitch(
+            Quaternion desiredRotation,
+            Quaternion currentHmdRotation)
+        {
+            Vector3 desiredEulerAngles = desiredRotation.eulerAngles;
+            float desiredPitch =
+                NormalizeSignedEulerAngle(desiredEulerAngles.x);
+            if (desiredPitch > 0f)
+            {
+                Vector3 currentHmdEulerAngles =
+                    currentHmdRotation.eulerAngles;
+                desiredEulerAngles.x = currentHmdEulerAngles.x;
+                desiredRotation = Quaternion.Euler(desiredEulerAngles);
+            }
+
+            return desiredRotation;
+        }
+
+        private static float NormalizeSignedEulerAngle(float eulerAngle)
+        {
+            if (eulerAngle > 180f)
+                return eulerAngle - 360f;
+
+            return eulerAngle;
         }
     }
 }

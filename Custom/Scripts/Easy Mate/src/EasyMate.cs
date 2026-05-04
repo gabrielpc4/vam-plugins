@@ -118,6 +118,10 @@ namespace geesp0t
 
         private bool prevSuperLoading;
 
+        private const float VamDefaultMonitorCameraFov = 40f;
+
+        private const float EasyMateDefaultMonitorCameraFov = 50f;
+
         public override void Init()
         {
             Log("EasyMate Init");
@@ -251,6 +255,22 @@ namespace geesp0t
             else
                 sc.EnableRemoteHoldGrab();
         }
+
+        private void ApplyDefaultMonitorCameraFovIfNeeded()
+        {
+            SuperController sc = SuperController.singleton;
+            if (sc == null)
+                return;
+
+            if (Mathf.Abs(sc.monitorCameraFOV - VamDefaultMonitorCameraFov) >
+                0.001f)
+            {
+                return;
+            }
+
+            sc.monitorCameraFOV = EasyMateDefaultMonitorCameraFov;
+        }
+
         public void ShowUI()
         {
             if (mainUIButtons != null)
@@ -275,6 +295,7 @@ namespace geesp0t
                 EasyMateHeadSnapPovRuntime.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
             EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
+            ApplyDefaultMonitorCameraFovIfNeeded();
         }
 
         /// <summary>
@@ -616,6 +637,7 @@ namespace geesp0t
                 }
 
                 ApplyRemoteHoldGrabPreference();
+                ApplyDefaultMonitorCameraFovIfNeeded();
                 EasyMateVrInput.ResetEdgeState();
                 EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
             }

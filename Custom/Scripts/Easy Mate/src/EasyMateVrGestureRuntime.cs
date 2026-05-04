@@ -135,7 +135,7 @@ namespace geesp0t
             private const string LogPrefix = "Easy Mate VR hand euler:";
 
             private const float DwellSeconds = 3f;
-            private const float CooldownSeconds = 4f;
+            private const float CooldownSeconds = 10f;
 
             /// <summary>Left: euler X &gt; this (degrees, 0–360).</summary>
             private const float LeftMinEulerX = 300f;

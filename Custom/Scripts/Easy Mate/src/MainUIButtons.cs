@@ -36,6 +36,9 @@ namespace geesp0t
         /// <summary>VRAdultFun “Final” pack; own folder and unique <c>.cslist</c> basename so it is independent of AutoMate original and Lite sources.</summary>
         public const string PluginEMotionFinal = "Custom/Scripts/E-MotionFinal/E-Motion_Final_AddThisONLY.cslist";
         public const string PluginSpankings = "Custom/Scripts/Spankings/Spankings.cslist";
+
+        /// <summary>Label passed to <see cref="StartAutoPossessRoutine"/> for the dual-hand euler VR gesture.</summary>
+        public const string VrEulerPossessLabel = "VR euler";
         public const string PluginEasyMateClothingTouchFallOff = "Custom/Scripts/Easy Mate/EasyMateClothingTouchFallOff.cslist";
 
         /// <summary>Scene atom UIDs created by <c>octopussy.Spankings</c>; removed when Spankings is toggled off (<see cref="RemoveSpankingsFromAllPersons"/>).</summary>
@@ -805,6 +808,33 @@ namespace geesp0t
                 {
                     SuperController.LogError("Easy Mate: remove Spankings scene atom \"" + uid + "\": " + e.Message);
                 }
+            }
+        }
+
+        /// <summary>Strip Spankings from every Person (same as HUD remove); static for VR euler possess.</summary>
+        private static void RemoveSpankingsFromAllPersonsStatic()
+        {
+            try
+            {
+                SuperController sc = SuperController.singleton;
+                if (sc == null)
+                    return;
+                string fn = GetFileName(PluginSpankings);
+                foreach (Atom at in sc.GetAtoms().Where(a => a.type == "Person"))
+                {
+                    if (at == null)
+                        continue;
+                    TryRemovePluginFromPerson(at, fn);
+                }
+
+                TryRemoveSpankingsOwnedSceneAtoms();
+                if (_refreshPluginToggleLabelsStatic != null)
+                    _refreshPluginToggleLabelsStatic();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "Easy Mate: remove all Spankings (VR euler possess): " + e);
             }
         }
 
@@ -1677,7 +1707,7 @@ namespace geesp0t
                 return;
             }
 
-            StartAutoPossessRoutine(target, "VR euler");
+            StartAutoPossessRoutine(target, VrEulerPossessLabel);
         }
 
         private static void PossessAlignSelectFirstFemale()
@@ -1801,6 +1831,9 @@ namespace geesp0t
                 return;
             }
 
+            if (string.Equals(label, VrEulerPossessLabel, StringComparison.Ordinal))
+                EasyMateGripHandVisibility.NotifyVrEulerPossessTenSecondSuppress();
+
             StopAutoPossessRoutine();
             _autoPossessCoroutine = _pluginHost.StartCoroutine(PossessAlignSelectRoutine(person, label));
         }
@@ -1809,6 +1842,10 @@ namespace geesp0t
         {
             try
             {
+                bool isVrEulerPossess = string.Equals(
+                    label,
+                    VrEulerPossessLabel,
+                    StringComparison.Ordinal);
                 EasyMateHeadSnapPovRuntime.EndSnapSession();
 
                 SuperController sc = SuperController.singleton;
@@ -1823,6 +1860,9 @@ namespace geesp0t
                     SuperController.LogError("Easy Mate HUD: Possess+Align+Select " + label + " — no headControl on " + person.name);
                     yield break;
                 }
+
+                if (isVrEulerPossess)
+                    RemoveSpankingsFromAllPersonsStatic();
 
                 sc.ClearPossess();
                 yield return null;
@@ -1888,7 +1928,7 @@ namespace geesp0t
                 bool anyHandPossessed =
                     (leftHand != null && leftHand.possessed) ||
                     (rightHand != null && rightHand.possessed);
-                if (anyHandPossessed)
+                if (anyHandPossessed && !isVrEulerPossess)
                 {
                     try
                     {
@@ -1901,6 +1941,9 @@ namespace geesp0t
                         SuperController.LogError("Easy Mate: Possess+Align+Select — Spankings on other Persons: " + ex.Message);
                     }
                 }
+                else if (anyHandPossessed && isVrEulerPossess &&
+                         _refreshPluginToggleLabelsStatic != null)
+                    _refreshPluginToggleLabelsStatic();
             }
             finally
             {

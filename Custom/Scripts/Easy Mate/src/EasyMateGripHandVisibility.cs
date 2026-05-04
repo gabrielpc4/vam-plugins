@@ -7,12 +7,9 @@ using UnityEngine.XR;
 namespace geesp0t
 {
     /// <summary>
-    /// Quest squeeze / OpenVR HoldGrab (<b>grip</b>, Oculus <c>HandTrigger</c> per <see cref="EasyMateVrInput"/>): each press toggles <b>both</b>
-    /// hands together between articulated <b>Male2</b> / <b>Male 2</b> and VaM’s <see cref="SphereKinematicChoice"/> sphere proxy (sides respect possession).
-    /// The <b>first</b> grip press on either controller this scene runs an optional callback (see <see cref="EasyMate"/>) to merge Spankings only
-    /// onto <b>female</b> <c>Person</c>s that do not already have the plugin (then a 4s delayed re-check and second merge if still missing),
-    /// except when <c>spankings_grip_merge_block_path_keywords.txt</c> matches the current scene folder path — independent of whether hands end up
-    /// articulated or stay sphere (e.g. possession).
+    /// Quest squeeze / OpenVR HoldGrab: toggles Male2 vs sphere unless blocked
+    /// (10s after VR euler possess, or while any Person head/hand is
+    /// possessed — then sphere-only, no Spankings merge on grip).
     /// </summary>
     internal static class EasyMateGripHandVisibility
     {
@@ -32,6 +29,18 @@ namespace geesp0t
         private static bool _mergedSpankingsAfterFirstGripThisScene;
 
         private static Action _mergeSpankingsOntoPersonsMissingOnly;
+
+        /// <summary>
+        /// After VR euler possess start: no grip toggle / first-grip Spankings for
+        /// 10s (see <see cref="NotifyVrEulerPossessTenSecondSuppress"/>).
+        /// </summary>
+        private static float _suppressGripToggleUntilUnscaled;
+
+        /// <summary>Called when VR dual-hand euler possess starts.</summary>
+        public static void NotifyVrEulerPossessTenSecondSuppress()
+        {
+            _suppressGripToggleUntilUnscaled = Time.unscaledTime + 10f;
+        }
 
         /// <summary>Called from <see cref="EasyMate.Init"/>; pass <c>null</c> on teardown.</summary>
         public static void SetMergeSpankingsOnFirstGrip(Action mergeSpankingsOntoPersonsMissingOnly)
@@ -77,6 +86,15 @@ namespace geesp0t
             if (!sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
                 return;
 
+            if (AnyPersonHeadOrHandPossessed())
+            {
+                ApplySphereBothHandsNonArticulated(sc);
+                return;
+            }
+
+            if (Time.unscaledTime < _suppressGripToggleUntilUnscaled)
+                return;
+
             bool leftDown = EasyMateVrInput.PollLeftGripClickDown(sc);
             bool rightDown = EasyMateVrInput.PollRightGripClickDown(sc);
 
@@ -100,6 +118,53 @@ namespace geesp0t
                 _rightArticulated = false;
             }
 
+            ApplyBothControls(sc);
+            QueueApplyHandsEndOfFrame(sc);
+        }
+
+        /// <summary>
+        /// Any <c>Person</c> with head or hand control possessed (player POV).
+        /// </summary>
+        private static bool AnyPersonHeadOrHandPossessed()
+        {
+            try
+            {
+                SuperController sc = SuperController.singleton;
+                if (sc == null)
+                    return false;
+                foreach (Atom a in sc.GetAtoms())
+                {
+                    if (a == null || a.type != "Person" ||
+                        !a.gameObject.activeInHierarchy)
+                        continue;
+                    FreeControllerV3 h =
+                        a.GetStorableByID("headControl") as FreeControllerV3;
+                    if (h != null && h.possessed)
+                        return true;
+                    FreeControllerV3 l =
+                        a.GetStorableByID("lHandControl") as FreeControllerV3;
+                    if (l != null && l.possessed)
+                        return true;
+                    FreeControllerV3 r =
+                        a.GetStorableByID("rHandControl") as FreeControllerV3;
+                    if (r != null && r.possessed)
+                        return true;
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
+        }
+
+        private static void ApplySphereBothHandsNonArticulated(
+            SuperController sc)
+        {
+            if (sc == null)
+                return;
+            _leftArticulated = false;
+            _rightArticulated = false;
             ApplyBothControls(sc);
             QueueApplyHandsEndOfFrame(sc);
         }

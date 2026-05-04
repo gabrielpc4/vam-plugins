@@ -133,5 +133,30 @@ namespace geesp0t
             rightOk = haveR && RightMatches(rightEuler);
             return leftOk && rightOk;
         }
+
+        public static bool RightHandOnlyMatchTriggerWindow(SuperController sc)
+        {
+            Vector3 ignore;
+            return RightHandOnlyMatchTriggerWindow(sc, out ignore);
+        }
+
+        /// <summary>
+        /// Only <c>rightHand</c> euler window (VR palm HUD). Ignores left hand.
+        /// </summary>
+        public static bool RightHandOnlyMatchTriggerWindow(
+            SuperController sc,
+            out Vector3 rightEuler)
+        {
+            rightEuler = Vector3.zero;
+            Transform hmd = ResolveHmdTransform(sc);
+            if (sc == null || hmd == null)
+                return false;
+            Transform rh = sc.rightHand;
+            if (rh == null)
+                return false;
+            if (!TryHmdRelativeEuler360(rh, hmd, out rightEuler))
+                return false;
+            return RightMatches(rightEuler);
+        }
     }
 }

@@ -5,9 +5,11 @@ using UnityEngine.XR;
 namespace geesp0t
 {
     /// <summary>
-    /// When the dual-hand HMD-relative euler window matches the VR euler
-    /// possess rule, shows two small world UI buttons on <c>rightHand</c>:
-    /// <b>Possuir</b> / <b>Despossuir</b> (Brazilian Portuguese).
+    /// When the <b>right hand alone</b> matches the HMD-relative euler
+    /// window for the VR possess rule, shows two small world UI buttons
+    /// over the palm on <c>rightHand</c>: <b>Possuir</b> / <b>Despossuir</b>
+    /// (Brazilian Portuguese). Billboard faces the HMD so labels read
+    /// correctly from the player's view.
     /// </summary>
     internal static class EasyMateVrEulerPossessHandHud
     {
@@ -21,9 +23,12 @@ namespace geesp0t
 
         private static Sprite _whiteSprite;
 
-        /// <summary>Local offset on <c>rightHand</c> (m), palm-ish.</summary>
-        private static readonly Vector3 LocalOffset =
-            new Vector3(0.045f, -0.018f, 0.042f);
+        /// <summary>
+        /// Local offset on <c>rightHand</c> (meters in hand space). Negative
+        /// X tends toward the palm on OpenVR / OVR right controllers.
+        /// </summary>
+        private static readonly Vector3 LocalPalmOffset =
+            new Vector3(-0.065f, 0.012f, 0.025f);
 
         private const float CanvasWidthPx = 260f;
 
@@ -51,18 +56,7 @@ namespace geesp0t
                 return;
             }
 
-            Vector3 leftEuler;
-            Vector3 rightEuler;
-            bool leftOk;
-            bool rightOk;
-            bool bothOk = EasyMateVrEulerPossessPoseCheck.BothHandsMatchTriggerWindow(
-                sc,
-                out leftEuler,
-                out rightEuler,
-                out leftOk,
-                out rightOk);
-
-            if (!bothOk)
+            if (!EasyMateVrEulerPossessPoseCheck.RightHandOnlyMatchTriggerWindow(sc))
             {
                 SetVisible(false);
                 return;
@@ -78,17 +72,34 @@ namespace geesp0t
             if (_root.transform.parent != rh)
                 _root.transform.SetParent(rh, false);
 
-            _root.transform.localPosition = LocalOffset * ws;
+            // Hand pose is already in world meters; do not scale offset by
+            // worldScale (only scale the canvas mesh).
+            _root.transform.localPosition = LocalPalmOffset;
 
             Transform hmdTf = EasyMateVrEulerPossessPoseCheck.ResolveHmdTransform(sc);
             if (hmdTf != null)
             {
                 Vector3 hudWorld = _root.transform.position;
                 Vector3 toHmd = hmdTf.position - hudWorld;
-                if (toHmd.sqrMagnitude > 1e-8f)
+                if (toHmd.sqrMagnitude > 1e-10f)
                 {
-                    Quaternion face = Quaternion.LookRotation(toHmd, Vector3.up);
-                    _root.transform.rotation = face;
+                    Vector3 f = toHmd.normalized;
+                    Vector3 u = hmdTf.up;
+                    float dotfu = Mathf.Abs(Vector3.Dot(f, u));
+                    if (dotfu > 0.92f)
+                    {
+                        Vector3 side = Vector3.Cross(f, Vector3.up);
+                        if (side.sqrMagnitude > 1e-8f)
+                            u = side.normalized;
+                        else
+                            u = Vector3.Cross(Vector3.forward, f).normalized;
+                    }
+                    if (u.sqrMagnitude < 1e-8f)
+                        u = Vector3.up;
+                    _root.transform.rotation = Quaternion.LookRotation(f, u);
+                    // World-space UI faces +Z; flip 180° so text reads from
+                    // the HMD, not mirrored.
+                    _root.transform.Rotate(0f, 180f, 0f, Space.Self);
                 }
             }
 

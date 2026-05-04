@@ -446,11 +446,11 @@ namespace geesp0t
                 Quaternion navigationRigRotation = desiredHeadRotation;
                 if (motionControllerHead != null)
                 {
-                    Quaternion rigToHeadRotationOffset =
-                        navigationRig.rotation *
+                    Quaternion headRotationDelta =
+                        desiredHeadRotation *
                         Quaternion.Inverse(motionControllerHead.rotation);
                     navigationRigRotation =
-                        desiredHeadRotation * rigToHeadRotationOffset;
+                        headRotationDelta * navigationRig.rotation;
                 }
 
                 Vector3 rotationEulerAngles = navigationRigRotation.eulerAngles;

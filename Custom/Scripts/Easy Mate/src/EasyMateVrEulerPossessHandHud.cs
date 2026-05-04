@@ -7,16 +7,13 @@ namespace geesp0t
     /// <summary>
     /// When the <b>right hand alone</b> matches the HMD-relative euler
     /// window for the VR possess rule, shows a small world UI on
-    /// <c>rightHand</c>: one top button — <b>Possuir</b> or <b>Despossuir</b>
-    /// (Brazilian Portuguese) by state — plus <b>Próxima cena</b>. If the
-    /// scene has more than one Person and both a woman and a man,
-    /// <b>Possuir</b> opens a second step: <b>Mulher</b> (top),
-    /// <b>Homem</b>, <b>Voltar</b>. Press the VaM menu button
-    /// (<b>B</b> on Quest, SteamVR menu) when <b>not</b>
-    /// possessed to dismiss the main UI after 100ms and run possess when
-    /// no Mulher/Homem choice is needed (mixed-gender scenes log a hint).
-    /// Billboard faces the HMD so labels read correctly from
-    /// the player's view.
+    /// <c>rightHand</c>: <b>Possuir</b> or <b>Despossuir</b> plus
+    /// <b>Próxima cena</b>. With at least one Person, <b>Possuir</b> opens
+    /// <b>Mulher</b> (top, Quest face <b>B</b>) and <b>Homem</b> (bottom,
+    /// <b>A</b>) — Unity often sends no laser hits to this palm canvas, so
+    /// those face buttons run the actions. VaM menu shortcut still dismisses
+    /// the main UI into this step when a Person exists. Leaving the palm pose
+    /// closes the HUD (no third “back” button). Billboard faces the HMD.
     /// </summary>
     internal static class EasyMateVrEulerPossessHandHud
     {
@@ -33,8 +30,6 @@ namespace geesp0t
         private static Button _btnMulher;
 
         private static Button _btnHomem;
-
-        private static Button _btnVoltar;
 
         private static bool _genderChooseStepActive;
 
@@ -58,6 +53,15 @@ namespace geesp0t
         private const float CanvasWidthPx = 260f;
 
         private const float CanvasHeightPx = 140f;
+
+        /// <summary>
+        /// Opens <b>Mulher</b>/<b>Homem</b> on the next palm HUD tick (for
+        /// menu shortcuts and <see cref="MainUIButtons"/> helpers).
+        /// </summary>
+        internal static void RequestGenderChooseStep()
+        {
+            _genderChooseStepActive = true;
+        }
 
         internal static void Tick()
         {
@@ -98,8 +102,6 @@ namespace geesp0t
             if (_root.transform.parent != rh)
                 _root.transform.SetParent(rh, false);
 
-            // Hand pose is already in world meters; do not scale offset by
-            // worldScale (only scale the canvas mesh).
             _root.transform.localPosition = LocalPalmOffset;
 
             Transform hmdTf = EasyMateVrEulerPossessPoseCheck.ResolveHmdTransform(sc);
@@ -123,8 +125,6 @@ namespace geesp0t
                     if (u.sqrMagnitude < 1e-8f)
                         u = Vector3.up;
                     _root.transform.rotation = Quaternion.LookRotation(f, u);
-                    // World-space UI faces +Z; flip 180° so text reads from
-                    // the HMD, not mirrored.
                     _root.transform.Rotate(0f, 180f, 0f, Space.Self);
                 }
             }
@@ -148,15 +148,27 @@ namespace geesp0t
                 _btnMulher.interactable = true;
             if (_btnHomem != null)
                 _btnHomem.interactable = true;
-            if (_btnVoltar != null)
-                _btnVoltar.interactable = true;
+
+            if (_genderChooseStepActive && !possessed)
+            {
+                bool mulherB =
+                    EasyMateVrInput.PollRightTouchSecondaryFaceButtonDown(sc);
+                bool homemA =
+                    EasyMateVrInput.PollRightTouchPrimaryFaceButtonDown(sc);
+                if (mulherB && homemA)
+                    InvokeGenderMulherChoice();
+                else if (mulherB)
+                    InvokeGenderMulherChoice();
+                else if (homemA)
+                    InvokeGenderHomemChoice();
+            }
 
             if (sc.GetMenuShow() && !possessed && !_genderChooseStepActive)
             {
                 if (MainUIButtons.VrPalmHudNeedsGenderChoiceStep())
                 {
                     sc.activeUI = SuperController.ActiveUI.None;
-                    _genderChooseStepActive = true;
+                    RequestGenderChooseStep();
                     RefreshGenderVersusMainRows(false);
                 }
                 else
@@ -178,7 +190,6 @@ namespace geesp0t
             _btnProximaCena = null;
             _btnMulher = null;
             _btnHomem = null;
-            _btnVoltar = null;
             _genderChooseStepActive = false;
             _listenersAttached = false;
             _whiteSprite = null;
@@ -199,8 +210,6 @@ namespace geesp0t
                 _btnMulher.gameObject.SetActive(gender);
             if (_btnHomem != null)
                 _btnHomem.gameObject.SetActive(gender);
-            if (_btnVoltar != null)
-                _btnVoltar.gameObject.SetActive(gender);
             if (_btnPossessRow != null)
                 _btnPossessRow.gameObject.SetActive(!gender);
             if (_btnProximaCena != null)
@@ -215,6 +224,22 @@ namespace geesp0t
                     PossessRowDespossuirColor :
                     PossessRowPossuirColor;
             }
+        }
+
+        private static void InvokeGenderMulherChoice()
+        {
+            MainUIButtons.RequestPossessVrPalmHudByGender(true);
+            _genderChooseStepActive = false;
+            RefreshGenderVersusMainRows(
+                EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
+        }
+
+        private static void InvokeGenderHomemChoice()
+        {
+            MainUIButtons.RequestPossessVrPalmHudByGender(false);
+            _genderChooseStepActive = false;
+            RefreshGenderVersusMainRows(
+                EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
         }
 
         private static Sprite WhiteSprite()
@@ -250,7 +275,7 @@ namespace geesp0t
                     }
                     else if (MainUIButtons.VrPalmHudNeedsGenderChoiceStep())
                     {
-                        _genderChooseStepActive = true;
+                        RequestGenderChooseStep();
                         RefreshGenderVersusMainRows(false);
                     }
                     else
@@ -264,10 +289,7 @@ namespace geesp0t
             {
                 _btnMulher.onClick.AddListener(delegate
                 {
-                    MainUIButtons.RequestPossessVrPalmHudByGender(true);
-                    _genderChooseStepActive = false;
-                    RefreshGenderVersusMainRows(
-                        EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
+                    InvokeGenderMulherChoice();
                 });
             }
 
@@ -275,20 +297,7 @@ namespace geesp0t
             {
                 _btnHomem.onClick.AddListener(delegate
                 {
-                    MainUIButtons.RequestPossessVrPalmHudByGender(false);
-                    _genderChooseStepActive = false;
-                    RefreshGenderVersusMainRows(
-                        EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
-                });
-            }
-
-            if (_btnVoltar != null)
-            {
-                _btnVoltar.onClick.AddListener(delegate
-                {
-                    _genderChooseStepActive = false;
-                    RefreshGenderVersusMainRows(
-                        EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
+                    InvokeGenderHomemChoice();
                 });
             }
 
@@ -372,8 +381,8 @@ namespace geesp0t
             _btnMulher = CreateHandButton(
                 _root.transform,
                 "MulherBtn",
-                "Mulher",
-                new Vector2(0.05f, 0.66f),
+                "Mulher (B)",
+                new Vector2(0.05f, 0.52f),
                 new Vector2(0.95f, 0.98f),
                 PossessRowPossuirColor,
                 20);
@@ -382,22 +391,12 @@ namespace geesp0t
             _btnHomem = CreateHandButton(
                 _root.transform,
                 "HomemBtn",
-                "Homem",
-                new Vector2(0.05f, 0.35f),
-                new Vector2(0.95f, 0.63f),
+                "Homem (A)",
+                new Vector2(0.05f, 0.02f),
+                new Vector2(0.95f, 0.48f),
                 new Color(0.14f, 0.32f, 0.52f, 0.92f),
                 20);
             _btnHomem.gameObject.SetActive(false);
-
-            _btnVoltar = CreateHandButton(
-                _root.transform,
-                "VoltarBtn",
-                "Voltar",
-                new Vector2(0.05f, 0.02f),
-                new Vector2(0.95f, 0.32f),
-                new Color(0.22f, 0.22f, 0.26f, 0.92f),
-                18);
-            _btnVoltar.gameObject.SetActive(false);
         }
 
         private static void StretchFull(GameObject go)

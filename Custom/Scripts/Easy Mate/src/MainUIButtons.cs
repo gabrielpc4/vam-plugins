@@ -740,8 +740,8 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// VR palm HUD: show <b>Mulher</b> / <b>Homem</b> when the scene has
-        /// at least one of each gender and more than one Person.
+        /// VR palm HUD: show <b>Mulher</b> / <b>Homem</b> whenever there is at
+        /// least one <c>Person</c> (including a single figure).
         /// </summary>
         public static bool VrPalmHudNeedsGenderChoiceStep()
         {
@@ -750,7 +750,7 @@ namespace geesp0t
                 _cachedFemalePersonsByUid.Count : 0;
             int nM = _cachedMalePersonsByUid != null ?
                 _cachedMalePersonsByUid.Count : 0;
-            return nF > 0 && nM > 0 && (nF + nM) > 1;
+            return (nF + nM) >= 1;
         }
 
         /// <summary>
@@ -785,9 +785,9 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// VR palm HUD: exactly one Person, or several of a single gender —
-        /// females use VR euler possess (rotation index); males use Snap M
-        /// (same as <b>Passenger Male</b>) with rotation index.
+        /// VR palm HUD: if there is at least one Person, opens the
+        /// <b>Mulher</b>/<b>Homem</b> step on the hand panel (no direct
+        /// possess here).
         /// </summary>
         public static void RequestPossessVrPalmHudAutoWithoutGenderMenu()
         {
@@ -804,36 +804,7 @@ namespace geesp0t
                 return;
             }
 
-            if (VrPalmHudNeedsGenderChoiceStep())
-            {
-                SuperController.LogMessage(
-                    "Easy Mate: VR mão — escolha Mulher ou Homem no menu da mão.");
-                return;
-            }
-
-            if (total == 1)
-            {
-                Atom only = nF == 1 ?
-                    _cachedFemalePersonsByUid[0] :
-                    _cachedMalePersonsByUid[0];
-                if (nF == 1)
-                    StartAutoPossessRoutine(only, VrEulerPossessLabel);
-                else
-                    SnapRigToMalePersonHeadWithPostSteps(only);
-                return;
-            }
-
-            if (nF > 0 && nM == 0)
-            {
-                int i = _vrPalmHudFemaleCycleIndex % nF;
-                StartAutoPossessRoutine(
-                    _cachedFemalePersonsByUid[i],
-                    VrEulerPossessLabel);
-                return;
-            }
-
-            int j = _vrPalmHudMaleCycleIndex % nM;
-            SnapRigToMalePersonHeadWithPostSteps(_cachedMalePersonsByUid[j]);
+            EasyMateVrEulerPossessHandHud.RequestGenderChooseStep();
         }
 
         /// <summary>
@@ -848,8 +819,8 @@ namespace geesp0t
         /// <summary>
         /// VR palm HUD: <see cref="SuperController.GetMenuShow"/> (Quest <b>B</b> /
         /// SteamVR menu). Waits 100ms, clears <see cref="SuperController.activeUI"/>
-        /// so the menu closes, then same Possess+Align+Select closest female as
-        /// dual-hand euler (<see cref="PossessAlignSelectClosestFemaleByHeadToCamera"/>).
+        /// so the menu closes, then opens the <b>Mulher</b>/<b>Homem</b> step
+        /// when a Person exists.
         /// </summary>
         public static void RequestVrPalmHudMenuButtonPossessAfterDismissMenu()
         {
@@ -870,12 +841,10 @@ namespace geesp0t
                 if (sc != null)
                     sc.activeUI = SuperController.ActiveUI.None;
                 if (VrPalmHudNeedsGenderChoiceStep())
-                {
-                    SuperController.LogMessage(
-                        "Easy Mate: menu — cena com mulher e homem: use o painel na mão (Mulher/Homem).");
-                }
+                    EasyMateVrEulerPossessHandHud.RequestGenderChooseStep();
                 else
-                    RequestPossessVrPalmHudAutoWithoutGenderMenu();
+                    SuperController.LogMessage(
+                        "Easy Mate: menu — nenhuma Person na cena.");
             }
             finally
             {

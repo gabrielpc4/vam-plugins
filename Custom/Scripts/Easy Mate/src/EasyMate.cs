@@ -56,7 +56,8 @@ namespace geesp0t
         /// <summary>
         /// When true (default), a short press on <b>either</b> controller’s physical <b>grip</b> (Oculus HandTrigger / swapped index trigger, OpenVR HoldGrab)
         /// toggles <b>both</b> sides together between articulated VR hands (<b>Male2</b>) and VaM’s sphere/kinematic hand mode
-        /// (see <see cref="EasyMateGripHandVisibility"/>); a possessed hand side stays sphere. Collisions stay off while both
+        /// (see <see cref="EasyMateGripHandVisibility"/>); while any <c>Person</c> head or hand is possessed, VR proxies use
+        /// <b>None</b> (not sphere / not Male2). Collisions stay off while both
         /// sides sphere. The <b>first</b> such grip press this scene queues a merge of <b>Spankings</b> onto <b>female</b> <c>Person</c> atoms only
         /// that do not already have the plugin (deferred; merge-only), then after <b>4</b> seconds re-checks and merges again if any female still
         /// lacks the plugin — unless <c>Custom/Scripts/Easy Mate/spankings_grip_merge_block_path_keywords.txt</c> matches current load/save dirs (same
@@ -106,26 +107,6 @@ namespace geesp0t
         /// load (see <see cref="EasyMateFluidCumHideDuringSceneLoad"/>).
         /// </summary>
         public JSONStorableBool hideFluidCumMeshDuringSceneLoad;
-
-        /// <summary>
-        /// World <see cref="TextMesh"/> in front of HMD: hand pos, euler
-        /// (world, HMD-relative, local), fwd/up/right, quat, dist, dotFwd,
-        /// palmDot for <c>leftHand</c>/<c>rightHand</c> and OVR/OpenVR roots
-        /// (<see cref="EasyMateVrHandRotationDebugHud"/>).
-        /// </summary>
-        public JSONStorableBool showVrHandRotationDebugHud;
-
-        /// <summary>
-        /// World origin: Cube + UIText atoms; cube diffuse (MaterialOptions)
-        /// shows euler possess angle window (no dwell).
-        /// </summary>
-        public JSONStorableBool showVrEulerPossessGestureTestHud;
-
-        /// <summary>
-        /// Oculus / OpenVR: log full hand/HMD pose dump on right trigger press
-        /// (<see cref="SuperController.GetRightGrab"/>).
-        /// </summary>
-        public JSONStorableBool logVrHandPoseOnRightTrigger;
 
         /// <summary>
         /// Restore navigation rig, monitor orientation, and player height after a
@@ -197,21 +178,6 @@ namespace geesp0t
                 "Monitor mode: beams (Quest X/A touch or SteamVR TargetShow)",
                 true);
             RegisterBool(restoreMonitorModeControllerLaser);
-
-            showVrHandRotationDebugHud = new JSONStorableBool(
-                "VR hand rotation debug HUD (world text)",
-                false);
-            RegisterBool(showVrHandRotationDebugHud);
-
-            showVrEulerPossessGestureTestHud = new JSONStorableBool(
-                "VR euler angle test: Cube+UIText atoms near origin",
-                true);
-            RegisterBool(showVrEulerPossessGestureTestHud);
-
-            logVrHandPoseOnRightTrigger = new JSONStorableBool(
-                "VR: log hand pose on right trigger",
-                true);
-            RegisterBool(logVrHandPoseOnRightTrigger);
 
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
@@ -673,25 +639,6 @@ namespace geesp0t
 
             bool monitorLaser = restoreMonitorModeControllerLaser != null && restoreMonitorModeControllerLaser.val;
             EasyMateMonitorModeLaserRestore.Tick(monitorLaser);
-
-            bool handHud = showVrHandRotationDebugHud != null &&
-                showVrHandRotationDebugHud.val;
-            EasyMateVrHandRotationDebugHud.Tick(handHud);
-
-            bool eulerTestHud = showVrEulerPossessGestureTestHud != null &&
-                showVrEulerPossessGestureTestHud.val;
-            EasyMateVrEulerGestureTestHud.Tick(eulerTestHud);
-
-            SuperController scHandLog = SuperController.singleton;
-            if (scHandLog != null &&
-                !scHandLog.isLoading &&
-                (scHandLog.isOVR || scHandLog.isOpenVR) &&
-                logVrHandPoseOnRightTrigger != null &&
-                logVrHandPoseOnRightTrigger.val &&
-                scHandLog.GetRightGrab())
-            {
-                EasyMateVrHandRotationDebugHud.LogSnapshotToConsole(scHandLog);
-            }
         }
 
         void OnDestroy()
@@ -717,8 +664,6 @@ namespace geesp0t
 
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
             EasyMateMonitorModeLaserRestore.OnPluginDestroy();
-            EasyMateVrHandRotationDebugHud.OnPluginDestroy();
-            EasyMateVrEulerGestureTestHud.OnPluginDestroy();
             EasyMateHeadSnapPovRuntime.End();
             if (mainUIButtons != null) mainUIButtons.OnDestroy();
         }

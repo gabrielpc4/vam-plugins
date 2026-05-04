@@ -9,10 +9,13 @@ namespace geesp0t
     /// <summary>
     /// Quest squeeze / OpenVR HoldGrab: toggles Male2 vs sphere unless blocked
     /// (10s after VR euler possess, or while any Person head/hand is
-    /// possessed — then sphere-only, no Spankings merge on grip).
+    /// possessed — then <b>None</b> hand models, no Spankings merge on grip).
     /// </summary>
     internal static class EasyMateGripHandVisibility
     {
+        /// <summary>First entry in VaM’s VR hand list: no visible proxy model.</summary>
+        private const string NoneHandChoice = "None";
+
         /// <summary>Second entry in VaM’s VR hand choice list (after None): sphere / kinematic proxy.</summary>
         private const string SphereKinematicChoice = "SphereKinematic";
 
@@ -40,6 +43,11 @@ namespace geesp0t
         public static void NotifyVrEulerPossessTenSecondSuppress()
         {
             _suppressGripToggleUntilUnscaled = Time.unscaledTime + 10f;
+            _leftArticulated = false;
+            _rightArticulated = false;
+            SuperController sc = SuperController.singleton;
+            ApplyNoneBothControls(sc);
+            QueueApplyHandsEndOfFrame(sc);
         }
 
         /// <summary>Called from <see cref="EasyMate.Init"/>; pass <c>null</c> on teardown.</summary>
@@ -88,7 +96,7 @@ namespace geesp0t
 
             if (AnyPersonHeadOrHandPossessed())
             {
-                ApplySphereBothHandsNonArticulated(sc);
+                ApplyNoneBothHandsWhilePossessed(sc);
                 return;
             }
 
@@ -167,15 +175,48 @@ namespace geesp0t
             return false;
         }
 
-        private static void ApplySphereBothHandsNonArticulated(
-            SuperController sc)
+        private static void ApplyNoneBothHandsWhilePossessed(SuperController sc)
         {
             if (sc == null)
                 return;
             _leftArticulated = false;
             _rightArticulated = false;
-            ApplyBothControls(sc);
+            ApplyNoneBothControls(sc);
             QueueApplyHandsEndOfFrame(sc);
+        }
+
+        private static void ApplyNoneBothControls(SuperController sc)
+        {
+            if (sc == null)
+                return;
+            ApplyNoneOnSingleControl(sc.commonHandModelControl);
+            ApplyNoneOnSingleControl(sc.alternateControllerHandModelControl);
+        }
+
+        /// <summary>
+        /// Both sides use VaM’s <c>None</c> hand entry when present; else that
+        /// side disabled.
+        /// </summary>
+        private static void ApplyNoneOnSingleControl(HandModelControl h)
+        {
+            if (h == null)
+                return;
+            h.leftHandEnabled = true;
+            h.rightHandEnabled = true;
+
+            if (HandsArrayHasNamedModel(h.leftHands, NoneHandChoice))
+                h.leftHandChoice = NoneHandChoice;
+            else
+                h.leftHandEnabled = false;
+
+            if (HandsArrayHasNamedModel(h.rightHands, NoneHandChoice))
+                h.rightHandChoice = NoneHandChoice;
+            else
+                h.rightHandEnabled = false;
+
+            bool noGripYetNoArticulated =
+                !_vrGripUsedThisScene && !_leftArticulated && !_rightArticulated;
+            h.useCollision = !noGripYetNoArticulated;
         }
 
         private static void TryMergeSpankingsOnFirstGripPressThisScene()

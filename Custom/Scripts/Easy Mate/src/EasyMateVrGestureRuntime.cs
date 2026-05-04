@@ -173,8 +173,8 @@ namespace geesp0t
                 Transform lh = sc.leftHand;
                 Transform rh = sc.rightHand;
 
-                Vector3 leftEuler;
-                Vector3 rightEuler;
+                Vector3 leftEuler = Vector3.zero;
+                Vector3 rightEuler = Vector3.zero;
                 bool leftOk = lh != null &&
                     EasyMateVrEulerPossessPoseCheck.TryHmdRelativeEuler360(
                         lh,

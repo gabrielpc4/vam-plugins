@@ -431,24 +431,24 @@ namespace geesp0t
                 return;
             }
 
+            Transform motionControllerHead =
+                superController.centerCameraTarget != null ?
+                superController.centerCameraTarget.transform :
+                null;
+            Quaternion navigationRigRotationBefore =
+                navigationRig.rotation;
+            Vector3 navigationRigPositionBefore =
+                navigationRig.position;
+            Quaternion desiredHeadRotation =
+                _femalePassengerHeadRigidbody.transform.rotation;
+            desiredHeadRotation *= Quaternion.Euler(
+                RotationOffsetXDegrees,
+                0f,
+                0f);
+            Quaternion navigationRigRotation = desiredHeadRotation;
+            Quaternion headRotationDelta = Quaternion.identity;
             if (activeThisTurn)
             {
-                Transform motionControllerHead =
-                    superController.centerCameraTarget != null ?
-                    superController.centerCameraTarget.transform :
-                    null;
-                Quaternion navigationRigRotationBefore =
-                    navigationRig.rotation;
-                Vector3 navigationRigPositionBefore =
-                    navigationRig.position;
-                Quaternion desiredHeadRotation =
-                    _femalePassengerHeadRigidbody.transform.rotation;
-                desiredHeadRotation *= Quaternion.Euler(
-                    RotationOffsetXDegrees,
-                    0f,
-                    0f);
-                Quaternion navigationRigRotation = desiredHeadRotation;
-                Quaternion headRotationDelta = Quaternion.identity;
                 if (motionControllerHead != null)
                 {
                     headRotationDelta =

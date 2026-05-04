@@ -17,7 +17,11 @@ namespace geesp0t
         private const float PositionOffsetZMeters = 0.1149023f;
         private const float PendingActivationTimeoutSeconds = 3f;
 
+        private const float PassengerHandsStartDelaySeconds = 5f;
+
         private static MVRScript _host;
+
+        private static Coroutine _passengerHandsDelayCoroutine;
 
         private static bool _active;
         private static Atom _activePerson;
@@ -123,12 +127,13 @@ namespace geesp0t
 
             PrepareImprovedPoVForPassenger(improvedPoVStorable);
             ActivatePassengerForPerson(femalePerson);
-            MainUIButtons.StartVrPassengerHandsRoutine(femalePerson);
+            SchedulePassengerHandsAfterHeadFollowingDelay(femalePerson);
         }
 
         public static void RequestStopForPalmHud()
         {
             ClearPendingActivation();
+            CancelPassengerHandsDelayCoroutine();
             MainUIButtons.StopVrPassengerHandsRoutine();
 
             StopPassengerMode();
@@ -154,6 +159,7 @@ namespace geesp0t
         public static void StopPassengerMode()
         {
             ClearPendingActivation();
+            CancelPassengerHandsDelayCoroutine();
 
             if (!_active)
             {
@@ -257,7 +263,7 @@ namespace geesp0t
             PrepareImprovedPoVForPassenger(improvedPoVStorable);
             ClearPendingActivation();
             ActivatePassengerForPerson(pendingPerson);
-            MainUIButtons.StartVrPassengerHandsRoutine(pendingPerson);
+            SchedulePassengerHandsAfterHeadFollowingDelay(pendingPerson);
         }
 
         private static void ActivatePassengerForPerson(Atom femalePerson)
@@ -580,6 +586,97 @@ namespace geesp0t
             }
 
             RestoreImprovedPoVForPassengerTarget(femalePerson);
+        }
+
+        private static void CancelPassengerHandsDelayCoroutine()
+        {
+            if (_passengerHandsDelayCoroutine == null)
+            {
+                return;
+            }
+
+            if (_host != null)
+            {
+                try
+                {
+                    _host.StopCoroutine(_passengerHandsDelayCoroutine);
+                }
+                catch (Exception exception)
+                {
+                    SuperController.LogError(
+                        "Easy Mate passenger hands delay cancel: " +
+                        exception.Message);
+                }
+            }
+
+            _passengerHandsDelayCoroutine = null;
+        }
+
+        private static void SchedulePassengerHandsAfterHeadFollowingDelay(Atom femalePerson)
+        {
+            if (femalePerson == null || string.IsNullOrEmpty(femalePerson.uid))
+            {
+                return;
+            }
+
+            if (_host == null)
+            {
+                SuperController.LogError(
+                    "Easy Mate Be the girl: hand possession delay skipped (session host not ready).");
+                return;
+            }
+
+            CancelPassengerHandsDelayCoroutine();
+
+            try
+            {
+                string femalePersonUid = femalePerson.uid;
+                _passengerHandsDelayCoroutine = _host.StartCoroutine(
+                    CoStartPassengerHandsAfterDelay(femalePersonUid));
+            }
+            catch (Exception exception)
+            {
+                SuperController.LogError(
+                    "Easy Mate passenger hands delay start: " +
+                    exception.Message);
+            }
+        }
+
+        private static IEnumerator CoStartPassengerHandsAfterDelay(
+            string femalePersonUid)
+        {
+            yield return new WaitForSeconds(PassengerHandsStartDelaySeconds);
+
+            _passengerHandsDelayCoroutine = null;
+
+            if (string.IsNullOrEmpty(femalePersonUid))
+            {
+                yield break;
+            }
+
+            SuperController superController = SuperController.singleton;
+            if (superController == null)
+            {
+                yield break;
+            }
+
+            if (!_active || _activePerson == null)
+            {
+                yield break;
+            }
+
+            if (_activePerson.uid != femalePersonUid)
+            {
+                yield break;
+            }
+
+            Atom resolvedFemalePerson = superController.GetAtomByUid(femalePersonUid);
+            if (!IsFemalePerson(resolvedFemalePerson))
+            {
+                yield break;
+            }
+
+            MainUIButtons.StartVrPassengerHandsRoutine(resolvedFemalePerson);
         }
 
         private static JSONStorable FindPluginStorableByClassSuffix(

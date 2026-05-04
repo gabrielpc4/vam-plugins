@@ -138,9 +138,11 @@ namespace geesp0t
             private const float MinHandCamDistM = 0.12f;
             private const float MaxHandCamDistM = 1.05f;
             /// <summary>
-            /// Palm plane ~toward face; lower = looser (both palms must pass).
+            /// Palm plane ~toward face (max dot of ±local axes vs hand→HMD).
+            /// Calibrated OpenVR <c>leftHand</c>: palms ~0.93–0.95, backs
+            /// ~0.79/0.89, sideways ~0.65–0.76; both hands must exceed this.
             /// </summary>
-            private const float MinPalmFacingDotLoose = 0.52f;
+            private const float MinPalmFacingDotLoose = 0.90f;
             /// <summary>
             /// Hand must sit in front of HMD (not behind); dot(camFwd, toHand).
             /// </summary>

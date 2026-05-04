@@ -152,7 +152,16 @@ namespace geesp0t
                 _btnVoltar.interactable = true;
 
             if (sc.GetMenuShow() && !possessed && !_genderChooseStepActive)
-                MainUIButtons.RequestVrPalmHudMenuButtonPossessAfterDismissMenu();
+            {
+                if (MainUIButtons.VrPalmHudNeedsGenderChoiceStep())
+                {
+                    sc.activeUI = SuperController.ActiveUI.None;
+                    _genderChooseStepActive = true;
+                    RefreshGenderVersusMainRows(false);
+                }
+                else
+                    MainUIButtons.RequestVrPalmHudMenuButtonPossessAfterDismissMenu();
+            }
         }
 
         internal static void OnPluginDestroy()

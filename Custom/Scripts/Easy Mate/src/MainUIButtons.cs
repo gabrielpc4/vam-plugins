@@ -158,8 +158,10 @@ namespace geesp0t
 
         private static Vector3 GetNeutralHeadFacingForward(
             FreeControllerV3 head,
-            Vector3 upAxis)
+            Vector3 upAxis,
+            out string sourceName)
         {
+            sourceName = "none";
             if (head == null)
                 return Vector3.zero;
 
@@ -170,6 +172,8 @@ namespace geesp0t
                 neutralForward = Vector3.ProjectOnPlane(
                     person.transform.forward,
                     upAxis);
+                if (neutralForward.sqrMagnitude >= 1e-10f)
+                    sourceName = "person.transform.forward";
 
                 if (neutralForward.sqrMagnitude < 1e-10f)
                 {
@@ -180,6 +184,8 @@ namespace geesp0t
                         neutralForward = Vector3.ProjectOnPlane(
                             chest.control.forward,
                             upAxis);
+                        if (neutralForward.sqrMagnitude >= 1e-10f)
+                            sourceName = "chestControl.forward";
                     }
                 }
             }
@@ -189,6 +195,8 @@ namespace geesp0t
                 neutralForward = Vector3.ProjectOnPlane(
                     head.GetForwardPossessAxis(),
                     upAxis);
+                if (neutralForward.sqrMagnitude >= 1e-10f)
+                    sourceName = "head.GetForwardPossessAxis()";
             }
 
             return neutralForward;
@@ -1977,11 +1985,55 @@ namespace geesp0t
                     ? sc.lookCamera.transform
                     : motionControllerHead;
                 Vector3 fromDirection = Vector3.ProjectOnPlane(headingReference.forward, up);
+                string desiredForwardSourceName;
                 Vector3 desiredForward = GetNeutralHeadFacingForward(
                     head,
-                    navigationRig.up);
+                    navigationRig.up,
+                    out desiredForwardSourceName);
                 if (Vector3.Dot(upPossessAxis, up) < 0f && Vector3.Dot(headingReference.up, up) > 0f)
                     desiredForward = -desiredForward;
+
+                Atom person = head.containingAtom;
+                FreeControllerV3 chest =
+                    person != null
+                    ? person.GetStorableByID("chestControl") as FreeControllerV3
+                    : null;
+                SuperController.LogMessage(
+                    "Easy Mate possess debug: person=" +
+                    (person != null ? person.uid : "null") +
+                    ", headControlEuler=" +
+                    (head.control != null
+                        ? FormatEulerForDebug(head.control.rotation)
+                        : "null") +
+                    ", headTransformEuler=" +
+                    FormatEulerForDebug(head.transform.rotation) +
+                    ", personEuler=" +
+                    (person != null
+                        ? FormatEulerForDebug(person.transform.rotation)
+                        : "null") +
+                    ", chestEuler=" +
+                    (chest != null && chest.control != null
+                        ? FormatEulerForDebug(chest.control.rotation)
+                        : "null") +
+                    ", headingReferenceEuler=" +
+                    FormatEulerForDebug(headingReference.rotation) +
+                    ", fromDirection=" +
+                    FormatVectorForDebug(fromDirection) +
+                    ", desiredForward=" +
+                    FormatVectorForDebug(desiredForward) +
+                    ", desiredForwardSource=" +
+                    desiredForwardSourceName +
+                    ", upPossessAxis=" +
+                    FormatVectorForDebug(upPossessAxis) +
+                    ", navigationRigUp=" +
+                    FormatVectorForDebug(up));
+
+                if (desiredForward.sqrMagnitude <= 1e-8f)
+                {
+                    SuperController.LogError(
+                        "Easy Mate possess debug: desiredForward collapsed to zero. " +
+                        "Person/head/chest forward data above should show which source failed.");
+                }
 
                 if (fromDirection.sqrMagnitude > 1e-8f && desiredForward.sqrMagnitude > 1e-8f)
                 {

@@ -9,11 +9,10 @@ namespace geesp0t
     /// window for the VR possess rule, shows a small world UI on
     /// <c>rightHand</c>: <b>Próxima cena</b> on the <b>upper</b> row and
     /// <b>Possuir</b> / <b>Despossuir</b> on the <b>lower</b> row.
-    /// <b>Next scene</b> is triggered <b>only</b> by face <b>B</b> (or OpenVR
-    /// menu) while this panel shows the two main rows, or by tapping
-    /// <b>Próxima cena</b>. With at least one female Person,
-    /// <b>Possuir</b> opens <b>Mulher</b>; on the Mulher-only step, B still
-    /// confirms Mulher (not next scene). Unity often
+    /// <b>Upper</b> row (<b>Próxima cena</b>): face <b>A</b> / OpenVR select, or tap the button.
+    /// <b>Lower</b> row (<b>Possuir</b> / <b>Despossuir</b>): face <b>B</b> / OpenVR menu
+    /// (same as Mulher confirm on the Mulher-only step). While possessed, <b>A</b> or <b>B</b>
+    /// triggers Despossuir. Unity often
     /// sends no laser hits to this palm canvas, so face buttons are polled.
     /// The whole HUD, including this row, only shows while the right-hand
     /// euler window matches. VaM menu shortcut still dismisses
@@ -165,19 +164,29 @@ namespace geesp0t
                     InvokeGenderMulherChoice();
                 }
             }
-
-            if (sc.GetMenuShow() && !possessed && !_genderChooseStepActive &&
-                MainUIButtons.VrPalmHudNeedsGenderChoiceStep())
+            else if (possessed)
             {
-                sc.activeUI = SuperController.ActiveUI.None;
-                RequestGenderChooseStep();
-                RefreshGenderVersusMainRows(false);
+                if (EasyMateVrInput.PollPalmHudProximaCenaFaceADown(sc) ||
+                    EasyMateVrInput.PollPalmHudPossessRowFaceBDown(sc))
+                {
+                    InvokePossessRowPrimaryAction();
+                }
             }
-
-            bool blockProximaBForMulherStep = _genderChooseStepActive && !possessed;
-            if (!blockProximaBForMulherStep)
+            else
             {
-                if (EasyMateVrInput.PollPalmHudProximaCenaFaceBDown(sc))
+                if (EasyMateVrInput.PollPalmHudPossessRowFaceBDown(sc))
+                {
+                    if (sc.isOpenVR &&
+                        MainUIButtons.VrPalmHudNeedsGenderChoiceStep())
+                    {
+                        MainUIButtons.RequestVrPalmHudMenuButtonPossessAfterDismissMenu();
+                    }
+                    else
+                    {
+                        InvokePossessRowPrimaryAction();
+                    }
+                }
+                else if (EasyMateVrInput.PollPalmHudProximaCenaFaceADown(sc))
                 {
                     MainUIButtons.RequestFireNextSceneUiButton();
                 }
@@ -271,6 +280,7 @@ namespace geesp0t
             }
             else if (MainUIButtons.VrPalmHudNeedsGenderChoiceStep())
             {
+                DismissVaMOverlayUiIfAny();
                 RequestGenderChooseStep();
                 RefreshGenderVersusMainRows(false);
             }
@@ -356,7 +366,7 @@ namespace geesp0t
             Image panelImg = panelGo.AddComponent<Image>();
             panelImg.sprite = WhiteSprite();
             panelImg.color = new Color(0.08f, 0.08f, 0.1f, 0.82f);
-            panelImg.raycastTarget = true;
+            panelImg.raycastTarget = false;
             StretchFull(panelGo);
 
             GameObject possessGo = new GameObject("PossessRowBtn");
@@ -396,7 +406,7 @@ namespace geesp0t
             _btnProximaCena = CreateHandButton(
                 _root.transform,
                 "ProximaCenaBtn",
-                "Próxima cena",
+                "Próxima cena (A)",
                 new Vector2(0.05f, 0.52f),
                 new Vector2(0.95f, 0.98f),
                 new Color(0.14f, 0.32f, 0.52f, 0.92f),

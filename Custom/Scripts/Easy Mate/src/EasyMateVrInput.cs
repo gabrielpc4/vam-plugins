@@ -58,14 +58,20 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Palm HUD: <b>Próxima cena</b> — <b>only</b> physical shortcut for
-        /// next scene (no thumbstick). OVR <c>RTouch</c> face <b>B</b>;
-        /// OpenVR <see cref="SuperController.GetMenuShow"/> (same binding as
-        /// face B on many rigs). Call only while the two-row panel is visible
-        /// and not on the Mulher-only step so it does not clash with
-        /// <see cref="PollPalmHudMulherChoiceDown"/>.
+        /// Palm HUD two main rows: same as <see cref="PollPalmHudMulherChoiceDown"/> —
+        /// face <b>B</b> / Menu = <b>Possuir</b> row (Possuir, Mulher step, Despossuir).
         /// </summary>
-        public static bool PollPalmHudProximaCenaFaceBDown(SuperController sc)
+        public static bool PollPalmHudPossessRowFaceBDown(SuperController sc)
+        {
+            return PollPalmHudMulherChoiceDown(sc);
+        }
+
+        /// <summary>
+        /// Palm HUD: <b>Próxima cena</b> (upper row) on face <b>A</b>. OVR
+        /// <c>RTouch</c> <see cref="OVRInput.Button.One"/>; OpenVR
+        /// <see cref="SuperController.GetRightSelect"/> (press / state down).
+        /// </summary>
+        public static bool PollPalmHudProximaCenaFaceADown(SuperController sc)
         {
             if (sc == null)
             {
@@ -74,17 +80,17 @@ namespace geesp0t
 
             if (sc.isOVR)
             {
-                return TryOvrRightTouchButtonDown(OVRInput.Button.Two);
+                return TryOvrRightTouchButtonDown(OVRInput.Button.One);
             }
 
             if (sc.isOpenVR)
             {
-                return sc.GetMenuShow();
+                return sc.GetRightSelect();
             }
 
             if (XrHeadsetLikelyOn(sc))
             {
-                return TryOvrRightTouchButtonDown(OVRInput.Button.Two);
+                return TryOvrRightTouchButtonDown(OVRInput.Button.One);
             }
 
             return false;

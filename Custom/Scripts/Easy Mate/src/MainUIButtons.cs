@@ -743,9 +743,10 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// VR palm HUD: possess one Person of the chosen gender using the
-        /// uid-sorted list and <see cref="_vrPalmHudFemaleCycleIndex"/> /
-        /// <see cref="_vrPalmHudMaleCycleIndex"/> (same routine as VR euler).
+        /// VR palm HUD: <b>Mulher</b> runs VR euler possess+align+select on the
+        /// uid-sorted list at <see cref="_vrPalmHudFemaleCycleIndex" />;
+        /// <b>Homem</b> runs the same Snap M pipeline as <b>Passenger Male</b>
+        /// (rig snap, no possession) at <see cref="_vrPalmHudMaleCycleIndex"/>.
         /// </summary>
         public static void RequestPossessVrPalmHudByGender(bool female)
         {
@@ -766,12 +767,16 @@ namespace geesp0t
                 _vrPalmHudFemaleCycleIndex :
                 _vrPalmHudMaleCycleIndex;
             Atom target = list[idx % list.Count];
-            StartAutoPossessRoutine(target, VrEulerPossessLabel);
+            if (female)
+                StartAutoPossessRoutine(target, VrEulerPossessLabel);
+            else
+                SnapRigToMalePersonHeadWithPostSteps(target);
         }
 
         /// <summary>
-        /// VR palm HUD: exactly one Person, or several Persons of a single
-        /// gender — uses rotation indices (no Mulher/Homem submenu).
+        /// VR palm HUD: exactly one Person, or several of a single gender —
+        /// females use VR euler possess (rotation index); males use Snap M
+        /// (same as <b>Passenger Male</b>) with rotation index.
         /// </summary>
         public static void RequestPossessVrPalmHudAutoWithoutGenderMenu()
         {
@@ -800,7 +805,10 @@ namespace geesp0t
                 Atom only = nF == 1 ?
                     _cachedFemalePersonsByUid[0] :
                     _cachedMalePersonsByUid[0];
-                StartAutoPossessRoutine(only, VrEulerPossessLabel);
+                if (nF == 1)
+                    StartAutoPossessRoutine(only, VrEulerPossessLabel);
+                else
+                    SnapRigToMalePersonHeadWithPostSteps(only);
                 return;
             }
 
@@ -814,9 +822,7 @@ namespace geesp0t
             }
 
             int j = _vrPalmHudMaleCycleIndex % nM;
-            StartAutoPossessRoutine(
-                _cachedMalePersonsByUid[j],
-                VrEulerPossessLabel);
+            SnapRigToMalePersonHeadWithPostSteps(_cachedMalePersonsByUid[j]);
         }
 
         /// <summary>

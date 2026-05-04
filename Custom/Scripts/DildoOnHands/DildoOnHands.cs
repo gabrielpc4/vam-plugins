@@ -116,7 +116,6 @@ namespace geesp0t
                     true,
                     OnListenForVrTriggerChanged);
 
-                _listenEnabled.storeType = JSONStorableParam.StoreType.Full;
                 RegisterBool(_listenEnabled);
 
                 _toyTriggerMainButton = CreateButton(

@@ -135,30 +135,45 @@ namespace geesp0t
             return head.transform.position;
         }
 
+        private static float NormalizeSignedEulerAngle(float eulerAngle)
+        {
+            if (eulerAngle > 180f)
+                return eulerAngle - 360f;
+
+            return eulerAngle;
+        }
+
+        private static float GetSnapPitchDegrees(FreeControllerV3 head)
+        {
+            if (head == null)
+                return 0f;
+
+            Quaternion sourceRotation = head.control != null
+                ? head.control.rotation
+                : head.transform.rotation;
+            float snapPitchDegrees =
+                NormalizeSignedEulerAngle(sourceRotation.eulerAngles.x);
+
+            if (Mathf.Abs(snapPitchDegrees) >= 90f)
+                return 0f;
+
+            return snapPitchDegrees;
+        }
+
+        private static Quaternion GetPitchOnlySnapRotation(FreeControllerV3 head)
+        {
+            return Quaternion.Euler(GetSnapPitchDegrees(head), 0f, 0f);
+        }
+
         private static Vector3 GetHeadSnapTargetWorld(FreeControllerV3 head)
         {
             Vector3 basePos = head.control != null
                 ? head.control.position
                 : (head.possessPoint != null ? head.possessPoint.position : head.transform.position);
 
-            Vector3 upAxis = head.GetUpPossessAxis();
-            Vector3 faceForward = head.GetForwardPossessAxis();
-            if (upAxis.sqrMagnitude < 1e-12f)
-            {
-                if (head.control != null)
-                    upAxis = head.control.up;
-                else
-                    upAxis = Vector3.up;
-            }
-            if (faceForward.sqrMagnitude < 1e-12f)
-            {
-                if (head.followWhenOff != null)
-                    faceForward = head.followWhenOff.forward;
-                else if (head.control != null)
-                    faceForward = head.control.forward;
-                else
-                    faceForward = Vector3.forward;
-            }
+            Quaternion pitchOnlyRotation = GetPitchOnlySnapRotation(head);
+            Vector3 upAxis = pitchOnlyRotation * Vector3.up;
+            Vector3 faceForward = pitchOnlyRotation * Vector3.forward;
             upAxis.Normalize();
             faceForward.Normalize();
 
@@ -578,7 +593,7 @@ namespace geesp0t
                 bool isFemale = IsPersonFemale(target);
 
                 if (isFemale)
-                    OneShotSnapRigToPersonHead(target, null, false);
+                    OneShotSnapRigToPersonHead(target, false);
                 else
                     SnapRigToMalePersonHeadWithPostSteps(target);
             }
@@ -2545,7 +2560,7 @@ namespace geesp0t
             Atom female = FindClosestPersonInListByHeadToCamera(list);
             if (female == null)
                 return;
-            OneShotSnapRigToPersonHead(female, null, false);
+            OneShotSnapRigToPersonHead(female, false);
         }
 
         private static void SnapRigToClosestMaleHead()
@@ -2570,7 +2585,7 @@ namespace geesp0t
                 return;
             Vector3 maleHead = GetPersonHeadWorldPosition(male);
             Atom closestFemale = FindClosestFemalePersonFromPoint(maleHead, male);
-            OneShotSnapRigToPersonHead(male, closestFemale, snapTargetAtHeadControl: true);
+            OneShotSnapRigToPersonHead(male, snapTargetAtHeadControl: true);
             EnsureSnapMEndsWithoutPossessionOrTargetHud();
             EasyMateHeadSnapPovRuntime.HidePossessorAlignmentPreviewMeshes();
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
@@ -2619,8 +2634,8 @@ namespace geesp0t
             return best;
         }
 
-        /// <summary>One-time navigationRig snap to a Person head (no possession). Snap F uses offset target (<see cref="GetHeadSnapTargetWorld"/>). Snap M passes <paramref name="yawTowardPerson"/> and <paramref name="snapTargetAtHeadControl"/> so the rig aligns to head control like possession, with yaw toward that Person’s head when set.</summary>
-        private static void OneShotSnapRigToPersonHead(Atom person, Atom yawTowardPerson = null, bool snapTargetAtHeadControl = false)
+        /// <summary>One-time navigationRig snap to a Person head (no possession). Snap F uses offset target (<see cref="GetHeadSnapTargetWorld"/>). Snap M passes <paramref name="snapTargetAtHeadControl"/> so the rig aligns to head control like possession. Snap rotation now keeps only head pitch when its absolute value is below 90 degrees; yaw and roll are zeroed.</summary>
+        private static void OneShotSnapRigToPersonHead(Atom person, bool snapTargetAtHeadControl = false)
         {
             try
             {
@@ -2651,50 +2666,13 @@ namespace geesp0t
 
                 Transform navigationRig = sc.navigationRig;
                 Vector3 up = navigationRig.up;
-
-                Transform camT = sc.lookCamera != null
-                    ? sc.lookCamera.transform
-                    : (sc.centerCameraTarget != null ? sc.centerCameraTarget.transform : null);
-                if (camT == null)
-                {
-                    SuperController.LogError("Easy Mate HUD: Snap — no camera transform for alignment.");
-                    return;
-                }
+                float snapPitchDegrees = GetSnapPitchDegrees(head);
+                possessor.transform.localEulerAngles =
+                    new Vector3(snapPitchDegrees, 0f, 0f);
 
                 Vector3 snapTargetWorld = snapTargetAtHeadControl
                     ? GetPossessionMatchHeadSnapWorldPosition(head)
                     : GetHeadSnapTargetWorld(head);
-
-                Vector3 forwardPossessAxis = head.GetForwardPossessAxis();
-                Vector3 upPossessAxis = head.GetUpPossessAxis();
-                Vector3 fromDirection = Vector3.ProjectOnPlane(camT.forward, up);
-                Vector3 vector;
-                bool useTowardFemaleYaw = yawTowardPerson != null && yawTowardPerson != person;
-                if (useTowardFemaleYaw)
-                {
-                    Vector3 toTarget = GetPersonHeadWorldPosition(yawTowardPerson) - snapTargetWorld;
-                    vector = Vector3.ProjectOnPlane(toTarget, navigationRig.up);
-                    if (vector.sqrMagnitude < 1e-8f)
-                        vector = Vector3.ProjectOnPlane(forwardPossessAxis, navigationRig.up);
-                }
-                else
-                {
-                    vector = Vector3.ProjectOnPlane(forwardPossessAxis, navigationRig.up);
-                    if (Vector3.Dot(upPossessAxis, up) < 0f && Vector3.Dot(camT.up, up) > 0f)
-                        vector = -vector;
-                }
-
-                if (fromDirection.sqrMagnitude > 1e-8f && vector.sqrMagnitude > 1e-8f)
-                {
-                    fromDirection.Normalize();
-                    vector.Normalize();
-                    float signedAngle = Vector3.SignedAngle(fromDirection, vector, up);
-                    if (Mathf.Abs(signedAngle) > 0.01f)
-                    {
-                        Quaternion q = Quaternion.AngleAxis(signedAngle, up);
-                        navigationRig.rotation = q * navigationRig.rotation;
-                    }
-                }
 
                 Vector3 vector2 = snapTargetWorld;
                 Vector3 vector3 = vector2 - possessor.autoSnapPoint.position;
@@ -2706,14 +2684,8 @@ namespace geesp0t
 
                 if (sc.MonitorCenterCamera != null)
                 {
-                    Vector3 lookAtWorld = useTowardFemaleYaw
-                        ? GetPersonHeadWorldPosition(yawTowardPerson)
-                        : head.transform.position + forwardPossessAxis;
-                    sc.MonitorCenterCamera.transform.LookAt(lookAtWorld);
-                    Vector3 localEulerAngles = sc.MonitorCenterCamera.transform.localEulerAngles;
-                    localEulerAngles.y = 0f;
-                    localEulerAngles.z = 0f;
-                    sc.MonitorCenterCamera.transform.localEulerAngles = localEulerAngles;
+                    sc.MonitorCenterCamera.transform.localEulerAngles =
+                        new Vector3(snapPitchDegrees, 0f, 0f);
                 }
 
                 EasyMateHeadSnapPovRuntime.Begin(person, _pluginHost);

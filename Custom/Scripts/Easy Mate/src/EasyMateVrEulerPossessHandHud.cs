@@ -7,27 +7,34 @@ namespace geesp0t
     /// <summary>
     /// When the <b>right hand alone</b> matches the HMD-relative euler
     /// window for the VR possess rule, shows a small world UI on
-    /// <c>rightHand</c>: either <b>Possuir</b> or <b>Despossuir</b>
-    /// (Brazilian Portuguese) depending on possession, plus <b>Próxima cena</b>
-    /// (fires the scene &quot;next&quot; <c>UIButton</c> when present); or press
-    /// the VaM menu button (<b>B</b> on Quest, SteamVR menu) to dismiss the
-    /// main UI after 100ms and run the same possess flow as dual-hand euler.
-    /// Billboard faces the HMD so labels read correctly from the player's
-    /// view.
+    /// <c>rightHand</c>: one top button — <b>Possuir</b> or <b>Despossuir</b>
+    /// (Brazilian Portuguese) by state — plus <b>Próxima cena</b>; or press
+    /// the VaM menu button (<b>B</b> on Quest, SteamVR menu) when <b>not</b>
+    /// possessed to dismiss the main UI after 100ms and run the dual-hand
+    /// possess flow. Billboard faces the HMD so labels read correctly from
+    /// the player's view.
     /// </summary>
     internal static class EasyMateVrEulerPossessHandHud
     {
         private static GameObject _root;
 
-        private static Button _btnPossuir;
+        private static Button _btnPossessRow;
 
-        private static Button _btnDespossuir;
+        private static Image _possessRowImage;
+
+        private static Text _possessRowText;
 
         private static Button _btnProximaCena;
 
         private static bool _listenersAttached;
 
         private static Sprite _whiteSprite;
+
+        private static readonly Color PossessRowPossuirColor =
+            new Color(0.12f, 0.45f, 0.22f, 0.92f);
+
+        private static readonly Color PossessRowDespossuirColor =
+            new Color(0.5f, 0.14f, 0.14f, 0.92f);
 
         /// <summary>
         /// Local offset on <c>rightHand</c> (meters in hand space). Negative
@@ -115,23 +122,23 @@ namespace geesp0t
             SetVisible(true);
 
             bool possessed = EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed();
-            if (_btnPossuir != null)
+            if (_possessRowText != null)
+                _possessRowText.text = possessed ? "Despossuir" : "Possuir";
+            if (_possessRowImage != null)
             {
-                _btnPossuir.gameObject.SetActive(!possessed);
-                _btnPossuir.interactable = !possessed;
+                _possessRowImage.color = possessed ?
+                    PossessRowDespossuirColor :
+                    PossessRowPossuirColor;
             }
-            if (_btnDespossuir != null)
-            {
-                _btnDespossuir.gameObject.SetActive(possessed);
-                _btnDespossuir.interactable = possessed;
-            }
+            if (_btnPossessRow != null)
+                _btnPossessRow.interactable = true;
             if (_btnProximaCena != null)
             {
                 _btnProximaCena.gameObject.SetActive(true);
                 _btnProximaCena.interactable = true;
             }
 
-            if (sc.GetMenuShow())
+            if (sc.GetMenuShow() && !possessed)
                 MainUIButtons.RequestVrPalmHudMenuButtonPossessAfterDismissMenu();
         }
 
@@ -143,8 +150,9 @@ namespace geesp0t
                 _root = null;
             }
 
-            _btnPossuir = null;
-            _btnDespossuir = null;
+            _btnPossessRow = null;
+            _possessRowImage = null;
+            _possessRowText = null;
             _btnProximaCena = null;
             _listenersAttached = false;
             _whiteSprite = null;
@@ -177,20 +185,19 @@ namespace geesp0t
                 return;
             _listenersAttached = true;
 
-            if (_btnPossuir != null)
+            if (_btnPossessRow != null)
             {
-                _btnPossuir.onClick.AddListener(delegate
+                _btnPossessRow.onClick.AddListener(delegate
                 {
-                    MainUIButtons.RequestPossessClosestFemaleByVrHandHud();
-                });
-            }
-
-            if (_btnDespossuir != null)
-            {
-                _btnDespossuir.onClick.AddListener(delegate
-                {
-                    MainUIButtons.RequestClearAllPossession(
-                        "Easy Mate: Despossuir (VR mão).");
+                    if (EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed())
+                    {
+                        MainUIButtons.RequestClearAllPossession(
+                            "Easy Mate: Despossuir (VR mão).");
+                    }
+                    else
+                    {
+                        MainUIButtons.RequestPossessClosestFemaleByVrHandHud();
+                    }
                 });
             }
 
@@ -228,24 +235,39 @@ namespace geesp0t
             panelImg.raycastTarget = true;
             StretchFull(panelGo);
 
-            // Top half: only one of Possuir / Despossuir visible at a time.
-            _btnPossuir = CreateHandButton(
-                _root.transform,
-                "PossuirBtn",
-                "Possuir",
-                new Vector2(0.05f, 0.52f),
-                new Vector2(0.95f, 0.98f),
-                new Color(0.12f, 0.45f, 0.22f, 0.92f),
-                22);
-
-            _btnDespossuir = CreateHandButton(
-                _root.transform,
-                "DespossuirBtn",
-                "Despossuir",
-                new Vector2(0.05f, 0.52f),
-                new Vector2(0.95f, 0.98f),
-                new Color(0.5f, 0.14f, 0.14f, 0.92f),
-                22);
+            GameObject possessGo = new GameObject("PossessRowBtn");
+            possessGo.transform.SetParent(_root.transform, false);
+            _possessRowImage = possessGo.AddComponent<Image>();
+            _possessRowImage.sprite = WhiteSprite();
+            _possessRowImage.color = PossessRowPossuirColor;
+            _possessRowImage.raycastTarget = true;
+            _btnPossessRow = possessGo.AddComponent<Button>();
+            ColorBlock cb = _btnPossessRow.colors;
+            cb.normalColor = Color.white;
+            cb.highlightedColor = new Color(0.92f, 0.92f, 0.92f, 1f);
+            cb.pressedColor = new Color(0.75f, 0.75f, 0.75f, 1f);
+            cb.disabledColor = new Color(0.45f, 0.45f, 0.45f, 0.55f);
+            cb.colorMultiplier = 1f;
+            _btnPossessRow.colors = cb;
+            RectTransform pbrt = possessGo.GetComponent<RectTransform>();
+            pbrt.anchorMin = new Vector2(0.05f, 0.52f);
+            pbrt.anchorMax = new Vector2(0.95f, 0.98f);
+            pbrt.offsetMin = new Vector2(4f, 3f);
+            pbrt.offsetMax = new Vector2(-4f, -3f);
+            GameObject possessTextGo = new GameObject("Text");
+            possessTextGo.transform.SetParent(possessGo.transform, false);
+            _possessRowText = possessTextGo.AddComponent<Text>();
+            Font font =
+                Resources.GetBuiltinResource(typeof(Font), "Arial.ttf") as Font;
+            if (font != null)
+                _possessRowText.font = font;
+            _possessRowText.text = "Possuir";
+            _possessRowText.fontSize = 22;
+            _possessRowText.fontStyle = FontStyle.Bold;
+            _possessRowText.alignment = TextAnchor.MiddleCenter;
+            _possessRowText.color = Color.white;
+            _possessRowText.raycastTarget = false;
+            StretchFull(possessTextGo);
 
             _btnProximaCena = CreateHandButton(
                 _root.transform,

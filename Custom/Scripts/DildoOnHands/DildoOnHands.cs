@@ -1042,6 +1042,42 @@ namespace geesp0t
             SnapSpawnRigidbodyToHand(fc);
         }
 
+        /// <summary>
+        /// Match Easy Mate / VaM POV: skip toy spawn while a Person head or
+        /// hand is possessed (trigger is used for UI / grab).
+        /// </summary>
+        private static bool AnyPersonHeadOrHandPossessedForToySpawnGuard()
+        {
+            try
+            {
+                SuperController sc = SuperController.singleton;
+                if (sc == null)
+                    return false;
+                foreach (Atom a in sc.GetAtoms())
+                {
+                    if (a == null || a.type != "Person" ||
+                        !a.gameObject.activeInHierarchy)
+                        continue;
+                    FreeControllerV3 h =
+                        a.GetStorableByID("headControl") as FreeControllerV3;
+                    if (h != null && h.possessed)
+                        return true;
+                    FreeControllerV3 l =
+                        a.GetStorableByID("lHandControl") as FreeControllerV3;
+                    if (l != null && l.possessed)
+                        return true;
+                    FreeControllerV3 r =
+                        a.GetStorableByID("rHandControl") as FreeControllerV3;
+                    if (r != null && r.possessed)
+                        return true;
+                }
+            }
+            catch
+            {
+            }
+            return false;
+        }
+
         private void Update()
         {
             if (_listenEnabled == null || !_listenEnabled.val ||
@@ -1054,6 +1090,9 @@ namespace geesp0t
                 _sc.isOVR ||
                 _sc.isOpenVR;
             if (!xrOn)
+                return;
+
+            if (AnyPersonHeadOrHandPossessedForToySpawnGuard())
                 return;
 
             bool leftPressed = false;

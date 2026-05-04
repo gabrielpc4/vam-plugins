@@ -1916,29 +1916,6 @@ namespace geesp0t
                 vector.z);
         }
 
-        private static Vector3 GetPassengerHeadTargetWorldPosition(
-            FreeControllerV3 head)
-        {
-            if (head != null && head.containingAtom != null)
-            {
-                Rigidbody[] bodies = head.containingAtom.linkableRigidbodies;
-                if (bodies != null)
-                {
-                    foreach (Rigidbody rb in bodies)
-                    {
-                        if (rb != null && rb.name == "head")
-                            return rb.position;
-                    }
-                }
-            }
-
-            if (head != null && head.followWhenOff != null)
-                return head.followWhenOff.position;
-            if (head != null && head.possessPoint != null)
-                return head.possessPoint.position;
-            return head != null ? head.control.position : Vector3.zero;
-        }
-
         private static bool TryPrepareHeadForPossessAndAlign(SuperController sc, FreeControllerV3 head, out string error)
         {
             error = null;
@@ -1978,10 +1955,20 @@ namespace geesp0t
                     navigationRig.rotation = q * navigationRig.rotation;
                 }
 
-                // Match Passenger's default "head" target when available so
-                // the HMD lands where Passenger would place it.
-                Vector3 headTarget = GetPassengerHeadTargetWorldPosition(head);
-                Vector3 delta = headTarget - possessor.autoSnapPoint.position;
+                // Same sequence as VaM ThumbstickFunction.AlignRigAndController + HeadPossess:
+                // align head rotation to the possessor snap point, shift the navigation rig using
+                // possessPoint (same as native possess), then snap control to autoSnapPoint before
+                // SelectLinkToRigidbody. Without this, ImprovedPoV camera depth/height/pitch offsets
+                // do not match native head possession.
+                if (head.canGrabRotation)
+                {
+                    head.AlignTo(possessor.autoSnapPoint, true);
+                }
+
+                Vector3 possessAnchor = head.possessPoint != null ?
+                    head.possessPoint.position :
+                    head.control.position;
+                Vector3 delta = possessAnchor - possessor.autoSnapPoint.position;
                 Vector3 targetRigPos = navigationRig.position + delta;
                 float verticalDelta = Vector3.Dot(targetRigPos - navigationRig.position, up);
                 targetRigPos += up * (0f - verticalDelta);
@@ -1996,6 +1983,8 @@ namespace geesp0t
                     euler.z = 0f;
                     sc.MonitorCenterCamera.transform.localEulerAngles = euler;
                 }
+
+                head.PossessMoveAndAlignTo(possessor.autoSnapPoint);
 
                 return TryLinkHeadToMotionControllerHead(motionControllerHead, head, out error);
             }

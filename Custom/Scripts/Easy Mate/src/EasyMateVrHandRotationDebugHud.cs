@@ -104,6 +104,9 @@ namespace geesp0t
             }
 
             Transform ct = sc.lookCamera.transform;
+            float ws = sc.worldScale;
+            if (ws < 0.01f)
+                ws = 0.01f;
 
             sb.Append("OVR=");
             sb.Append(sc.isOVR ? "1" : "0");

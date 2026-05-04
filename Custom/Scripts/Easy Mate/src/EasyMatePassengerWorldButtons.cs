@@ -45,6 +45,7 @@ namespace geesp0t
         private static bool _waitingForInitialTeleportAfterHeadNeutralize;
         private static int _initialHeadNeutralizeFramesRemaining;
         private static float _preservedInitialHeadDownwardPitchDegrees;
+        private static int _headNeutralizeDebugLogCount;
 
         public static bool IsFemalePassengerModeActiveOrPending()
         {
@@ -216,6 +217,7 @@ namespace geesp0t
                 _waitingForInitialTeleportAfterHeadNeutralize = false;
                 _initialHeadNeutralizeFramesRemaining = 0;
                 _preservedInitialHeadDownwardPitchDegrees = 0f;
+                _headNeutralizeDebugLogCount = 0;
             }
         }
 
@@ -341,6 +343,7 @@ namespace geesp0t
             _waitingForInitialTeleportAfterHeadNeutralize = true;
             _initialHeadNeutralizeFramesRemaining =
                 InitialHeadNeutralizeFrames;
+            _headNeutralizeDebugLogCount = 0;
 
             FreeControllerV3 headControl =
                 femalePerson.GetStorableByID("headControl") as FreeControllerV3;
@@ -350,6 +353,7 @@ namespace geesp0t
                         ? headControl.control.rotation
                         : headRigidbody.transform.rotation);
             ForcePassengerHeadControlNeutralRotation(headControl);
+            LogPassengerHeadNeutralizeDebug("start", headControl);
         }
 
         private static void UpdatePassengerRuntime(
@@ -396,15 +400,18 @@ namespace geesp0t
 
                 if (_initialHeadNeutralizeFramesRemaining > 0)
                 {
+                    LogPassengerHeadNeutralizeDebug("warmup", headControl);
                     _initialHeadNeutralizeFramesRemaining--;
                     return;
                 }
 
                 if (!IsPassengerHeadControlNeutralized(headControl))
                 {
+                    LogPassengerHeadNeutralizeDebug("waiting", headControl);
                     return;
                 }
 
+                LogPassengerHeadNeutralizeDebug("settled", headControl);
                 ApplyPassengerPose(superController, true);
                 _waitingForInitialTeleportAfterHeadNeutralize = false;
                 initialTeleportCompletedThisTurn = true;
@@ -984,6 +991,88 @@ namespace geesp0t
 
             if (headControl.followWhenOff != null)
                 headControl.followWhenOff.rotation = neutralRotation;
+        }
+
+        private static void LogPassengerHeadNeutralizeDebug(
+            string phase,
+            FreeControllerV3 headControl)
+        {
+            if (_headNeutralizeDebugLogCount >= 12 &&
+                _headNeutralizeDebugLogCount % 30 != 0)
+            {
+                _headNeutralizeDebugLogCount++;
+                return;
+            }
+
+            if (headControl == null || headControl.control == null)
+            {
+                SuperController.LogMessage(
+                    "EasyMate DEBUG passenger buttons head neutralize: phase=" +
+                    phase +
+                    " headControl=null");
+                _headNeutralizeDebugLogCount++;
+                return;
+            }
+
+            Quaternion neutralRotation =
+                GetPassengerNeutralHeadControlRotation(headControl);
+            Vector3 currentEulerAngles =
+                headControl.control.rotation.eulerAngles;
+            Vector3 targetEulerAngles =
+                neutralRotation.eulerAngles;
+            Vector3 currentLocalEulerAngles =
+                headControl.control.localEulerAngles;
+
+            float xDeltaDegrees = Mathf.Abs(
+                NormalizeSignedEulerAngle(
+                    currentEulerAngles.x - targetEulerAngles.x));
+            float yDeltaDegrees = Mathf.Abs(
+                NormalizeSignedEulerAngle(
+                    currentEulerAngles.y - targetEulerAngles.y));
+            float zDeltaDegrees = Mathf.Abs(
+                NormalizeSignedEulerAngle(
+                    currentEulerAngles.z - targetEulerAngles.z));
+
+            Vector3 upAxis = headControl.GetUpPossessAxis();
+            if (upAxis.sqrMagnitude < 1e-10f)
+                upAxis = headControl.control.up;
+            if (upAxis.sqrMagnitude < 1e-10f)
+                upAxis = Vector3.up;
+            upAxis.Normalize();
+
+            string sourceName;
+            Vector3 neutralForward = GetPassengerNeutralForward(
+                upAxis,
+                out sourceName);
+
+            SuperController.LogMessage(
+                "EasyMate DEBUG passenger buttons head neutralize: phase=" +
+                phase +
+                " person=" +
+                (_femalePassengerTargetPerson != null ?
+                    _femalePassengerTargetPerson.uid :
+                    "null") +
+                " currentWorld=" +
+                FormatEulerForDebug(headControl.control.rotation) +
+                " currentLocal=" +
+                FormatVectorForDebug(currentLocalEulerAngles) +
+                " targetWorld=" +
+                FormatEulerForDebug(neutralRotation) +
+                " delta=(" +
+                xDeltaDegrees.ToString("F2") + ", " +
+                yDeltaDegrees.ToString("F2") + ", " +
+                zDeltaDegrees.ToString("F2") + ")" +
+                " preservedDownPitch=" +
+                _preservedInitialHeadDownwardPitchDegrees.ToString("F2") +
+                " source=" +
+                sourceName +
+                " neutralForward=" +
+                FormatVectorForDebug(neutralForward) +
+                " warmupFramesRemaining=" +
+                _initialHeadNeutralizeFramesRemaining.ToString() +
+                " rotationState=" +
+                headControl.currentRotationState.ToString());
+            _headNeutralizeDebugLogCount++;
         }
 
         private static bool IsPassengerHeadControlNeutralized(

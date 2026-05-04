@@ -4,8 +4,8 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// HMD-facing <see cref="TextMesh"/> plus a cube: green when both hands
-    /// satisfy the VR euler possess angle window (ignores dwell/cooldown).
+    /// World-fixed at origin: <see cref="TextMesh"/> plus cube (green when both
+    /// hands satisfy the VR euler possess angle window; ignores dwell/cooldown).
     /// </summary>
     internal static class EasyMateVrEulerGestureTestHud
     {
@@ -23,10 +23,6 @@ namespace geesp0t
 
         private static readonly Color ColorBad = new Color(0.95f, 0.22f, 0.2f, 1f);
 
-        private const float ForwardOffsetM = 0.52f;
-
-        private const float BelowCenterOffsetM = 0.07f;
-
         /// <summary>
         /// Call from <see cref="EasyMate.LateUpdate"/> with plugin toggle.
         /// </summary>
@@ -39,46 +35,18 @@ namespace geesp0t
                 return;
             }
 
-            if (sc.lookCamera == null)
-            {
-                SetVisible(false);
-                return;
-            }
-
             EnsureHud();
             SetVisible(true);
 
-            Transform ct = sc.lookCamera.transform;
             float ws = sc.worldScale;
             if (ws < 0.01f)
                 ws = 0.01f;
 
-            Vector3 forward = ct.forward;
-            if (forward.sqrMagnitude < 1e-10f)
-                forward = Vector3.forward;
-            else
-                forward.Normalize();
-
-            Vector3 up = ct.up;
-            if (up.sqrMagnitude < 1e-10f)
-                up = Vector3.up;
-            else
-                up.Normalize();
-
-            Vector3 hudPos =
-                ct.position + forward * (ForwardOffsetM * ws) -
-                up * (BelowCenterOffsetM * ws);
-            _root.transform.position = hudPos;
-            _root.transform.rotation = Quaternion.LookRotation(
-                ct.position - hudPos,
-                up);
-            _root.transform.Rotate(0f, 180f, 0f);
-
+            Transform t = _root.transform;
+            t.position = Vector3.zero;
+            t.rotation = Quaternion.identity;
             float charScale = 0.0014f * ws;
-            _root.transform.localScale = new Vector3(
-                charScale,
-                charScale,
-                charScale);
+            t.localScale = new Vector3(charScale, charScale, charScale);
 
             Vector3 leftEuler;
             Vector3 rightEuler;

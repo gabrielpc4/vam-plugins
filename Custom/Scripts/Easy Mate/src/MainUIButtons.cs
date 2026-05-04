@@ -663,13 +663,9 @@ namespace geesp0t
                         fc.possessed = false;
                         fc.startedPossess = false;
 
-                        MotionAnimationControl mac =
-                            fc.GetComponent<MotionAnimationControl>();
-                        if (mac != null)
-                        {
-                            mac.suspendPositionPlayback = false;
-                            mac.suspendRotationPlayback = false;
-                        }
+                        EasyMateHeadHmdFollowAndMotionMute.ClearHeadHmdLinkMotionSuspension(
+                            a,
+                            fc);
 
                         if (isHead)
                             TryRestoreNaturalHeadPose(fc, a);
@@ -2030,11 +2026,8 @@ namespace geesp0t
 
             try
             {
-                MotionAnimationControl mac = head.GetComponent<MotionAnimationControl>();
-                if (head.canGrabPosition && mac != null)
-                    mac.suspendPositionPlayback = true;
-                if (head.canGrabRotation && mac != null)
-                    mac.suspendRotationPlayback = true;
+                EasyMateHeadHmdFollowAndMotionMute.ApplyHeadHmdLinkMotionSuspension(
+                    head);
 
                 head.possessed = true;
 

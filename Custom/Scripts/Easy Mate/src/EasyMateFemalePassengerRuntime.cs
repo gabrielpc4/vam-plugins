@@ -623,29 +623,9 @@ namespace geesp0t
             SuperController superController,
             FreeControllerV3 headControl)
         {
-            if (superController == null || headControl == null ||
-                headControl.control == null)
-            {
-                return;
-            }
-
-            Transform motionControllerHead =
-                superController.centerCameraTarget != null ?
-                superController.centerCameraTarget.transform :
-                null;
-            if (motionControllerHead == null)
-            {
-                return;
-            }
-
-            headControl.currentRotationState = FreeControllerV3.RotationState.On;
-            headControl.control.rotation = motionControllerHead.rotation;
-
-            if (headControl.followWhenOff != null)
-            {
-                headControl.followWhenOff.rotation =
-                    motionControllerHead.rotation;
-            }
+            EasyMateHeadHmdFollowAndMotionMute.ApplyCenterEyeWorldRotationToHead(
+                headControl,
+                superController);
         }
 
         private static bool IsFemalePerson(Atom atom)

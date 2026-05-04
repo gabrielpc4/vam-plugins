@@ -34,9 +34,13 @@ namespace geesp0t
     public static class EasyMateVrGestureRuntime
     {
         /// <summary>
-        /// When false: no over-HMD hand unpossess and no dual-hand euler
-        /// auto-possess — only the right-hand palm angle HUD runs. Set true to
-        /// restore those gestures.
+        /// When false: skip gesture modules entirely so we do not run the
+        /// over-head hand zone math or dual-hand euler dwell each frame
+        /// (see private types <c>OverHeadRightHandGesture</c> and
+        /// <c>DualHandHmdRelativeEulerPossessClosestFemale</c> below) —
+        /// palm HUD uses its own right-hand-only pose. Set <c>true</c> to
+        /// restore unpossess-above-head and dual-hand auto-possess; revisit
+        /// here for a runtime toggle if needed.
         /// </summary>
         private const bool EnableOverHeadUnpossessAndDualHandPossessGestures =
             false;
@@ -45,6 +49,8 @@ namespace geesp0t
         {
             if (bindings == null)
                 return;
+            // Early out when off: avoids over-head zone math and dual-hand
+            // euler/dwell work (re-enable via the flag above if we revisit).
             if (!EnableOverHeadUnpossessAndDualHandPossessGestures)
                 return;
             OverHeadRightHandGesture.ProcessUpdate(

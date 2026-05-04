@@ -964,25 +964,19 @@ namespace geesp0t
                 vector.z);
         }
 
-        private static float NormalizePassengerHeadLocalAngle(float angleDegrees)
-        {
-            if (angleDegrees > 180f)
-                return angleDegrees - 360f;
-
-            return angleDegrees;
-        }
-
         private static void ForcePassengerHeadControlNeutralRotation(
             FreeControllerV3 headControl)
         {
             if (headControl == null || headControl.control == null)
                 return;
 
+            Quaternion neutralRotation =
+                GetPassengerNeutralHeadControlRotation(headControl);
             headControl.currentRotationState = FreeControllerV3.RotationState.On;
-            headControl.control.localRotation = Quaternion.identity;
+            headControl.control.rotation = neutralRotation;
 
             if (headControl.followWhenOff != null)
-                headControl.followWhenOff.localRotation = Quaternion.identity;
+                headControl.followWhenOff.rotation = neutralRotation;
         }
 
         private static bool IsPassengerHeadControlNeutralized(
@@ -991,17 +985,38 @@ namespace geesp0t
             if (headControl == null || headControl.control == null)
                 return false;
 
-            Vector3 localEulerAngles = headControl.control.localEulerAngles;
-            float xAngleDegrees = Mathf.Abs(
-                NormalizePassengerHeadLocalAngle(localEulerAngles.x));
-            float yAngleDegrees = Mathf.Abs(
-                NormalizePassengerHeadLocalAngle(localEulerAngles.y));
-            float zAngleDegrees = Mathf.Abs(
-                NormalizePassengerHeadLocalAngle(localEulerAngles.z));
+            Quaternion neutralRotation =
+                GetPassengerNeutralHeadControlRotation(headControl);
+            return Quaternion.Angle(
+                headControl.control.rotation,
+                neutralRotation) <= HeadNeutralizeAngleToleranceDegrees;
+        }
 
-            return xAngleDegrees <= HeadNeutralizeAngleToleranceDegrees &&
-                yAngleDegrees <= HeadNeutralizeAngleToleranceDegrees &&
-                zAngleDegrees <= HeadNeutralizeAngleToleranceDegrees;
+        private static Quaternion GetPassengerNeutralHeadControlRotation(
+            FreeControllerV3 headControl)
+        {
+            Vector3 upAxis = headControl.GetUpPossessAxis();
+            if (upAxis.sqrMagnitude < 1e-10f)
+                upAxis = headControl.control.up;
+            if (upAxis.sqrMagnitude < 1e-10f)
+                upAxis = Vector3.up;
+            upAxis.Normalize();
+
+            string sourceName;
+            Vector3 neutralForward = GetPassengerNeutralForward(
+                upAxis,
+                out sourceName);
+            if (neutralForward.sqrMagnitude < 1e-10f)
+                neutralForward = Vector3.ProjectOnPlane(
+                    headControl.control.forward,
+                    upAxis);
+            if (neutralForward.sqrMagnitude < 1e-10f)
+                neutralForward = Vector3.forward;
+
+            neutralForward.Normalize();
+            return Quaternion.LookRotation(
+                neutralForward,
+                upAxis);
         }
 
         private static Vector3 GetPassengerNeutralForward(

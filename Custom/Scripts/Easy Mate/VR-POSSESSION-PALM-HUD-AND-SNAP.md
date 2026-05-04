@@ -55,7 +55,14 @@ the overlay up when “Mulher” used `GetMenuShow`.
 - **HMD transform:** `lookCamera` if set, else `centerCameraTarget`
   (`ResolveHmdTransform`).
 
-**Right-hand window (palm HUD)** — `RightMatches(e)`:
+**Right-hand window (palm HUD)** — `RightPalmHudMatches(e)` (`RightHandOnlyMatchTriggerWindow`):
+
+| Axis | Condition |
+|------|-----------|
+| X | `> 300°` |
+| Z | strictly between `110°` and `150°` (back of hand toward HMD; palm-facing window +180° on Z) |
+
+**Right-hand window (dual-hand gesture, when enabled)** — `RightMatches(e)`:
 
 | Axis | Condition |
 |------|-----------|
@@ -70,7 +77,7 @@ the overlay up when “Mulher” used `GetMenuShow`.
 | X | `> 300°` |
 | Z | strictly between `30°` and `90°` |
 
-`RightHandOnlyMatchTriggerWindow` = right hand only + `RightMatches`.  
+`RightHandOnlyMatchTriggerWindow` = right hand only + `RightPalmHudMatches`.  
 `BothHandsMatchTriggerWindow` = left `LeftMatches` **and** right
 `RightMatches`.
 

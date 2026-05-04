@@ -22,6 +22,13 @@ namespace geesp0t
         public const float RightMaxEulerZ = 330f;
 
         /// <summary>
+        /// Right palm HUD only: Z window for back-of-hand (“look at watch”);
+        /// same width as <see cref="RightMinEulerZ"/>–<see cref="RightMaxEulerZ"/>, +180° on the circle.
+        /// </summary>
+        public const float RightPalmHudMinEulerZ = 110f;
+        public const float RightPalmHudMaxEulerZ = 150f;
+
+        /// <summary>
         /// Same HMD reference as <see cref="EasyMateVrGestureRuntime"/>.
         /// </summary>
         public static Transform ResolveHmdTransform(SuperController sc)
@@ -71,6 +78,22 @@ namespace geesp0t
             if (z <= RightMinEulerZ)
                 return false;
             if (z >= RightMaxEulerZ)
+                return false;
+            return true;
+        }
+
+        /// <summary>
+        /// Right hand, palm HUD only (back of hand toward HMD).
+        /// </summary>
+        public static bool RightPalmHudMatches(Vector3 e)
+        {
+            float x = e.x;
+            float z = e.z;
+            if (x <= RightMinEulerX)
+                return false;
+            if (z <= RightPalmHudMinEulerZ)
+                return false;
+            if (z >= RightPalmHudMaxEulerZ)
                 return false;
             return true;
         }
@@ -156,7 +179,7 @@ namespace geesp0t
                 return false;
             if (!TryHmdRelativeEuler360(rh, hmd, out rightEuler))
                 return false;
-            return RightMatches(rightEuler);
+            return RightPalmHudMatches(rightEuler);
         }
     }
 }

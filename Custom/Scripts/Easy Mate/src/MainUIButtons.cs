@@ -2093,6 +2093,8 @@ namespace geesp0t
                 _pluginHost.StopCoroutine(_autoPossessCoroutine);
                 _autoPossessCoroutine = null;
             }
+
+            EasyMatePassengerPossessableNarrow.Restore();
         }
 
         internal static void StopVrPassengerHandsRoutine()
@@ -2134,6 +2136,8 @@ namespace geesp0t
                         person.name);
                     yield break;
                 }
+
+                EasyMatePassengerPossessableNarrow.ApplyForTargetPerson(person);
 
                 sc.SelectModePossess(true);
 
@@ -2215,6 +2219,7 @@ namespace geesp0t
             }
             finally
             {
+                EasyMatePassengerPossessableNarrow.Restore();
                 _autoPossessCoroutine = null;
             }
         }

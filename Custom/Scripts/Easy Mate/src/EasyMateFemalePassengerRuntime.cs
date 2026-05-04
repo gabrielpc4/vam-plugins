@@ -71,6 +71,7 @@ namespace geesp0t
             }
 
             EasyMatePassengerHandPrePossessSnapshot.DiscardSnapshot();
+            EasyMatePassengerPossessableNarrow.Restore();
 
             StopPassengerMode();
             ClearPendingPassengerModeActivation();
@@ -216,6 +217,7 @@ namespace geesp0t
         {
             MainUIButtons.StopVrPassengerHandsRoutine();
             EasyMatePassengerHandPrePossessSnapshot.DiscardSnapshot();
+            EasyMatePassengerPossessableNarrow.Restore();
             StopPassengerMode();
             ClearPendingPassengerModeActivation();
             _sessionPluginHost = null;

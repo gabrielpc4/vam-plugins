@@ -10,6 +10,7 @@ src/EasyMateMotionAnimationEmotionEnd.cs
 src/EasyMateHeadSnapPovRuntime.cs
 src/EasyMateFemalePassengerRuntime.cs
 src/EasyMatePassengerHandPrePossessSnapshot.cs
+src/EasyMatePassengerPossessableNarrow.cs
 src/EasyMateOverlapFullGrabRelease.cs
 src/EasyMateVrInput.cs
 src/EasyMateVrEulerPossessPoseCheck.cs

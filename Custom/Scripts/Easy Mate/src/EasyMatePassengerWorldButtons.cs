@@ -394,6 +394,12 @@ namespace geesp0t
                 0f,
                 0f);
 
+            Vector3 rotationEulerAngles = navigationRigRotation.eulerAngles;
+            navigationRigRotation.eulerAngles = new Vector3(
+                rotationEulerAngles.x,
+                rotationEulerAngles.y,
+                0f);
+
             if (RotationSmoothingSeconds > 0f)
             {
                 navigationRigRotation = SmoothDamp(

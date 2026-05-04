@@ -1975,11 +1975,8 @@ namespace geesp0t
 
                 if (sc.MonitorCenterCamera != null)
                 {
-                    sc.MonitorCenterCamera.transform.LookAt(head.transform.position + forwardPossessAxis);
-                    Vector3 euler = sc.MonitorCenterCamera.transform.localEulerAngles;
-                    euler.y = 0f;
-                    euler.z = 0f;
-                    sc.MonitorCenterCamera.transform.localEulerAngles = euler;
+                    sc.MonitorCenterCamera.transform.LookAt(
+                        head.transform.position + forwardPossessAxis);
                 }
 
                 return TryLinkHeadToMotionControllerHead(motionControllerHead, head, out error);
@@ -2712,10 +2709,6 @@ namespace geesp0t
                         ? GetPersonHeadWorldPosition(yawTowardPerson)
                         : head.transform.position + forwardPossessAxis;
                     sc.MonitorCenterCamera.transform.LookAt(lookAtWorld);
-                    Vector3 localEulerAngles = sc.MonitorCenterCamera.transform.localEulerAngles;
-                    localEulerAngles.y = 0f;
-                    localEulerAngles.z = 0f;
-                    sc.MonitorCenterCamera.transform.localEulerAngles = localEulerAngles;
                 }
 
                 EasyMateHeadSnapPovRuntime.Begin(person, _pluginHost);

@@ -6,12 +6,8 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// Female &quot;Be the girl&quot; mode: navigation rig follows the model head
-    /// <b>position</b> (Passenger-style); on the first activation frame <b>rotation</b>
-    /// matches the head rigidbody (plus fixed pitch offset), then the rig
-    /// rotation stays independent. ImprovedPoV setup; VR hand possession starts
-    /// once per session when you press any grip or trigger (see
-    /// <see cref="EasyMateVrInput.PollVrAnyTriggerOrGripPressDown"/>).
+    /// Female &quot;Be the girl&quot; mode: navigation rig follows the model head (Passenger-style),
+    /// ImprovedPoV setup, deferred VR hand possession, and lifecycle hooks from Easy Mate.
     /// </summary>
     internal static class EasyMateFemalePassengerRuntime
     {
@@ -25,9 +21,11 @@ namespace geesp0t
         private const float PositionOffsetZMeters = 0.1149023f;
         private const float PendingActivationTimeoutSeconds = 3f;
 
-        private const float PalmHudHideSecondsAfterHandsPossessTrigger = 5f;
+        private const float PassengerHandsStartDelaySeconds = 5f;
 
         private static MVRScript _sessionPluginHost;
+
+        private static Coroutine _femalePassengerHandsDelayCoroutine;
 
         private static bool _isFemalePassengerModeActive;
         private static Atom _femalePassengerTargetPerson;
@@ -43,40 +41,9 @@ namespace geesp0t
         private static string _pendingPassengerModeTargetUid;
         private static float _pendingPassengerModeDeadlineTime;
 
-        private static float _palmHandHudAllowedAfterTime =
-            -1f;
-
-        private static bool _passengerVrHandsPossessionStartedThisSession;
-
         public static bool IsFemalePassengerModeActiveOrPending()
         {
             return _isFemalePassengerModeActive || !string.IsNullOrEmpty(_pendingPassengerModeTargetUid);
-        }
-
-        /// <summary>
-        /// Palm HUD stays hidden until <see cref="PalmHudHideSecondsAfterHandsPossessTrigger"/>
-        /// after <see cref="NotifyPassengerHandsPossessionTriggeredForPalmHud"/> runs
-        /// (when VR hand possession routine starts).
-        /// </summary>
-        internal static bool IsPalmHandHudBlockedAfterPassengerHandsTrigger()
-        {
-            if (_palmHandHudAllowedAfterTime < 0f)
-            {
-                return false;
-            }
-
-            return Time.time < _palmHandHudAllowedAfterTime;
-        }
-
-        internal static void NotifyPassengerHandsPossessionTriggeredForPalmHud()
-        {
-            _palmHandHudAllowedAfterTime =
-                Time.time + PalmHudHideSecondsAfterHandsPossessTrigger;
-        }
-
-        private static void ClearPalmHandHudPassengerTriggerCooldown()
-        {
-            _palmHandHudAllowedAfterTime = -1f;
         }
 
         public static void NotifySceneChanged(MVRScript host)
@@ -102,9 +69,6 @@ namespace geesp0t
                         exception.Message);
                 }
             }
-
-            EasyMatePassengerHandPrePossessSnapshot.DiscardSnapshot();
-            EasyMatePassengerPossessableNarrow.Restore();
 
             StopPassengerMode();
             ClearPendingPassengerModeActivation();
@@ -167,11 +131,13 @@ namespace geesp0t
 
             PrepareImprovedPoVForPassenger(improvedPoVStorable);
             ActivatePassengerForPerson(femalePerson);
+            SchedulePassengerHandsAfterHeadFollowingDelay(femalePerson);
         }
 
         public static void RequestStopForPalmHud()
         {
             ClearPendingPassengerModeActivation();
+            CancelPassengerHandsDelayCoroutine();
             MainUIButtons.StopVrPassengerHandsRoutine();
 
             StopPassengerMode();
@@ -191,16 +157,13 @@ namespace geesp0t
                 }
             }
 
-            EasyMatePassengerHandPrePossessSnapshot.RestoreAfterPossessClearThenDiscardSnapshot();
-
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
         }
 
         public static void StopPassengerMode()
         {
             ClearPendingPassengerModeActivation();
-            ClearPalmHandHudPassengerTriggerCooldown();
-            _passengerVrHandsPossessionStartedThisSession = false;
+            CancelPassengerHandsDelayCoroutine();
 
             if (!_isFemalePassengerModeActive)
             {
@@ -248,8 +211,6 @@ namespace geesp0t
         public static void OnPluginDestroy()
         {
             MainUIButtons.StopVrPassengerHandsRoutine();
-            EasyMatePassengerHandPrePossessSnapshot.DiscardSnapshot();
-            EasyMatePassengerPossessableNarrow.Restore();
             StopPassengerMode();
             ClearPendingPassengerModeActivation();
             _sessionPluginHost = null;
@@ -306,6 +267,7 @@ namespace geesp0t
             PrepareImprovedPoVForPassenger(improvedPoVStorable);
             ClearPendingPassengerModeActivation();
             ActivatePassengerForPerson(pendingPerson);
+            SchedulePassengerHandsAfterHeadFollowingDelay(pendingPerson);
         }
 
         private static void ActivatePassengerForPerson(Atom femalePerson)
@@ -361,12 +323,8 @@ namespace geesp0t
             _currentRotationVelocity = Quaternion.identity;
             _currentPositionVelocity = Vector3.zero;
             _isFemalePassengerModeActive = true;
-            _passengerVrHandsPossessionStartedThisSession = false;
 
             ApplyPassengerPose(superController, true);
-
-            SuperController.LogMessage(
-                "Easy Mate Be the girl: press any VR grip or trigger to possess the model's hands.");
         }
 
         private static void UpdatePassengerRuntime(
@@ -406,8 +364,6 @@ namespace geesp0t
                 return;
             }
 
-            TryStartPassengerVrHandsFromUserPress(superController);
-
             try
             {
                 ApplyPassengerPose(superController, false);
@@ -431,26 +387,23 @@ namespace geesp0t
                 return;
             }
 
-            if (activeThisTurn)
+            Quaternion navigationRigRotation =
+                _femalePassengerHeadRigidbody.transform.rotation;
+            navigationRigRotation *= Quaternion.Euler(
+                RotationOffsetXDegrees,
+                0f,
+                0f);
+
+            if (RotationSmoothingSeconds > 0f)
             {
-                Quaternion navigationRigRotation =
-                    _femalePassengerHeadRigidbody.transform.rotation;
-                navigationRigRotation *= Quaternion.Euler(
-                    RotationOffsetXDegrees,
-                    0f,
-                    0f);
-
-                if (RotationSmoothingSeconds > 0f)
-                {
-                    navigationRigRotation = SmoothDamp(
-                        navigationRig.rotation,
-                        navigationRigRotation,
-                        ref _currentRotationVelocity,
-                        RotationSmoothingSeconds);
-                }
-
-                navigationRig.rotation = navigationRigRotation;
+                navigationRigRotation = SmoothDamp(
+                    navigationRig.rotation,
+                    navigationRigRotation,
+                    ref _currentRotationVelocity,
+                    RotationSmoothingSeconds);
             }
+
+            navigationRig.rotation = navigationRigRotation;
 
             Vector3 up = navigationRig.up;
             Vector3 targetPosition =
@@ -633,37 +586,94 @@ namespace geesp0t
             RestoreImprovedPoVForPassengerTarget(femalePerson);
         }
 
-        private static void TryStartPassengerVrHandsFromUserPress(
-            SuperController superController)
+        private static void CancelPassengerHandsDelayCoroutine()
         {
-            if (_passengerVrHandsPossessionStartedThisSession)
+            if (_femalePassengerHandsDelayCoroutine == null)
             {
                 return;
             }
 
-            if (!EasyMateVrInput.PollVrAnyTriggerOrGripPressDown(superController))
+            if (_sessionPluginHost != null)
+            {
+                try
+                {
+                    _sessionPluginHost.StopCoroutine(_femalePassengerHandsDelayCoroutine);
+                }
+                catch (Exception exception)
+                {
+                    SuperController.LogError(
+                        "Easy Mate passenger hands delay cancel: " +
+                        exception.Message);
+                }
+            }
+
+            _femalePassengerHandsDelayCoroutine = null;
+        }
+
+        private static void SchedulePassengerHandsAfterHeadFollowingDelay(Atom femalePerson)
+        {
+            if (femalePerson == null || string.IsNullOrEmpty(femalePerson.uid))
             {
                 return;
             }
 
-            if (_femalePassengerTargetPerson == null ||
-                string.IsNullOrEmpty(_femalePassengerTargetPerson.uid))
+            if (_sessionPluginHost == null)
             {
+                SuperController.LogError(
+                    "Easy Mate Be the girl: hand possession delay skipped (session host not ready).");
                 return;
             }
 
-            Atom resolvedFemalePerson =
-                superController.GetAtomByUid(_femalePassengerTargetPerson.uid);
+            CancelPassengerHandsDelayCoroutine();
+
+            try
+            {
+                string femalePersonUid = femalePerson.uid;
+                _femalePassengerHandsDelayCoroutine = _sessionPluginHost.StartCoroutine(
+                    CoStartPassengerHandsAfterDelay(femalePersonUid));
+            }
+            catch (Exception exception)
+            {
+                SuperController.LogError(
+                    "Easy Mate passenger hands delay start: " +
+                    exception.Message);
+            }
+        }
+
+        private static IEnumerator CoStartPassengerHandsAfterDelay(
+            string femalePersonUid)
+        {
+            yield return new WaitForSeconds(PassengerHandsStartDelaySeconds);
+
+            _femalePassengerHandsDelayCoroutine = null;
+
+            if (string.IsNullOrEmpty(femalePersonUid))
+            {
+                yield break;
+            }
+
+            SuperController superController = SuperController.singleton;
+            if (superController == null)
+            {
+                yield break;
+            }
+
+            if (!_isFemalePassengerModeActive || _femalePassengerTargetPerson == null)
+            {
+                yield break;
+            }
+
+            if (_femalePassengerTargetPerson.uid != femalePersonUid)
+            {
+                yield break;
+            }
+
+            Atom resolvedFemalePerson = superController.GetAtomByUid(femalePersonUid);
             if (!IsFemalePerson(resolvedFemalePerson))
             {
-                return;
+                yield break;
             }
 
-            _passengerVrHandsPossessionStartedThisSession = true;
-
-            EasyMatePassengerHandPrePossessSnapshot.CaptureFromPersonBeforeHandPossess(
-                resolvedFemalePerson);
-            NotifyPassengerHandsPossessionTriggeredForPalmHud();
             MainUIButtons.StartVrPassengerHandsRoutine(resolvedFemalePerson);
         }
 

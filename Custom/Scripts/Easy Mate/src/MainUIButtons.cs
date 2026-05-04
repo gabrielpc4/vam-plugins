@@ -119,10 +119,6 @@ namespace geesp0t
             sc.onAtomUIDsChangedHandlers -= OnPersonSceneAtomUIDsChanged;
         }
 
-        /// <summary>Offset snap target for Snap F (and any caller that wants a slightly raised/backed eye point). Snap M aligns to <see cref="GetPossessionMatchHeadSnapWorldPosition"/> instead.</summary>
-        private const float SnapHeadTargetAboveControlMeters = 0.15f;
-        private const float SnapHeadTargetBackAlongPossessMeters = 0.05f;
-
         /// <summary>Same anchor VaM uses for head possession (<c>headControl</c> transform / control), no Easy Mate offset.</summary>
         private static Vector3 GetPossessionMatchHeadSnapWorldPosition(FreeControllerV3 head)
         {
@@ -158,26 +154,6 @@ namespace geesp0t
                 return 0f;
 
             return snapPitchDegrees;
-        }
-
-        private static Quaternion GetPitchOnlySnapRotation(FreeControllerV3 head)
-        {
-            return Quaternion.Euler(GetSnapPitchDegrees(head), 0f, 0f);
-        }
-
-        private static Vector3 GetHeadSnapTargetWorld(FreeControllerV3 head)
-        {
-            Vector3 basePos = head.control != null
-                ? head.control.position
-                : (head.possessPoint != null ? head.possessPoint.position : head.transform.position);
-
-            Quaternion pitchOnlyRotation = GetPitchOnlySnapRotation(head);
-            Vector3 upAxis = pitchOnlyRotation * Vector3.up;
-            Vector3 faceForward = pitchOnlyRotation * Vector3.forward;
-            upAxis.Normalize();
-            faceForward.Normalize();
-
-            return basePos + upAxis * SnapHeadTargetAboveControlMeters - faceForward * SnapHeadTargetBackAlongPossessMeters;
         }
 
         MVRScript plugin;
@@ -593,7 +569,7 @@ namespace geesp0t
                 bool isFemale = IsPersonFemale(target);
 
                 if (isFemale)
-                    OneShotSnapRigToPersonHead(target, false);
+                    OneShotSnapRigToPersonHead(target);
                 else
                     SnapRigToMalePersonHeadWithPostSteps(target);
             }
@@ -2560,7 +2536,7 @@ namespace geesp0t
             Atom female = FindClosestPersonInListByHeadToCamera(list);
             if (female == null)
                 return;
-            OneShotSnapRigToPersonHead(female, false);
+            OneShotSnapRigToPersonHead(female);
         }
 
         private static void SnapRigToClosestMaleHead()
@@ -2583,9 +2559,7 @@ namespace geesp0t
         {
             if (male == null)
                 return;
-            Vector3 maleHead = GetPersonHeadWorldPosition(male);
-            Atom closestFemale = FindClosestFemalePersonFromPoint(maleHead, male);
-            OneShotSnapRigToPersonHead(male, snapTargetAtHeadControl: true);
+            OneShotSnapRigToPersonHead(male);
             EnsureSnapMEndsWithoutPossessionOrTargetHud();
             EasyMateHeadSnapPovRuntime.HidePossessorAlignmentPreviewMeshes();
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
@@ -2612,30 +2586,8 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Closest female Person by head world distance from <paramref name="fromWorld"/>, excluding <paramref name="exclude"/> (e.g. the snap subject).</summary>
-        private static Atom FindClosestFemalePersonFromPoint(Vector3 fromWorld, Atom exclude)
-        {
-            List<Atom> females = FemalePersonsByUid();
-            Atom best = null;
-            float bestSq = float.MaxValue;
-            string excludeUid = exclude != null ? exclude.uid : null;
-            foreach (Atom f in females)
-            {
-                if (f == null || (excludeUid != null && f.uid == excludeUid))
-                    continue;
-                float dSq = (GetPersonHeadWorldPosition(f) - fromWorld).sqrMagnitude;
-                if (dSq < bestSq)
-                {
-                    bestSq = dSq;
-                    best = f;
-                }
-            }
-
-            return best;
-        }
-
-        /// <summary>One-time navigationRig snap to a Person head (no possession). Snap F uses offset target (<see cref="GetHeadSnapTargetWorld"/>). Snap M passes <paramref name="snapTargetAtHeadControl"/> so the rig aligns to head control like possession. Snap rotation now keeps only head pitch when its absolute value is below 90 degrees; yaw and roll are zeroed.</summary>
-        private static void OneShotSnapRigToPersonHead(Atom person, bool snapTargetAtHeadControl = false)
+        /// <summary>One-time navigationRig snap to a Person head (no possession). Snap now uses the same head-control anchor as possession. Snap rotation keeps only head pitch when its absolute value is below 90 degrees; yaw and roll are zeroed.</summary>
+        private static void OneShotSnapRigToPersonHead(Atom person)
         {
             try
             {
@@ -2670,9 +2622,8 @@ namespace geesp0t
                 possessor.transform.localEulerAngles =
                     new Vector3(snapPitchDegrees, 0f, 0f);
 
-                Vector3 snapTargetWorld = snapTargetAtHeadControl
-                    ? GetPossessionMatchHeadSnapWorldPosition(head)
-                    : GetHeadSnapTargetWorld(head);
+                Vector3 snapTargetWorld =
+                    GetPossessionMatchHeadSnapWorldPosition(head);
 
                 Vector3 vector2 = snapTargetWorld;
                 Vector3 vector3 = vector2 - possessor.autoSnapPoint.position;

@@ -72,7 +72,8 @@ namespace geesp0t
         public JSONStorableBool blockOverlapFullGrab;
 
         /// <summary>
-        /// When true (default), HMD inside any Person’s head cylinder hides face/hair/glasses without using Snap F/M.
+        /// When true, HMD inside any Person’s head cylinder hides face/hair/glasses without using Snap F/M.
+        /// Default off so scenes enable it explicitly from plugin UI or saved presets.
         /// </summary>
         public JSONStorableBool headProximityHideWithoutSnap;
 
@@ -140,7 +141,7 @@ namespace geesp0t
             blockOverlapFullGrab = new JSONStorableBool("Block overlap full-grab (auto-release each frame)", true);
             RegisterBool(blockOverlapFullGrab);
 
-            headProximityHideWithoutSnap = new JSONStorableBool("VR head proximity hide (no Snap required)", true, OnHeadProximityHideWithoutSnapChanged);
+            headProximityHideWithoutSnap = new JSONStorableBool("VR head proximity hide (no Snap required)", false, OnHeadProximityHideWithoutSnapChanged);
             RegisterBool(headProximityHideWithoutSnap);
 
             possessAutoUnpossessWhenFarFromFeet = new JSONStorableBool(

@@ -12,7 +12,7 @@ namespace geesp0t
     /// along possess **up** through <c>headControl.control</c>, 15 cm below to 50 cm above), temporarily hide face
     /// materials and active **Glasses** / **Hat** clothing. Hair is turned off via <see cref="DAZCharacterSelector.SetActiveHairItem"/>
     /// (restored when leaving the zone) so scalp/hair shaders are not forced through ImprovedPoV-style transparent swaps.
-    /// With <b>head proximity hide</b> enabled (default), any Person whose head zone contains the HMD is a hide target.
+    /// With <b>head proximity hide</b> enabled (Easy Mate storables default off), any Person whose head zone contains the HMD is a hide target.
     /// During Snap F/M, the snapped Person is preferred when their zone contains the camera; otherwise proximity still
     /// picks the closest Person in a head zone (e.g. partner) so their face can clear too.
     /// Same camera filters as before (VR eye only; not <c>MonitorRig</c> or mirror/reflection cameras).
@@ -22,8 +22,8 @@ namespace geesp0t
     /// </summary>
     public static class EasyMateHeadSnapPovRuntime
     {
-        /// <summary>When true (default), head-zone material hide runs for any Person near the HMD, without snap.</summary>
-        private static bool _headProximityHideWithoutSnap = true;
+        /// <summary>When true, head-zone material hide runs for any Person near the HMD, without snap (Easy Mate storables default off).</summary>
+        private static bool _headProximityHideWithoutSnap = false;
 
         private static bool _shutdownInProgress;
 

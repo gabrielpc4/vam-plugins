@@ -205,6 +205,11 @@ namespace geesp0t
             }
         }
 
+        internal static bool IsVisible()
+        {
+            return _root != null && _root.activeSelf;
+        }
+
         internal static void OnPluginDestroy()
         {
             if (_root != null)

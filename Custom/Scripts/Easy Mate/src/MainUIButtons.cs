@@ -167,13 +167,20 @@ namespace geesp0t
             Atom person = head.containingAtom;
             if (person != null)
             {
-                FreeControllerV3 chest =
-                    person.GetStorableByID("chestControl") as FreeControllerV3;
-                if (chest != null && chest.control != null)
+                neutralForward = Vector3.ProjectOnPlane(
+                    person.transform.forward,
+                    upAxis);
+
+                if (neutralForward.sqrMagnitude < 1e-10f)
                 {
-                    neutralForward = Vector3.ProjectOnPlane(
-                        chest.control.forward,
-                        upAxis);
+                    FreeControllerV3 chest =
+                        person.GetStorableByID("chestControl") as FreeControllerV3;
+                    if (chest != null && chest.control != null)
+                    {
+                        neutralForward = Vector3.ProjectOnPlane(
+                            chest.control.forward,
+                            upAxis);
+                    }
                 }
             }
 

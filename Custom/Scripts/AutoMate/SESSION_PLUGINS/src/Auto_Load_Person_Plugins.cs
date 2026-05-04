@@ -73,10 +73,6 @@ namespace geesp0t
         private bool sceneLightAtomBackupActive = false;
         private bool wasSuperControllerLoading = false;
 
-        private const float sceneLightRestoreDelayAfterLoadSeconds = 30f;
-        private bool sceneLightRestoreDelayedPending = false;
-        private float sceneLightRestoreDueRealtime = 0f;
-
         private bool lightAtomBackupPendingDuringLoad = false;
         private bool lightAtomBackupWaitLogged = false;
 
@@ -859,7 +855,6 @@ namespace geesp0t
 
             if (superControllerLoading && !wasSuperControllerLoading)
             {
-                sceneLightRestoreDelayedPending = false;
                 sceneLightAtomBackupList.Clear();
                 sceneLightAtomBackupActive = false;
                 lightAtomBackupPendingDuringLoad = true;
@@ -883,26 +878,19 @@ namespace geesp0t
 
                 if (sceneLightAtomBackupActive)
                 {
-                    LightAtomDebugLog(string.Format("Light atom restore scheduled in {0} seconds (realtime).", sceneLightRestoreDelayAfterLoadSeconds));
-                    sceneLightRestoreDelayedPending = true;
-                    sceneLightRestoreDueRealtime = Time.realtimeSinceStartup + sceneLightRestoreDelayAfterLoadSeconds;
+                    try
+                    {
+                        LightAtomDebugLog("Running RestoreLightAtomsFromBackup immediately after scene load.");
+                        RestoreLightAtomsFromBackup();
+                    }
+                    catch (Exception lightsRestoreException)
+                    {
+                        SuperController.LogError("[Auto_Load_Person_Plugins] RestoreLightAtomsFromBackup after scene load failed: " + lightsRestoreException);
+                    }
                 }
                 else
                 {
-                    LightAtomDebugLog("No light atom backup is active; delayed restore not scheduled.");
-                }
-            }
-
-            if (sceneLightRestoreDelayedPending && Time.realtimeSinceStartup >= sceneLightRestoreDueRealtime)
-            {
-                try
-                {
-                    LightAtomDebugLog("Running delayed RestoreLightAtomsFromBackup.");
-                    RestoreLightAtomsFromBackup();
-                }
-                catch (Exception lightsRestoreException)
-                {
-                    SuperController.LogError("[Auto_Load_Person_Plugins] RestoreLightAtomsFromBackup (delayed after scene load) failed: " + lightsRestoreException);
+                    LightAtomDebugLog("No light atom backup is active; restore skipped.");
                 }
             }
 
@@ -1138,7 +1126,6 @@ namespace geesp0t
         void RestoreLightAtomsFromBackup()
         {
             LightAtomDebugLog("RestoreLightAtomsFromBackup entered.");
-            sceneLightRestoreDelayedPending = false;
 
             if (!sceneLightAtomBackupActive)
             {

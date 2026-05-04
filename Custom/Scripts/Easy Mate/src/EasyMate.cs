@@ -116,8 +116,8 @@ namespace geesp0t
         public JSONStorableBool showVrHandRotationDebugHud;
 
         /// <summary>
-        /// World origin (0,0,0): HMD-relative euler per hand + cube when the
-        /// euler possess angle window is satisfied (ignores dwell/cooldown).
+        /// World origin: Cube + UIText atoms; cube diffuse (MaterialOptions)
+        /// shows euler possess angle window (no dwell).
         /// </summary>
         public JSONStorableBool showVrEulerPossessGestureTestHud;
 
@@ -204,7 +204,7 @@ namespace geesp0t
             RegisterBool(showVrHandRotationDebugHud);
 
             showVrEulerPossessGestureTestHud = new JSONStorableBool(
-                "VR euler angle test HUD at world origin (text + cube)",
+                "VR euler angle test: Cube+UIText atoms near origin",
                 true);
             RegisterBool(showVrEulerPossessGestureTestHud);
 

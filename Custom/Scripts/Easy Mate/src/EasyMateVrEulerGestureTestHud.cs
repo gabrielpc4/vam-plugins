@@ -1,21 +1,35 @@
+using System.Collections;
 using System.Text;
 using UnityEngine;
 
 namespace geesp0t
 {
     /// <summary>
-    /// World-fixed at origin: <see cref="TextMesh"/> plus cube (green when both
-    /// hands satisfy the VR euler possess angle window; ignores dwell/cooldown).
+    /// World-fixed <b>Cube</b> + <b>UIText</b> atoms near the origin: live
+    /// HMD-relative euler readout and cube diffuse (MaterialOptions color1)
+    /// green/red when the euler possess angle window matches (no dwell/cooldown).
     /// </summary>
     internal static class EasyMateVrEulerGestureTestHud
     {
-        private static GameObject _root;
+        private const string AtomUidCube = "EasyMateVrEulerTestCube";
 
-        private static TextMesh _textMesh;
+        private const string AtomUidUiText = "EasyMateVrEulerTestUIText";
 
-        private static MeshRenderer _cubeRenderer;
+        private const string StorableMaterials = "materials";
 
-        private static Material _cubeMaterial;
+        private const string StorableText = "Text";
+
+        private const string StorableCanvas = "Canvas";
+
+        private static Atom _cubeAtom;
+
+        private static Atom _textAtom;
+
+        private static bool _atomsReady;
+
+        private static bool _spawnInProgress;
+
+        private static bool _lastTickWantedVisible;
 
         private static readonly StringBuilder Sb = new StringBuilder(1024);
 
@@ -23,30 +37,43 @@ namespace geesp0t
 
         private static readonly Color ColorBad = new Color(0.95f, 0.22f, 0.2f, 1f);
 
+        /// <summary>Cube control offset from text (m), same cluster as origin.</summary>
+        private static readonly Vector3 CubeOffsetFromText =
+            new Vector3(0.22f, 0.04f, 0f);
+
+        /// <summary>Cube scale (local), small indicator beside the UIText.</summary>
+        private static readonly Vector3 CubeLocalScale =
+            new Vector3(0.07f, 0.07f, 0.07f);
+
         /// <summary>
         /// Call from <see cref="EasyMate.LateUpdate"/> with plugin toggle.
         /// </summary>
         internal static void Tick(bool enabled)
         {
             SuperController sc = SuperController.singleton;
+            _lastTickWantedVisible = enabled;
             if (!enabled || sc == null || sc.isLoading)
             {
-                SetVisible(false);
+                SetAtomsHidden(true);
                 return;
             }
 
-            EnsureHud();
-            SetVisible(true);
+            if (!_atomsReady)
+            {
+                TryStartSpawnCoroutine(sc);
+                return;
+            }
+
+            SetAtomsHidden(false);
 
             float ws = sc.worldScale;
             if (ws < 0.01f)
                 ws = 0.01f;
 
-            Transform t = _root.transform;
-            t.position = Vector3.zero;
-            t.rotation = Quaternion.identity;
-            float charScale = 0.0014f * ws;
-            t.localScale = new Vector3(charScale, charScale, charScale);
+            Vector3 textPos = Vector3.zero;
+            Quaternion textRot = Quaternion.identity;
+            PlaceTextAtom(_textAtom, textPos, textRot);
+            PlaceCubeAtomBesideText(_cubeAtom, textPos, textRot, ws);
 
             Vector3 leftEuler;
             Vector3 rightEuler;
@@ -59,77 +86,177 @@ namespace geesp0t
                 out leftOk,
                 out rightOk);
 
-            if (_cubeMaterial != null)
-                _cubeMaterial.color = bothOk ? ColorOk : ColorBad;
+            ApplyCubeDiffuse(_cubeAtom, bothOk ? ColorOk : ColorBad);
 
             BuildLines(Sb, leftEuler, rightEuler, leftOk, rightOk, bothOk);
-            _textMesh.text = Sb.ToString();
+            ApplyUiTextBody(_textAtom, Sb.ToString());
         }
 
         internal static void OnPluginDestroy()
         {
-            if (_root != null)
+            SuperController sc = SuperController.singleton;
+            if (sc != null)
             {
-                UnityEngine.Object.Destroy(_root);
-                _root = null;
+                RemoveAtomIfPresent(sc, AtomUidCube);
+                RemoveAtomIfPresent(sc, AtomUidUiText);
             }
 
-            _textMesh = null;
-            _cubeRenderer = null;
-            _cubeMaterial = null;
+            _cubeAtom = null;
+            _textAtom = null;
+            _atomsReady = false;
+            _spawnInProgress = false;
         }
 
-        private static void SetVisible(bool v)
+        private static void TryStartSpawnCoroutine(SuperController sc)
         {
-            if (_root == null)
+            if (_spawnInProgress)
                 return;
-            _root.SetActive(v);
+            _spawnInProgress = true;
+            sc.StartCoroutine(CoSpawnAtoms());
         }
 
-        private static void EnsureHud()
+        private static IEnumerator CoSpawnAtoms()
         {
-            if (_root != null)
-                return;
-
-            _root = new GameObject("EasyMateVrEulerGestureTestHud");
-            _textMesh = _root.AddComponent<TextMesh>();
-            Font font = Resources.GetBuiltinResource(typeof(Font), "Arial.ttf") as Font;
-            if (font != null)
-                _textMesh.font = font;
-
-            _textMesh.anchor = TextAnchor.UpperLeft;
-            _textMesh.alignment = TextAlignment.Left;
-            _textMesh.fontSize = 34;
-            _textMesh.characterSize = 1f;
-            _textMesh.lineSpacing = 0.88f;
-            _textMesh.color = new Color(0.92f, 1f, 0.95f, 1f);
-            _textMesh.richText = false;
-
-            GameObject cubeGo = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cubeGo.name = "TriggerWindowCube";
-            cubeGo.transform.SetParent(_root.transform, false);
-            cubeGo.transform.localPosition = new Vector3(500f, -40f, 0f);
-            cubeGo.transform.localRotation = Quaternion.identity;
-            cubeGo.transform.localScale = new Vector3(72f, 72f, 72f);
-
-            Collider col = cubeGo.GetComponent<Collider>();
-            if (col != null)
-                UnityEngine.Object.Destroy(col);
-
-            _cubeRenderer = cubeGo.GetComponent<MeshRenderer>();
-            if (_cubeRenderer != null)
+            SuperController sc = null;
+            try
             {
-                Shader sh = Shader.Find("Unlit/Color");
-                if (sh != null)
+                sc = SuperController.singleton;
+                while (sc != null && sc.isLoading)
+                    yield return null;
+
+                if (sc == null)
+                    yield break;
+
+                _cubeAtom = sc.GetAtomByUid(AtomUidCube);
+                if (_cubeAtom == null)
                 {
-                    _cubeMaterial = new Material(sh);
-                    _cubeMaterial.color = ColorBad;
-                    _cubeRenderer.material = _cubeMaterial;
+                    yield return sc.AddAtomByType("Cube", AtomUidCube);
+                    yield return null;
+                    yield return null;
+                    _cubeAtom = sc.GetAtomByUid(AtomUidCube);
                 }
 
-                _cubeRenderer.shadowCastingMode =
-                    UnityEngine.Rendering.ShadowCastingMode.Off;
-                _cubeRenderer.receiveShadows = false;
+                _textAtom = sc.GetAtomByUid(AtomUidUiText);
+                if (_textAtom == null)
+                {
+                    yield return sc.AddAtomByType("UIText", AtomUidUiText);
+                    yield return null;
+                    yield return null;
+                    _textAtom = sc.GetAtomByUid(AtomUidUiText);
+                }
+
+                if (_cubeAtom == null || _textAtom == null)
+                {
+                    SuperController.LogError(
+                        "Easy Mate: VR euler test HUD failed to spawn Cube/UIText atoms.");
+                    yield break;
+                }
+
+                ConfigureNewUiTextAtom(_textAtom);
+                if (_cubeAtom.transform != null)
+                    _cubeAtom.transform.localScale = CubeLocalScale;
+
+                ApplyCubeDiffuse(_cubeAtom, ColorBad);
+                _atomsReady = true;
+            }
+            finally
+            {
+                _spawnInProgress = false;
+                if (sc != null && !_lastTickWantedVisible)
+                    SetAtomsHidden(true);
+            }
+        }
+
+        private static void ConfigureNewUiTextAtom(Atom uitext)
+        {
+            if (uitext == null)
+                return;
+            JSONStorable canvas = uitext.GetStorableByID(StorableCanvas) as JSONStorable;
+            if (canvas != null)
+            {
+                if (canvas.IsFloatJSONParam("xSize"))
+                    canvas.SetFloatParamValue("xSize", 920f);
+                if (canvas.IsFloatJSONParam("ySize"))
+                    canvas.SetFloatParamValue("ySize", 420f);
+            }
+
+            JSONStorable txt = uitext.GetStorableByID(StorableText) as JSONStorable;
+            if (txt != null)
+            {
+                if (txt.IsFloatJSONParam("fontSize"))
+                    txt.SetFloatParamValue("fontSize", 44f);
+            }
+        }
+
+        private static void PlaceTextAtom(Atom uitext, Vector3 worldPos, Quaternion worldRot)
+        {
+            if (uitext == null || uitext.mainController == null)
+                return;
+            if (uitext.mainController.control == null)
+                return;
+            uitext.mainController.control.position = worldPos;
+            uitext.mainController.control.rotation = worldRot;
+        }
+
+        private static void PlaceCubeAtomBesideText(
+            Atom cube,
+            Vector3 textWorldPos,
+            Quaternion textWorldRot,
+            float worldScale)
+        {
+            if (cube == null || cube.mainController == null)
+                return;
+            if (cube.mainController.control == null)
+                return;
+            Vector3 off = CubeOffsetFromText * worldScale;
+            cube.mainController.control.position =
+                textWorldPos + textWorldRot * off;
+            cube.mainController.control.rotation = textWorldRot;
+        }
+
+        private static void ApplyCubeDiffuse(Atom cube, Color rgb)
+        {
+            if (cube == null)
+                return;
+            MaterialOptions mo =
+                cube.GetStorableByID(StorableMaterials) as MaterialOptions;
+            if (mo == null)
+                return;
+            mo.color1Alpha = 1f;
+            mo.SetColor1(rgb);
+        }
+
+        private static void ApplyUiTextBody(Atom uitext, string body)
+        {
+            if (uitext == null)
+                return;
+            JSONStorable txt = uitext.GetStorableByID(StorableText) as JSONStorable;
+            if (txt == null)
+                return;
+            txt.SetStringParamValue("text", body);
+        }
+
+        private static void SetAtomsHidden(bool hidden)
+        {
+            if (_cubeAtom != null)
+                _cubeAtom.hidden = hidden;
+            if (_textAtom != null)
+                _textAtom.hidden = hidden;
+        }
+
+        private static void RemoveAtomIfPresent(SuperController sc, string uid)
+        {
+            if (sc == null || string.IsNullOrEmpty(uid))
+                return;
+            Atom a = sc.GetAtomByUid(uid);
+            if (a == null)
+                return;
+            try
+            {
+                sc.RemoveAtom(a);
+            }
+            catch
+            {
             }
         }
 

@@ -146,6 +146,24 @@ namespace geesp0t
                 _beamRight = CreateCylinder(_root.transform, "MonitorBeamRight", BeamRed);
         }
 
+        private static Material CreateBeamMaterial(Color color)
+        {
+            Shader sh = Shader.Find("Standard");
+            if (sh == null)
+                sh = Shader.Find("Legacy Shaders/Diffuse");
+            if (sh == null)
+                sh = Shader.Find("Unlit/Color");
+            Material mat = new Material(sh);
+            mat.SetColor("_Color", color);
+            if (sh != null && sh.name != null && sh.name.IndexOf("Unlit") < 0)
+            {
+                mat.SetFloat("_Metallic", 0f);
+                mat.SetFloat("_Glossiness", 0.35f);
+            }
+
+            return mat;
+        }
+
         /// <summary>
         /// Unity cylinder: height 2 on local Y, radius 0.5 on X/Z at scale 1.
         /// </summary>
@@ -163,14 +181,7 @@ namespace geesp0t
             MeshRenderer mr = go.GetComponent<MeshRenderer>();
             if (mr != null)
             {
-                Shader sh = Shader.Find("Unlit/Color");
-                if (sh != null)
-                {
-                    Material mat = new Material(sh);
-                    mat.SetColor("_Color", color);
-                    mat.color = color;
-                    mr.material = mat;
-                }
+                mr.material = CreateBeamMaterial(color);
 
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 mr.receiveShadows = false;

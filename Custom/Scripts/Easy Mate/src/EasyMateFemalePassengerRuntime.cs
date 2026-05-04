@@ -1249,9 +1249,13 @@ namespace geesp0t
             if (_preservedInitialHeadDownwardPitchDegrees > pitchDegrees)
                 pitchDegrees = _preservedInitialHeadDownwardPitchDegrees;
 
+            Vector3 stableUpAxis;
             Vector3 neutralForward = GetPassengerNeutralForward(
-                upAxis,
+                null,
+                out stableUpAxis,
                 out sourceName);
+            if (stableUpAxis.sqrMagnitude >= 1e-10f)
+                upAxis = stableUpAxis;
             if (neutralForward.sqrMagnitude < 1e-10f)
                 return headRotationWithOffset;
 

@@ -1658,9 +1658,11 @@ namespace geesp0t
                     navigationRig.rotation = q * navigationRig.rotation;
                 }
 
-                if (head.canGrabRotation)
-                    head.AlignTo(possessor.autoSnapPoint, true);
-
+                // Do not call AlignTo on the head before the rig move: that
+                // rotates the Person toward the HMD and moves the possess
+                // anchor. Compute delta from the natural head pose so the
+                // navigation rig (and height) brings the HMD to the head;
+                // PossessMoveAndAlignTo then does the final possess overlap.
                 Vector3 possessAnchor = head.possessPoint != null ? head.possessPoint.position : head.control.position;
                 Vector3 delta = possessAnchor - possessor.autoSnapPoint.position;
                 Vector3 targetRigPos = navigationRig.position + delta;

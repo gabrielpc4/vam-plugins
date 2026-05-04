@@ -7,9 +7,9 @@ namespace geesp0t
 {
     /// <summary>
     /// Female &quot;Be the girl&quot; mode: navigation rig follows the model head
-    /// <b>position</b> (Passenger-style); <b>rotation</b> aligns to the head only on
-    /// the first activation frame, then stays independent so the model can turn without
-    /// dragging the rig&apos;s yaw/pitch/roll. ImprovedPoV setup; VR hand possession starts
+    /// <b>position</b> (Passenger-style); on the first activation frame <b>rotation</b> takes
+    /// head pitch only — world <b>yaw</b> is forced to 0 (no lateral head turn), then the rig
+    /// rotation stays independent. ImprovedPoV setup; VR hand possession starts
     /// once per session when you press any grip or trigger (see
     /// <see cref="EasyMateVrInput.PollVrAnyTriggerOrGripPressDown"/>).
     /// </summary>
@@ -441,9 +441,11 @@ namespace geesp0t
                     0f);
 
                 Vector3 rotationEulerAngles = navigationRigRotation.eulerAngles;
+                // World Y (yaw) = lateral head turn; keep it neutral so the rig does not
+                // inherit left/right head rotation. Pitch (X) keeps nod; roll (Z) stays off.
                 navigationRigRotation.eulerAngles = new Vector3(
                     rotationEulerAngles.x,
-                    rotationEulerAngles.y,
+                    0f,
                     0f);
 
                 if (RotationSmoothingSeconds > 0f)

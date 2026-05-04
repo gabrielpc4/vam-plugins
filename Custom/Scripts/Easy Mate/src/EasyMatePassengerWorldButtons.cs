@@ -658,13 +658,6 @@ namespace geesp0t
                 return;
             }
 
-            JSONStorableFloat cameraDepthFloat =
-                improvedPoVStorable.GetFloatJSONParam("Camera depth");
-            if (cameraDepthFloat != null)
-            {
-                cameraDepthFloat.val = 0f;
-            }
-
             JSONStorableBool hideFaceBool =
                 improvedPoVStorable.GetBoolJSONParam("Hide face");
             if (hideFaceBool != null)
@@ -698,13 +691,6 @@ namespace geesp0t
             if (improvedPoVStorable == null)
             {
                 return;
-            }
-
-            JSONStorableFloat cameraDepthFloat =
-                improvedPoVStorable.GetFloatJSONParam("Camera depth");
-            if (cameraDepthFloat != null)
-            {
-                cameraDepthFloat.val = cameraDepthFloat.defaultVal;
             }
 
             JSONStorableBool possessedOnlyBool =

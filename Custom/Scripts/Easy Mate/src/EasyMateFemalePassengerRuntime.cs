@@ -23,6 +23,8 @@ namespace geesp0t
 
         private const float PassengerHandsStartDelaySeconds = 3f;
 
+        private const float PalmHudHideSecondsAfterHandsPossessTrigger = 5f;
+
         private static MVRScript _sessionPluginHost;
 
         private static Coroutine _femalePassengerHandsDelayCoroutine;
@@ -41,9 +43,38 @@ namespace geesp0t
         private static string _pendingPassengerModeTargetUid;
         private static float _pendingPassengerModeDeadlineTime;
 
+        private static float _palmHandHudAllowedAfterTime =
+            -1f;
+
         public static bool IsFemalePassengerModeActiveOrPending()
         {
             return _isFemalePassengerModeActive || !string.IsNullOrEmpty(_pendingPassengerModeTargetUid);
+        }
+
+        /// <summary>
+        /// Palm HUD stays hidden until <see cref="PalmHudHideSecondsAfterHandsPossessTrigger"/>
+        /// after <see cref="NotifyPassengerHandsPossessionTriggeredForPalmHud"/> runs
+        /// (when VR hand possession routine starts).
+        /// </summary>
+        internal static bool IsPalmHandHudBlockedAfterPassengerHandsTrigger()
+        {
+            if (_palmHandHudAllowedAfterTime < 0f)
+            {
+                return false;
+            }
+
+            return Time.time < _palmHandHudAllowedAfterTime;
+        }
+
+        internal static void NotifyPassengerHandsPossessionTriggeredForPalmHud()
+        {
+            _palmHandHudAllowedAfterTime =
+                Time.time + PalmHudHideSecondsAfterHandsPossessTrigger;
+        }
+
+        private static void ClearPalmHandHudPassengerTriggerCooldown()
+        {
+            _palmHandHudAllowedAfterTime = -1f;
         }
 
         public static void NotifySceneChanged(MVRScript host)
@@ -169,6 +200,7 @@ namespace geesp0t
         {
             ClearPendingPassengerModeActivation();
             CancelPassengerHandsDelayCoroutine();
+            ClearPalmHandHudPassengerTriggerCooldown();
 
             if (!_isFemalePassengerModeActive)
             {
@@ -689,6 +721,7 @@ namespace geesp0t
 
             EasyMatePassengerHandPrePossessSnapshot.CaptureFromPersonBeforeHandPossess(
                 resolvedFemalePerson);
+            NotifyPassengerHandsPossessionTriggeredForPalmHud();
             MainUIButtons.StartVrPassengerHandsRoutine(resolvedFemalePerson);
         }
 

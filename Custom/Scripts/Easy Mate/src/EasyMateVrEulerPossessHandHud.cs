@@ -90,6 +90,12 @@ namespace geesp0t
                 return;
             }
 
+            if (EasyMateFemalePassengerRuntime.IsPalmHandHudBlockedAfterPassengerHandsTrigger())
+            {
+                SetVisible(false);
+                return;
+            }
+
             if (!EasyMateVrEulerPossessPoseCheck.RightHandOnlyMatchTriggerWindow(sc))
             {
                 SetVisible(false);

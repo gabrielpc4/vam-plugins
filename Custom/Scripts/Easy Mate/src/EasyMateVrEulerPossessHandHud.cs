@@ -81,7 +81,8 @@ namespace geesp0t
                 return;
             }
 
-            if (!EasyMateVrEulerPossessPoseCheck.RightHandOnlyMatchTriggerWindow(sc))
+            if (!_genderChooseStepActive &&
+                !EasyMateVrEulerPossessPoseCheck.RightHandOnlyMatchTriggerWindow(sc))
             {
                 SetVisible(false);
                 return;

@@ -601,8 +601,19 @@ namespace geesp0t
             bool hadPossessed =
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed();
             StopAutoPossessRoutine();
+            EasyMateHeadSnapPovRuntime.EndSnapSession();
             sc.ClearPossess();
             UnlinkStrayHmdLinkedFreeControllersAndNaturalizeHeads(sc);
+            try
+            {
+                sc.SelectModeOff();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "Easy Mate ClearPossess: SelectModeOff: " + e.Message);
+            }
+            EasyMateHeadSnapPovRuntime.HidePossessorAlignmentPreviewMeshes();
             if (advanceVrPalmHudGenderCycle && hadPossessed)
             {
                 _vrPalmHudFemaleCycleIndex++;

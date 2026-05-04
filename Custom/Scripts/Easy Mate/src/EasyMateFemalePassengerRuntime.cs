@@ -1021,7 +1021,7 @@ namespace geesp0t
         {
             float pitchDegrees = NormalizeSignedEulerAngle(
                 rotation.eulerAngles.x);
-            if (pitchDegrees < 0f)
+            if (pitchDegrees > 0f)
                 return pitchDegrees;
 
             return 0f;
@@ -1117,7 +1117,7 @@ namespace geesp0t
                     0f);
             float pitchDegrees = NormalizeSignedEulerAngle(
                 headRotationWithOffset.eulerAngles.x);
-            if (_preservedInitialHeadDownwardPitchDegrees < pitchDegrees)
+            if (_preservedInitialHeadDownwardPitchDegrees > pitchDegrees)
                 pitchDegrees = _preservedInitialHeadDownwardPitchDegrees;
 
             Vector3 neutralForward = GetPassengerNeutralForward(

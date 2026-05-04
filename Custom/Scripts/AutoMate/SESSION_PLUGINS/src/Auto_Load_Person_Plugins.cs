@@ -849,6 +849,11 @@ namespace geesp0t
 
             bool superControllerLoading = SuperController.singleton.isLoading;
 
+            if (superControllerLoading != wasSuperControllerLoading)
+            {
+                LightIntensityDebugLog(string.Format("SuperController.isLoading {0} -> {1}", wasSuperControllerLoading, superControllerLoading));
+            }
+
             if (superControllerLoading && !wasSuperControllerLoading)
             {
                 try
@@ -863,10 +868,17 @@ namespace geesp0t
 
             if (!superControllerLoading && wasSuperControllerLoading)
             {
+                LightIntensityDebugLog("Scene load finished (SuperController.isLoading became false).");
+
                 if (sceneLightIntensityBackupActive)
                 {
+                    LightIntensityDebugLog(string.Format("Light restore scheduled in {0} seconds (realtime).", sceneLightRestoreDelayAfterLoadSeconds));
                     sceneLightRestoreDelayedPending = true;
                     sceneLightRestoreDueRealtime = Time.realtimeSinceStartup + sceneLightRestoreDelayAfterLoadSeconds;
+                }
+                else
+                {
+                    LightIntensityDebugLog("No light backup is active; delayed restore not scheduled.");
                 }
             }
 
@@ -874,6 +886,7 @@ namespace geesp0t
             {
                 try
                 {
+                    LightIntensityDebugLog("Running delayed RestoreSceneLightsFromBackup.");
                     RestoreSceneLightsFromBackup();
                 }
                 catch (Exception lightsRestoreException)
@@ -905,6 +918,7 @@ namespace geesp0t
             // in the first block so the second "if (sceneChanged && ...)" never ran (silent skip after scene load).
             if (sceneChanged && !SuperController.singleton.isLoading)
             {
+                LightIntensityDebugLog("Session plugin: sceneChanged block (person plugins / ~1s after load gate).");
                 Log("Scene finished loading (session plugin)");
                 sceneChanged = false;
                 appliedPersonPlugins = false;
@@ -1013,6 +1027,7 @@ namespace geesp0t
         {
             if (sceneLightIntensityBackupActive)
             {
+                LightIntensityDebugLog("OnDestroy: restoring lights before unload.");
                 try
                 {
                     RestoreSceneLightsFromBackup();
@@ -1031,8 +1046,11 @@ namespace geesp0t
 
         void BackupSceneLightsAndZeroIntensity()
         {
+            LightIntensityDebugLog("BackupSceneLightsAndZeroIntensity entered.");
+
             if (sceneLightIntensityBackupActive)
             {
+                LightIntensityDebugLog("Prior backup was active; restoring before new backup.");
                 RestoreSceneLightsFromBackup();
             }
 
@@ -1041,8 +1059,11 @@ namespace geesp0t
             Light[] sceneLights = UnityEngine.Object.FindObjectsOfType(typeof(Light)) as Light[];
             if (sceneLights == null)
             {
+                LightIntensityDebugLog("FindObjectsOfType(Light) returned null; no intensities changed.");
                 return;
             }
+
+            LightIntensityDebugLog(string.Format("FindObjectsOfType(Light) found {0} component(s).", sceneLights.Length));
 
             for (int lightIndex = 0; lightIndex < sceneLights.Length; lightIndex++)
             {
@@ -1050,27 +1071,40 @@ namespace geesp0t
 
                 if (sceneLight == null)
                 {
+                    LightIntensityDebugLog(string.Format("Index {0}: Light reference is null; skip.", lightIndex));
                     continue;
                 }
 
+                float intensityBefore = sceneLight.intensity;
+                string lightDescription = sceneLight.name;
+
+                LightIntensityDebugLog(string.Format("Try set intensity on \"{0}\" (index {1}): {2} -> 0", lightDescription, lightIndex, intensityBefore));
+
                 SceneLightIntensityBackupEntry backupEntry = new SceneLightIntensityBackupEntry();
                 backupEntry.sceneLight = sceneLight;
-                backupEntry.savedIntensity = sceneLight.intensity;
+                backupEntry.savedIntensity = intensityBefore;
                 sceneLightIntensityBackupList.Add(backupEntry);
                 sceneLight.intensity = 0f;
+
+                LightIntensityDebugLog(string.Format("After assign, \"{0}\" intensity read-back: {1}", lightDescription, sceneLight.intensity));
             }
 
             sceneLightIntensityBackupActive = true;
+            LightIntensityDebugLog(string.Format("Backup complete; {0} light(s) stored, backup active.", sceneLightIntensityBackupList.Count));
         }
 
         void RestoreSceneLightsFromBackup()
         {
+            LightIntensityDebugLog("RestoreSceneLightsFromBackup entered.");
             sceneLightRestoreDelayedPending = false;
 
             if (!sceneLightIntensityBackupActive)
             {
+                LightIntensityDebugLog("No backup active; restore exits without changes.");
                 return;
             }
+
+            LightIntensityDebugLog(string.Format("Restoring {0} backup entry/entries.", sceneLightIntensityBackupList.Count));
 
             for (int entryIndex = 0; entryIndex < sceneLightIntensityBackupList.Count; entryIndex++)
             {
@@ -1079,18 +1113,32 @@ namespace geesp0t
 
                 if (sceneLight != null)
                 {
+                    float intensityBefore = sceneLight.intensity;
+                    LightIntensityDebugLog(string.Format("Try restore \"{0}\": current {1} -> saved {2}", sceneLight.name, intensityBefore, backupEntry.savedIntensity));
                     sceneLight.intensity = backupEntry.savedIntensity;
+                    LightIntensityDebugLog(string.Format("After restore, \"{0}\" read-back: {1}", sceneLight.name, sceneLight.intensity));
+                }
+                else
+                {
+                    LightIntensityDebugLog(string.Format("Entry {0}: Light was destroyed; skip restore.", entryIndex));
                 }
             }
 
             sceneLightIntensityBackupList.Clear();
             sceneLightIntensityBackupActive = false;
+            LightIntensityDebugLog("Restore complete; backup cleared.");
         }
 
         void Log(string msg)
         {
             if (logMessages)
                 SuperController.LogMessage(msg);
+        }
+
+        void LightIntensityDebugLog(string messageBody)
+        {
+            string timeText = DateTime.Now.ToString("HH:mm:ss.fff");
+            SuperController.LogMessage("[Auto_Load_Person_Plugins lights] " + timeText + " " + messageBody);
         }
 
         void Start()

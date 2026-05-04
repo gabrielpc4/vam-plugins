@@ -8,10 +8,10 @@ namespace geesp0t
     /// When the <b>right hand alone</b> matches the HMD-relative euler
     /// window for the VR possess rule, shows a small world UI on
     /// <c>rightHand</c>: <b>Possuir</b> or <b>Despossuir</b> plus
-    /// <b>Próxima cena</b>. With at least one Person, <b>Possuir</b> opens
-    /// <b>Mulher</b> (top, Quest face <b>B</b>) and <b>Homem</b> (bottom,
-    /// <b>A</b>) — Unity often sends no laser hits to this palm canvas, so
-    /// face buttons are polled (OVR <c>RTouch</c>; OpenVR Menu / Select).
+    /// <b>Próxima cena</b>. With at least one female Person, <b>Possuir</b>
+    /// opens <b>Mulher</b> (Quest face <b>B</b>) for the Passenger-style
+    /// female flow. Unity often sends no laser hits to this palm canvas, so
+    /// the face button is also polled (OVR <c>RTouch</c>; OpenVR Menu).
     /// The whole HUD, including this row, only shows while the right-hand
     /// euler window matches. VaM menu shortcut still dismisses
     /// the main UI into this step when a Person exists. Leaving the palm pose
@@ -135,7 +135,9 @@ namespace geesp0t
 
             SetVisible(true);
 
-            bool possessed = EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed();
+            bool possessed =
+                EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending() ||
+                EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed();
             if (possessed)
                 _genderChooseStepActive = false;
 
@@ -153,13 +155,8 @@ namespace geesp0t
             if (_genderChooseStepActive && !possessed)
             {
                 bool mulherB = EasyMateVrInput.PollPalmHudMulherChoiceDown(sc);
-                bool homemA = EasyMateVrInput.PollPalmHudHomemChoiceDown(sc);
-                if (mulherB && homemA)
+                if (mulherB)
                     InvokeGenderMulherChoice();
-                else if (mulherB)
-                    InvokeGenderMulherChoice();
-                else if (homemA)
-                    InvokeGenderHomemChoice();
             }
 
             if (sc.GetMenuShow() && !possessed && !_genderChooseStepActive)
@@ -208,7 +205,7 @@ namespace geesp0t
             if (_btnMulher != null)
                 _btnMulher.gameObject.SetActive(gender);
             if (_btnHomem != null)
-                _btnHomem.gameObject.SetActive(gender);
+                _btnHomem.gameObject.SetActive(false);
             if (_btnPossessRow != null)
                 _btnPossessRow.gameObject.SetActive(!gender);
             if (_btnProximaCena != null)
@@ -231,15 +228,18 @@ namespace geesp0t
             MainUIButtons.RequestPossessVrPalmHudByGender(true);
             _genderChooseStepActive = false;
             RefreshGenderVersusMainRows(
+                EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending() ||
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
         }
 
         private static void InvokeGenderHomemChoice()
         {
             DismissVaMOverlayUiIfAny();
-            MainUIButtons.RequestPossessVrPalmHudByGender(false);
+            SuperController.LogMessage(
+                "Easy Mate: fluxo masculino desativado.");
             _genderChooseStepActive = false;
             RefreshGenderVersusMainRows(
+                EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending() ||
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
         }
 
@@ -275,11 +275,10 @@ namespace geesp0t
             {
                 _btnPossessRow.onClick.AddListener(delegate
                 {
-                    if (EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed())
+                    if (EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending() ||
+                        EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed())
                     {
-                        MainUIButtons.RequestClearAllPossession(
-                            "Easy Mate: Despossuir (VR mão).",
-                            advanceVrPalmHudGenderCycle: true);
+                        EasyMateFemalePassengerRuntime.RequestStopForPalmHud();
                     }
                     else if (MainUIButtons.VrPalmHudNeedsGenderChoiceStep())
                     {
@@ -390,21 +389,11 @@ namespace geesp0t
                 _root.transform,
                 "MulherBtn",
                 "Mulher (B)",
-                new Vector2(0.05f, 0.52f),
+                new Vector2(0.05f, 0.02f),
                 new Vector2(0.95f, 0.98f),
                 PossessRowPossuirColor,
                 20);
             _btnMulher.gameObject.SetActive(false);
-
-            _btnHomem = CreateHandButton(
-                _root.transform,
-                "HomemBtn",
-                "Homem (A)",
-                new Vector2(0.05f, 0.02f),
-                new Vector2(0.95f, 0.48f),
-                new Color(0.14f, 0.32f, 0.52f, 0.92f),
-                20);
-            _btnHomem.gameObject.SetActive(false);
         }
 
         private static void StretchFull(GameObject go)

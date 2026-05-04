@@ -308,6 +308,10 @@ namespace geesp0t
         {
             try
             {
+                EasyMateFemalePassengerRuntime.NotifyAtomUidsChanged(
+                    atomUids,
+                    this);
+
                 if (atomUids == null || atomUids.Count == 0)
                     return;
                 if (!EasyMateEmotionPathKeywords.MatchesCurrentScenePath())
@@ -531,6 +535,11 @@ namespace geesp0t
 
             bool loadingNow =
                 SuperController.singleton != null && SuperController.singleton.isLoading;
+            if (!prevSuperLoading && loadingNow)
+            {
+                EasyMateFemalePassengerRuntime.NotifySceneChanged(this);
+            }
+
             if (retainCameraPoseSameFolderLoads != null &&
                 retainCameraPoseSameFolderLoads.val &&
                 scFsm != null)
@@ -570,6 +579,8 @@ namespace geesp0t
 
                 if (mainUIButtons != null)
                     mainUIButtons.InvalidateCachedPersonLists();
+
+                EasyMateFemalePassengerRuntime.NotifySceneChanged(this);
 
                 ClearAllPossessionIfLoadedSceneHadAny();
 
@@ -640,6 +651,7 @@ namespace geesp0t
             bool monitorLaser = restoreMonitorModeControllerLaser != null && restoreMonitorModeControllerLaser.val;
             EasyMateMonitorModeLaserRestore.Tick(monitorLaser);
             EasyMateVrEulerPossessHandHud.Tick();
+            EasyMateFemalePassengerRuntime.Tick(this);
         }
 
         void OnDestroy()
@@ -666,6 +678,7 @@ namespace geesp0t
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
             EasyMateMonitorModeLaserRestore.OnPluginDestroy();
             EasyMateVrEulerPossessHandHud.OnPluginDestroy();
+            EasyMateFemalePassengerRuntime.OnPluginDestroy();
             EasyMateHeadSnapPovRuntime.End();
             if (mainUIButtons != null) mainUIButtons.OnDestroy();
         }

@@ -5,7 +5,11 @@ using UnityEngine;
 
 namespace geesp0t
 {
-    internal static class EasyMatePassengerWorldButtons
+    /// <summary>
+    /// Female &quot;Be the girl&quot; mode: navigation rig follows the model head (Passenger-style),
+    /// ImprovedPoV setup, deferred VR hand possession, and lifecycle hooks from Easy Mate.
+    /// </summary>
+    internal static class EasyMateFemalePassengerRuntime
     {
         private const string ImprovedPoVPluginPath =
             "Custom/Scripts/ImprovedPoV.cs";
@@ -19,13 +23,13 @@ namespace geesp0t
 
         private const float PassengerHandsStartDelaySeconds = 5f;
 
-        private static MVRScript _host;
+        private static MVRScript _sessionPluginHost;
 
-        private static Coroutine _passengerHandsDelayCoroutine;
+        private static Coroutine _femalePassengerHandsDelayCoroutine;
 
-        private static bool _active;
-        private static Atom _activePerson;
-        private static Rigidbody _activeHeadRigidbody;
+        private static bool _isFemalePassengerModeActive;
+        private static Atom _femalePassengerTargetPerson;
+        private static Rigidbody _femalePassengerHeadRigidbody;
         private static Possessor _possessor;
         private static Vector3 _previousNavigationRigPosition;
         private static Quaternion _previousNavigationRigRotation;
@@ -34,19 +38,19 @@ namespace geesp0t
             Quaternion.identity;
         private static Vector3 _currentPositionVelocity = Vector3.zero;
 
-        private static string _pendingActivationFemaleUid;
-        private static float _pendingActivationDeadline;
+        private static string _pendingPassengerModeTargetUid;
+        private static float _pendingPassengerModeDeadlineTime;
 
-        public static bool IsActiveOrPending()
+        public static bool IsFemalePassengerModeActiveOrPending()
         {
-            return _active || !string.IsNullOrEmpty(_pendingActivationFemaleUid);
+            return _isFemalePassengerModeActive || !string.IsNullOrEmpty(_pendingPassengerModeTargetUid);
         }
 
         public static void NotifySceneChanged(MVRScript host)
         {
             if (host != null)
             {
-                _host = host;
+                _sessionPluginHost = host;
             }
 
             MainUIButtons.StopVrPassengerHandsRoutine();
@@ -67,7 +71,7 @@ namespace geesp0t
             }
 
             StopPassengerMode();
-            ClearPendingActivation();
+            ClearPendingPassengerModeActivation();
         }
 
         public static void NotifyAtomUidsChanged(
@@ -76,7 +80,7 @@ namespace geesp0t
         {
             if (host != null)
             {
-                _host = host;
+                _sessionPluginHost = host;
             }
         }
 
@@ -84,7 +88,7 @@ namespace geesp0t
         {
             if (host != null)
             {
-                _host = host;
+                _sessionPluginHost = host;
             }
 
             SuperController superController = SuperController.singleton;
@@ -93,9 +97,9 @@ namespace geesp0t
                 return;
             }
 
-            TryProcessPendingActivation(superController);
+            TryProcessPendingPassengerModeStartup(superController);
 
-            if (_active)
+            if (_isFemalePassengerModeActive)
             {
                 UpdatePassengerRuntime(superController);
             }
@@ -121,7 +125,7 @@ namespace geesp0t
                 MainUIButtons.TryMergePluginOntoPerson(
                     femalePerson,
                     ImprovedPoVPluginPath);
-                QueuePendingActivation(femalePerson.uid);
+                QueuePassengerModeUntilImprovedPoVReady(femalePerson.uid);
                 return;
             }
 
@@ -132,7 +136,7 @@ namespace geesp0t
 
         public static void RequestStopForPalmHud()
         {
-            ClearPendingActivation();
+            ClearPendingPassengerModeActivation();
             CancelPassengerHandsDelayCoroutine();
             MainUIButtons.StopVrPassengerHandsRoutine();
 
@@ -158,19 +162,19 @@ namespace geesp0t
 
         public static void StopPassengerMode()
         {
-            ClearPendingActivation();
+            ClearPendingPassengerModeActivation();
             CancelPassengerHandsDelayCoroutine();
 
-            if (!_active)
+            if (!_isFemalePassengerModeActive)
             {
                 return;
             }
 
-            Atom personForDeferredImprovedPoVRestore = _activePerson;
+            Atom personForDeferredImprovedPoVRestore = _femalePassengerTargetPerson;
 
             try
             {
-                RestoreImprovedPoVForPassengerTarget(_activePerson);
+                RestoreImprovedPoVForPassengerTarget(_femalePassengerTargetPerson);
 
                 SuperController superController = SuperController.singleton;
                 if (superController != null &&
@@ -195,9 +199,9 @@ namespace geesp0t
                 ScheduleDeferredImprovedPoVRestore(
                     personForDeferredImprovedPoVRestore);
 
-                _active = false;
-                _activePerson = null;
-                _activeHeadRigidbody = null;
+                _isFemalePassengerModeActive = false;
+                _femalePassengerTargetPerson = null;
+                _femalePassengerHeadRigidbody = null;
                 _possessor = null;
                 _currentRotationVelocity = Quaternion.identity;
                 _currentPositionVelocity = Vector3.zero;
@@ -208,35 +212,35 @@ namespace geesp0t
         {
             MainUIButtons.StopVrPassengerHandsRoutine();
             StopPassengerMode();
-            ClearPendingActivation();
-            _host = null;
+            ClearPendingPassengerModeActivation();
+            _sessionPluginHost = null;
         }
 
-        private static void QueuePendingActivation(string femaleUid)
+        private static void QueuePassengerModeUntilImprovedPoVReady(string femaleUid)
         {
-            _pendingActivationFemaleUid = femaleUid;
-            _pendingActivationDeadline =
+            _pendingPassengerModeTargetUid = femaleUid;
+            _pendingPassengerModeDeadlineTime =
                 Time.time + PendingActivationTimeoutSeconds;
         }
 
-        private static void ClearPendingActivation()
+        private static void ClearPendingPassengerModeActivation()
         {
-            _pendingActivationFemaleUid = null;
-            _pendingActivationDeadline = 0f;
+            _pendingPassengerModeTargetUid = null;
+            _pendingPassengerModeDeadlineTime = 0f;
         }
 
-        private static void TryProcessPendingActivation(
+        private static void TryProcessPendingPassengerModeStartup(
             SuperController superController)
         {
-            if (string.IsNullOrEmpty(_pendingActivationFemaleUid))
+            if (string.IsNullOrEmpty(_pendingPassengerModeTargetUid))
             {
                 return;
             }
 
-            if (Time.time > _pendingActivationDeadline)
+            if (Time.time > _pendingPassengerModeDeadlineTime)
             {
-                string expiredUid = _pendingActivationFemaleUid;
-                ClearPendingActivation();
+                string expiredUid = _pendingPassengerModeTargetUid;
+                ClearPendingPassengerModeActivation();
                 SuperController.LogError(
                     "Easy Mate Be the girl: ImprovedPoV did not finish loading on '" +
                     expiredUid +
@@ -245,10 +249,10 @@ namespace geesp0t
             }
 
             Atom pendingPerson = superController.GetAtomByUid(
-                _pendingActivationFemaleUid);
+                _pendingPassengerModeTargetUid);
             if (!IsFemalePerson(pendingPerson))
             {
-                ClearPendingActivation();
+                ClearPendingPassengerModeActivation();
                 return;
             }
 
@@ -261,7 +265,7 @@ namespace geesp0t
             }
 
             PrepareImprovedPoVForPassenger(improvedPoVStorable);
-            ClearPendingActivation();
+            ClearPendingPassengerModeActivation();
             ActivatePassengerForPerson(pendingPerson);
             SchedulePassengerHandsAfterHeadFollowingDelay(pendingPerson);
         }
@@ -314,11 +318,11 @@ namespace geesp0t
             _previousPlayerHeightAdjust =
                 superController.playerHeightAdjust;
 
-            _activePerson = femalePerson;
-            _activeHeadRigidbody = headRigidbody;
+            _femalePassengerTargetPerson = femalePerson;
+            _femalePassengerHeadRigidbody = headRigidbody;
             _currentRotationVelocity = Quaternion.identity;
             _currentPositionVelocity = Vector3.zero;
-            _active = true;
+            _isFemalePassengerModeActive = true;
 
             ApplyPassengerPose(superController, true);
         }
@@ -326,12 +330,12 @@ namespace geesp0t
         private static void UpdatePassengerRuntime(
             SuperController superController)
         {
-            if (!_active)
+            if (!_isFemalePassengerModeActive)
             {
                 return;
             }
 
-            if (!IsFemalePerson(_activePerson) || _activeHeadRigidbody == null)
+            if (!IsFemalePerson(_femalePassengerTargetPerson) || _femalePassengerHeadRigidbody == null)
             {
                 RequestStopForPalmHud();
                 return;
@@ -353,7 +357,7 @@ namespace geesp0t
             }
 
             FreeControllerV3 headControl =
-                _activePerson.GetStorableByID("headControl") as FreeControllerV3;
+                _femalePassengerTargetPerson.GetStorableByID("headControl") as FreeControllerV3;
             if (headControl != null && headControl.possessed)
             {
                 RequestStopForPalmHud();
@@ -378,13 +382,13 @@ namespace geesp0t
             bool activeThisTurn)
         {
             Transform navigationRig = superController.navigationRig;
-            if (navigationRig == null || _activeHeadRigidbody == null)
+            if (navigationRig == null || _femalePassengerHeadRigidbody == null)
             {
                 return;
             }
 
             Quaternion navigationRigRotation =
-                _activeHeadRigidbody.transform.rotation;
+                _femalePassengerHeadRigidbody.transform.rotation;
             navigationRigRotation *= Quaternion.Euler(
                 RotationOffsetXDegrees,
                 0f,
@@ -409,8 +413,8 @@ namespace geesp0t
 
             Vector3 up = navigationRig.up;
             Vector3 targetPosition =
-                _activeHeadRigidbody.position +
-                _activeHeadRigidbody.transform.forward *
+                _femalePassengerHeadRigidbody.position +
+                _femalePassengerHeadRigidbody.transform.forward *
                 PositionOffsetZMeters;
 
             Vector3 positionOffset =
@@ -557,14 +561,14 @@ namespace geesp0t
 
         private static void ScheduleDeferredImprovedPoVRestore(Atom femalePerson)
         {
-            if (_host == null || femalePerson == null)
+            if (_sessionPluginHost == null || femalePerson == null)
             {
                 return;
             }
 
             try
             {
-                _host.StartCoroutine(
+                _sessionPluginHost.StartCoroutine(
                     CoDeferImprovedPoVSkinRestoreKick(femalePerson));
             }
             catch (Exception exception)
@@ -590,16 +594,16 @@ namespace geesp0t
 
         private static void CancelPassengerHandsDelayCoroutine()
         {
-            if (_passengerHandsDelayCoroutine == null)
+            if (_femalePassengerHandsDelayCoroutine == null)
             {
                 return;
             }
 
-            if (_host != null)
+            if (_sessionPluginHost != null)
             {
                 try
                 {
-                    _host.StopCoroutine(_passengerHandsDelayCoroutine);
+                    _sessionPluginHost.StopCoroutine(_femalePassengerHandsDelayCoroutine);
                 }
                 catch (Exception exception)
                 {
@@ -609,7 +613,7 @@ namespace geesp0t
                 }
             }
 
-            _passengerHandsDelayCoroutine = null;
+            _femalePassengerHandsDelayCoroutine = null;
         }
 
         private static void SchedulePassengerHandsAfterHeadFollowingDelay(Atom femalePerson)
@@ -619,7 +623,7 @@ namespace geesp0t
                 return;
             }
 
-            if (_host == null)
+            if (_sessionPluginHost == null)
             {
                 SuperController.LogError(
                     "Easy Mate Be the girl: hand possession delay skipped (session host not ready).");
@@ -631,7 +635,7 @@ namespace geesp0t
             try
             {
                 string femalePersonUid = femalePerson.uid;
-                _passengerHandsDelayCoroutine = _host.StartCoroutine(
+                _femalePassengerHandsDelayCoroutine = _sessionPluginHost.StartCoroutine(
                     CoStartPassengerHandsAfterDelay(femalePersonUid));
             }
             catch (Exception exception)
@@ -647,7 +651,7 @@ namespace geesp0t
         {
             yield return new WaitForSeconds(PassengerHandsStartDelaySeconds);
 
-            _passengerHandsDelayCoroutine = null;
+            _femalePassengerHandsDelayCoroutine = null;
 
             if (string.IsNullOrEmpty(femalePersonUid))
             {
@@ -660,12 +664,12 @@ namespace geesp0t
                 yield break;
             }
 
-            if (!_active || _activePerson == null)
+            if (!_isFemalePassengerModeActive || _femalePassengerTargetPerson == null)
             {
                 yield break;
             }
 
-            if (_activePerson.uid != femalePersonUid)
+            if (_femalePassengerTargetPerson.uid != femalePersonUid)
             {
                 yield break;
             }

@@ -298,13 +298,14 @@ namespace geesp0t
             {
                 try
                 {
-                    ClearAllPossession(
-                        "Easy Mate: O — cleared possession.",
-                        advanceVrPalmHudGenderCycle: true);
+                    EasyMateFemalePassengerRuntime.RequestStopForPalmHud();
+                    SuperController.LogMessage(
+                        "Easy Mate: O — stopped female Passenger mode.");
                 }
                 catch (Exception e)
                 {
-                    SuperController.LogError("O hotkey (clear possession): " + e);
+                    SuperController.LogError(
+                        "O hotkey (stop female Passenger): " + e);
                 }
 
                 return;
@@ -334,11 +335,12 @@ namespace geesp0t
             {
                 try
                 {
-                    PossessAlignSelectClosestPersonByHeadToCamera();
+                    RequestPossessVrPalmHudByGender(true);
                 }
                 catch (Exception e)
                 {
-                    SuperController.LogError("P hotkey (Possess+Align+Select closest): " + e);
+                    SuperController.LogError(
+                        "P hotkey (start female Passenger): " + e);
                 }
 
                 return;
@@ -598,6 +600,7 @@ namespace geesp0t
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed();
             StopAutoPossessRoutine();
             EasyMateHeadSnapPovRuntime.EndSnapSession();
+            EasyMateFemalePassengerRuntime.StopPassengerMode();
             sc.ClearPossess();
             UnlinkStrayHmdLinkedFreeControllersAndNaturalizeHeads(sc);
             try
@@ -736,67 +739,55 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// VR palm HUD: show <b>Mulher</b> / <b>Homem</b> whenever there is at
-        /// least one <c>Person</c> (including a single figure).
+        /// VR palm HUD: show the female possession choice whenever there is at
+        /// least one female <c>Person</c>.
         /// </summary>
         public static bool VrPalmHudNeedsGenderChoiceStep()
         {
             EnsurePersonGenderCaches();
-            int nF = _cachedFemalePersonsByUid != null ?
-                _cachedFemalePersonsByUid.Count : 0;
-            int nM = _cachedMalePersonsByUid != null ?
-                _cachedMalePersonsByUid.Count : 0;
-            return (nF + nM) >= 1;
+            return _cachedFemalePersonsByUid != null &&
+                _cachedFemalePersonsByUid.Count > 0;
         }
 
         /// <summary>
-        /// VR palm HUD: <b>Mulher</b> runs VR euler possess+align+select on the
-        /// uid-sorted list at <see cref="_vrPalmHudFemaleCycleIndex" />;
-        /// <b>Homem</b> runs the same Snap M pipeline as <b>Passenger Male</b>
-        /// (rig snap, no possession) at <see cref="_vrPalmHudMaleCycleIndex"/>.
+        /// VR palm HUD: <b>Mulher</b> starts the Passenger-style female mode on
+        /// the closest female by head to the camera. Male flow is disabled.
         /// </summary>
         public static void RequestPossessVrPalmHudByGender(bool female)
         {
-            EnsurePersonGenderCaches();
-            List<Atom> list = female ?
-                _cachedFemalePersonsByUid :
-                _cachedMalePersonsByUid;
-            if (list == null || list.Count == 0)
+            if (!female)
             {
                 SuperController.LogMessage(
-                    female
-                        ? "Easy Mate: VR mão — nenhuma Person feminina."
-                        : "Easy Mate: VR mão — nenhuma Person masculina.");
+                    "Easy Mate: VR mão — fluxo masculino desativado.");
                 return;
             }
 
-            int idx = female ?
-                _vrPalmHudFemaleCycleIndex :
-                _vrPalmHudMaleCycleIndex;
-            Atom target = list[idx % list.Count];
-            if (female)
-                StartAutoPossessRoutine(target, VrEulerPossessLabel);
-            else
-                SnapRigToMalePersonHeadWithPostSteps(target);
+            EnsurePersonGenderCaches();
+            Atom target = FindClosestPersonInListByHeadToCamera(
+                _cachedFemalePersonsByUid);
+            if (target == null)
+            {
+                SuperController.LogMessage(
+                    "Easy Mate: VR mão — nenhuma Person feminina.");
+                return;
+            }
+
+            EasyMateFemalePassengerRuntime.RequestStartForFemale(target);
         }
 
         /// <summary>
-        /// VR palm HUD: if there is at least one Person, opens the
-        /// <b>Mulher</b>/<b>Homem</b> step on the hand panel (no direct
-        /// possess here).
+        /// VR palm HUD: if there is at least one female Person, opens the
+        /// <b>Mulher</b> step on the hand panel (no direct possess here).
         /// </summary>
         public static void RequestPossessVrPalmHudAutoWithoutGenderMenu()
         {
             EnsurePersonGenderCaches();
-            int nF = _cachedFemalePersonsByUid != null ?
+            int femaleCount = _cachedFemalePersonsByUid != null ?
                 _cachedFemalePersonsByUid.Count : 0;
-            int nM = _cachedMalePersonsByUid != null ?
-                _cachedMalePersonsByUid.Count : 0;
-            int total = nF + nM;
-            if (total <= 0)
+            if (femaleCount <= 0)
             {
                 SuperController.LogMessage(
-                    "Easy Mate: VR mão — nenhuma Person na cena.");
+                    "Easy Mate: VR mão — nenhuma Person feminina na cena.");
                 return;
             }
 
@@ -815,8 +806,8 @@ namespace geesp0t
         /// <summary>
         /// VR palm HUD: <see cref="SuperController.GetMenuShow"/> (Quest <b>B</b> /
         /// SteamVR menu). Waits 100ms, clears <see cref="SuperController.activeUI"/>
-        /// so the menu closes, then opens the <b>Mulher</b>/<b>Homem</b> step
-        /// when a Person exists.
+        /// so the menu closes, then opens the <b>Mulher</b> step
+        /// when a female Person exists.
         /// </summary>
         public static void RequestVrPalmHudMenuButtonPossessAfterDismissMenu()
         {
@@ -840,7 +831,7 @@ namespace geesp0t
                     EasyMateVrEulerPossessHandHud.RequestGenderChooseStep();
                 else
                     SuperController.LogMessage(
-                        "Easy Mate: menu — nenhuma Person na cena.");
+                        "Easy Mate: menu — nenhuma Person feminina na cena.");
             }
             finally
             {
@@ -1390,19 +1381,15 @@ namespace geesp0t
             const float rightColButtonWidth = 132f;
 
             emotionLiteHudButton = AddButton("E-Motion Lite", OnEmotionLiteHudClicked, 1, 0, emotionColButtonWidth);
-            possessAlignSelectMaleButton = AddButton("Possess Male", PossessAlignSelectMaleIfAny, 2, 0, midColButtonWidth);
             removeUnderwearButton = AddButton("Remove underwear", RemoveUnderwearOnAllPersons, 3, 0, rightColButtonWidth);
 
             emotionOriginalHudButton = AddButton("E-Motion Original", OnEmotionOriginalHudClicked, 1, 1, emotionColButtonWidth);
-            possessAlignSelectFemaleButton = AddButton("Possess Female", PossessAlignSelectFirstFemale, 2, 1, midColButtonWidth);
             stripAllClothesButton = AddButton("Remove All Clothes", StripAllClothesOnAllPersons, 3, 1, rightColButtonWidth);
 
             emotionFinalHudButton = AddButton("E-Motion Final", OnEmotionFinalHudClicked, 1, 2, emotionColButtonWidth);
-            snapMaleHeadButton = AddButton("Passenger Male", SnapRigToClosestMaleHead, 2, 2, midColButtonWidth);
             spankingsButton = AddButton("+ Spankings Male", OnSpankingsPluginToggleClicked, 3, 2, rightColButtonWidth);
 
             emotionRemoveAllHudButton = AddButton("Remove E-Motion", OnEmotionRemoveAllHudClicked, 1, 3, emotionColButtonWidth);
-            snapFemaleHeadButton = AddButton("Passenger Female", SnapRigToClosestFemaleHead, 2, 3, midColButtonWidth);
 
             emotionMaleHudButton = AddButton(
                 "E-Motion M",
@@ -1703,7 +1690,7 @@ namespace geesp0t
             }
         }
 
-        private static void TryMergePluginOntoPerson(Atom at, string desiredPluginPath)
+        internal static void TryMergePluginOntoPerson(Atom at, string desiredPluginPath)
         {
             MVRPluginManager manager = at.GetStorableByID("PluginManager") as MVRPluginManager;
             if (manager == null)
@@ -2107,6 +2094,123 @@ namespace geesp0t
             }
         }
 
+        internal static void StopVrPassengerHandsRoutine()
+        {
+            StopAutoPossessRoutine();
+        }
+
+        internal static void StartVrPassengerHandsRoutine(Atom person)
+        {
+            if (_pluginHost == null)
+            {
+                SuperController.LogError(
+                    "Easy Mate passenger hands — plugin host missing.");
+                return;
+            }
+
+            StopAutoPossessRoutine();
+            _autoPossessCoroutine = _pluginHost.StartCoroutine(
+                PossessHandsOnlyRoutine(person));
+        }
+
+        private static IEnumerator PossessHandsOnlyRoutine(Atom person)
+        {
+            try
+            {
+                SuperController sc = SuperController.singleton;
+                if (sc == null || person == null || person.type != "Person")
+                    yield break;
+
+                FreeControllerV3 leftHand =
+                    person.GetStorableByID("lHandControl") as FreeControllerV3;
+                FreeControllerV3 rightHand =
+                    person.GetStorableByID("rHandControl") as FreeControllerV3;
+
+                if (leftHand == null && rightHand == null)
+                {
+                    SuperController.LogError(
+                        "Easy Mate passenger hands — no hand controls on " +
+                        person.name);
+                    yield break;
+                }
+
+                sc.SelectModePossess(true);
+                StartAutoPossessConfirmRoutine(null, leftHand, rightHand);
+
+                yield return null;
+                yield return null;
+
+                bool leftDone = leftHand == null || leftHand.possessed;
+                bool rightDone = rightHand == null || rightHand.possessed;
+                string leftError = null;
+                string rightError = null;
+
+                for (int i = 0; i < 120 && (!leftDone || !rightDone); i++)
+                {
+                    if (!leftDone)
+                    {
+                        TryDriveControllerIntoPossessOverlap(
+                            sc,
+                            leftHand,
+                            true,
+                            out leftError);
+                        leftDone = leftHand != null && leftHand.possessed;
+                    }
+
+                    if (!rightDone)
+                    {
+                        TryDriveControllerIntoPossessOverlap(
+                            sc,
+                            rightHand,
+                            false,
+                            out rightError);
+                        rightDone = rightHand != null && rightHand.possessed;
+                    }
+
+                    if (!leftDone || !rightDone)
+                        yield return null;
+                }
+
+                if (!leftDone || !rightDone)
+                    sc.SelectModeOff();
+
+                string leftState = leftDone ? "ok" : "failed";
+                string rightState = rightDone ? "ok" : "failed";
+                SuperController.LogMessage(
+                    "Easy Mate passenger hands — " +
+                    person.name +
+                    " (left " +
+                    leftState +
+                    ", right " +
+                    rightState +
+                    ").");
+
+                if (!leftDone && leftError != null)
+                {
+                    SuperController.LogMessage(
+                        "Easy Mate passenger hands left detail: " +
+                        leftError);
+                }
+
+                if (!rightDone && rightError != null)
+                {
+                    SuperController.LogMessage(
+                        "Easy Mate passenger hands right detail: " +
+                        rightError);
+                }
+
+                bool anyHandPossessed =
+                    (leftHand != null && leftHand.possessed) ||
+                    (rightHand != null && rightHand.possessed);
+                if (anyHandPossessed && _refreshPluginToggleLabelsStatic != null)
+                    _refreshPluginToggleLabelsStatic();
+            }
+            finally
+            {
+                _autoPossessCoroutine = null;
+            }
+        }
+
         private static void StartAutoPossessConfirmRoutine(
             FreeControllerV3 head,
             FreeControllerV3 leftHand,
@@ -2171,17 +2275,7 @@ namespace geesp0t
         /// </summary>
         private static void PossessAlignSelectClosestFemaleByHeadToCamera()
         {
-            EnsurePersonGenderCaches();
-            Atom target = FindClosestPersonInListByHeadToCamera(
-                _cachedFemalePersonsByUid);
-            if (target == null)
-            {
-                SuperController.LogMessage(
-                    "Easy Mate: VR hand euler — no female Person in scene.");
-                return;
-            }
-
-            StartAutoPossessRoutine(target, VrEulerPossessLabel);
+            RequestPossessVrPalmHudByGender(true);
         }
 
         private static void PossessAlignSelectFirstFemale()

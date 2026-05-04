@@ -126,12 +126,13 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Both hands: each palm faces the HMD loosely (controller axis ~toward
-        /// the look camera), in front of the user, for three seconds
-        /// (Oculus / OpenVR).
+        /// Both hands toward HMD (~3s dwell); after a fire, leave the pose once
+        /// before another dwell (avoids repeat while holding through cooldown).
         /// </summary>
         private static class PalmGazePossessClosestFemale
         {
+            private const string LogPrefix = "Easy Mate VR palm:";
+
             private const float DwellSeconds = 3f;
             private const float CooldownSeconds = 4f;
             private const float MinHandCamDistM = 0.12f;
@@ -147,6 +148,17 @@ namespace geesp0t
 
             private static float _dwellAccumUnscaled;
             private static float _lastTriggerUnscaledTime = -1000f;
+            /// <summary>
+            /// After a fire, false until both-hands pose has been left once
+            /// (stops re-trigger while still holding palms through cooldown).
+            /// </summary>
+            private static bool _dwellArmed = true;
+            private static bool _prevBothPalmsZone;
+            /// <summary>
+            /// One log per cooldown-wait episode while holding pose, not each
+            /// frame.
+            /// </summary>
+            private static bool _loggedCooldownSkipThisCycle;
 
             public static void ProcessUpdate(Action boundAction)
             {
@@ -169,28 +181,74 @@ namespace geesp0t
 
                 Transform lh = sc.leftHand;
                 Transform rh = sc.rightHand;
-                bool palmGaze = lh != null && rh != null &&
-                    HandPalmFacesHmdLoosely(lh, camTf) &&
-                    HandPalmFacesHmdLoosely(rh, camTf);
+
+                float leftDot;
+                float rightDot;
+                bool leftOk = lh != null &&
+                    TryGetPalmFacingDotLoose(lh, camTf, out leftDot);
+                bool rightOk = rh != null &&
+                    TryGetPalmFacingDotLoose(rh, camTf, out rightDot);
+                bool palmGaze = leftOk && rightOk;
+
+                if (palmGaze != _prevBothPalmsZone)
+                {
+                    if (palmGaze)
+                    {
+                        SuperController.LogMessage(
+                            LogPrefix + " both-hands pose ON (dwell only if armed).");
+                    }
+                    else
+                    {
+                        SuperController.LogMessage(
+                            LogPrefix + " both-hands pose OFF; dwell cleared, re-armed.");
+                    }
+
+                    _prevBothPalmsZone = palmGaze;
+                }
+
+                if (!palmGaze)
+                {
+                    _dwellAccumUnscaled = 0f;
+                    _dwellArmed = true;
+                    _loggedCooldownSkipThisCycle = false;
+                    return;
+                }
+
+                if (!_dwellArmed)
+                    return;
 
                 float dt = Time.unscaledDeltaTime;
                 if (dt < 0f || dt > 0.5f)
                     dt = 0.016f;
 
-                if (palmGaze)
+                _dwellAccumUnscaled += dt;
+                float now = Time.unscaledTime;
+                if (_dwellAccumUnscaled < DwellSeconds)
+                    return;
+
+                if (now - _lastTriggerUnscaledTime < CooldownSeconds)
                 {
-                    _dwellAccumUnscaled += dt;
-                    float now = Time.unscaledTime;
-                    if (_dwellAccumUnscaled >= DwellSeconds &&
-                        now - _lastTriggerUnscaledTime >= CooldownSeconds)
+                    if (!_loggedCooldownSkipThisCycle)
                     {
-                        boundAction();
-                        _lastTriggerUnscaledTime = now;
-                        _dwellAccumUnscaled = 0f;
+                        SuperController.LogMessage(
+                            LogPrefix + " dwell done but cooldown active (" +
+                            CooldownSeconds.ToString("F0") + "s).");
+                        _loggedCooldownSkipThisCycle = true;
                     }
+
+                    return;
                 }
-                else
-                    _dwellAccumUnscaled = 0f;
+
+                _loggedCooldownSkipThisCycle = false;
+                SuperController.LogMessage(
+                    LogPrefix + " TRIGGER possess closest female (L palm axis dot " +
+                    leftDot.ToString("F2") + ", R " + rightDot.ToString("F2") +
+                    "). Exit pose once before another dwell.");
+
+                boundAction();
+                _lastTriggerUnscaledTime = now;
+                _dwellAccumUnscaled = 0f;
+                _dwellArmed = false;
             }
 
             private static float BestLocalAxisDotToward(
@@ -226,11 +284,15 @@ namespace geesp0t
             }
 
             /// <summary>
-            /// Palm-oriented toward HMD, in front hemisphere, within distance
-            /// (no strict “look at palm” cone).
+            /// True when distance + forward hemisphere + palm dot pass; outputs
+            /// best axis dot toward cam for logging.
             /// </summary>
-            private static bool HandPalmFacesHmdLoosely(Transform hand, Transform camTf)
+            private static bool TryGetPalmFacingDotLoose(
+                Transform hand,
+                Transform camTf,
+                out float bestAxisDotTowardCam)
             {
+                bestAxisDotTowardCam = -1f;
                 if (hand == null || camTf == null)
                     return false;
 
@@ -255,8 +317,9 @@ namespace geesp0t
                     return false;
                 towardCam = towardCam * (1f / tcMag);
 
-                return BestLocalAxisDotToward(hand, towardCam) >=
-                    MinPalmFacingDotLoose;
+                float best = BestLocalAxisDotToward(hand, towardCam);
+                bestAxisDotTowardCam = best;
+                return best >= MinPalmFacingDotLoose;
             }
         }
     }

@@ -8,8 +8,10 @@ namespace geesp0t
     /// When the <b>right hand alone</b> matches the HMD-relative euler
     /// window for the VR possess rule, shows two small world UI buttons
     /// over the palm on <c>rightHand</c>: <b>Possuir</b> / <b>Despossuir</b>
-    /// (Brazilian Portuguese). Billboard faces the HMD so labels read
-    /// correctly from the player's view.
+    /// (Brazilian Portuguese); or press the VaM menu button (<b>B</b> on
+    /// Quest, SteamVR menu) to dismiss the main UI after 100ms and run the
+    /// same possess flow as dual-hand euler. Billboard faces the HMD so labels
+    /// read correctly from the player's view.
     /// </summary>
     internal static class EasyMateVrEulerPossessHandHud
     {
@@ -113,6 +115,9 @@ namespace geesp0t
                 _btnPossuir.interactable = !possessed;
             if (_btnDespossuir != null)
                 _btnDespossuir.interactable = possessed;
+
+            if (sc.GetMenuShow())
+                MainUIButtons.RequestVrPalmHudMenuButtonPossessAfterDismissMenu();
         }
 
         internal static void OnPluginDestroy()

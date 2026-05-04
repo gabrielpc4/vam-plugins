@@ -51,6 +51,7 @@ namespace geesp0t
 
         private static MVRScript _pluginHost;
         private static Coroutine _autoPossessCoroutine;
+        private static Coroutine _vrPalmHudMenuConfirmCo;
         /// <summary>Next index for <see cref="HotkeySnapNearestHeadHideHandsThenSnap"/> among <see cref="AllPersonsSortedByUidForISnapCycle"/>.</summary>
         private static int _hotkeyISnapPersonCycleNextIndex;
         /// <summary>Set in <see cref="Init"/> so static possess coroutine can refresh HUD after merging plugins.</summary>
@@ -605,6 +606,47 @@ namespace geesp0t
         public static void RequestPossessClosestFemaleByVrHandHud()
         {
             PossessAlignSelectClosestFemaleByHeadToCamera();
+        }
+
+        /// <summary>
+        /// VR palm HUD: <see cref="SuperController.GetMenuShow"/> (Quest <b>B</b> /
+        /// SteamVR menu). Waits 100ms, clears <see cref="SuperController.activeUI"/>
+        /// so the menu closes, then same Possess+Align+Select closest female as
+        /// dual-hand euler (<see cref="PossessAlignSelectClosestFemaleByHeadToCamera"/>).
+        /// </summary>
+        public static void RequestVrPalmHudMenuButtonPossessAfterDismissMenu()
+        {
+            if (_pluginHost == null)
+                return;
+            if (_vrPalmHudMenuConfirmCo != null)
+                return;
+            _vrPalmHudMenuConfirmCo = _pluginHost.StartCoroutine(
+                VrPalmHudMenuButtonPossessAfterDismissMenuCo());
+        }
+
+        private static IEnumerator VrPalmHudMenuButtonPossessAfterDismissMenuCo()
+        {
+            try
+            {
+                yield return new WaitForSecondsRealtime(0.1f);
+                SuperController sc = SuperController.singleton;
+                if (sc != null)
+                    sc.activeUI = SuperController.ActiveUI.None;
+                PossessAlignSelectClosestFemaleByHeadToCamera();
+            }
+            finally
+            {
+                _vrPalmHudMenuConfirmCo = null;
+            }
+        }
+
+        private static void StopVrPalmHudMenuConfirmRoutine()
+        {
+            if (_pluginHost != null && _vrPalmHudMenuConfirmCo != null)
+            {
+                _pluginHost.StopCoroutine(_vrPalmHudMenuConfirmCo);
+                _vrPalmHudMenuConfirmCo = null;
+            }
         }
 
         /// <summary>Merges <see cref="PluginEMotionLite"/> onto every Person (HUD). Removes other E-Motion family entries first.</summary>
@@ -1208,6 +1250,7 @@ namespace geesp0t
         {
             try
             {
+                StopVrPalmHudMenuConfirmRoutine();
                 StopAutoPossessRoutine();
                 UnregisterPersonGenderCacheInvalidation();
                 InvalidatePersonGenderCaches();

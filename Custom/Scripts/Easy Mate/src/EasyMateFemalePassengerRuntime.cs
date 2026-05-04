@@ -480,14 +480,13 @@ namespace geesp0t
 
             if (activeThisTurn)
             {
+                float playerHeightAdjustBefore =
+                    superController.playerHeightAdjust;
                 float playerHeightAdjustOffset = Vector3.Dot(
                     positionOffset - navigationRig.position,
                     up);
 
-                navigationRig.position =
-                    positionOffset + up * -playerHeightAdjustOffset;
-                superController.playerHeightAdjust +=
-                    playerHeightAdjustOffset;
+                navigationRig.position = positionOffset;
 
                 SuperController.LogMessage(
                     "EasyMate DEBUG passenger first teleport: " +
@@ -529,6 +528,10 @@ namespace geesp0t
                     " charHeadPos=" +
                     FormatVectorForDebug(
                         _femalePassengerHeadRigidbody.position) +
+                    " playerHeightAdjustBefore=" +
+                    playerHeightAdjustBefore.ToString("F4") +
+                    " playerHeightAdjustAfter=" +
+                    superController.playerHeightAdjust.ToString("F4") +
                     " playerHeightAdjustOffset=" +
                     playerHeightAdjustOffset.ToString("F4"));
             }

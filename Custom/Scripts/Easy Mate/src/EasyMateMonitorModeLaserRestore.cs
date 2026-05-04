@@ -45,14 +45,14 @@ namespace geesp0t
                 return;
             }
 
+            SyncMonitorCameraToVrHeadset(sc);
+
             bool monitorModeActive = IsMonitorModeActive(sc);
             if (!monitorModeActive)
             {
                 HideBeams();
                 return;
             }
-
-            SyncMonitorCameraToVrHeadset(sc);
 
             if (!featureEnabled)
             {
@@ -156,22 +156,34 @@ namespace geesp0t
             if (sc == null)
                 return false;
 
-            if (sc.isLoading || sc.IsMonitorOnly || (!sc.isOVR && !sc.isOpenVR))
+            if (!ShouldSyncMonitorCamera(sc))
                 return false;
 
             return sc.MonitorRig != null && sc.MonitorRig.gameObject.activeSelf;
         }
 
+        private static bool ShouldSyncMonitorCamera(SuperController sc)
+        {
+            if (sc == null)
+                return false;
+
+            return !sc.isLoading && !sc.IsMonitorOnly && (sc.isOVR || sc.isOpenVR);
+        }
+
         private static void SyncMonitorCameraToVrHeadset(SuperController sc)
         {
-            if (!IsMonitorModeActive(sc))
+            if (!ShouldSyncMonitorCamera(sc))
                 return;
 
             Camera monitorCamera = sc.MonitorCenterCamera;
             if (monitorCamera == null)
             {
-                LogMonitorCameraSyncIssue(
-                    "Easy Mate monitor camera sync: MonitorCenterCamera is missing while monitor mode is active.");
+                if (IsMonitorModeActive(sc))
+                {
+                    LogMonitorCameraSyncIssue(
+                        "Easy Mate monitor camera sync: MonitorCenterCamera is missing while monitor mode is active.");
+                }
+
                 return;
             }
 
@@ -181,8 +193,12 @@ namespace geesp0t
                 : (sc.centerCameraTarget != null ? sc.centerCameraTarget.transform : null);
             if (sourceTransform == null)
             {
-                LogMonitorCameraSyncIssue(
-                    "Easy Mate monitor camera sync: no VR headset camera/target found while monitor mode is active.");
+                if (IsMonitorModeActive(sc))
+                {
+                    LogMonitorCameraSyncIssue(
+                        "Easy Mate monitor camera sync: no VR headset camera/target found while monitor mode is active.");
+                }
+
                 return;
             }
 

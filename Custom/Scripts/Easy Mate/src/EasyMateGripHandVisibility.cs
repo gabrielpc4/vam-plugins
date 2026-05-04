@@ -8,8 +8,9 @@ namespace geesp0t
 {
     /// <summary>
     /// Quest squeeze / OpenVR HoldGrab: toggles Male2 vs sphere unless blocked
-    /// (10s after VR euler possess, or while any Person head/hand is
-    /// possessed — then <b>None</b> hand models, no Spankings merge on grip).
+    /// (10s after VR euler possess, or while any Person head/hand is possessed,
+    /// or female passenger mode is active/pending — then <b>None</b> hand models,
+    /// no Spankings merge on grip).
     /// </summary>
     internal static class EasyMateGripHandVisibility
     {
@@ -94,7 +95,7 @@ namespace geesp0t
             if (!sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
                 return;
 
-            if (AnyPersonHeadOrHandPossessed())
+            if (ShouldForceNoneVrHandProxies())
             {
                 ApplyNoneBothHandsWhilePossessed(sc);
                 return;
@@ -140,6 +141,16 @@ namespace geesp0t
         }
 
         /// <summary>
+        /// Force VaM hand proxies to <b>None</b> while possessed <em>or</em> while
+        /// female passenger is active/pending (before hands report possessed).
+        /// </summary>
+        private static bool ShouldForceNoneVrHandProxies()
+        {
+            return AnyPersonHeadOrHandPossessed() ||
+                EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending();
+        }
+
+        /// <summary>
         /// Any <c>Person</c> with head or hand control possessed (player POV).
         /// </summary>
         private static bool AnyPersonHeadOrHandPossessed()
@@ -175,6 +186,10 @@ namespace geesp0t
             return false;
         }
 
+        /// <summary>
+        /// Name is historical: also used when female passenger mode hides proxies
+        /// before possession flags flip.
+        /// </summary>
         private static void ApplyNoneBothHandsWhilePossessed(SuperController sc)
         {
             if (sc == null)
@@ -242,21 +257,21 @@ namespace geesp0t
         {
             if (sc == null)
                 return;
-            bool anyPersonPossessed = AnyPersonHeadOrHandPossessed();
-            ApplySingleControl(sc.commonHandModelControl, anyPersonPossessed);
+            bool forceNoneHandProxies = ShouldForceNoneVrHandProxies();
+            ApplySingleControl(sc.commonHandModelControl, forceNoneHandProxies);
             ApplySingleControl(
                 sc.alternateControllerHandModelControl,
-                anyPersonPossessed);
+                forceNoneHandProxies);
         }
 
         private static void ApplySingleControl(
             HandModelControl h,
-            bool anyPersonPossessed)
+            bool forceNoneHandProxies)
         {
             if (h == null)
                 return;
 
-            if (anyPersonPossessed)
+            if (forceNoneHandProxies)
             {
                 ApplyNoneOnSingleControl(h);
                 return;

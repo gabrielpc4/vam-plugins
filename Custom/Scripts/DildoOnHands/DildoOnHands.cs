@@ -9,12 +9,10 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// VR: left-hand Grab / index-trigger only spawns at the right hand so the
-    /// right trigger stays normal grab. Clone mode restores toy storables from
-    /// catalog JSON (colors, scale, joint/spring presets). Fallback uses AddAtomByType
-    /// plus optional extras. Mandatory first catalog Dildo still gets stiff segment springs
-    /// in JSON. Each spawn assigns a random diffuse; ToyBP butt plugs additionally set
-    /// materials Alpha Adjust to -0.5. Oculus OVR/OpenVR triggers as usual.
+    /// VR: <b>right thumbstick click</b> (OVR / same binding as free navigation in
+    /// OpenVR via <c>SuperController</c>) spawns at the right hand. Clone mode restores
+    /// catalog storables (colors, scale, presets). Fallback: AddAtomByType. Mandatory
+    /// first catalog Dildo still gets stiff segment springs in JSON. ToyBP Alpha Adjust, etc.
     /// </summary>
     public class DildoOnHands : MVRScript
     {
@@ -36,7 +34,7 @@ namespace geesp0t
 
         private SuperController _sc;
 
-        private JSONStorableBool _listenEnabled;
+        private JSONStorableBool _vrToySpawnListenEnabled;
 
         private JSONStorableBool _cloneFromCatalogScene;
 
@@ -100,8 +98,8 @@ namespace geesp0t
 
         private SceneToyTemplate _mandatoryDildoCatalogEntry;
 
-        /// <summary>Plugin UI: toggles VR toy spawn trigger; label shows ON/OFF.</summary>
-        private UIDynamicButton _toyTriggerMainButton;
+        /// <summary>Plugin UI: toggles VR toy spawn input listener; label shows ON/OFF.</summary>
+        private UIDynamicButton _vrToySpawnToggleButton;
 
         public override void Init()
         {
@@ -110,22 +108,22 @@ namespace geesp0t
                 pluginLabelJSON.val = PluginName;
                 _sc = SuperController.singleton;
 
-                _listenEnabled = new JSONStorableBool(
-                    "Listen for VR trigger",
+                _vrToySpawnListenEnabled = new JSONStorableBool(
+                    "Listen for VR toy spawn (right thumbstick click)",
                     true,
-                    OnListenForVrTriggerChanged);
+                    OnVrToySpawnListenEnabledChanged);
 
-                RegisterBool(_listenEnabled);
+                RegisterBool(_vrToySpawnListenEnabled);
 
-                _toyTriggerMainButton = CreateButton(
-                    ToyTriggerMainButtonLabel(),
+                _vrToySpawnToggleButton = CreateButton(
+                    VrToySpawnToggleButtonLabel(),
                     false);
 
-                if (_toyTriggerMainButton != null &&
-                    _toyTriggerMainButton.button != null)
+                if (_vrToySpawnToggleButton != null &&
+                    _vrToySpawnToggleButton.button != null)
                 {
-                    _toyTriggerMainButton.button.onClick.AddListener(
-                        OnToyTriggerMainButtonClicked);
+                    _vrToySpawnToggleButton.button.onClick.AddListener(
+                        OnVrToySpawnToggleButtonClicked);
                 }
 
                 _cloneFromCatalogScene = new JSONStorableBool(
@@ -244,40 +242,40 @@ namespace geesp0t
         public override void InitUI()
         {
             base.InitUI();
-            RefreshToyTriggerMainButtonLabel();
+            RefreshVrToySpawnToggleButtonLabel();
         }
 
-        private static string ToyTriggerMainButtonLabelForState(bool enabled)
+        private static string VrToySpawnToggleButtonLabelForState(bool enabled)
         {
             if (enabled)
-                return "Toy trigger: ON (click to disable)";
-            return "Toy trigger: OFF (click to enable)";
+                return "VR toy spawn: ON (click to disable)";
+            return "VR toy spawn: OFF (click to enable)";
         }
 
-        private string ToyTriggerMainButtonLabel()
+        private string VrToySpawnToggleButtonLabel()
         {
-            if (_listenEnabled == null)
-                return "Toy trigger: ?";
-            return ToyTriggerMainButtonLabelForState(_listenEnabled.val);
+            if (_vrToySpawnListenEnabled == null)
+                return "VR toy spawn: ?";
+            return VrToySpawnToggleButtonLabelForState(_vrToySpawnListenEnabled.val);
         }
 
-        private void RefreshToyTriggerMainButtonLabel()
+        private void RefreshVrToySpawnToggleButtonLabel()
         {
-            if (_toyTriggerMainButton == null)
+            if (_vrToySpawnToggleButton == null)
                 return;
-            _toyTriggerMainButton.label = ToyTriggerMainButtonLabel();
+            _vrToySpawnToggleButton.label = VrToySpawnToggleButtonLabel();
         }
 
-        private void OnListenForVrTriggerChanged(bool newVal)
+        private void OnVrToySpawnListenEnabledChanged(bool newVal)
         {
-            RefreshToyTriggerMainButtonLabel();
+            RefreshVrToySpawnToggleButtonLabel();
         }
 
-        private void OnToyTriggerMainButtonClicked()
+        private void OnVrToySpawnToggleButtonClicked()
         {
-            if (_listenEnabled == null)
+            if (_vrToySpawnListenEnabled == null)
                 return;
-            _listenEnabled.val = !_listenEnabled.val;
+            _vrToySpawnListenEnabled.val = !_vrToySpawnListenEnabled.val;
         }
 
         private static void AppendTypeIfDistinct(List<string> dest, string t)
@@ -1044,7 +1042,7 @@ namespace geesp0t
 
         /// <summary>
         /// Match Easy Mate / VaM POV: skip toy spawn while a Person head or
-        /// hand is possessed (trigger is used for UI / grab).
+        /// hand is possessed (input is used for UI / grab).
         /// </summary>
         private static bool AnyPersonHeadOrHandPossessedForToySpawnGuard()
         {
@@ -1078,9 +1076,34 @@ namespace geesp0t
             return false;
         }
 
+        /// <summary>
+        /// Right-thumbstick click when XR is active; VaM maps it through
+        /// <c>GetGrabNavigateStartRight</c> on OVR/OpenVR.
+        /// </summary>
+        private bool TryGetVrToySpawnThumbstickClickDown()
+        {
+            if (_sc == null)
+                return false;
+
+            if (_sc.isOVR || _sc.isOpenVR)
+                return _sc.GetGrabNavigateStartRight();
+
+            try
+            {
+                return OVRInput.GetDown(
+                    OVRInput.Button.SecondaryThumbstick,
+                    OVRInput.Controller.RTouch);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private void Update()
         {
-            if (_listenEnabled == null || !_listenEnabled.val ||
+            if (_vrToySpawnListenEnabled == null ||
+                !_vrToySpawnListenEnabled.val ||
                 _sc == null ||
                 _sc.isLoading ||
                 _spawnCoroutineRunning)
@@ -1095,49 +1118,7 @@ namespace geesp0t
             if (AnyPersonHeadOrHandPossessedForToySpawnGuard())
                 return;
 
-            bool leftPressed = false;
-            bool rightPressed = false;
-
-            if (_sc.isOVR || _sc.isOpenVR)
-            {
-                leftPressed = _sc.GetLeftGrab();
-                rightPressed = _sc.GetRightGrab();
-            }
-            else
-            {
-                try
-                {
-                    bool swapped = UserPreferences.singleton != null &&
-                        UserPreferences.singleton.oculusSwapGrabAndTrigger;
-
-                    if (swapped)
-                    {
-                        leftPressed =
-                            OVRInput.GetDown(OVRInput.Button.PrimaryHandTrigger,
-                                OVRInput.Controller.LTouch);
-                        rightPressed =
-                            OVRInput.GetDown(
-                                OVRInput.Button.SecondaryHandTrigger,
-                                OVRInput.Controller.RTouch);
-                    }
-                    else
-                    {
-                        leftPressed =
-                            OVRInput.GetDown(
-                                OVRInput.Button.PrimaryIndexTrigger,
-                                OVRInput.Controller.LTouch);
-                        rightPressed =
-                            OVRInput.GetDown(
-                                OVRInput.Button.SecondaryIndexTrigger,
-                                OVRInput.Controller.RTouch);
-                    }
-                }
-                catch
-                {
-                }
-            }
-
-            if (!leftPressed || rightPressed)
+            if (!TryGetVrToySpawnThumbstickClickDown())
                 return;
 
             StartCoroutine(CoSpawnToyAtHand());

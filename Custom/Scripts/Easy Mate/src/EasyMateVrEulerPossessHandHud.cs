@@ -15,9 +15,10 @@ namespace geesp0t
     /// triggers Despossuir. Unity often
     /// sends no laser hits to this palm canvas, so face buttons are polled.
     /// The whole HUD, including this row, only shows while the right-hand
-    /// euler window matches. VaM menu shortcut still dismisses
-    /// the main UI into this step when a Person exists. Leaving the palm pose
-    /// closes the HUD (no third “back” button). Billboard faces the HMD.
+    /// euler window matches.
+    /// <b>Gender step:</b> <b>Homem (B)</b> upper row, <b>Mulher (A)</b> lower row.
+    /// VaM menu shortcut still dismisses the main UI into this step when a Person exists.
+    /// Leaving the palm pose closes the HUD (no third “back” button). Billboard faces the HMD.
     /// </summary>
     internal static class EasyMateVrEulerPossessHandHud
     {
@@ -145,7 +146,7 @@ namespace geesp0t
 
             RefreshGenderVersusMainRows(possessed);
 
-            bool onMulherOnlyPanel = _genderChooseStepActive && !possessed;
+            bool onGenderChoosePanel = _genderChooseStepActive && !possessed;
 
             if (_btnPossessRow != null)
                 _btnPossessRow.interactable = true;
@@ -156,20 +157,30 @@ namespace geesp0t
             if (_btnHomem != null)
                 _btnHomem.interactable = true;
 
-            if (onMulherOnlyPanel)
+            if (onGenderChoosePanel)
             {
-                bool mulherB = EasyMateVrInput.PollPalmHudMulherChoiceDown(sc);
-                if (mulherB)
+                bool mulherA = EasyMateVrInput.PollPalmHudMulherChoiceDown(sc);
+                bool homemB = EasyMateVrInput.PollPalmHudHomemChoiceDown(sc);
+                if (mulherA)
                 {
                     InvokeGenderMulherChoice();
+                }
+                else if (homemB)
+                {
+                    InvokeGenderHomemChoice();
                 }
             }
             else if (possessed)
             {
-                if (EasyMateVrInput.PollPalmHudPossessRowFaceADown(sc) ||
-                    EasyMateVrInput.PollPalmHudProximaCenaFaceBDown(sc))
+                bool possessA = EasyMateVrInput.PollPalmHudPossessRowFaceADown(sc);
+                bool proximaB = EasyMateVrInput.PollPalmHudProximaCenaFaceBDown(sc);
+                if (possessA || proximaB)
                 {
                     InvokePossessRowPrimaryAction();
+                    if (proximaB)
+                    {
+                        DismissVaMOverlayUiIfAny();
+                    }
                 }
             }
             else
@@ -181,6 +192,7 @@ namespace geesp0t
                 else if (EasyMateVrInput.PollPalmHudProximaCenaFaceBDown(sc))
                 {
                     MainUIButtons.RequestFireNextSceneUiButton();
+                    DismissVaMOverlayUiIfAny();
                 }
             }
         }
@@ -218,7 +230,7 @@ namespace geesp0t
             if (_btnMulher != null)
                 _btnMulher.gameObject.SetActive(gender);
             if (_btnHomem != null)
-                _btnHomem.gameObject.SetActive(false);
+                _btnHomem.gameObject.SetActive(gender);
             if (_btnPossessRow != null)
                 _btnPossessRow.gameObject.SetActive(!gender);
             if (_btnProximaCena != null)
@@ -245,6 +257,7 @@ namespace geesp0t
             RefreshGenderVersusMainRows(
                 EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending() ||
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
+            DismissVaMOverlayUiIfAny();
         }
 
         private static void InvokeGenderHomemChoice()
@@ -256,6 +269,7 @@ namespace geesp0t
             RefreshGenderVersusMainRows(
                 EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending() ||
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
+            DismissVaMOverlayUiIfAny();
         }
 
         private static void DismissVaMOverlayUiIfAny()
@@ -334,6 +348,7 @@ namespace geesp0t
                 _btnProximaCena.onClick.AddListener(delegate
                 {
                     MainUIButtons.RequestFireNextSceneUiButton();
+                    DismissVaMOverlayUiIfAny();
                 });
             }
         }
@@ -406,12 +421,22 @@ namespace geesp0t
                 new Color(0.14f, 0.32f, 0.52f, 0.92f),
                 20);
 
+            _btnHomem = CreateHandButton(
+                _root.transform,
+                "HomemBtn",
+                "Homem (B)",
+                new Vector2(0.05f, 0.52f),
+                new Vector2(0.95f, 0.98f),
+                new Color(0.14f, 0.32f, 0.52f, 0.92f),
+                20);
+            _btnHomem.gameObject.SetActive(false);
+
             _btnMulher = CreateHandButton(
                 _root.transform,
                 "MulherBtn",
-                "Mulher (B)",
+                "Mulher (A)",
                 new Vector2(0.05f, 0.02f),
-                new Vector2(0.95f, 0.98f),
+                new Vector2(0.95f, 0.48f),
                 PossessRowPossuirColor,
                 20);
             _btnMulher.gameObject.SetActive(false);

@@ -116,6 +116,12 @@ namespace geesp0t
         public JSONStorableBool showVrHandRotationDebugHud;
 
         /// <summary>
+        /// Oculus / OpenVR: log full hand/HMD pose dump on right trigger press
+        /// (<see cref="SuperController.GetRightGrab"/>).
+        /// </summary>
+        public JSONStorableBool logVrHandPoseOnRightTrigger;
+
+        /// <summary>
         /// Restore navigation rig, monitor orientation, and player height after a
         /// load when VaM stays in the same <see cref="SuperController.currentLoadDir"/>
         /// (e.g. switching between JSON files inside one chapter folder).
@@ -188,8 +194,13 @@ namespace geesp0t
 
             showVrHandRotationDebugHud = new JSONStorableBool(
                 "VR hand rotation debug HUD (world text)",
-                true);
+                false);
             RegisterBool(showVrHandRotationDebugHud);
+
+            logVrHandPoseOnRightTrigger = new JSONStorableBool(
+                "VR: log hand pose on right trigger",
+                true);
+            RegisterBool(logVrHandPoseOnRightTrigger);
 
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
@@ -655,6 +666,17 @@ namespace geesp0t
             bool handHud = showVrHandRotationDebugHud != null &&
                 showVrHandRotationDebugHud.val;
             EasyMateVrHandRotationDebugHud.Tick(handHud);
+
+            SuperController scHandLog = SuperController.singleton;
+            if (scHandLog != null &&
+                !scHandLog.isLoading &&
+                (scHandLog.isOVR || scHandLog.isOpenVR) &&
+                logVrHandPoseOnRightTrigger != null &&
+                logVrHandPoseOnRightTrigger.val &&
+                scHandLog.GetRightGrab())
+            {
+                EasyMateVrHandRotationDebugHud.LogSnapshotToConsole(scHandLog);
+            }
         }
 
         void OnDestroy()

@@ -21,9 +21,21 @@ namespace geesp0t
         private const float BelowCenterOffsetM = 0.07f;
 
         /// <summary>
+        /// Logs full HMD + hand dump via <see cref="SuperController.LogMessage"/>
+        /// (same body as the optional world <see cref="TextMesh"/> HUD).
+        /// </summary>
+        internal static void LogSnapshotToConsole(SuperController sc)
+        {
+            if (sc == null)
+                return;
+            BuildFullReport(Sb, sc);
+            SuperController.LogMessage(Sb.ToString());
+        }
+
+        /// <summary>
         /// Call from <see cref="EasyMate.LateUpdate"/> with plugin toggle.
         /// </summary>
-        public static void Tick(bool enabled)
+        internal static void Tick(bool enabled)
         {
             SuperController sc = SuperController.singleton;
             if (!enabled || sc == null || sc.isLoading)
@@ -73,38 +85,54 @@ namespace geesp0t
                 charScale,
                 charScale);
 
-            Sb.Length = 0;
-            Sb.Append("EASY MATE VR HAND DEBUG\n");
-            Sb.Append("OVR=");
-            Sb.Append(sc.isOVR ? "1" : "0");
-            Sb.Append(" OpenVR=");
-            Sb.Append(sc.isOpenVR ? "1" : "0");
-            Sb.Append(" ws=");
-            Sb.Append(ws.ToString("F2"));
-            Sb.Append("\nHMD pos ");
-            AppendV3(Sb, ct.position);
-            Sb.Append(" eulerW ");
-            AppendV3(Sb, ct.eulerAngles);
-            Sb.Append("\n");
-            Sb.Append("HMD fwd ");
-            AppendV3(Sb, ct.forward);
-            Sb.Append(" up ");
-            AppendV3(Sb, ct.up);
-            Sb.Append("\n\n");
-
-            AppendHandSection(Sb, "L leftHand", sc.leftHand, ct);
-            Sb.Append("\n");
-            AppendHandSection(Sb, "L touchObj", sc.touchObjectLeft, ct);
-            Sb.Append("\n");
-            AppendHandSection(Sb, "L viveObj", sc.viveObjectLeft, ct);
-            Sb.Append("\n---\n");
-            AppendHandSection(Sb, "R rightHand", sc.rightHand, ct);
-            Sb.Append("\n");
-            AppendHandSection(Sb, "R touchObj", sc.touchObjectRight, ct);
-            Sb.Append("\n");
-            AppendHandSection(Sb, "R viveObj", sc.viveObjectRight, ct);
-
+            BuildFullReport(Sb, sc);
             _textMesh.text = Sb.ToString();
+        }
+
+        /// <summary>
+        /// HMD + all hand transform lines; <paramref name="sc"/> or
+        /// <c>lookCamera</c> null yields a short placeholder.
+        /// </summary>
+        private static void BuildFullReport(StringBuilder sb, SuperController sc)
+        {
+            sb.Length = 0;
+            sb.Append("EASY MATE VR HAND DEBUG\n");
+            if (sc == null || sc.lookCamera == null)
+            {
+                sb.Append("(no SuperController or lookCamera)\n");
+                return;
+            }
+
+            Transform ct = sc.lookCamera.transform;
+
+            sb.Append("OVR=");
+            sb.Append(sc.isOVR ? "1" : "0");
+            sb.Append(" OpenVR=");
+            sb.Append(sc.isOpenVR ? "1" : "0");
+            sb.Append(" ws=");
+            sb.Append(ws.ToString("F2"));
+            sb.Append("\nHMD pos ");
+            AppendV3(sb, ct.position);
+            sb.Append(" eulerW ");
+            AppendV3(sb, ct.eulerAngles);
+            sb.Append("\n");
+            sb.Append("HMD fwd ");
+            AppendV3(sb, ct.forward);
+            sb.Append(" up ");
+            AppendV3(sb, ct.up);
+            sb.Append("\n\n");
+
+            AppendHandSection(sb, "L leftHand", sc.leftHand, ct);
+            sb.Append("\n");
+            AppendHandSection(sb, "L touchObj", sc.touchObjectLeft, ct);
+            sb.Append("\n");
+            AppendHandSection(sb, "L viveObj", sc.viveObjectLeft, ct);
+            sb.Append("\n---\n");
+            AppendHandSection(sb, "R rightHand", sc.rightHand, ct);
+            sb.Append("\n");
+            AppendHandSection(sb, "R touchObj", sc.touchObjectRight, ct);
+            sb.Append("\n");
+            AppendHandSection(sb, "R viveObj", sc.viveObjectRight, ct);
         }
 
         public static void OnPluginDestroy()

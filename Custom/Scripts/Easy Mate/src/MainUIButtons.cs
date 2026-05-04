@@ -1966,9 +1966,14 @@ namespace geesp0t
                 Vector3 forwardPossessAxis = head.GetForwardPossessAxis();
                 Vector3 upPossessAxis = head.GetUpPossessAxis();
                 Vector3 up = navigationRig.up;
-                Vector3 fromDirection = Vector3.ProjectOnPlane(motionControllerHead.forward, up);
+                // Match OneShotSnapRigToPersonHead: use actual look camera forward so
+                // post-snap yaw matches what the user is looking at (not only rig root).
+                Transform headingReference = sc.lookCamera != null
+                    ? sc.lookCamera.transform
+                    : motionControllerHead;
+                Vector3 fromDirection = Vector3.ProjectOnPlane(headingReference.forward, up);
                 Vector3 desiredForward = Vector3.ProjectOnPlane(forwardPossessAxis, navigationRig.up);
-                if (Vector3.Dot(upPossessAxis, up) < 0f && Vector3.Dot(motionControllerHead.up, up) > 0f)
+                if (Vector3.Dot(upPossessAxis, up) < 0f && Vector3.Dot(headingReference.up, up) > 0f)
                     desiredForward = -desiredForward;
 
                 if (fromDirection.sqrMagnitude > 1e-8f && desiredForward.sqrMagnitude > 1e-8f)

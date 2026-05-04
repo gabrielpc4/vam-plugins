@@ -5,10 +5,13 @@ namespace geesp0t
 {
     /// <summary>
     /// When <c>headControl</c> is possessed and linked to the center camera
-    /// rigidbody (HMD): Motion Animation cannot drive head <b>rotation</b>, and we
-    /// re-apply the headset world rotation in <see cref="LateTick"/> so Timeline
-    /// / Animation cannot leave the neck fighting the rig. When the head is not
-    /// possessed, rotation suspend flags are cleared for that head&apos;s MACs.
+    /// rigidbody (HMD): Motion Animation cannot drive head <b>rotation</b>
+    /// (<c>suspendRotationPlayback</c>). We do <b>not</b>
+    /// overwrite head world rotation each LateUpdate: doing so broke possess snap /
+    /// horizontal yaw alignment, fought ImprovedPoV eye offsets, and dropped the
+    /// comfortable body / neck behavior. Timeline/MAC susp.is still enforced here.
+    /// Passenger pre-possess still calls
+    /// <see cref="ApplyCenterEyeWorldRotationToHead"/> explicitly.
     /// </summary>
     internal static class EasyMateHeadHmdFollowAndMotionMute
     {
@@ -39,7 +42,6 @@ namespace geesp0t
                     headControl.linkToRB == hmdRigidbody)
                 {
                     SetHeadMotionAnimationRotationSuspended(atom, headControl, true);
-                    ApplyCenterEyeWorldRotationToHead(headControl, sc);
                 }
                 else if (!headControl.possessed)
                 {

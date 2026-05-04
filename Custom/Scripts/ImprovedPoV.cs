@@ -54,7 +54,12 @@ public class ImprovedPoV : MVRScript
             }
 
             _person = containingAtom;
-            _mainCamera = CameraTarget.centerTarget?.targetCamera;
+            _mainCamera = CameraTarget.centerTarget != null
+                ? CameraTarget.centerTarget.targetCamera
+                : null;
+            if (_mainCamera == null && SuperController.singleton != null &&
+                SuperController.singleton.lookCamera != null)
+                _mainCamera = SuperController.singleton.lookCamera;
             _possessor = SuperController
                 .FindObjectsOfType(typeof(Possessor))
                 .Where(p => p.name == "CenterEye")

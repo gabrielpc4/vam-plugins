@@ -73,6 +73,10 @@ namespace geesp0t
         private bool sceneLightIntensityBackupActive = false;
         private bool wasSuperControllerLoading = false;
 
+        private const float sceneLightRestoreDelayAfterLoadSeconds = 30f;
+        private bool sceneLightRestoreDelayedPending = false;
+        private float sceneLightRestoreDueRealtime = 0f;
+
         public class PluginSet
         {
             public string buttonName;
@@ -859,13 +863,22 @@ namespace geesp0t
 
             if (!superControllerLoading && wasSuperControllerLoading)
             {
+                if (sceneLightIntensityBackupActive)
+                {
+                    sceneLightRestoreDelayedPending = true;
+                    sceneLightRestoreDueRealtime = Time.realtimeSinceStartup + sceneLightRestoreDelayAfterLoadSeconds;
+                }
+            }
+
+            if (sceneLightRestoreDelayedPending && Time.realtimeSinceStartup >= sceneLightRestoreDueRealtime)
+            {
                 try
                 {
                     RestoreSceneLightsFromBackup();
                 }
                 catch (Exception lightsRestoreException)
                 {
-                    SuperController.LogError("[Auto_Load_Person_Plugins] RestoreSceneLightsFromBackup failed: " + lightsRestoreException);
+                    SuperController.LogError("[Auto_Load_Person_Plugins] RestoreSceneLightsFromBackup (delayed after scene load) failed: " + lightsRestoreException);
                 }
             }
 
@@ -1052,6 +1065,8 @@ namespace geesp0t
 
         void RestoreSceneLightsFromBackup()
         {
+            sceneLightRestoreDelayedPending = false;
+
             if (!sceneLightIntensityBackupActive)
             {
                 return;

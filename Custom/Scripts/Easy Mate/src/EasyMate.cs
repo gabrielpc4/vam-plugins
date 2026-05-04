@@ -610,7 +610,7 @@ namespace geesp0t
 
             if (!SuperController.singleton.isLoading)
             {
-                EasyMateNxtUiQuestThumbstick.Tick(this);
+                EasyMateNxtUiQuestThumbstick.Tick();
                 if (mainUIButtons != null)
                     mainUIButtons.ProcessHotkeysUpdate();
             }

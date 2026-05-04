@@ -650,6 +650,92 @@ namespace geesp0t
             }
         }
 
+        private const string NextSceneUIButtonAtomUid = "nxtUIButton";
+        private const string UiButtonTriggerStorableId = "Trigger";
+
+        /// <summary>
+        /// Pulses the scene &quot;next&quot; <c>UIButton</c> trigger: atom
+        /// <see cref="NextSceneUIButtonAtomUid"/> if present, else any active
+        /// <c>UIButton</c> whose UI <c>Text</c> contains &quot;Next&quot;
+        /// (same as Quest thumbstick shortcut).
+        /// </summary>
+        public static void RequestFireNextSceneUiButton()
+        {
+            if (_pluginHost == null)
+                return;
+            SuperController sc = SuperController.singleton;
+            if (sc == null || sc.isLoading)
+                return;
+
+            UIButtonTrigger ubt = TryResolveNextSceneUIButtonTrigger(sc);
+            if (ubt == null || ubt.trigger == null)
+                return;
+
+            _pluginHost.StartCoroutine(FireUIButtonTriggerActivePulseCo(ubt));
+        }
+
+        private static UIButtonTrigger TryResolveNextSceneUIButtonTrigger(
+            SuperController sc)
+        {
+            if (sc == null)
+                return null;
+
+            Atom byUid = sc.GetAtomByUid(NextSceneUIButtonAtomUid);
+            if (byUid != null && byUid.gameObject.activeInHierarchy &&
+                string.Equals(byUid.type, "UIButton", StringComparison.Ordinal))
+            {
+                UIButtonTrigger ubt =
+                    byUid.GetStorableByID(UiButtonTriggerStorableId) as UIButtonTrigger;
+                if (ubt != null && ubt.trigger != null)
+                    return ubt;
+            }
+
+            foreach (Atom at in sc.GetAtoms())
+            {
+                if (at == null ||
+                    !string.Equals(at.type, "UIButton", StringComparison.Ordinal) ||
+                    !at.gameObject.activeInHierarchy)
+                    continue;
+
+                Text[] texts = at.gameObject.GetComponentsInChildren<Text>(true);
+                if (texts == null)
+                    continue;
+
+                bool labelLooksLikeNext = false;
+                for (int i = 0; i < texts.Length; i++)
+                {
+                    Text t = texts[i];
+                    if (t == null || t.text == null)
+                        continue;
+                    if (t.text.Trim().IndexOf("next", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        labelLooksLikeNext = true;
+                        break;
+                    }
+                }
+
+                if (!labelLooksLikeNext)
+                    continue;
+
+                UIButtonTrigger ubt =
+                    at.GetStorableByID(UiButtonTriggerStorableId) as UIButtonTrigger;
+                if (ubt != null && ubt.trigger != null)
+                    return ubt;
+            }
+
+            return null;
+        }
+
+        private static IEnumerator FireUIButtonTriggerActivePulseCo(UIButtonTrigger ubt)
+        {
+            if (ubt == null || ubt.trigger == null)
+                yield break;
+            ubt.trigger.active = true;
+            yield return null;
+            if (ubt != null && ubt.trigger != null)
+                ubt.trigger.active = false;
+        }
+
         /// <summary>Merges <see cref="PluginEMotionLite"/> onto every Person (HUD). Removes other E-Motion family entries first.</summary>
         public void MergeEmotionLiteOnAllPersonsOnly()
         {

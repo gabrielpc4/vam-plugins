@@ -6,12 +6,14 @@ namespace geesp0t
 {
     /// <summary>
     /// When the <b>right hand alone</b> matches the HMD-relative euler
-    /// window for the VR possess rule, shows two small world UI buttons
-    /// over the palm on <c>rightHand</c>: <b>Possuir</b> / <b>Despossuir</b>
-    /// (Brazilian Portuguese); or press the VaM menu button (<b>B</b> on
-    /// Quest, SteamVR menu) to dismiss the main UI after 100ms and run the
-    /// same possess flow as dual-hand euler. Billboard faces the HMD so labels
-    /// read correctly from the player's view.
+    /// window for the VR possess rule, shows a small world UI on
+    /// <c>rightHand</c>: either <b>Possuir</b> or <b>Despossuir</b>
+    /// (Brazilian Portuguese) depending on possession, plus <b>Próxima cena</b>
+    /// (fires the scene &quot;next&quot; <c>UIButton</c> when present); or press
+    /// the VaM menu button (<b>B</b> on Quest, SteamVR menu) to dismiss the
+    /// main UI after 100ms and run the same possess flow as dual-hand euler.
+    /// Billboard faces the HMD so labels read correctly from the player's
+    /// view.
     /// </summary>
     internal static class EasyMateVrEulerPossessHandHud
     {
@@ -20,6 +22,8 @@ namespace geesp0t
         private static Button _btnPossuir;
 
         private static Button _btnDespossuir;
+
+        private static Button _btnProximaCena;
 
         private static bool _listenersAttached;
 
@@ -34,7 +38,7 @@ namespace geesp0t
 
         private const float CanvasWidthPx = 260f;
 
-        private const float CanvasHeightPx = 118f;
+        private const float CanvasHeightPx = 140f;
 
         internal static void Tick()
         {
@@ -112,9 +116,20 @@ namespace geesp0t
 
             bool possessed = EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed();
             if (_btnPossuir != null)
+            {
+                _btnPossuir.gameObject.SetActive(!possessed);
                 _btnPossuir.interactable = !possessed;
+            }
             if (_btnDespossuir != null)
+            {
+                _btnDespossuir.gameObject.SetActive(possessed);
                 _btnDespossuir.interactable = possessed;
+            }
+            if (_btnProximaCena != null)
+            {
+                _btnProximaCena.gameObject.SetActive(true);
+                _btnProximaCena.interactable = true;
+            }
 
             if (sc.GetMenuShow())
                 MainUIButtons.RequestVrPalmHudMenuButtonPossessAfterDismissMenu();
@@ -130,6 +145,7 @@ namespace geesp0t
 
             _btnPossuir = null;
             _btnDespossuir = null;
+            _btnProximaCena = null;
             _listenersAttached = false;
             _whiteSprite = null;
         }
@@ -177,6 +193,14 @@ namespace geesp0t
                         "Easy Mate: Despossuir (VR mão).");
                 });
             }
+
+            if (_btnProximaCena != null)
+            {
+                _btnProximaCena.onClick.AddListener(delegate
+                {
+                    MainUIButtons.RequestFireNextSceneUiButton();
+                });
+            }
         }
 
         private static void EnsureHud()
@@ -204,21 +228,33 @@ namespace geesp0t
             panelImg.raycastTarget = true;
             StretchFull(panelGo);
 
+            // Top half: only one of Possuir / Despossuir visible at a time.
             _btnPossuir = CreateHandButton(
                 _root.transform,
                 "PossuirBtn",
                 "Possuir",
                 new Vector2(0.05f, 0.52f),
                 new Vector2(0.95f, 0.98f),
-                new Color(0.12f, 0.45f, 0.22f, 0.92f));
+                new Color(0.12f, 0.45f, 0.22f, 0.92f),
+                22);
 
             _btnDespossuir = CreateHandButton(
                 _root.transform,
                 "DespossuirBtn",
                 "Despossuir",
+                new Vector2(0.05f, 0.52f),
+                new Vector2(0.95f, 0.98f),
+                new Color(0.5f, 0.14f, 0.14f, 0.92f),
+                22);
+
+            _btnProximaCena = CreateHandButton(
+                _root.transform,
+                "ProximaCenaBtn",
+                "Próxima cena",
                 new Vector2(0.05f, 0.02f),
                 new Vector2(0.95f, 0.48f),
-                new Color(0.5f, 0.14f, 0.14f, 0.92f));
+                new Color(0.14f, 0.32f, 0.52f, 0.92f),
+                20);
         }
 
         private static void StretchFull(GameObject go)
@@ -238,7 +274,8 @@ namespace geesp0t
             string label,
             Vector2 anchorMin,
             Vector2 anchorMax,
-            Color bg)
+            Color bg,
+            int fontSize)
         {
             GameObject go = new GameObject(name);
             go.transform.SetParent(parent, false);
@@ -271,7 +308,7 @@ namespace geesp0t
             if (font != null)
                 txt.font = font;
             txt.text = label;
-            txt.fontSize = 22;
+            txt.fontSize = fontSize;
             txt.fontStyle = FontStyle.Bold;
             txt.alignment = TextAnchor.MiddleCenter;
             txt.color = Color.white;

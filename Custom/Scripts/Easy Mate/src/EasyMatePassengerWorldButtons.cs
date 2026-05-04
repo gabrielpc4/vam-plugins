@@ -387,12 +387,25 @@ namespace geesp0t
                 return;
             }
 
-            Quaternion navigationRigRotation =
+            Transform motionControllerHead =
+                superController.centerCameraTarget != null ?
+                superController.centerCameraTarget.transform :
+                null;
+            Quaternion desiredHeadRotation =
                 _femalePassengerHeadRigidbody.transform.rotation;
-            navigationRigRotation *= Quaternion.Euler(
+            desiredHeadRotation *= Quaternion.Euler(
                 RotationOffsetXDegrees,
                 0f,
                 0f);
+            Quaternion navigationRigRotation = desiredHeadRotation;
+            if (motionControllerHead != null)
+            {
+                Quaternion rigToHeadRotationOffset =
+                    navigationRig.rotation *
+                    Quaternion.Inverse(motionControllerHead.rotation);
+                navigationRigRotation =
+                    desiredHeadRotation * rigToHeadRotationOffset;
+            }
 
             Vector3 rotationEulerAngles = navigationRigRotation.eulerAngles;
             navigationRigRotation.eulerAngles = new Vector3(

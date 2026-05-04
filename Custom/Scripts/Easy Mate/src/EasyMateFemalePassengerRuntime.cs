@@ -1015,25 +1015,55 @@ namespace geesp0t
 
             if (_femalePassengerTargetPerson != null)
             {
-                neutralForward = Vector3.ProjectOnPlane(
-                    _femalePassengerTargetPerson.transform.forward,
-                    upAxis);
-                if (neutralForward.sqrMagnitude >= 1e-10f)
-                    sourceName = "person.transform.forward";
+                FreeControllerV3 chest =
+                    _femalePassengerTargetPerson.GetStorableByID(
+                        "chestControl") as FreeControllerV3;
+                if (chest != null && chest.control != null)
+                {
+                    neutralForward = Vector3.ProjectOnPlane(
+                        chest.control.forward,
+                        upAxis);
+                    if (neutralForward.sqrMagnitude >= 1e-10f)
+                        sourceName = "chestControl.forward";
+                }
 
                 if (neutralForward.sqrMagnitude < 1e-10f)
                 {
-                    FreeControllerV3 chest =
+                    FreeControllerV3 pelvis =
                         _femalePassengerTargetPerson.GetStorableByID(
-                            "chestControl") as FreeControllerV3;
-                    if (chest != null && chest.control != null)
+                            "pelvisControl") as FreeControllerV3;
+                    if (pelvis != null && pelvis.control != null)
                     {
                         neutralForward = Vector3.ProjectOnPlane(
-                            chest.control.forward,
+                            pelvis.control.forward,
                             upAxis);
                         if (neutralForward.sqrMagnitude >= 1e-10f)
-                            sourceName = "chestControl.forward";
+                            sourceName = "pelvisControl.forward";
                     }
+                }
+
+                if (neutralForward.sqrMagnitude < 1e-10f)
+                {
+                    FreeControllerV3 abdomen =
+                        _femalePassengerTargetPerson.GetStorableByID(
+                            "abdomenControl") as FreeControllerV3;
+                    if (abdomen != null && abdomen.control != null)
+                    {
+                        neutralForward = Vector3.ProjectOnPlane(
+                            abdomen.control.forward,
+                            upAxis);
+                        if (neutralForward.sqrMagnitude >= 1e-10f)
+                            sourceName = "abdomenControl.forward";
+                    }
+                }
+
+                if (neutralForward.sqrMagnitude < 1e-10f)
+                {
+                    neutralForward = Vector3.ProjectOnPlane(
+                        _femalePassengerTargetPerson.transform.forward,
+                        upAxis);
+                    if (neutralForward.sqrMagnitude >= 1e-10f)
+                        sourceName = "person.transform.forward";
                 }
             }
 

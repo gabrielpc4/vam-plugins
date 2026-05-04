@@ -194,8 +194,6 @@ namespace geesp0t
 
             if (sourceCamera != null)
             {
-                if (Mathf.Abs(monitorCamera.fieldOfView - sourceCamera.fieldOfView) > 0.0001f)
-                    monitorCamera.fieldOfView = sourceCamera.fieldOfView;
                 if (Mathf.Abs(monitorCamera.nearClipPlane - sourceCamera.nearClipPlane) > 0.000001f)
                     monitorCamera.nearClipPlane = sourceCamera.nearClipPlane;
                 if (Mathf.Abs(monitorCamera.farClipPlane - sourceCamera.farClipPlane) > 0.001f)

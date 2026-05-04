@@ -251,18 +251,32 @@ namespace geesp0t
 
         private static Material CreateBeamMaterial(Color color)
         {
-            Shader sh = Shader.Find("Standard");
-            if (sh == null)
-                sh = Shader.Find("Legacy Shaders/Diffuse");
+            Shader sh = null;
+            if (UserPreferences.singleton != null &&
+                UserPreferences.singleton.overlayUIShader != null)
+            {
+                sh = UserPreferences.singleton.overlayUIShader;
+            }
+
             if (sh == null)
                 sh = Shader.Find("Unlit/Color");
+            if (sh == null)
+                sh = Shader.Find("Standard");
+            if (sh == null)
+                sh = Shader.Find("Legacy Shaders/Diffuse");
+
             Material mat = new Material(sh);
             mat.SetColor("_Color", color);
+
             if (sh != null && sh.name != null && sh.name.IndexOf("Unlit") < 0)
             {
                 mat.SetFloat("_Metallic", 0f);
                 mat.SetFloat("_Glossiness", 0.35f);
             }
+
+            // Keep beams above normal scene geometry, and when possible use VaM's
+            // own overlay UI shader so they also stay above the frontmost menu UI.
+            mat.renderQueue = 5000;
 
             return mat;
         }
@@ -285,6 +299,7 @@ namespace geesp0t
             if (mr != null)
             {
                 mr.material = CreateBeamMaterial(color);
+                mr.sortingOrder = short.MaxValue;
 
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 mr.receiveShadows = false;

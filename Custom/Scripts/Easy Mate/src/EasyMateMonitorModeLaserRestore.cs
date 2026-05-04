@@ -45,21 +45,16 @@ namespace geesp0t
                 return;
             }
 
+            bool monitorModeActive = IsMonitorModeActive(sc);
+            if (!monitorModeActive)
+            {
+                HideBeams();
+                return;
+            }
+
             SyncMonitorCameraToVrHeadset(sc);
 
             if (!featureEnabled)
-            {
-                HideBeams();
-                return;
-            }
-
-            if (sc.isLoading || sc.IsMonitorOnly || (!sc.isOVR && !sc.isOpenVR))
-            {
-                HideBeams();
-                return;
-            }
-
-            if (sc.MonitorRig == null || !sc.MonitorRig.gameObject.activeSelf)
             {
                 HideBeams();
                 return;
@@ -156,12 +151,20 @@ namespace geesp0t
                 _beamRight = CreateCylinder(_root.transform, "MonitorBeamRight", BeamRed);
         }
 
+        private static bool IsMonitorModeActive(SuperController sc)
+        {
+            if (sc == null)
+                return false;
+
+            if (sc.isLoading || sc.IsMonitorOnly || (!sc.isOVR && !sc.isOpenVR))
+                return false;
+
+            return sc.MonitorRig != null && sc.MonitorRig.gameObject.activeSelf;
+        }
+
         private static void SyncMonitorCameraToVrHeadset(SuperController sc)
         {
-            if (sc.isLoading || sc.IsMonitorOnly || (!sc.isOVR && !sc.isOpenVR))
-                return;
-
-            if (sc.MonitorRig == null || !sc.MonitorRig.gameObject.activeSelf)
+            if (!IsMonitorModeActive(sc))
                 return;
 
             Camera monitorCamera = sc.MonitorCenterCamera;
@@ -183,14 +186,20 @@ namespace geesp0t
                 return;
             }
 
-            monitorCamera.transform.position = sourceTransform.position;
-            monitorCamera.transform.rotation = sourceTransform.rotation;
+            Transform monitorTransform = monitorCamera.transform;
+            if ((monitorTransform.position - sourceTransform.position).sqrMagnitude > 1e-10f)
+                monitorTransform.position = sourceTransform.position;
+            if (Quaternion.Angle(monitorTransform.rotation, sourceTransform.rotation) > 0.001f)
+                monitorTransform.rotation = sourceTransform.rotation;
 
             if (sourceCamera != null)
             {
-                monitorCamera.fieldOfView = sourceCamera.fieldOfView;
-                monitorCamera.nearClipPlane = sourceCamera.nearClipPlane;
-                monitorCamera.farClipPlane = sourceCamera.farClipPlane;
+                if (Mathf.Abs(monitorCamera.fieldOfView - sourceCamera.fieldOfView) > 0.0001f)
+                    monitorCamera.fieldOfView = sourceCamera.fieldOfView;
+                if (Mathf.Abs(monitorCamera.nearClipPlane - sourceCamera.nearClipPlane) > 0.000001f)
+                    monitorCamera.nearClipPlane = sourceCamera.nearClipPlane;
+                if (Mathf.Abs(monitorCamera.farClipPlane - sourceCamera.farClipPlane) > 0.001f)
+                    monitorCamera.farClipPlane = sourceCamera.farClipPlane;
             }
         }
 

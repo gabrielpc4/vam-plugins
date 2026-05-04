@@ -58,20 +58,11 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Palm HUD two main rows: same as <see cref="PollPalmHudMulherChoiceDown"/> —
-        /// face <b>B</b> / Menu = <b>Possuir</b> row (Possuir, Mulher step, Despossuir).
+        /// Palm HUD <b>Possuir</b> row (lower): face <b>A</b> / right Select.
+        /// OVR <c>RTouch</c> <see cref="OVRInput.Button.One"/>; OpenVR
+        /// <see cref="SuperController.GetRightSelect"/>.
         /// </summary>
-        public static bool PollPalmHudPossessRowFaceBDown(SuperController sc)
-        {
-            return PollPalmHudMulherChoiceDown(sc);
-        }
-
-        /// <summary>
-        /// Palm HUD: <b>Próxima cena</b> (upper row) on face <b>A</b>. OVR
-        /// <c>RTouch</c> <see cref="OVRInput.Button.One"/>; OpenVR
-        /// <see cref="SuperController.GetRightSelect"/> (press / state down).
-        /// </summary>
-        public static bool PollPalmHudProximaCenaFaceADown(SuperController sc)
+        public static bool PollPalmHudPossessRowFaceADown(SuperController sc)
         {
             if (sc == null)
             {
@@ -94,6 +85,16 @@ namespace geesp0t
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Palm HUD <b>Próxima cena</b> (upper): face <b>B</b> / Menu. Same
+        /// sources as <see cref="PollPalmHudMulherChoiceDown"/> on OVR/OpenVR;
+        /// main vs Mulher-only steps are mutually exclusive in the palm HUD tick.
+        /// </summary>
+        public static bool PollPalmHudProximaCenaFaceBDown(SuperController sc)
+        {
+            return PollPalmHudMulherChoiceDown(sc);
         }
 
         /// <summary>

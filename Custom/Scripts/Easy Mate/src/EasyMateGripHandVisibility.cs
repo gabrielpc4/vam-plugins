@@ -123,6 +123,15 @@ namespace geesp0t
         }
 
         /// <summary>
+        /// True if any <c>Person</c> head or hand control is possessed (player
+        /// POV). Used by grip handling and VR euler possess gesture gating.
+        /// </summary>
+        public static bool IsAnyPersonHeadOrHandPossessed()
+        {
+            return AnyPersonHeadOrHandPossessed();
+        }
+
+        /// <summary>
         /// Any <c>Person</c> with head or hand control possessed (player POV).
         /// </summary>
         private static bool AnyPersonHeadOrHandPossessed()

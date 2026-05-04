@@ -12,8 +12,11 @@ namespace geesp0t
     /// </summary>
     public sealed class EasyMateVrGestureBindings
     {
-        /// <summary>Same as keyboard <b>I</b> (hands + Person head snap cycle).</summary>
-        public Action TriggerISnapSameAsKeyI;
+        /// <summary>
+        /// Right hand over-HMD zone: unpossess all (same as <b>O</b>), not
+        /// keyboard <b>I</b>.
+        /// </summary>
+        public Action TriggerVrOverHeadHandUnpossessAll;
 
         /// <summary>
         /// Possess + Align + Select closest female when both
@@ -35,7 +38,7 @@ namespace geesp0t
             if (bindings == null)
                 return;
             OverHeadRightHandGesture.ProcessUpdate(
-                bindings.TriggerISnapSameAsKeyI);
+                bindings.TriggerVrOverHeadHandUnpossessAll);
             DualHandHmdRelativeEulerPossessClosestFemale.ProcessUpdate(
                 bindings.TriggerPossessAlignSelectClosestFemaleByHead);
         }
@@ -43,7 +46,8 @@ namespace geesp0t
         /// <summary>
         /// Right hand above the HMD along headset <c>up</c>, within a small
         /// lateral cap (not far forward/side), once per visit, with cooldown.
-        /// Pose checks at most once per second; otherwise only mode + interval.
+        /// Fires unpossess-all (not head snap). Pose checks at most once per
+        /// second; otherwise only mode + interval.
         /// </summary>
         private static class OverHeadRightHandGesture
         {
@@ -199,6 +203,14 @@ namespace geesp0t
                     }
 
                     _prevBothHandsPose = poseOk;
+                }
+
+                if (EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed())
+                {
+                    _dwellAccumUnscaled = 0f;
+                    _dwellArmed = true;
+                    _loggedCooldownSkipThisCycle = false;
+                    return;
                 }
 
                 if (!poseOk)

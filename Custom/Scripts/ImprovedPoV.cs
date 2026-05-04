@@ -136,8 +136,8 @@ public class ImprovedPoV : MVRScript
         try
         {
             {
-                // Higher = camera / eye moves back along view axis (less “nose through face”).
-                _cameraDepthJSON = new JSONStorableFloat("Camera depth", 0.09f, 0f, 0.25f, false);
+                // TESTING: very strong default so offset is obvious; lower before shipping.
+                _cameraDepthJSON = new JSONStorableFloat("Camera depth", 0.22f, 0f, 0.5f, false);
                 RegisterFloat(_cameraDepthJSON);
                 var cameraDepthSlider = CreateSlider(_cameraDepthJSON, false);
                 cameraDepthSlider.slider.onValueChanged.AddListener(delegate (float val)

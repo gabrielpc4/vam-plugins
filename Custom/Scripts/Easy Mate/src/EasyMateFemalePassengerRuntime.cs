@@ -6,8 +6,10 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// Female &quot;Be the girl&quot; mode: navigation rig follows the model head (Passenger-style),
-    /// ImprovedPoV setup, deferred VR hand possession, and lifecycle hooks from Easy Mate.
+    /// Female &quot;Be the girl&quot; mode: navigation rig follows the model head
+    /// <b>position</b> (Passenger-style); <b>rotation</b> aligns to the head only on
+    /// the first activation frame, then stays independent so the model can turn without
+    /// dragging the rig&apos;s yaw/pitch/roll. ImprovedPoV setup, deferred VR hand possession.
     /// </summary>
     internal static class EasyMateFemalePassengerRuntime
     {
@@ -426,29 +428,32 @@ namespace geesp0t
                 return;
             }
 
-            Quaternion navigationRigRotation =
-                _femalePassengerHeadRigidbody.transform.rotation;
-            navigationRigRotation *= Quaternion.Euler(
-                RotationOffsetXDegrees,
-                0f,
-                0f);
-
-            Vector3 rotationEulerAngles = navigationRigRotation.eulerAngles;
-            navigationRigRotation.eulerAngles = new Vector3(
-                rotationEulerAngles.x,
-                rotationEulerAngles.y,
-                0f);
-
-            if (RotationSmoothingSeconds > 0f)
+            if (activeThisTurn)
             {
-                navigationRigRotation = SmoothDamp(
-                    navigationRig.rotation,
-                    navigationRigRotation,
-                    ref _currentRotationVelocity,
-                    RotationSmoothingSeconds);
-            }
+                Quaternion navigationRigRotation =
+                    _femalePassengerHeadRigidbody.transform.rotation;
+                navigationRigRotation *= Quaternion.Euler(
+                    RotationOffsetXDegrees,
+                    0f,
+                    0f);
 
-            navigationRig.rotation = navigationRigRotation;
+                Vector3 rotationEulerAngles = navigationRigRotation.eulerAngles;
+                navigationRigRotation.eulerAngles = new Vector3(
+                    rotationEulerAngles.x,
+                    rotationEulerAngles.y,
+                    0f);
+
+                if (RotationSmoothingSeconds > 0f)
+                {
+                    navigationRigRotation = SmoothDamp(
+                        navigationRig.rotation,
+                        navigationRigRotation,
+                        ref _currentRotationVelocity,
+                        RotationSmoothingSeconds);
+                }
+
+                navigationRig.rotation = navigationRigRotation;
+            }
 
             Vector3 up = navigationRig.up;
             Vector3 targetPosition =

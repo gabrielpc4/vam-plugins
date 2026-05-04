@@ -33,9 +33,19 @@ namespace geesp0t
     /// </summary>
     public static class EasyMateVrGestureRuntime
     {
+        /// <summary>
+        /// When false: no over-HMD hand unpossess and no dual-hand euler
+        /// auto-possess — only the right-hand palm angle HUD runs. Set true to
+        /// restore those gestures.
+        /// </summary>
+        private const bool EnableOverHeadUnpossessAndDualHandPossessGestures =
+            false;
+
         public static void ProcessUpdate(EasyMateVrGestureBindings bindings)
         {
             if (bindings == null)
+                return;
+            if (!EnableOverHeadUnpossessAndDualHandPossessGestures)
                 return;
             OverHeadRightHandGesture.ProcessUpdate(
                 bindings.TriggerVrOverHeadHandUnpossessAll);

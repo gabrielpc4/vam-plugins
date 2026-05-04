@@ -21,9 +21,8 @@ namespace geesp0t
     // scene JSON
     // (currentLoadDir); E-Motion HUD: Lite / Original / M-F gender / Final /
     // remove-all; swaps via TryReplaceEmotionFamilyWithExactPath; I / VR gestures
-    // (see EasyMateVrGestureRuntime): over-HMD hand zone → unpossess all;
-    // ~3 s dual-hand HMD-relative euler windows → Possess+Align+Select closest
-    // female; P =
+    // (see EasyMateVrGestureRuntime): over-HMD unpossess + dual-hand euler
+    // possess can be disabled there (palm HUD only when off); P =
     // Possess+Align+Select closest Person by head;
     // O = unpossess all; C = cycle Female then Male Persons (uid), Edit +
     // Selected
@@ -231,12 +230,9 @@ namespace geesp0t
         /// <see cref="SuperController.ClearPossess"/>.
         /// <b>I</b> hides VR hand models then cycles rig snap across
         /// <b>Person</b> heads by uid (same rules as <b>Passenger Female</b> /
-        /// <b>Passenger Male</b> per figure). VR: <see cref="EasyMateVrGestureRuntime"/> — e.g.
-        /// right hand over the HMD (height + lateral cap), 4s cooldown, unpossess
-        /// all once per visit until the hand exits; ~3s dual-hand euler vs HMD
-        /// triggers Possess+Align+Select for the closest female by head (skipped
-        /// while any Person head/hand is already possessed); more gestures can use
-        /// the same pipeline.
+        /// <b>Passenger Male</b> per figure). VR: <see cref="EasyMateVrGestureRuntime"/> —
+        /// over-head unpossess + dual-hand euler possess can be turned off (see
+        /// that class); the right-hand palm HUD menu still handles possess flow.
         /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD
         /// buttons on the <b>closest Person by head</b> to the look/center
         /// camera (not alphabetically first F/M).

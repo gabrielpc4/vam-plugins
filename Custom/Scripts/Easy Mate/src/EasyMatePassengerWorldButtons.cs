@@ -44,6 +44,7 @@ namespace geesp0t
         private static float _pendingPassengerModeDeadlineTime;
         private static bool _waitingForInitialTeleportAfterHeadNeutralize;
         private static int _initialHeadNeutralizeFramesRemaining;
+        private static float _preservedInitialHeadDownwardPitchDegrees;
 
         public static bool IsFemalePassengerModeActiveOrPending()
         {
@@ -214,6 +215,7 @@ namespace geesp0t
                 _currentPositionVelocity = Vector3.zero;
                 _waitingForInitialTeleportAfterHeadNeutralize = false;
                 _initialHeadNeutralizeFramesRemaining = 0;
+                _preservedInitialHeadDownwardPitchDegrees = 0f;
             }
         }
 
@@ -342,6 +344,11 @@ namespace geesp0t
 
             FreeControllerV3 headControl =
                 femalePerson.GetStorableByID("headControl") as FreeControllerV3;
+            _preservedInitialHeadDownwardPitchDegrees =
+                GetPassengerDownwardPitchToPreserve(
+                    headControl != null && headControl.control != null
+                        ? headControl.control.rotation
+                        : headRigidbody.transform.rotation);
             ForcePassengerHeadControlNeutralRotation(headControl);
         }
 
@@ -1016,7 +1023,21 @@ namespace geesp0t
             neutralForward.Normalize();
             return Quaternion.LookRotation(
                 neutralForward,
-                upAxis);
+                upAxis) * Quaternion.Euler(
+                    _preservedInitialHeadDownwardPitchDegrees,
+                    0f,
+                    0f);
+        }
+
+        private static float GetPassengerDownwardPitchToPreserve(
+            Quaternion rotation)
+        {
+            float pitchDegrees = NormalizeSignedEulerAngle(
+                rotation.eulerAngles.x);
+            if (pitchDegrees < 0f)
+                return pitchDegrees;
+
+            return 0f;
         }
 
         private static Vector3 GetPassengerNeutralForward(
@@ -1109,6 +1130,8 @@ namespace geesp0t
                     0f);
             float pitchDegrees = NormalizeSignedEulerAngle(
                 headRotationWithOffset.eulerAngles.x);
+            if (_preservedInitialHeadDownwardPitchDegrees < pitchDegrees)
+                pitchDegrees = _preservedInitialHeadDownwardPitchDegrees;
 
             Vector3 neutralForward = GetPassengerNeutralForward(
                 upAxis,

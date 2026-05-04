@@ -19,6 +19,8 @@ namespace geesp0t
 
         private static readonly Color BeamRed = new Color(1f, 0.2f, 0.12f, 1f);
 
+        private static float _nextMonitorCameraSyncIssueLogTime = -1f;
+
         /// <summary>World-space beam radius before applying worldScale.</summary>
         private const float BaseRadiusM = 0.0015f;
 
@@ -37,7 +39,15 @@ namespace geesp0t
         public static void Tick(bool featureEnabled)
         {
             SuperController sc = SuperController.singleton;
-            if (!featureEnabled || sc == null)
+            if (sc == null)
+            {
+                HideBeams();
+                return;
+            }
+
+            SyncMonitorCameraToVrHeadset(sc);
+
+            if (!featureEnabled)
             {
                 HideBeams();
                 return;
@@ -144,6 +154,53 @@ namespace geesp0t
                 _beamLeft = CreateCylinder(_root.transform, "MonitorBeamLeft", BeamBlue);
             if (_beamRight == null)
                 _beamRight = CreateCylinder(_root.transform, "MonitorBeamRight", BeamRed);
+        }
+
+        private static void SyncMonitorCameraToVrHeadset(SuperController sc)
+        {
+            if (sc.isLoading || sc.IsMonitorOnly || (!sc.isOVR && !sc.isOpenVR))
+                return;
+
+            if (sc.MonitorRig == null || !sc.MonitorRig.gameObject.activeSelf)
+                return;
+
+            Camera monitorCamera = sc.MonitorCenterCamera;
+            if (monitorCamera == null)
+            {
+                LogMonitorCameraSyncIssue(
+                    "Easy Mate monitor camera sync: MonitorCenterCamera is missing while monitor mode is active.");
+                return;
+            }
+
+            Camera sourceCamera = sc.lookCamera;
+            Transform sourceTransform = sourceCamera != null
+                ? sourceCamera.transform
+                : (sc.centerCameraTarget != null ? sc.centerCameraTarget.transform : null);
+            if (sourceTransform == null)
+            {
+                LogMonitorCameraSyncIssue(
+                    "Easy Mate monitor camera sync: no VR headset camera/target found while monitor mode is active.");
+                return;
+            }
+
+            monitorCamera.transform.position = sourceTransform.position;
+            monitorCamera.transform.rotation = sourceTransform.rotation;
+
+            if (sourceCamera != null)
+            {
+                monitorCamera.fieldOfView = sourceCamera.fieldOfView;
+                monitorCamera.nearClipPlane = sourceCamera.nearClipPlane;
+                monitorCamera.farClipPlane = sourceCamera.farClipPlane;
+            }
+        }
+
+        private static void LogMonitorCameraSyncIssue(string message)
+        {
+            if (Time.unscaledTime < _nextMonitorCameraSyncIssueLogTime)
+                return;
+
+            _nextMonitorCameraSyncIssueLogTime = Time.unscaledTime + 5f;
+            SuperController.LogError(message);
         }
 
         private static Material CreateBeamMaterial(Color color)

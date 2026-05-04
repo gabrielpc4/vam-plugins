@@ -22,7 +22,8 @@ namespace geesp0t
     // (currentLoadDir); E-Motion HUD: Lite / Original / M-F gender / Final /
     // remove-all; swaps via TryReplaceEmotionFamilyWithExactPath; I / VR gestures
     // (see EasyMateVrGestureRuntime) e.g. over-HMD hand zone → same as I; ~3 s
-    // palm-in-view (either hand) → Possess+Align+Select closest female; P =
+    // ~3 s both palms toward HMD (loose) → Possess+Align+Select closest
+    // female; P =
     // Possess+Align+Select closest Person by head;
     // O = unpossess all; C = cycle Female then Male Persons (uid), Edit +
     // Selected
@@ -218,7 +219,7 @@ namespace geesp0t
         /// <b>Person</b> heads by uid (same rules as <b>Passenger Female</b> /
         /// <b>Passenger Male</b> per figure). VR: <see cref="EasyMateVrGestureRuntime"/> — e.g.
         /// right hand over the HMD (height + lateral cap), 4s cooldown, once per visit until
-        /// the hand exits; ~3s gaze at either palm (palm toward face) triggers
+        /// the hand exits; ~3s with both palms loosely facing the HMD triggers
         /// Possess+Align+Select for the closest female by head; more gestures can use the
         /// same pipeline.
         /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD

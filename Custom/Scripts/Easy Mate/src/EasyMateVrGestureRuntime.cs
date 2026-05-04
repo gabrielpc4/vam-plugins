@@ -16,8 +16,8 @@ namespace geesp0t
         public Action TriggerISnapSameAsKeyI;
 
         /// <summary>
-        /// Possess + Align + Select closest female Person by head (not keyboard
-        /// <b>P</b>, which uses any gender).
+        /// Possess + Align + Select closest female by head when both palms face
+        /// the HMD (~3s dwell; not keyboard <b>P</b>, which uses any gender).
         /// </summary>
         public Action TriggerPossessAlignSelectClosestFemaleByHead;
    }
@@ -126,18 +126,24 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Either hand: HMD looks at open palm (~toward hand), palm plane faces
-        /// the face (~an axis from controller points at HMD), continuously for
-        /// three seconds (Oculus / OpenVR).
+        /// Both hands: each palm faces the HMD loosely (controller axis ~toward
+        /// the look camera), in front of the user, for three seconds
+        /// (Oculus / OpenVR).
         /// </summary>
         private static class PalmGazePossessClosestFemale
         {
             private const float DwellSeconds = 3f;
             private const float CooldownSeconds = 4f;
             private const float MinHandCamDistM = 0.12f;
-            private const float MaxHandCamDistM = 0.95f;
-            private const float MaxGazeAngleDeg = 42f;
-            private const float MinPalmFacingDot = 0.68f;
+            private const float MaxHandCamDistM = 1.05f;
+            /// <summary>
+            /// Palm plane ~toward face; lower = looser (both palms must pass).
+            /// </summary>
+            private const float MinPalmFacingDotLoose = 0.52f;
+            /// <summary>
+            /// Hand must sit in front of HMD (not behind); dot(camFwd, toHand).
+            /// </summary>
+            private const float MinCamForwardDotToHand = -0.08f;
 
             private static float _dwellAccumUnscaled;
             private static float _lastTriggerUnscaledTime = -1000f;
@@ -161,9 +167,11 @@ namespace geesp0t
                 if (camTf == null)
                     return;
 
-                bool palmGaze =
-                    HandInPalmGazeZone(sc.leftHand, camTf) ||
-                    HandInPalmGazeZone(sc.rightHand, camTf);
+                Transform lh = sc.leftHand;
+                Transform rh = sc.rightHand;
+                bool palmGaze = lh != null && rh != null &&
+                    HandPalmFacesHmdLoosely(lh, camTf) &&
+                    HandPalmFacesHmdLoosely(rh, camTf);
 
                 float dt = Time.unscaledDeltaTime;
                 if (dt < 0f || dt > 0.5f)
@@ -217,7 +225,11 @@ namespace geesp0t
                 return best;
             }
 
-            private static bool HandInPalmGazeZone(Transform hand, Transform camTf)
+            /// <summary>
+            /// Palm-oriented toward HMD, in front hemisphere, within distance
+            /// (no strict “look at palm” cone).
+            /// </summary>
+            private static bool HandPalmFacesHmdLoosely(Transform hand, Transform camTf)
             {
                 if (hand == null || camTf == null)
                     return false;
@@ -234,8 +246,7 @@ namespace geesp0t
                     return false;
 
                 Vector3 dirToHand = toHand * (1f / dist);
-                float gazeLim = Mathf.Cos(MaxGazeAngleDeg * Mathf.Deg2Rad);
-                if (Vector3.Dot(camFwd, dirToHand) < gazeLim)
+                if (Vector3.Dot(camFwd, dirToHand) < MinCamForwardDotToHand)
                     return false;
 
                 Vector3 towardCam = camPos - hand.position;
@@ -244,7 +255,8 @@ namespace geesp0t
                     return false;
                 towardCam = towardCam * (1f / tcMag);
 
-                return BestLocalAxisDotToward(hand, towardCam) >= MinPalmFacingDot;
+                return BestLocalAxisDotToward(hand, towardCam) >=
+                    MinPalmFacingDotLoose;
             }
         }
     }

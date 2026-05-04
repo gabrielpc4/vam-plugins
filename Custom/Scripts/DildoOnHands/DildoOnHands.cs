@@ -5,7 +5,6 @@ using System.Globalization;
 using MeshVR;
 using SimpleJSON;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace geesp0t
 {

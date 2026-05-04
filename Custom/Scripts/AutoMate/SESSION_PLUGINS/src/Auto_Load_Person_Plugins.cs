@@ -77,6 +77,9 @@ namespace geesp0t
         private bool sceneLightRestoreDelayedPending = false;
         private float sceneLightRestoreDueRealtime = 0f;
 
+        private bool lightAtomBackupPendingDuringLoad = false;
+        private bool lightAtomBackupWaitLogged = false;
+
         public class PluginSet
         {
             public string buttonName;
@@ -856,18 +859,26 @@ namespace geesp0t
 
             if (superControllerLoading && !wasSuperControllerLoading)
             {
-                try
-                {
-                    BackupLightAtomsForSceneLoad();
-                }
-                catch (Exception lightsBackupException)
-                {
-                    SuperController.LogError("[Auto_Load_Person_Plugins] BackupLightAtomsForSceneLoad failed: " + lightsBackupException);
-                }
+                sceneLightRestoreDelayedPending = false;
+                sceneLightAtomBackupList.Clear();
+                sceneLightAtomBackupActive = false;
+                lightAtomBackupPendingDuringLoad = true;
+                lightAtomBackupWaitLogged = false;
+                LightAtomDebugLog("Load started: stale backup discarded; will capture InvisibleLight atoms when GetAtoms() lists them (often a few frames after isLoading).");
             }
+
+            TryCaptureLightAtomsDuringLoad();
 
             if (!superControllerLoading && wasSuperControllerLoading)
             {
+                if (lightAtomBackupPendingDuringLoad)
+                {
+                    LightAtomDebugLog("Load finished before any light atoms appeared in GetAtoms(); no backup for this load.");
+                }
+
+                lightAtomBackupPendingDuringLoad = false;
+                lightAtomBackupWaitLogged = false;
+
                 LightAtomDebugLog("Scene load finished (SuperController.isLoading became false).");
 
                 if (sceneLightAtomBackupActive)
@@ -1069,27 +1080,41 @@ namespace geesp0t
             return false;
         }
 
-        void BackupLightAtomsForSceneLoad()
+        void TryCaptureLightAtomsDuringLoad()
         {
-            LightAtomDebugLog("BackupLightAtomsForSceneLoad entered.");
-
-            if (sceneLightAtomBackupActive)
+            if (!SuperController.singleton.isLoading || !lightAtomBackupPendingDuringLoad)
             {
-                LightAtomDebugLog("Prior backup was active; restoring before new backup.");
-                RestoreLightAtomsFromBackup();
+                return;
             }
+
+            List<Atom> lightAtomsFound = new List<Atom>();
+
+            foreach (Atom sceneAtom in SuperController.singleton.GetAtoms())
+            {
+                if (IsVaMLightAtom(sceneAtom))
+                {
+                    lightAtomsFound.Add(sceneAtom);
+                }
+            }
+
+            if (lightAtomsFound.Count == 0)
+            {
+                if (!lightAtomBackupWaitLogged)
+                {
+                    lightAtomBackupWaitLogged = true;
+                    LightAtomDebugLog("Load in progress: no light atoms in GetAtoms yet; retrying each frame until they spawn.");
+                }
+
+                return;
+            }
+
+            LightAtomDebugLog(string.Format("Load in progress: found {0} light atom(s); backing up and SetOn(false).", lightAtomsFound.Count));
 
             sceneLightAtomBackupList.Clear();
 
-            IEnumerable<Atom> allAtoms = SuperController.singleton.GetAtoms();
-
-            foreach (Atom sceneAtom in allAtoms)
+            for (int atomIndex = 0; atomIndex < lightAtomsFound.Count; atomIndex++)
             {
-                if (!IsVaMLightAtom(sceneAtom))
-                {
-                    continue;
-                }
-
+                Atom sceneAtom = lightAtomsFound[atomIndex];
                 bool wasOn = sceneAtom.on;
                 string atomUid = sceneAtom.uid;
 
@@ -1105,16 +1130,9 @@ namespace geesp0t
                 LightAtomDebugLog(string.Format("After SetOn(false), uid=\"{0}\" read-back on: {1}", atomUid, sceneAtom.on));
             }
 
-            if (sceneLightAtomBackupList.Count > 0)
-            {
-                sceneLightAtomBackupActive = true;
-                LightAtomDebugLog(string.Format("Backup complete; {0} light atom(s) stored, backup active.", sceneLightAtomBackupList.Count));
-            }
-            else
-            {
-                sceneLightAtomBackupActive = false;
-                LightAtomDebugLog("No VaM light atoms (InvisibleLight / category Light) found; backup not active.");
-            }
+            sceneLightAtomBackupActive = true;
+            lightAtomBackupPendingDuringLoad = false;
+            LightAtomDebugLog(string.Format("Backup complete during load; {0} light atom(s), backup active.", sceneLightAtomBackupList.Count));
         }
 
         void RestoreLightAtomsFromBackup()

@@ -1658,11 +1658,10 @@ namespace geesp0t
                     navigationRig.rotation = q * navigationRig.rotation;
                 }
 
-                // Do not call AlignTo on the head before the rig move: that
-                // rotates the Person toward the HMD and moves the possess
-                // anchor. Compute delta from the natural head pose so the
-                // navigation rig (and height) brings the HMD to the head;
-                // PossessMoveAndAlignTo then does the final possess overlap.
+                // Match Passenger: move the rig to the head, not the head to
+                // the HMD. Use the untouched head pose to compute the rig
+                // delta, then bind possession directly without another
+                // PossessMoveAndAlignTo warp.
                 Vector3 possessAnchor = head.possessPoint != null ? head.possessPoint.position : head.control.position;
                 Vector3 delta = possessAnchor - possessor.autoSnapPoint.position;
                 Vector3 targetRigPos = navigationRig.position + delta;
@@ -1680,7 +1679,58 @@ namespace geesp0t
                     sc.MonitorCenterCamera.transform.localEulerAngles = euler;
                 }
 
-                head.PossessMoveAndAlignTo(possessor.autoSnapPoint);
+                return TryLinkHeadToMotionControllerHead(motionControllerHead, head, out error);
+            }
+            catch (Exception e)
+            {
+                error = e.Message;
+                return false;
+            }
+        }
+
+        private static bool TryLinkHeadToMotionControllerHead(
+            Transform motionControllerHead,
+            FreeControllerV3 head,
+            out string error)
+        {
+            error = null;
+            if (motionControllerHead == null || head == null)
+            {
+                error = "missing motionControllerHead or headControl";
+                return false;
+            }
+
+            Rigidbody headRb = motionControllerHead.GetComponent<Rigidbody>();
+            if (headRb == null)
+            {
+                error = "missing motionControllerHead rigidbody";
+                return false;
+            }
+
+            try
+            {
+                MotionAnimationControl mac = head.GetComponent<MotionAnimationControl>();
+                if (head.canGrabPosition && mac != null)
+                    mac.suspendPositionPlayback = true;
+                if (head.canGrabRotation && mac != null)
+                    mac.suspendRotationPlayback = true;
+
+                head.possessed = true;
+
+                FreeControllerV3.SelectLinkState linkState =
+                    FreeControllerV3.SelectLinkState.Position;
+                if (head.canGrabPosition)
+                {
+                    if (head.canGrabRotation)
+                        linkState =
+                            FreeControllerV3.SelectLinkState.PositionAndRotation;
+                }
+                else if (head.canGrabRotation)
+                {
+                    linkState = FreeControllerV3.SelectLinkState.Rotation;
+                }
+
+                head.SelectLinkToRigidbody(headRb, linkState);
                 return true;
             }
             catch (Exception e)

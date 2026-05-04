@@ -218,12 +218,62 @@ namespace geesp0t
         {
             if (cube == null)
                 return;
-            MaterialOptions mo =
-                cube.GetStorableByID(StorableMaterials) as MaterialOptions;
-            if (mo == null)
+
+            Color opaque = new Color(rgb.r, rgb.g, rgb.b, 1f);
+            HSVColor hsv = HSVColorPicker.RGBToHSV(opaque.r, opaque.g, opaque.b);
+
+            JSONStorable moStore =
+                cube.GetStorableByID(StorableMaterials) as JSONStorable;
+            if (moStore != null && moStore.IsColorJSONParam("Diffuse Color"))
+                moStore.SetColorParamValue("Diffuse Color", hsv);
+
+            MaterialOptions moOpt = moStore as MaterialOptions;
+            if (moOpt != null)
+            {
+                moOpt.color1Alpha = 1f;
+                moOpt.SetColor1(opaque);
+            }
+
+            ApplyCubeDiffuseToRenderers(cube, opaque);
+        }
+
+        /// <summary>
+        /// Cube prefabs sometimes never register MaterialOptions color1; still
+        /// push tint into every instance material so red/green updates visibly.
+        /// </summary>
+        private static void ApplyCubeDiffuseToRenderers(Atom cube, Color rgb)
+        {
+            if (cube == null || cube.gameObject == null)
                 return;
-            mo.color1Alpha = 1f;
-            mo.SetColor1(rgb);
+
+            Renderer[] rends = cube.gameObject.GetComponentsInChildren<Renderer>(
+                true);
+            int ri;
+            int mi;
+            for (ri = 0; ri < rends.Length; ri++)
+            {
+                Renderer r = rends[ri];
+                if (r == null)
+                    continue;
+
+                Material[] mats = r.materials;
+                for (mi = 0; mi < mats.Length; mi++)
+                {
+                    Material m = mats[mi];
+                    if (m == null)
+                        continue;
+
+                    m.color = rgb;
+                    if (m.HasProperty("_Color"))
+                        m.SetColor("_Color", rgb);
+                    if (m.HasProperty("_BaseColor"))
+                        m.SetColor("_BaseColor", rgb);
+                    if (m.HasProperty("_TintColor"))
+                        m.SetColor("_TintColor", rgb);
+                    if (m.HasProperty("_DiffuseColor"))
+                        m.SetColor("_DiffuseColor", rgb);
+                }
+            }
         }
 
         private static void ApplyUiTextBody(Atom uitext, string body)

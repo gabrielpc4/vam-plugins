@@ -170,6 +170,7 @@ namespace geesp0t
         UIDynamicButton emotionFinalHudButton = null;
         UIDynamicButton emotionRemoveAllHudButton = null;
         UIDynamicButton spankingsButton = null;
+        UIDynamicButton removeSpankingsButton = null;
         UIDynamicButton stripAllClothesButton = null;
         UIDynamicButton removeUnderwearButton = null;
         UIDynamicButton snapFemaleHeadButton = null;
@@ -1373,6 +1374,7 @@ namespace geesp0t
             spankingsButton = AddButton("+ Spankings Male", OnSpankingsPluginToggleClicked, 3, 2, rightColButtonWidth);
 
             emotionRemoveAllHudButton = AddButton("Remove E-Motion", OnEmotionRemoveAllHudClicked, 1, 3, emotionColButtonWidth);
+            removeSpankingsButton = AddButton("Remove Spankings", RemoveSpankingsFromAllPersons, 3, 3, rightColButtonWidth);
 
             emotionMaleHudButton = AddButton(
                 "E-Motion M",
@@ -1411,6 +1413,8 @@ namespace geesp0t
                 emotionFemaleHudButton.gameObject.SetActive(setToActive);
             if (spankingsButton != null)
                 spankingsButton.gameObject.SetActive(setToActive);
+            if (removeSpankingsButton != null)
+                removeSpankingsButton.gameObject.SetActive(setToActive);
             if (stripAllClothesButton != null)
                 stripAllClothesButton.gameObject.SetActive(setToActive);
             if (removeUnderwearButton != null)

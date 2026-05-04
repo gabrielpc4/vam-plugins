@@ -14,7 +14,13 @@ namespace geesp0t
     {
         /// <summary>Same as keyboard <b>I</b> (hands + Person head snap cycle).</summary>
         public Action TriggerISnapSameAsKeyI;
-    }
+
+        /// <summary>
+        /// Possess + Align + Select closest female Person by head (not keyboard
+        /// <b>P</b>, which uses any gender).
+        /// </summary>
+        public Action TriggerPossessAlignSelectClosestFemaleByHead;
+   }
 
     /// <summary>
     /// Called from <see cref="MainUIButtons.ProcessHotkeysUpdate"/> after
@@ -29,6 +35,8 @@ namespace geesp0t
                 return;
             OverHeadRightHandGesture.ProcessUpdate(
                 bindings.TriggerISnapSameAsKeyI);
+            PalmGazePossessClosestFemale.ProcessUpdate(
+                bindings.TriggerPossessAlignSelectClosestFemaleByHead);
         }
 
         /// <summary>
@@ -114,6 +122,129 @@ namespace geesp0t
                 {
                     _insideLatch = false;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Either hand: HMD looks at open palm (~toward hand), palm plane faces
+        /// the face (~an axis from controller points at HMD), continuously for
+        /// three seconds (Oculus / OpenVR).
+        /// </summary>
+        private static class PalmGazePossessClosestFemale
+        {
+            private const float DwellSeconds = 3f;
+            private const float CooldownSeconds = 4f;
+            private const float MinHandCamDistM = 0.12f;
+            private const float MaxHandCamDistM = 0.95f;
+            private const float MaxGazeAngleDeg = 42f;
+            private const float MinPalmFacingDot = 0.68f;
+
+            private static float _dwellAccumUnscaled;
+            private static float _lastTriggerUnscaledTime = -1000f;
+
+            public static void ProcessUpdate(Action boundAction)
+            {
+                if (boundAction == null)
+                    return;
+
+                SuperController sc = SuperController.singleton;
+                if (sc == null || sc.isLoading)
+                    return;
+                if (!(sc.isOVR || sc.isOpenVR || XRSettings.enabled))
+                    return;
+
+                Transform camTf = sc.lookCamera != null
+                    ? sc.lookCamera.transform
+                    : null;
+                if (camTf == null && sc.centerCameraTarget != null)
+                    camTf = sc.centerCameraTarget.transform;
+                if (camTf == null)
+                    return;
+
+                bool palmGaze =
+                    HandInPalmGazeZone(sc.leftHand, camTf) ||
+                    HandInPalmGazeZone(sc.rightHand, camTf);
+
+                float dt = Time.unscaledDeltaTime;
+                if (dt < 0f || dt > 0.5f)
+                    dt = 0.016f;
+
+                if (palmGaze)
+                {
+                    _dwellAccumUnscaled += dt;
+                    float now = Time.unscaledTime;
+                    if (_dwellAccumUnscaled >= DwellSeconds &&
+                        now - _lastTriggerUnscaledTime >= CooldownSeconds)
+                    {
+                        boundAction();
+                        _lastTriggerUnscaledTime = now;
+                        _dwellAccumUnscaled = 0f;
+                    }
+                }
+                else
+                    _dwellAccumUnscaled = 0f;
+            }
+
+            private static float BestLocalAxisDotToward(
+                Transform hand,
+                Vector3 unitTowardCam)
+            {
+                if (hand == null || unitTowardCam.sqrMagnitude < 1e-6f)
+                    return -1f;
+
+                float best = -1f;
+                float d;
+
+                d = Vector3.Dot(hand.forward, unitTowardCam);
+                if (d > best)
+                    best = d;
+                d = Vector3.Dot(-hand.forward, unitTowardCam);
+                if (d > best)
+                    best = d;
+                d = Vector3.Dot(hand.up, unitTowardCam);
+                if (d > best)
+                    best = d;
+                d = Vector3.Dot(-hand.up, unitTowardCam);
+                if (d > best)
+                    best = d;
+                d = Vector3.Dot(hand.right, unitTowardCam);
+                if (d > best)
+                    best = d;
+                d = Vector3.Dot(-hand.right, unitTowardCam);
+                if (d > best)
+                    best = d;
+
+                return best;
+            }
+
+            private static bool HandInPalmGazeZone(Transform hand, Transform camTf)
+            {
+                if (hand == null || camTf == null)
+                    return false;
+
+                Vector3 camPos = camTf.position;
+                Vector3 camFwd = camTf.forward;
+                if (camFwd.sqrMagnitude < 1e-10f)
+                    return false;
+                camFwd.Normalize();
+
+                Vector3 toHand = hand.position - camPos;
+                float dist = toHand.magnitude;
+                if (dist < MinHandCamDistM || dist > MaxHandCamDistM)
+                    return false;
+
+                Vector3 dirToHand = toHand * (1f / dist);
+                float gazeLim = Mathf.Cos(MaxGazeAngleDeg * Mathf.Deg2Rad);
+                if (Vector3.Dot(camFwd, dirToHand) < gazeLim)
+                    return false;
+
+                Vector3 towardCam = camPos - hand.position;
+                float tcMag = towardCam.magnitude;
+                if (tcMag < 1e-5f)
+                    return false;
+                towardCam = towardCam * (1f / tcMag);
+
+                return BestLocalAxisDotToward(hand, towardCam) >= MinPalmFacingDot;
             }
         }
     }

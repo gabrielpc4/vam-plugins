@@ -13,6 +13,13 @@ Backup policy (per file): copy ``scene.json`` → ``scene.json.bak`` **once**, o
 that ``.bak`` does **not** already exist. Later runs keep editing ``scene.json`` but never
 add extra backup files—the original snapshot stays in ``scene.json.bak``.
 
+VaM **does not** substitute Google via scene JSON. If you still see Google, the panel’s
+embedded Chromium often never left its **built‑in default page** (many prefabs ship with
+Google), or navigation failed. **Direct ``*.mp4``** URLs on ``media.redgifs.com`` usually
+do **not** behave like a normal website in VaM’s browser—use RedGIFs **watch** pages
+(HTML + player), e.g. ``https://www.redgifs.com/watch/<slug>``. By default this tool
+rewrites ``https://media.redgifs.com/<Name>.mp4`` arguments to that watch form (slug lowercased).
+
 After each write, the file is **re-read and parsed** to verify valid JSON.
 """
 
@@ -24,6 +31,7 @@ import shutil
 import sys
 from pathlib import Path
 from typing import Any, Iterable
+from urllib.parse import urlparse
 
 
 _REPO = Path(__file__).resolve().parents[1]
@@ -60,7 +68,41 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
             "(e.g. http). Empty/missing url is treated as unchanged unless PREFIX is \"\"."
         ),
     )
+    parser.add_argument(
+        "--keep-redgifs-media-mp4",
+        action="store_true",
+        help=(
+            "Do not rewrite RedGIFs CDN mp4 arguments "
+            "(``https://media.redgifs.com/<Slug>.mp4``) to ``/watch/<slug>`` pages."
+        ),
+    )
     return parser.parse_args(argv)
+
+
+def normalize_redgifs_media_mp4_to_watch(url: str) -> str:
+    """
+    Map ``https://media.redgifs.com/MySlug.mp4`` → ``https://www.redgifs.com/watch/myslug``.
+    Other URLs are returned unchanged.
+    """
+
+    trimmed = url.strip()
+    parsed = urlparse(trimmed)
+    hostname = (parsed.hostname or "").lower()
+
+    if hostname != "media.redgifs.com":
+        return trimmed
+
+    path = parsed.path or ""
+    if not path.lower().endswith(".mp4"):
+        return trimmed
+
+    filename = path.rsplit("/", 1)[-1]
+    if len(filename) <= 4:
+        return trimmed
+
+    slug_lower = filename[:-4].lower()
+
+    return "https://www.redgifs.com/watch/" + slug_lower
 
 
 def iter_browser_gui_nodes(root: Any) -> Iterable[dict[str, Any]]:
@@ -172,7 +214,22 @@ def relative_repo(path: Path) -> str:
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
     folder = args.scene_folder.resolve()
-    urls = args.urls
+    urls = list(args.urls)
+
+    if not args.keep_redgifs_media_mp4:
+        mapped: list[str] = []
+        for original_url in urls:
+            normalized_url = normalize_redgifs_media_mp4_to_watch(original_url)
+
+            if normalized_url != original_url.strip():
+                print(
+                    f"Using RedGIFs watch URL: {normalized_url!r} (from {original_url!r})",
+                    file=sys.stderr,
+                )
+
+            mapped.append(normalized_url)
+
+        urls = mapped
 
     prefix_filter: str | None
     if args.only_if_url_starts_with is None:

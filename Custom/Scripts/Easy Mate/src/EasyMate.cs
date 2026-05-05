@@ -293,9 +293,23 @@ namespace geesp0t
             ApplyRemoteHoldGrabPreference();
             if (headProximityHideWithoutSnap != null)
                 EasyMateHeadSnapPovRuntime.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
+            StartCoroutine(CoRefreshHeadProximityHooksAfterStartFrames());
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
             EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
             ApplyDefaultMonitorCameraFovIfNeeded();
+        }
+
+        private IEnumerator CoRefreshHeadProximityHooksAfterStartFrames()
+        {
+            yield return null;
+            yield return null;
+
+            if (headProximityHideWithoutSnap == null)
+            {
+                yield break;
+            }
+
+            EasyMateHeadSnapPovRuntime.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
         }
 
         /// <summary>
@@ -640,6 +654,11 @@ namespace geesp0t
                 ApplyDefaultMonitorCameraFovIfNeeded();
                 EasyMateVrInput.ResetEdgeState();
                 EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
+
+                if (headProximityHideWithoutSnap != null)
+                {
+                    EasyMateHeadSnapPovRuntime.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
+                }
             }
 
             if (!SuperController.singleton.isLoading)

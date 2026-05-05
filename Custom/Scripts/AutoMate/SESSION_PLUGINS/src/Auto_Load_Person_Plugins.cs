@@ -900,7 +900,11 @@ namespace geesp0t
 
         void LateUpdate()
         {
-            onSceneStartup.TickDuringSuperControllerLoad();
+            bool sceneSettleJustEnded = onSceneStartup.TickDuringSuperControllerLoad();
+            if (sceneSettleJustEnded)
+            {
+                EasyMateHeadSnapPovRuntime.AfterSuperControllerFinishedSceneSettle(this);
+            }
         }
 
         void FindMaleAtomLicking(bool adjustUIButtons)

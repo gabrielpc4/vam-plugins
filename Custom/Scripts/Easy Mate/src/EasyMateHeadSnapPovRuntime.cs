@@ -165,6 +165,37 @@ namespace geesp0t
             Shutdown();
         }
 
+        /// <summary>
+        /// Call when VaM has finished its loading/settle phase (same moment session <see cref="OnSceneStartup"/> releases its hold).
+        /// Re-attaches camera hooks if <see cref="SetHeadProximityHideWithoutSnapEnabled"/> left them off because Easy Mate was not
+        /// ready yet, or Easy Mate was destroyed on load while the static proximity flag stayed enabled.
+        /// </summary>
+        public static void AfterSuperControllerFinishedSceneSettle(MVRScript host)
+        {
+            if (host != null)
+            {
+                _coroutineHost = host;
+            }
+
+            if (!_headProximityHideWithoutSnap)
+            {
+                return;
+            }
+
+            SuperController sc = SuperController.singleton;
+            if (sc == null)
+            {
+                return;
+            }
+
+            if (!sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
+            {
+                return;
+            }
+
+            RegisterHooks();
+        }
+
         private static HeadZoneScratch GetHeadZoneScratch(Atom person)
         {
             if (person == null)

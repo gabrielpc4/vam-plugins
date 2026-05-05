@@ -33,9 +33,11 @@ namespace geesp0t
 
         private const string sceneSettlePauseFlagDisplayName = "AutoMate OnSceneStartup scene settle";
 
-        public void TickDuringSuperControllerLoad()
+        /// <summary>Returns true the first tick after VaM&apos;s loading/settle UI has cleared — playback hold was released.</summary>
+        public bool TickDuringSuperControllerLoad()
         {
             bool settlingNow = ShouldTreatSceneAsStillSettling();
+            bool settleEndedThisTick = false;
 
             if (settlingNow)
             {
@@ -54,10 +56,12 @@ namespace geesp0t
                 if (wasSceneStillSettling)
                 {
                     FinishSceneSettleExposureThenReleasePlaybackHold();
+                    settleEndedThisTick = true;
                 }
             }
 
             wasSceneStillSettling = settlingNow;
+            return settleEndedThisTick;
         }
 
         public void OnOwningPluginDestroy()

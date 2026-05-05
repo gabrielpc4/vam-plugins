@@ -33,16 +33,16 @@ Hand-off doc for another LLM or developer. All paths live under
 - **Rows:**
   - **Main:** `Possuir` / `Despossuir` (one row) and **`Próxima cena`**
     (fires next-scene UI button via `MainUIButtons.RequestFireNextSceneUiButton`).
-  - **Gender:** **`Mulher (B)`** (top) and **`Homem (A)`** (bottom). Shown
-    after `Possuir` when at least one `Person` exists (see §4).
+  - **Gender:** **`Mulher (B)`** (top row of the gender step). Shown after
+    `Possuir` when at least one `Person` exists (see §4).
 - **VaM system menu (`GetMenuShow`):** While **not** in the gender step and
   **not** possessed, if **`VrPalmHudNeedsGenderChoiceStep()`** and user opens
   the menu, the HUD dismisses **`activeUI`**, sets **`RequestGenderChooseStep()`**,
   and refreshes to the gender row (must still hold the hand HUD pose to see it).
 
-**After choosing Mulher or Homem:** `DismissVaMOverlayUiIfAny()` sets
+**After choosing Mulher:** `DismissVaMOverlayUiIfAny()` sets
 `SuperController.activeUI = None` to avoid the OpenVR menu binding leaving
-the overlay up when “Mulher” used `GetMenuShow`.
+the overlay up when Mulher used `GetMenuShow`.
 
 ---
 
@@ -84,7 +84,7 @@ the overlay up when “Mulher” used `GetMenuShow`.
 
 ---
 
-## 4. Gender lists, cycling, Mulher vs Homem
+## 4. Gender lists, cycling, palm Mulher
 
 **File:** `src/MainUIButtons.cs`
 
@@ -93,8 +93,8 @@ the overlay up when “Mulher” used `GetMenuShow`.
   Sorted by **`Atom.uid`** (`StringComparer.Ordinal`). Invalidated on
   `SuperController.onAtomUIDsChangedHandlers`.
 - **`VrPalmHudNeedsGenderChoiceStep()`:** `true` if **at least one** `Person`
-  exists (`nF + nM >= 1`). So **every** scene with a figure uses the
-  **Mulher / Homem** step (including a solo Person).
+  exists (`nF + nM >= 1`). So **every** scene with a figure uses the palm
+  gender step (including a solo Person).
 - **Indices:** `_vrPalmHudFemaleCycleIndex`, `_vrPalmHudMaleCycleIndex`.
   Target atom: `list[index % list.Count]`.
 - **`RequestPossessVrPalmHudByGender(true)` — Mulher:**  
@@ -103,11 +103,6 @@ the overlay up when “Mulher” used `GetMenuShow`.
   - Triggers VR-euler-specific behavior inside the possess routine (e.g.
     `RemoveSpankingsFromAllPersonsStatic`, notify grip visibility suppress,
     different Spankings merge rules vs HUD “F” possess).
-- **`RequestPossessVrPalmHudByGender(false)` — Homem:**  
-  **`SnapRigToMalePersonHeadWithPostSteps(target)`** — rig snap to male head
-  (possession-match head snap point), **`EnsureSnapMEndsWithoutPossessionOrTargetHud`**
-  (`ClearPossess`, unlink stray HMD-linked FCs, `SelectModeOff`), hide
-  possessor alignment preview meshes. **Not** full possess+align+select.
 
 **`RequestPossessVrPalmHudAutoWithoutGenderMenu`:** If zero persons → log;
 else **`EasyMateVrEulerPossessHandHud.RequestGenderChooseStep()`** only (no
@@ -119,20 +114,16 @@ after 100 ms, `activeUI = None`; if a Person exists →
 
 ---
 
-## 5. Controller input for gender row (not UI raycasts)
+## 5. Controller input for Mulher on the gender row (not UI raycasts)
 
 **File:** `src/EasyMateVrInput.cs`
 
 | Action | OVR (`sc.isOVR`) | OpenVR (`sc.isOpenVR`) |
 |--------|------------------|-------------------------|
 | **Mulher** | `OVRInput.GetDown(Button.Two, RTouch)` only | `SuperController.GetMenuShow()` (SteamVR **Menu**, may be **Any** hand per VaM) |
-| **Homem** | `OVRInput.GetDown(Button.One, RTouch)` only | `SuperController.GetRightSelect()` (right-hand **Select**) |
 
 If neither OVR nor OpenVR but XR seems on, code **falls back** to OVR
 `RTouch` reads (e.g. some Link setups).
-
-**Conflict:** If both Mulher and Homem fire same frame, **Mulher** wins
-(HandHud `Tick` order).
 
 ---
 
@@ -175,7 +166,7 @@ Bindings are set in **`MainUIButtons.Init`**:
   `RequestClearAllPossession(..., advanceVrPalmHudGenderCycle: true)`.
 - **`TriggerPossessAlignSelectClosestFemaleByHead`** →
   **`PossessAlignSelectClosestFemaleByHeadToCamera()`** (closest female by
-  head, **`VrEulerPossessLabel`**, not the palm Mulher/Homem menus).
+  head, **`VrEulerPossessLabel`**, not the palm Mulher menu).
 
 **Master switch (currently off):**
 
@@ -202,9 +193,8 @@ auto path for those flows. Set to **`true`** to restore old behavior.
   when look camera moves too far from possessed person’s feet; calls
   **`RequestClearAllPossession` with advance `true`**.
 - **Desktop / HUD:** Hotkeys (**P**, **O**, etc.) and any remaining world-space
-  buttons live in **`MainUIButtons`** (not duplicated here). Palm **Homem** uses
-  `SnapRigToMalePersonHeadWithPostSteps`; palm **Mulher** uses the female runtime
-  path (`EasyMateFemalePassengerRuntime`).
+  buttons live in **`MainUIButtons`** (not duplicated here). Palm **Mulher** uses
+  the female runtime path (`EasyMateFemalePassengerRuntime`).
 
 ---
 
@@ -228,5 +218,5 @@ auto path for those flows. Set to **`true`** to restore old behavior.
 - Prefer **SuperController** public API over reflection (project rule).
 - Keep **C# 6** (no inline `out var`, etc.); see
   `Reference/VaM-Scripting-Notes.md` and `.cursor` rules.
-- Palm **Homem** is rig snap only (no full possess+align+select); palm **Mulher**
-  is **VR euler** possess+align+select with label **`VrEulerPossessLabel`**.
+- Palm **Mulher** is **VR euler** possess+align+select with label
+  **`VrEulerPossessLabel`**.

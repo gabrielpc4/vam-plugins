@@ -550,8 +550,9 @@ namespace geesp0t
 
         void Update()
         {
+            SuperController scFsm = SuperController.singleton;
             bool loadingNow =
-                SuperController.singleton != null && SuperController.singleton.isLoading;
+                scFsm != null && scFsm.isLoading;
             if (!prevSuperLoading && loadingNow)
             {
                 EasyMateFemalePassengerRuntime.NotifySceneChanged(this);

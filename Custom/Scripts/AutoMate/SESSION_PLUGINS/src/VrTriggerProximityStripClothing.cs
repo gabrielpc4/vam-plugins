@@ -181,9 +181,10 @@ namespace geesp0t
                 return true;
             }
 
-            if (fc.control != null)
+            // VaM session compile crashed when this fallback used fc.control (see 814214a); follow + transform still valid on FreeControllerV3.
+            if (fc.follow != null)
             {
-                world = fc.control.position;
+                world = fc.follow.position;
                 return true;
             }
 

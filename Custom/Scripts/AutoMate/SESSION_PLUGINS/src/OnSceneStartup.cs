@@ -1,20 +1,20 @@
 using System;
+using UnityEngine;
 
 namespace geesp0t
 {
     /// <summary>
-    /// While SuperController loads a scene, forces CoreControl GlobalLighting &quot;camExposure&quot; to 0,
-    /// then restores the saved value on the same sceneChanged gate as Auto_Load_Person_Plugins.
+    /// Forces CoreControl GlobalLighting &quot;camExposure&quot; to 0 while VaM is still settling after a load:
+    /// SuperController scene load, full-screen loading UI/geometry (which stays up briefly after isLoading clears),
+    /// and the loading icon used for queued textures (ImageLoader) and URL audio loads.
+    /// Restores the snapshot value once all of those are inactive.
     /// </summary>
     public class OnSceneStartup
     {
-        private bool wasSuperControllerLoading = false;
+        private bool wasSceneStillSettling = false;
 
-        private bool exposureDimPendingDuringLoad = false;
         private bool camExposureBackupCaptured = false;
         private float savedCamExposure = 0f;
-
-        private bool camExposureRestorePendingAfterLoad = false;
 
         private const string coreControlAtomUid = "CoreControl";
         private const string globalLightingStorableId = "GlobalLighting";
@@ -22,66 +22,45 @@ namespace geesp0t
 
         public void TickDuringSuperControllerLoad()
         {
-            bool superControllerLoading = SuperController.singleton.isLoading;
+            bool settlingNow = ShouldTreatSceneAsStillSettling();
 
-            if (superControllerLoading != wasSuperControllerLoading)
+            if (settlingNow != wasSceneStillSettling)
             {
-                DebugLog(string.Format("SuperController.isLoading {0} -> {1}", wasSuperControllerLoading, superControllerLoading));
+                DebugLog(string.Format("Scene settle indicator {0} -> {1}", wasSceneStillSettling, settlingNow));
             }
 
-            if (superControllerLoading && !wasSuperControllerLoading)
+            if (settlingNow)
             {
-                camExposureRestorePendingAfterLoad = false;
-                camExposureBackupCaptured = false;
-                exposureDimPendingDuringLoad = true;
-                DebugLog("Load started: will force GlobalLighting camExposure to 0 until load completes.");
-            }
-
-            ApplyCamExposureDuringLoad();
-
-            if (!superControllerLoading && wasSuperControllerLoading)
-            {
-                exposureDimPendingDuringLoad = false;
-
-                DebugLog("Scene load finished (SuperController.isLoading became false).");
-
-                if (camExposureBackupCaptured)
+                if (!wasSceneStillSettling)
                 {
-                    camExposureRestorePendingAfterLoad = true;
-                    DebugLog("camExposure restore will run on sceneChanged gate (~1s).");
+                    camExposureBackupCaptured = false;
+                    DebugLog("Settle phase started (isLoading and/or loading UI/icon); snapshot camExposure on first GlobalLighting access.");
                 }
-                else
+
+                ApplyCamExposureWhileSceneSettling();
+            }
+            else
+            {
+                if (wasSceneStillSettling && camExposureBackupCaptured)
                 {
-                    DebugLog("GlobalLighting was never available during load; camExposure not changed.");
+                    DebugLog(string.Format("Settle phase ended; restoring camExposure to {0}.", savedCamExposure));
+                    try
+                    {
+                        RestoreCamExposure();
+                    }
+                    catch (Exception restoreException)
+                    {
+                        SuperController.LogError("[OnSceneStartup] Restore camExposure after settle phase failed: " + restoreException);
+                    }
                 }
             }
 
-            wasSuperControllerLoading = superControllerLoading;
-        }
-
-        public void OnSceneChangedGateAfterLoadSettled()
-        {
-            if (!camExposureRestorePendingAfterLoad)
-            {
-                return;
-            }
-
-            camExposureRestorePendingAfterLoad = false;
-
-            try
-            {
-                DebugLog(string.Format("sceneChanged gate: restoring camExposure to {0}.", savedCamExposure));
-                RestoreCamExposure();
-            }
-            catch (Exception restoreException)
-            {
-                SuperController.LogError("[OnSceneStartup] Restore camExposure after scene settled failed: " + restoreException);
-            }
+            wasSceneStillSettling = settlingNow;
         }
 
         public void OnOwningPluginDestroy()
         {
-            if (!camExposureBackupCaptured && !camExposureRestorePendingAfterLoad)
+            if (!camExposureBackupCaptured)
             {
                 return;
             }
@@ -97,13 +76,50 @@ namespace geesp0t
             }
         }
 
-        void ApplyCamExposureDuringLoad()
+        bool ShouldTreatSceneAsStillSettling()
         {
-            if (!SuperController.singleton.isLoading || !exposureDimPendingDuringLoad)
+            SuperController superController = SuperController.singleton;
+
+            if (superController.isLoading)
             {
-                return;
+                return true;
             }
 
+            if (IsTransformActive(superController.loadingUI))
+            {
+                return true;
+            }
+
+            if (IsTransformActive(superController.loadingUIAlt))
+            {
+                return true;
+            }
+
+            if (IsTransformActive(superController.loadingGeometry))
+            {
+                return true;
+            }
+
+            if (IsTransformActive(superController.loadingIcon))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        static bool IsTransformActive(Transform sceneTransform)
+        {
+            if (sceneTransform == null)
+            {
+                return false;
+            }
+
+            return sceneTransform.gameObject.activeSelf;
+        }
+
+        void ApplyCamExposureWhileSceneSettling()
+        {
             JSONStorable globalLightingStorable = TryGetGlobalLightingStorable();
             if (globalLightingStorable == null)
             {
@@ -114,7 +130,7 @@ namespace geesp0t
             {
                 savedCamExposure = globalLightingStorable.GetFloatParamValue(camExposureParamName);
                 camExposureBackupCaptured = true;
-                DebugLog(string.Format("Snapshot GlobalLighting camExposure={0}; forcing 0 during load.", savedCamExposure));
+                DebugLog(string.Format("Snapshot GlobalLighting camExposure={0}; forcing 0 until settle ends.", savedCamExposure));
             }
 
             globalLightingStorable.SetFloatParamValue(camExposureParamName, 0f);
@@ -127,13 +143,11 @@ namespace geesp0t
             {
                 SuperController.LogError("[OnSceneStartup] Restore: CoreControl GlobalLighting not available.");
                 camExposureBackupCaptured = false;
-                camExposureRestorePendingAfterLoad = false;
                 return;
             }
 
             globalLightingStorable.SetFloatParamValue(camExposureParamName, savedCamExposure);
             camExposureBackupCaptured = false;
-            camExposureRestorePendingAfterLoad = false;
         }
 
         JSONStorable TryGetGlobalLightingStorable()

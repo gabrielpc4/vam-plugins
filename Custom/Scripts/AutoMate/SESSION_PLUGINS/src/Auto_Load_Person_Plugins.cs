@@ -877,8 +877,6 @@ namespace geesp0t
                         SuperController.LogError("[Auto_Load_Person_Plugins] LoadPersonPlugins after scene load failed: " + e);
                     }
                 }
-
-                onSceneStartup.OnSceneChangedGateAfterLoadSettled();
             }
 
             if (wantToSetAppearance && !SuperController.singleton.isLoading)

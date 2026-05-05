@@ -70,15 +70,15 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
 
     | Row | Col 1 | Col 2 | Col 3 |
     |-----|--------|--------|--------|
-    | 0 | E‑Motion Lite | Possess Male | Remove underwear |
-    | 1 | E‑Motion Original | Possess Female | Remove All Clothes |
-    | 2 | E‑Motion Final | Passenger Male | **+/‑ Spankings Male** |
-    | 3 | Remove E‑Motion | Passenger Female | *(empty)* |
+    | 0 | E‑Motion Lite | *(empty)* | Remove underwear |
+    | 1 | E‑Motion Original | *(empty)* | Remove All Clothes |
+    | 2 | E‑Motion Final | *(empty)* | **+/‑ Spankings Male** |
+    | 3 | Remove E‑Motion | *(empty)* | Remove Spankings |
+    | 4 | E‑Motion M | E‑Motion F | *(empty)* |
 
-  - **Spankings:** Toggle label **`+ `** / **`- `** + **`Spankings Male`** when every `Person` has the Spankings plugin filename. Hotkey **Ctrl+Shift+S** still toggles the same merge/remove behavior.
-  - **E‑Motion:** Same four actions as before (**Lite**, **Original**, **Final**, **Remove E‑Motion**); **`TryReplaceEmotionFamilyWithExactPath`** enforces one family pack per merge.
-  - **Possess Male / Female:** `Possess+Align+Select` to first male/female `Person` by stable **uid** (not “closest head” — that is **P** hotkey).
-  - **Passenger Male / Female:** One-shot rig snap to closest male/female **by head distance** to look/center camera (was labeled Snap M / Snap F); still uses `Possessor.autoSnapPoint`, head offsets, **`EasyMateVrHeadCylinderHide`**, etc. Closest-female / closest-male helpers apply.
+  - **Spankings:** Toggle label **`+ `** / **`- `** + **`Spankings Male`** when every `Person` has the Spankings plugin filename; row 3 **Remove Spankings** clears the plugin from all Persons. Hotkey **Ctrl+Shift+S** still toggles the same merge/remove behavior.
+  - **E‑Motion:** **Lite**, **Original**, **Final**, **Remove E‑Motion**; **`TryReplaceEmotionFamilyWithExactPath`** enforces one family pack per merge. Row 4 **E‑Motion M** / **E‑Motion F** are gender-specific merge entry points.
+  - **VR palm HUD / hotkeys:** Rig alignment, female/male targeting cycles, and related clears live in **`MainUIButtons`**, **`EasyMateVrEulerPossessHandHud`**, and **`EasyMateFemalePassengerRuntime`** — see **`Custom/Scripts/Easy Mate/VR-POSSESSION-PALM-HUD-AND-SNAP.md`**.
   - **Remove All Clothes / Remove underwear:** Same `DAZCharacterSelector` logic as before (`StripAllClothesOnAllPersons`, `RemoveUnderwearOnAllPersons`).
   - Shared plugin path: `GetJSON` → normalize paths → `LateRestoreFromJSON`; empty plugin set uses empty `PluginManager` JSON.
   - **`Show UI` / `Hide UI`:** Toggle **only** MainUIButtons HUD elements (not `VaMLogClipboardHud`).
@@ -783,7 +783,7 @@ For any future feature that scans atoms or modifies camera state on scene load, 
 
 ### 1. Remove Easy Mate buttons and add our own custom buttons
 
-**Status:** World HUD is split between **`VaMLogClipboardHud`** (log column) and **`MainUIButtons`** (columns 1–3): E‑Motion column, **Possess Male/Female**, **Passenger Male/Female**, **Remove underwear**, **Remove All Clothes**, **+/‑ Spankings Male**, **Remove E‑Motion**. Further buttons: same files or follow **`AutoMate/SESSION_PLUGINS`** HUD patterns.
+**Status:** World HUD is split between **`VaMLogClipboardHud`** (log column) and **`MainUIButtons`** (columns 1–3): E‑Motion column (including **E‑Motion M/F**), clothing strip buttons, **+/‑ Spankings Male**, **Remove Spankings**, **Remove E‑Motion**. VR flows use the palm HUD and helpers documented in **`VR-POSSESSION-PALM-HUD-AND-SNAP.md`**. Further buttons: same files or follow **`AutoMate/SESSION_PLUGINS`** HUD patterns.
 
 Likely touch points:
 
@@ -808,15 +808,15 @@ Likely touch points for tweaks:
 
 **Status:** Implemented in `Easy Mate/src/MainUIButtons.cs` as **Remove All Clothes** (`EnableUndressAllClothingItems` + deactivate every clothing item per `Person`).
 
-### 4. Buttons to snap the HMD into first / second female without attaching
+### 4. Rig alignment, palm HUD targets, and head-zone hide
 
-**Status (partial):** **Passenger Female** / **Passenger Male** in `MainUIButtons` one-shot-snap the rig to the **closest** female/male **by head** to the look/center camera (not “first by uid”). **Possess Female** / **Possess Male** use first person by **uid** for **Possess+Align+Select**. A dedicated second-female-only snap button is not added. **`EasyMateVrHeadCylinderHide`** may **`PhysicsLink`** head to HMD **`CenterEye`** inside the head zone.
+**Status:** Use **`MainUIButtons`**, **`EasyMateVrEulerPossessHandHud`**, and **`EasyMateFemalePassengerRuntime`** for current VR entry points; see **`VR-POSSESSION-PALM-HUD-AND-SNAP.md`**. **`EasyMateVrHeadCylinderHide`** applies temporary face/material hide when the HMD is inside the head cylinder on VR eye cameras and coordinates with rig/CenterEye tooling where applicable.
 
-Implementation mirrors `AlignRigAndController`-style rig peel and yaw on **`navigationRig.up`**; does not use built-in **`HeadPossess`** for the passenger snap path.
-
-Likely touch points for F2 / polish:
+Likely touch points for polish:
 
 - `Easy Mate/src/MainUIButtons.cs`
+- `Easy Mate/src/EasyMateVrEulerPossessHandHud.cs`
+- `Custom/Scripts/AutoMate/SESSION_PLUGINS/src/EasyMate_VR_Head_Cylinder_Hide.cs`
 - `ImprovedPoV` material hiding logic (still separate if desired)
 
 ### 5. Universal head hide when camera enters any person's head
@@ -1176,7 +1176,7 @@ When implementing later, revisit these first:
 
 - `Custom/Scripts/Easy Mate/src/MainUIButtons.cs`
   - world-space HUD on `mainHUD` (columns 1–3; see grid in **Easy Mate** section)
-  - merge-add / remove plugins; **Remove All Clothes** / **Remove underwear**; **Passenger Female/Male** (closest-by-head snap); **Possess Female/Male** (uid-first possess flow)
+  - merge-add / remove plugins; **Remove All Clothes** / **Remove underwear**; **E‑Motion M/F**; Spankings toggles; VR palm HUD and female runtime wiring (`EasyMateVrEulerPossessHandHud`, **`EasyMateFemalePassengerRuntime`**)
 - `Custom/Scripts/Easy Mate/src/VaMLogClipboardHud.cs`
   - separate `.cslist`; **Copy Errors** / **Copy Console** / **Clear logs** aligned to HUD column 0
 
@@ -1228,6 +1228,6 @@ When implementing later, revisit these first:
 
 - The project already has solid patterns for HUD buttons, scene scanning, clothing control, plugin injection, and person-relative camera math.
 - The hardest future task is the independent desktop monitor camera because VaM's built-in monitor mode shares the same `navigationRig` as VR.
-- The easiest remaining HUD-style tasks are: a **second-female Passenger** button (by `uid` or closest-head), optional head-hide when camera inside head, more plugin toggles.
+- The easiest remaining HUD-style tasks are: extra gender/atom picker buttons if needed, optional head-hide when camera inside head, more plugin toggles.
 - The best way to do "snap to female head once" is probably **not** built-in possession, but a one-time rig move using the same math that built-in possession uses.
 

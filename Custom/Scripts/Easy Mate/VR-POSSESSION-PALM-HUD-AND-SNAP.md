@@ -104,9 +104,8 @@ the overlay up when “Mulher” used `GetMenuShow`.
     `RemoveSpankingsFromAllPersonsStatic`, notify grip visibility suppress,
     different Spankings merge rules vs HUD “F” possess).
 - **`RequestPossessVrPalmHudByGender(false)` — Homem:**  
-  **`SnapRigToMalePersonHeadWithPostSteps(target)`** — same pipeline as HUD
-  **“Passenger Male”**: rig snap to male head (possession-match head snap
-  point), **`EnsureSnapMEndsWithoutPossessionOrTargetHud`**
+  **`SnapRigToMalePersonHeadWithPostSteps(target)`** — rig snap to male head
+  (possession-match head snap point), **`EnsureSnapMEndsWithoutPossessionOrTargetHud`**
   (`ClearPossess`, unlink stray HMD-linked FCs, `SelectModeOff`), hide
   possessor alignment preview meshes. **Not** full possess+align+select.
 
@@ -202,10 +201,10 @@ auto path for those flows. Set to **`true`** to restore old behavior.
 - **`EasyMatePossessFootDistanceAutoRelease.cs`:** Optional auto-unpossess
   when look camera moves too far from possessed person’s feet; calls
   **`RequestClearAllPossession` with advance `true`**.
-- **Desktop / HUD:** Possess Female / Male / **P** / **O** etc. still live in
-  **`MainUIButtons`** (not duplicated here).
-- **Passenger Female / Male** HUD buttons:** Snap rig to head; **Male** uses
-  `SnapRigToMalePersonHeadWithPostSteps` (same family as palm **Homem**).
+- **Desktop / HUD:** Hotkeys (**P**, **O**, etc.) and any remaining world-space
+  buttons live in **`MainUIButtons`** (not duplicated here). Palm **Homem** uses
+  `SnapRigToMalePersonHeadWithPostSteps`; palm **Mulher** uses the female runtime
+  path (`EasyMateFemalePassengerRuntime`).
 
 ---
 
@@ -229,5 +228,5 @@ auto path for those flows. Set to **`true`** to restore old behavior.
 - Prefer **SuperController** public API over reflection (project rule).
 - Keep **C# 6** (no inline `out var`, etc.); see
   `Reference/VaM-Scripting-Notes.md` and `.cursor` rules.
-- Palm **Homem** is **Snap M**, not possess; palm **Mulher** is **VR euler**
-  possess+align+select with label **`VrEulerPossessLabel`**.
+- Palm **Homem** is rig snap only (no full possess+align+select); palm **Mulher**
+  is **VR euler** possess+align+select with label **`VrEulerPossessLabel`**.

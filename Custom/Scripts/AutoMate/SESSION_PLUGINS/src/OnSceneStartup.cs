@@ -8,6 +8,7 @@ namespace geesp0t
     /// drives CoreControl GlobalLighting camExposure to 0, freezes simulation via SuperController.PauseSimulation,
     /// and forces AudioListener.pause so motion/sound do not run ahead of loaded assets.
     /// After settle ends, restores camExposure first, then raises the pause flag and restores the prior audio pause state.
+    /// On settle start/end also notifies <see cref="EasyMateVrHeadCylinderHide"/> so VR head-cylinder hide waits until assets/UI match this gate.
     /// Tick runs from LateUpdate so CoreControl JSON usually reflects the scene before we read exposure backup.
     /// </summary>
     public class OnSceneStartup
@@ -45,6 +46,7 @@ namespace geesp0t
                 {
                     camExposureBackupCaptured = false;
                     BeginSceneSettleSimulationPauseHold();
+                    EasyMateVrHeadCylinderHide.NotifyScenePlaybackHoldStarted();
                 }
 
                 MaintainSceneSettleAudioPauseDuringTick();

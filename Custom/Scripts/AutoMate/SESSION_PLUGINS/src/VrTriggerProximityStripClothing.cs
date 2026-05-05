@@ -8,7 +8,7 @@ namespace geesp0t
     /// VR: trigger press (<see cref="SuperController.GetLeftGrab"/> / <see cref="SuperController.GetRightGrab"/> are
     /// one-frame edges in VaM, not hold-repeat) strips one active clothing item on the nearest Person when the hand
     /// is within reach of torso anchors. Upper vs lower follows chest vs pelvis distance; falls back across bands.
-    /// Called from <see cref="Auto_Load_Person_Plugins.Update"/> so it ships in the same session plugin assembly.
+    /// Invoked from <see cref="VrTriggerProximityStripClothingPlugin"/> (separate session plugin assembly — avoids Mono compile crash when bundled with Auto_Load).
     /// </summary>
     public static class VrTriggerProximityStripClothing
     {

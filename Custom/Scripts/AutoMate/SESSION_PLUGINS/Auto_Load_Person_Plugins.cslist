@@ -1,5 +1,4 @@
 src/OnSceneStartup.cs
-src/VrTriggerProximityStripClothing.cs
 src/Auto_Load_Person_Plugins.cs
 src/KeyboardShortcuts.cs
 src/EasyMate_VR_Head_Cylinder_Hide.cs

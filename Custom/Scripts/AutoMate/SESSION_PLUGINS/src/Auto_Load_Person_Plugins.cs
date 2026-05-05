@@ -832,8 +832,6 @@ namespace geesp0t
 
         public void Update()
         {
-            VrTriggerProximityStripClothing.Tick();
-
             if (keyboardShortcuts != null)
                 keyboardShortcuts.ProcessHotkeysUpdate();
 

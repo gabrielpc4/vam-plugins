@@ -20,6 +20,7 @@ namespace geesp0t
             "Custom/Scripts/Easy Mate/EasyMate.cslist",
             "Custom/Scripts/DildoOnHands/DildoOnHands.cslist",
             "Custom/Scripts/AutoMate/SESSION_PLUGINS/Auto_Load_Person_Plugins.cslist",
+            "Custom/Scripts/AutoMate/SESSION_PLUGINS/VrTriggerProximityStripClothing.cslist",
         };
 
         string[] desktopSessionPlugins = new string[] {

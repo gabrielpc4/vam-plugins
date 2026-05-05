@@ -232,6 +232,9 @@ namespace geesp0t
         /// Uses public <see cref="SuperController.loadJson"/> versus each <c>.json</c>
         /// under <see cref="SuperController.currentLoadDir"/> (<see cref="SuperController.ReadFileIntoString"/>).
         /// This disambiguates folders with multiple scene files without reading non-public VaM fields.
+        /// It serializes entire scene trees (see <see cref="JSONNode.ToString(string)"/>)
+        /// — large saves can use noticeable CPU and memory;
+        /// nothing is shortened for speed so the fingerprint match stays exact.
         /// </summary>
         private static bool TryResolveExactSceneJsonMatchingPublicSuperControllerLoadJsonFingerprint(
             SuperController superControllerReference,
@@ -285,6 +288,11 @@ namespace geesp0t
                     trimmedLoadFolderFwd));
                 return false;
             }
+
+            SuperController.LogMessage(string.Format(
+                "EasyMate [scene tracker]: comparing full loadJson serialization to each of {0} scene JSON candidate(s) under {1} — very large saves can pause here while this runs.",
+                jsonBasenamesDistinct.Count,
+                trimmedLoadFolderFwd));
 
             matchingRelativePathsGathered = new List<string>();
             skippedProblematicDiskCandidatesFingerprintPass = 0;

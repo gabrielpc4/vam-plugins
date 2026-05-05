@@ -7,7 +7,8 @@ namespace geesp0t
     /// While the scene is still settling (same signals as VaM&apos;s load UI / icon / isLoading):
     /// drives CoreControl GlobalLighting camExposure to 0, freezes simulation via SuperController.PauseSimulation,
     /// and forces AudioListener.pause so motion/sound do not run ahead of loaded assets.
-    /// After settle ends, restores camExposure immediately, then raises the pause flag and restores the prior audio pause state.
+    /// After the first full settle for a load, ignores later loading UI / icon-only activity (so streaming assets do not force exposure to 0 again).
+    /// Re-arms when SuperController.isLoading becomes true (new VaM scene load).
     /// Tick runs from LateUpdate so CoreControl JSON usually reflects the scene before we read exposure backup.
     /// </summary>
     public class OnSceneStartup
@@ -23,6 +24,10 @@ namespace geesp0t
         private bool audioPauseSnapshotCapturedForSceneSettleHold;
         private bool savedAudioListenerPauseBeforeSceneSettleHold;
 
+        private bool lastSuperControllerIsLoading;
+
+        private bool initialSceneLoadSettleWorkflowFinished;
+
         private const string coreControlAtomUid = "CoreControl";
         private const string globalLightingStorableId = "GlobalLighting";
         private const string camExposureParamName = "camExposure";
@@ -36,10 +41,27 @@ namespace geesp0t
         /// <summary>Returns true the first tick after VaM&apos;s loading/settle UI has cleared — playback hold was released.</summary>
         public bool TickDuringSuperControllerLoad()
         {
-            bool settlingNow = ShouldTreatSceneAsStillSettling();
+            SuperController superController = SuperController.singleton;
+            bool superControllerIsLoadingNow = superController != null && superController.isLoading;
+
+            if (superControllerIsLoadingNow && !lastSuperControllerIsLoading)
+            {
+                initialSceneLoadSettleWorkflowFinished = false;
+            }
+
+            lastSuperControllerIsLoading = superControllerIsLoadingNow;
+
+            bool rawSceneSettlingIndicatorsActive = ShouldTreatSceneAsStillSettling();
+            bool sceneSettlingForExposureWorkflow = rawSceneSettlingIndicatorsActive;
+
+            if (initialSceneLoadSettleWorkflowFinished && !superControllerIsLoadingNow)
+            {
+                sceneSettlingForExposureWorkflow = false;
+            }
+
             bool settleEndedThisTick = false;
 
-            if (settlingNow)
+            if (sceneSettlingForExposureWorkflow)
             {
                 if (!wasSceneStillSettling)
                 {
@@ -57,10 +79,11 @@ namespace geesp0t
                 {
                     FinishSceneSettleExposureThenReleasePlaybackHold();
                     settleEndedThisTick = true;
+                    initialSceneLoadSettleWorkflowFinished = true;
                 }
             }
 
-            wasSceneStillSettling = settlingNow;
+            wasSceneStillSettling = sceneSettlingForExposureWorkflow;
             return settleEndedThisTick;
         }
 

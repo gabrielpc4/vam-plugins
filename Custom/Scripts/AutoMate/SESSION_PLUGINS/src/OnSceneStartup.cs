@@ -8,7 +8,7 @@ namespace geesp0t
     /// SuperController scene load, full-screen loading UI/geometry (which stays up briefly after isLoading clears),
     /// and the loading icon used for queued textures (ImageLoader) and URL audio loads.
     /// Restores the snapshot value once all of those are inactive.
-    /// Backup prefers scene-applied exposure (&lt; ~1 default) and can refine down via Mathf.Min if we briefly saw 1.0 first.
+    /// Bright reads (&gt;= ~1) always set the backup even while isLoading (Default.json). Dim reads use Mathf.Min so transient 1.0 then 0.03 still restores 0.03 (pass.json). Bright after dim overrides stale low carryover from the previous scene (MainMenu after pass.json).
     /// Tick runs from LateUpdate so CoreControl JSON usually reflects the scene before we read.
     /// </summary>
     public class OnSceneStartup
@@ -55,16 +55,23 @@ namespace geesp0t
             }
             else
             {
-                if (wasSceneStillSettling && camExposureBackupCaptured)
+                if (wasSceneStillSettling)
                 {
-                    DebugLog(string.Format("Settle phase ended; restoring camExposure to {0}.", savedCamExposure));
-                    try
+                    if (camExposureBackupCaptured)
                     {
-                        RestoreCamExposure();
+                        DebugLog(string.Format("Settle phase ended; restoring camExposure to {0}.", savedCamExposure));
+                        try
+                        {
+                            RestoreCamExposure();
+                        }
+                        catch (Exception restoreException)
+                        {
+                            SuperController.LogError("[OnSceneStartup] Restore camExposure after settle phase failed: " + restoreException);
+                        }
                     }
-                    catch (Exception restoreException)
+                    else
                     {
-                        SuperController.LogError("[OnSceneStartup] Restore camExposure after settle phase failed: " + restoreException);
+                        RestoreCamExposureUsingGlobalLightingDefaultBecauseBackupWasNeverCaptured();
                     }
                 }
             }
@@ -184,37 +191,69 @@ namespace geesp0t
                 return;
             }
 
-            if (rawCamExposure < nearDefaultFullExposure)
+            if (rawCamExposure >= nearDefaultFullExposure)
             {
-                float savedCamExposureBefore = savedCamExposure;
-                bool backupHeldBefore = camExposureBackupCaptured;
+                float savedCamExposureBeforeBright = savedCamExposure;
+                bool backupHeldBeforeBright = camExposureBackupCaptured;
 
-                if (!camExposureBackupCaptured)
-                {
-                    savedCamExposure = rawCamExposure;
-                    camExposureBackupCaptured = true;
-                }
-                else
-                {
-                    savedCamExposure = Mathf.Min(savedCamExposure, rawCamExposure);
-                }
+                savedCamExposure = rawCamExposure;
+                camExposureBackupCaptured = true;
 
-                if (!backupHeldBefore || Mathf.Abs(savedCamExposureBefore - savedCamExposure) > 0.0001f)
+                if (!backupHeldBeforeBright || Mathf.Abs(savedCamExposureBeforeBright - savedCamExposure) > 0.0001f)
                 {
-                    DebugLog(string.Format("Backup camExposure scene-like raw={0} saved->{1} isLoading={2}.", rawCamExposure, savedCamExposure, superController.isLoading));
+                    DebugLog(string.Format("Backup camExposure bright/raw>=~1 raw={0} saved->{1} isLoading={2}.", rawCamExposure, savedCamExposure, superController.isLoading));
                 }
 
                 return;
             }
 
-            if (!superController.isLoading)
+            float savedCamExposureBeforeDim = savedCamExposure;
+            bool backupHeldBeforeDim = camExposureBackupCaptured;
+
+            if (!camExposureBackupCaptured)
             {
-                if (!camExposureBackupCaptured)
-                {
-                    savedCamExposure = rawCamExposure;
-                    camExposureBackupCaptured = true;
-                    DebugLog(string.Format("Backup camExposure post-load default-range raw={0} saved->{1}.", rawCamExposure, savedCamExposure));
-                }
+                savedCamExposure = rawCamExposure;
+                camExposureBackupCaptured = true;
+            }
+            else
+            {
+                savedCamExposure = Mathf.Min(savedCamExposure, rawCamExposure);
+            }
+
+            if (!backupHeldBeforeDim || Mathf.Abs(savedCamExposureBeforeDim - savedCamExposure) > 0.0001f)
+            {
+                DebugLog(string.Format("Backup camExposure scene-like raw={0} saved->{1} isLoading={2}.", rawCamExposure, savedCamExposure, superController.isLoading));
+            }
+        }
+
+        void RestoreCamExposureUsingGlobalLightingDefaultBecauseBackupWasNeverCaptured()
+        {
+            JSONStorable globalLightingStorable = TryGetGlobalLightingStorable();
+            if (globalLightingStorable == null)
+            {
+                SuperController.LogError("[OnSceneStartup] Settle ended without camExposure backup and CoreControl GlobalLighting was missing; exposure may stay at 0.");
+                return;
+            }
+
+            JSONStorableFloat camExposureJsonFloat = globalLightingStorable.GetFloatJSONParam(camExposureParamName);
+            float fallbackCamExposure = 1f;
+
+            if (camExposureJsonFloat != null)
+            {
+                fallbackCamExposure = camExposureJsonFloat.defaultVal;
+            }
+
+            SuperController.LogMessage("[OnSceneStartup] Settle ended without camExposure backup; restoring GlobalLighting defaultVal=" + fallbackCamExposure + ".");
+
+            try
+            {
+                savedCamExposure = fallbackCamExposure;
+                camExposureBackupCaptured = true;
+                RestoreCamExposure();
+            }
+            catch (Exception fallbackRestoreException)
+            {
+                SuperController.LogError("[OnSceneStartup] Fallback restore camExposure failed: " + fallbackRestoreException);
             }
         }
 

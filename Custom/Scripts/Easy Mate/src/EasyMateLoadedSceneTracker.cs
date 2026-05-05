@@ -8,7 +8,8 @@ namespace geesp0t
     /// Tracks the exact scene JSON path VaM most recently loaded so follow-up
     /// tools can target that same file instead of guessing from folder state.
     /// When several <c>.json</c> files share <see cref="SuperController.currentLoadDir"/>,
-    /// resolution uses public <see cref="SuperController.loadJson"/> in tiers: one file in the folder
+    /// only files in that folder itself are considered (not nested subfolders), matching Python <c>listdir</c>.
+    /// Resolution uses public <see cref="SuperController.loadJson"/> in tiers: one file in the folder
     /// skips serialization; otherwise compare normalized raw disk text vs one dump, then parse only if needed.
     /// </summary>
     public static class EasyMateLoadedSceneTracker
@@ -231,7 +232,8 @@ namespace geesp0t
 
         /// <summary>
         /// Uses public <see cref="SuperController.loadJson"/> versus each <c>.json</c>
-        /// under <see cref="SuperController.currentLoadDir"/> (<see cref="SuperController.ReadFileIntoString"/>).
+        /// that lives <b>directly</b> in <see cref="SuperController.currentLoadDir"/> (shallow list; subfolders ignored),
+        /// using <see cref="SuperController.ReadFileIntoString"/>.
         /// This disambiguates folders with multiple scene files without reading non-public VaM fields.
         /// Path selection is tiered for speed:
         /// a single listing uses that file; multiple listings try normalized raw-text equality (one serialize of
@@ -433,6 +435,10 @@ namespace geesp0t
             return false;
         }
 
+        /// <summary>
+        /// Collects <c>.json</c> basenames that sit <b>directly</b> inside the open load folder
+        /// (matches Python <c>pick_main_scene_json</c> shallow <c>listdir</c>; subfolders are ignored).
+        /// </summary>
         private static bool TryFillDistinctSceneJsonBasenamesListedInFolder(
             SuperController superControllerReference,
             string trimmedLoadFolderFwdNoTrailingSlash,
@@ -472,6 +478,12 @@ namespace geesp0t
             while (listedPathIndexListed < listedPathsRawListed.Length)
             {
                 listedPathFwd = NormalizeFwd(listedPathsRawListed[listedPathIndexListed]);
+                if (!IsListedFilePathImmediateChildOfFolder(listedPathFwd, trimmedLoadFolderFwdNoTrailingSlash))
+                {
+                    listedPathIndexListed++;
+                    continue;
+                }
+
                 AppendJsonSceneFileNamesUnique(destinationOrderedDistinctJsonFilenamesOnly, listedPathFwd);
                 listedPathIndexListed++;
             }
@@ -600,8 +612,8 @@ namespace geesp0t
 
         /// <summary>
         /// Mirrors <c>pick_main_scene_json</c> in
-        /// <c>Easy Mate/tools/patch_scene_initial_camera.py</c> using
-        /// <see cref="SuperController.GetFilesAtPath"/>.
+        /// <c>Easy Mate/tools/patch_scene_initial_camera.py</c>: only <c>.json</c> files
+        /// in that folder (not nested paths) use <see cref="SuperController.GetFilesAtPath"/>.
         /// </summary>
         private static string PickMainSceneJsonRelativeFromLoadFolder(SuperController sc, string loadDirFolderFwd)
         {
@@ -646,6 +658,12 @@ namespace geesp0t
             while (listedIndexRaw < listedPathsRaw.Length)
             {
                 listedPathFwd = NormalizeFwd(listedPathsRaw[listedIndexRaw]);
+                if (!IsListedFilePathImmediateChildOfFolder(listedPathFwd, trimmedFolderFwd))
+                {
+                    listedIndexRaw++;
+                    continue;
+                }
+
                 AppendJsonSceneFileNamesUnique(jsonFileNamesDistinct, listedPathFwd);
                 listedIndexRaw++;
             }
@@ -723,6 +741,31 @@ namespace geesp0t
             }
 
             return CombineFwd(trimmedFolderFwd, chosenNameOriginal);
+        }
+
+        /// <summary>
+        /// True when <paramref name="listedFileEntryPathFwd"/> names a file whose parent folder is exactly
+        /// <paramref name="expectedParentFolderFwdTrimmedNoTrail"/> — same shallow rule as Python <c>os.listdir</c>.
+        /// </summary>
+        private static bool IsListedFilePathImmediateChildOfFolder(
+            string listedFileEntryPathFwd,
+            string expectedParentFolderFwdTrimmedNoTrail)
+        {
+            string parentFolderOfListedFwd;
+            string expectedNorm;
+
+            expectedNorm = NormalizeFwd(expectedParentFolderFwdTrimmedNoTrail).TrimEnd('/');
+            if (expectedNorm.Length == 0)
+            {
+                return false;
+            }
+
+            parentFolderOfListedFwd = NormalizeFwd(GetDirectoryPath(listedFileEntryPathFwd));
+
+            return string.Equals(
+                parentFolderOfListedFwd,
+                expectedNorm,
+                StringComparison.OrdinalIgnoreCase);
         }
 
         private static void AppendJsonSceneFileNamesUnique(List<string> storeDistinctNames, string listedPathFwd)

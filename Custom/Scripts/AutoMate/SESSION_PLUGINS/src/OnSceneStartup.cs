@@ -18,9 +18,6 @@ namespace geesp0t
         private bool camExposureBackupCaptured = false;
         private float savedCamExposure = 0f;
 
-        private float lastSettleLoggedRawCamExposure = float.NaN;
-        private float lastNear003ProbeLoggedRaw = float.NaN;
-
         private const string coreControlAtomUid = "CoreControl";
         private const string globalLightingStorableId = "GlobalLighting";
         private const string camExposureParamName = "camExposure";
@@ -29,26 +26,15 @@ namespace geesp0t
 
         private const float nearDefaultFullExposure = 0.99f;
 
-        private const float passJsonExposureHint = 0.03f;
-        private const float passJsonExposureProbeHalfWidth = 0.008f;
-
         public void TickDuringSuperControllerLoad()
         {
             bool settlingNow = ShouldTreatSceneAsStillSettling();
-
-            if (settlingNow != wasSceneStillSettling)
-            {
-                DebugLog(string.Format("Scene settle indicator {0} -> {1}", wasSceneStillSettling, settlingNow));
-            }
 
             if (settlingNow)
             {
                 if (!wasSceneStillSettling)
                 {
                     camExposureBackupCaptured = false;
-                    lastSettleLoggedRawCamExposure = float.NaN;
-                    lastNear003ProbeLoggedRaw = float.NaN;
-                    DebugLog("Settle phase started (isLoading and/or loading UI/icon); refining camExposure backup each LateUpdate before forcing 0.");
                 }
 
                 ApplyCamExposureWhileSceneSettling();
@@ -59,7 +45,6 @@ namespace geesp0t
                 {
                     if (camExposureBackupCaptured)
                     {
-                        DebugLog(string.Format("Settle phase ended; restoring camExposure to {0}.", savedCamExposure));
                         try
                         {
                             RestoreCamExposure();
@@ -88,7 +73,6 @@ namespace geesp0t
 
             try
             {
-                DebugLog("OnDestroy: restoring camExposure.");
                 RestoreCamExposure();
             }
             catch (Exception destroyRestoreException)
@@ -147,44 +131,14 @@ namespace geesp0t
                 return;
             }
 
-            SuperController superController = SuperController.singleton;
             float rawCamExposure = globalLightingStorable.GetFloatParamValue(camExposureParamName);
 
-            LogSettleExposureSampleIfChanged(superController, rawCamExposure);
-            LogNearPassJsonExposureHintIfNeeded(superController, rawCamExposure);
-
-            MaybeUpdateCamExposureBackupFromScene(superController, rawCamExposure);
+            MaybeUpdateCamExposureBackupFromScene(rawCamExposure);
 
             globalLightingStorable.SetFloatParamValue(camExposureParamName, 0f);
         }
 
-        void LogSettleExposureSampleIfChanged(SuperController superController, float rawCamExposure)
-        {
-            if (float.IsNaN(lastSettleLoggedRawCamExposure) || Mathf.Abs(rawCamExposure - lastSettleLoggedRawCamExposure) > 0.0005f)
-            {
-                lastSettleLoggedRawCamExposure = rawCamExposure;
-                DebugLog(string.Format("Settle LateUpdate read camExposure={0} (isLoading={1}) — next line forces 0.", rawCamExposure, superController.isLoading));
-            }
-        }
-
-        void LogNearPassJsonExposureHintIfNeeded(SuperController superController, float rawCamExposure)
-        {
-            float deltaFromHint = Mathf.Abs(rawCamExposure - passJsonExposureHint);
-            if (deltaFromHint > passJsonExposureProbeHalfWidth)
-            {
-                return;
-            }
-
-            if (!float.IsNaN(lastNear003ProbeLoggedRaw) && Mathf.Abs(rawCamExposure - lastNear003ProbeLoggedRaw) < 0.0001f)
-            {
-                return;
-            }
-
-            lastNear003ProbeLoggedRaw = rawCamExposure;
-            DebugLog(string.Format("PROBE ~pass.json camExposure band: raw={0} isLoading={1} (hint target ~{2}).", rawCamExposure, superController.isLoading, passJsonExposureHint));
-        }
-
-        void MaybeUpdateCamExposureBackupFromScene(SuperController superController, float rawCamExposure)
+        void MaybeUpdateCamExposureBackupFromScene(float rawCamExposure)
         {
             if (rawCamExposure <= forcedExposureEpsilon)
             {
@@ -193,22 +147,11 @@ namespace geesp0t
 
             if (rawCamExposure >= nearDefaultFullExposure)
             {
-                float savedCamExposureBeforeBright = savedCamExposure;
-                bool backupHeldBeforeBright = camExposureBackupCaptured;
-
                 savedCamExposure = rawCamExposure;
                 camExposureBackupCaptured = true;
 
-                if (!backupHeldBeforeBright || Mathf.Abs(savedCamExposureBeforeBright - savedCamExposure) > 0.0001f)
-                {
-                    DebugLog(string.Format("Backup camExposure bright/raw>=~1 raw={0} saved->{1} isLoading={2}.", rawCamExposure, savedCamExposure, superController.isLoading));
-                }
-
                 return;
             }
-
-            float savedCamExposureBeforeDim = savedCamExposure;
-            bool backupHeldBeforeDim = camExposureBackupCaptured;
 
             if (!camExposureBackupCaptured)
             {
@@ -218,11 +161,6 @@ namespace geesp0t
             else
             {
                 savedCamExposure = Mathf.Min(savedCamExposure, rawCamExposure);
-            }
-
-            if (!backupHeldBeforeDim || Mathf.Abs(savedCamExposureBeforeDim - savedCamExposure) > 0.0001f)
-            {
-                DebugLog(string.Format("Backup camExposure scene-like raw={0} saved->{1} isLoading={2}.", rawCamExposure, savedCamExposure, superController.isLoading));
             }
         }
 
@@ -242,8 +180,6 @@ namespace geesp0t
             {
                 fallbackCamExposure = camExposureJsonFloat.defaultVal;
             }
-
-            SuperController.LogMessage("[OnSceneStartup] Settle ended without camExposure backup; restoring GlobalLighting defaultVal=" + fallbackCamExposure + ".");
 
             try
             {
@@ -280,12 +216,6 @@ namespace geesp0t
             }
 
             return coreAtom.GetStorableByID(globalLightingStorableId);
-        }
-
-        static void DebugLog(string messageBody)
-        {
-            string timeText = DateTime.Now.ToString("HH:mm:ss.fff");
-            SuperController.LogMessage("[OnSceneStartup] " + timeText + " " + messageBody);
         }
     }
 }

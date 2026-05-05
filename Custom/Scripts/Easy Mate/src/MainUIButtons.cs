@@ -664,7 +664,7 @@ namespace geesp0t
             bool hadPossessed =
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed();
             StopAutoPossessRoutine();
-            EasyMateVrHeadCylinderHide.EndSnapSession();
+            EasyMateVrHeadCylinderHide.RestoreTransientHeadHideState();
             EasyMateFemalePassengerRuntime.StopPassengerMode();
             sc.ClearPossess();
             EasyMatePassengerHandPrePossessSnapshot.RestoreAfterPossessClearThenDiscardSnapshot();
@@ -2545,7 +2545,7 @@ namespace geesp0t
                     label,
                     VrEulerPossessLabel,
                     StringComparison.Ordinal);
-                EasyMateVrHeadCylinderHide.EndSnapSession();
+                EasyMateVrHeadCylinderHide.RestoreTransientHeadHideState();
 
                 SuperController sc = SuperController.singleton;
                 if (sc == null || person == null || person.type != "Person")
@@ -2720,7 +2720,7 @@ namespace geesp0t
         {
             try
             {
-                EasyMateVrHeadCylinderHide.EndSnapSession();
+                EasyMateVrHeadCylinderHide.RestoreTransientHeadHideState();
 
                 SuperController sc = SuperController.singleton;
                 FreeControllerV3 head = person.GetStorableByID("headControl") as FreeControllerV3;
@@ -2768,11 +2768,10 @@ namespace geesp0t
                         new Vector3(snapPitchDegrees, 0f, 0f);
                 }
 
-                EasyMateVrHeadCylinderHide.Begin(person, _pluginHost);
             }
             catch (Exception e)
             {
-                EasyMateVrHeadCylinderHide.EndSnapSession();
+                EasyMateVrHeadCylinderHide.RestoreTransientHeadHideState();
                 SuperController.LogError("Easy Mate HUD: Snap to head failed: " + e);
             }
         }

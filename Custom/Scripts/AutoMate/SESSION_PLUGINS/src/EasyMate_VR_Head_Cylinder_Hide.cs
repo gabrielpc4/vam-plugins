@@ -12,26 +12,22 @@ namespace geesp0t
     /// along possess **up** through <c>headControl.control</c>, 15 cm below to 50 cm above), temporarily hide face
     /// materials and active **Glasses** / **Hat** clothing. Hair is turned off via <see cref="DAZCharacterSelector.SetActiveHairItem"/>
     /// (restored when leaving the zone) so scalp/hair shaders are not forced through ImprovedPoV-style transparent swaps.
-    /// With <b>head proximity hide</b> enabled (Easy Mate storables default on), any Person whose head zone contains the HMD is a hide target.
-    /// During Snap F/M, the snapped Person is preferred when their zone contains the camera; otherwise proximity still
-    /// picks the closest Person in a head zone (e.g. partner) so their face can clear too.
+    /// With <b>VR head proximity hide</b> enabled (Easy Mate storables default on), any Person whose head zone contains the HMD is a hide target
+    /// (closest Person along the cylinder test wins when multiple overlap).
     /// Same camera filters as before (VR eye only; not <c>MonitorRig</c> or mirror/reflection cameras).
     /// Skin opaque→transparent swaps and <c>BroadcastMessage</c> run only after all replacement shaders resolve via <c>Shader.Find</c>;
     /// hide passes are skipped while <c>SuperController.singleton.isLoading</c> to avoid load-order shader errors.
     /// Adapted from ImprovedPoV 2.1.1 (Acidbubbles) — https://github.com/acidbubbles/vam-improved-pov
     /// Diagnostics: set <see cref="EnableHeadCylinderDiagnosticLogs"/> false to silence <c>[VrHeadCylinder]</c> messages.
-    /// Proximity mode follows Easy Mate storables <b>VR head proximity hide (no Snap required)</b> (default on; scene JSON may override).
+    /// Controlled by Easy Mate storables <b>VR head proximity hide</b> (default on; scene JSON may override). Independent of navigation rig or alignment flows.
     /// </summary>
     public static class EasyMateVrHeadCylinderHide
     {
-        /// <summary>When true, head-zone material hide runs for any Person near the HMD, without snap (Easy Mate storables default on).</summary>
-        private static bool _headProximityHideWithoutSnap = false;
+        /// <summary>When true, head-zone material hide runs for any Person whose cylinder contains the HMD (Easy Mate storables default on).</summary>
+        private static bool _headProximityHide = false;
 
         private static bool _shutdownInProgress;
 
-        /// <summary>Current Snap F/M session target (optional; narrows possessor preview, not head-zone search when unset).</summary>
-        private static Atom _snapPerson;
-        private static FreeControllerV3 _snapHead;
         /// <summary>Person whose skin / hair unequip / accessory handlers are configured for the current VO hide pass.</summary>
         private static Atom _hideHandlerPerson;
         private static DAZCharacterSelector _cachedSelector;
@@ -104,16 +100,16 @@ namespace geesp0t
                 return;
             }
 
-            if (!HasSnapHeadContext() && !_headProximityHideWithoutSnap)
+            if (!_headProximityHide)
             {
                 DiagThrottled(
                     "eye_proximity_off",
                     5f,
-                    "Eye camera active but hide is OFF: enable Easy Mate plugin → storables → \"VR head proximity hide (no Snap required)\", or start a snap session that registers this runtime.");
+                    "Eye camera active but hide is OFF: enable Easy Mate plugin → storables → \"VR head proximity hide\".");
                 return;
             }
 
-            if (!HasSnapHeadContext() && _headProximityHideWithoutSnap &&
+            if (_headProximityHide &&
                 !sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
             {
                 DiagThrottled(
@@ -135,7 +131,7 @@ namespace geesp0t
         {
             if (!EnableHeadCylinderDiagnosticLogs || cam == null)
                 return;
-            if (!_headProximityHideWithoutSnap && !HasSnapHeadContext())
+            if (!_headProximityHide)
                 return;
 
             SuperController sc = SuperController.singleton;
@@ -187,39 +183,33 @@ namespace geesp0t
 
         private static Dictionary<string, HeadZoneScratch> _headZoneScratchByUid;
 
-        public static void Begin(Atom person, MVRScript coroutineHost)
+        /// <summary>
+        /// Restores skin/accessory materials, clears hide-target state, and shows possessor alignment meshes.
+        /// Does not unregister camera hooks while VR head proximity hide remains enabled — call after possession clears or similar flows.
+        /// </summary>
+        public static void RestoreTransientHeadHideState()
         {
-            EndSnapSession();
-
-            if (person == null || person.type != "Person")
-                return;
-
-            _snapPerson = person;
-            _snapHead = person.GetStorableByID("headControl") as FreeControllerV3;
-            if (_snapHead == null)
-                return;
-
-            if (coroutineHost != null)
-                _coroutineHost = coroutineHost;
-
-            RegisterHooks();
-            SetPossessorPreviewMeshesVisible(false);
-            Diag("Begin snap session: hooks ON for " + (person != null ? person.uid : "?"));
+            RestoreHandlers();
+            SetPossessorPreviewMeshesVisible(true);
+            _hideHandlerPerson = null;
+            _cachedSelector = null;
+            _handlersConfigured = false;
+            _nextPollSkinNullTime = -1f;
+            _nextConfigureRetryTime = -1f;
         }
 
-        /// <summary>Plugin toggle: hide head materials when HMD is inside any Person’s head zone without using Snap.</summary>
-        public static void SetHeadProximityHideWithoutSnapEnabled(bool enabled, MVRScript host)
+        /// <summary>Easy Mate plugin toggle: hide head materials when the HMD is inside any Person’s head cylinder.</summary>
+        public static void SetHeadProximityHideEnabled(bool enabled, MVRScript host)
         {
-            _headProximityHideWithoutSnap = enabled;
+            _headProximityHide = enabled;
             if (host != null)
                 _coroutineHost = host;
 
             SuperController sc = SuperController.singleton;
             bool vr = sc != null && (sc.isOVR || sc.isOpenVR || XRSettings.enabled);
             Diag(string.Format(
-                "SetHeadProximityHideWithoutSnapEnabled enabled={0} snapSession={1} vr={2} (isOVR={3} isOpenVR={4} XRSettings.enabled={5}) host={6}",
+                "SetHeadProximityHideEnabled enabled={0} vr={1} (isOVR={2} isOpenVR={3} XRSettings.enabled={4}) host={5}",
                 enabled,
-                HasSnapHeadContext(),
                 vr,
                 sc != null && sc.isOVR,
                 sc != null && sc.isOpenVR,
@@ -234,42 +224,19 @@ namespace geesp0t
             {
                 Diag("Proximity hide requested but VR not active — hooks not registered until VR is available (EasyMate will retry from Start/scene change).");
             }
-            else if (!enabled && !HasSnapHeadContext())
+            else if (!enabled)
             {
                 UnregisterHooks();
             }
-        }
-
-        private static bool HasSnapHeadContext()
-        {
-            return _snapPerson != null && _snapHead != null;
-        }
-
-        /// <summary>Ends the active Snap F/M head-hide session.</summary>
-        public static void EndSnapSession()
-        {
-            UnregisterHooks();
-            RestoreHandlers();
-            SetPossessorPreviewMeshesVisible(true);
-            _snapPerson = null;
-            _snapHead = null;
-            _hideHandlerPerson = null;
-            _cachedSelector = null;
-            _handlersConfigured = false;
-            _nextPollSkinNullTime = -1f;
-            _nextConfigureRetryTime = -1f;
-
-            if (_headProximityHideWithoutSnap && !_shutdownInProgress)
-                RegisterHooks();
         }
 
         /// <summary>Full teardown (plugin unload).</summary>
         public static void Shutdown()
         {
             _shutdownInProgress = true;
-            EndSnapSession();
             UnregisterHooks();
             RestoreHandlers();
+            SetPossessorPreviewMeshesVisible(true);
             _hideHandlerPerson = null;
             _cachedSelector = null;
             _handlersConfigured = false;
@@ -288,7 +255,7 @@ namespace geesp0t
 
         /// <summary>
         /// Call when VaM has finished its loading/settle phase (same moment session <see cref="OnSceneStartup"/> releases its hold).
-        /// Re-attaches camera hooks if <see cref="SetHeadProximityHideWithoutSnapEnabled"/> left them off because Easy Mate was not
+        /// Re-attaches camera hooks if <see cref="SetHeadProximityHideEnabled"/> left them off because Easy Mate was not
         /// ready yet, or Easy Mate was destroyed on load while the static proximity flag stayed enabled.
         /// </summary>
         public static void AfterSuperControllerFinishedSceneSettle(MVRScript host)
@@ -298,7 +265,7 @@ namespace geesp0t
                 _coroutineHost = host;
             }
 
-            if (!_headProximityHideWithoutSnap)
+            if (!_headProximityHide)
             {
                 return;
             }
@@ -374,10 +341,7 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Picks the Person whose head cylinder contains the camera with smallest radial distance.
-        /// When a Snap F/M session is active, the snapped Person wins if the camera is in their zone; otherwise, if
-        /// head proximity hide is enabled (see <see cref="SetHeadProximityHideWithoutSnapEnabled"/>), the closest Person in any head zone is used so e.g.
-        /// leaning into a partner after Snap M still clears their face.
+        /// Picks the Person whose head cylinder contains the camera with smallest radial distance (requires proximity hide enabled).
         /// </summary>
         private static Atom FindBestPersonWhoseHeadZoneContainsCamera(Camera cam, out FreeControllerV3 headOut)
         {
@@ -385,22 +349,8 @@ namespace geesp0t
             if (cam == null || SuperController.singleton == null)
                 return null;
 
-            if (HasSnapHeadContext())
-            {
-                float rsq;
-                if (TryGetRadialSqInHeadZone(GetHeadZoneScratch(_snapPerson), _snapHead, cam, out rsq))
-                {
-                    headOut = _snapHead;
-                    return _snapPerson;
-                }
-
-                if (!_headProximityHideWithoutSnap)
-                    return null;
-            }
-            else if (!_headProximityHideWithoutSnap)
-            {
+            if (!_headProximityHide)
                 return null;
-            }
 
             return PickClosestPersonInHeadZone(cam, out headOut);
         }
@@ -495,9 +445,9 @@ namespace geesp0t
                 return false;
             if (sc.isLoading)
                 return false;
-            if (!HasSnapHeadContext() && !_headProximityHideWithoutSnap)
+            if (!_headProximityHide)
                 return false;
-            if (!HasSnapHeadContext() && _headProximityHideWithoutSnap && !sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
+            if (!sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
                 return false;
             if (cam.name == "MonitorRig")
                 return false;
@@ -747,7 +697,7 @@ namespace geesp0t
                 SetMatchingDescendantsActive(t.GetChild(c), visible, names);
         }
 
-        /// <summary>Hides possessor alignment preview meshes under <see cref="SuperController.centerCameraTarget"/> (e.g. after Snap M).</summary>
+        /// <summary>Hides possessor alignment preview meshes under <see cref="SuperController.centerCameraTarget"/>.</summary>
         public static void HidePossessorAlignmentPreviewMeshes()
         {
             SetPossessorPreviewMeshesVisible(false);

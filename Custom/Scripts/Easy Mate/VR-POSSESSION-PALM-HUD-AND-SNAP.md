@@ -136,7 +136,7 @@ On clear:
 1. Record **`hadPossessed`** =
    `EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed()`.
 2. **`StopAutoPossessRoutine()`**
-3. **`EasyMateVrHeadCylinderHide.EndSnapSession()`**
+3. **`EasyMateVrHeadCylinderHide.RestoreTransientHeadHideState()`** (restores materials / clears hide-target state; camera hooks stay if VR proximity hide is enabled)
 4. **`sc.ClearPossess()`**
 5. **`UnlinkStrayHmdLinkedFreeControllersAndNaturalizeHeads`**
 6. **`sc.SelectModeOff()`** (try/catch + log)

@@ -72,10 +72,10 @@ namespace geesp0t
         public JSONStorableBool blockOverlapFullGrab;
 
         /// <summary>
-        /// When true (default), HMD inside any Person’s head cylinder hides face/hair/glasses without using Snap F/M.
+        /// When true (default), HMD inside any Person’s head cylinder hides face/hair/glasses on VR eye cameras.
         /// Scenes or presets may still override the saved value.
         /// </summary>
-        public JSONStorableBool headProximityHideWithoutSnap;
+        public JSONStorableBool headProximityHide;
 
         /// <summary>
         /// When true (default), clears all possession if the look camera moves farther than
@@ -145,8 +145,8 @@ namespace geesp0t
             blockOverlapFullGrab = new JSONStorableBool("Block overlap full-grab (auto-release each frame)", true);
             RegisterBool(blockOverlapFullGrab);
 
-            headProximityHideWithoutSnap = new JSONStorableBool("VR head proximity hide (no Snap required)", true, OnHeadProximityHideWithoutSnapChanged);
-            RegisterBool(headProximityHideWithoutSnap);
+            headProximityHide = new JSONStorableBool("VR head proximity hide", true, OnHeadProximityHideChanged);
+            RegisterBool(headProximityHide);
 
             possessAutoUnpossessWhenFarFromFeet = new JSONStorableBool(
                 "Auto-unpossess when look camera drifts from feet (horizontal)",
@@ -228,9 +228,9 @@ namespace geesp0t
             }
         }
 
-        private void OnHeadProximityHideWithoutSnapChanged(bool v)
+        private void OnHeadProximityHideChanged(bool v)
         {
-            EasyMateVrHeadCylinderHide.SetHeadProximityHideWithoutSnapEnabled(v, this);
+            EasyMateVrHeadCylinderHide.SetHeadProximityHideEnabled(v, this);
         }
 
         private void OnDisableRemoteGripHandLinkChanged(bool v)
@@ -291,8 +291,8 @@ namespace geesp0t
             Log("EasyMate Start");
             if (mainUIButtons != null) mainUIButtons.Start();
             ApplyRemoteHoldGrabPreference();
-            if (headProximityHideWithoutSnap != null)
-                EasyMateVrHeadCylinderHide.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
+            if (headProximityHide != null)
+                EasyMateVrHeadCylinderHide.SetHeadProximityHideEnabled(headProximityHide.val, this);
             StartCoroutine(CoRefreshHeadProximityHooksAfterStartFrames());
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
             EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
@@ -304,12 +304,12 @@ namespace geesp0t
             yield return null;
             yield return null;
 
-            if (headProximityHideWithoutSnap == null)
+            if (headProximityHide == null)
             {
                 yield break;
             }
 
-            EasyMateVrHeadCylinderHide.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
+            EasyMateVrHeadCylinderHide.SetHeadProximityHideEnabled(headProximityHide.val, this);
         }
 
         /// <summary>
@@ -655,9 +655,9 @@ namespace geesp0t
                 EasyMateVrInput.ResetEdgeState();
                 EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
 
-                if (headProximityHideWithoutSnap != null)
+                if (headProximityHide != null)
                 {
-                    EasyMateVrHeadCylinderHide.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
+                    EasyMateVrHeadCylinderHide.SetHeadProximityHideEnabled(headProximityHide.val, this);
                 }
             }
 

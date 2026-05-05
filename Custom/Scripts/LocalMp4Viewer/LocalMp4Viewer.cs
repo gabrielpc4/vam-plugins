@@ -6,9 +6,36 @@ using UnityEngine.Video;
 namespace geesp0t
 {
     /// <summary>
+    /// One-shot values consumed by the next <see cref="LocalMp4Viewer"/> instance during <c>Init</c>,
+    /// used by <see cref="IntroSceneLocalMp4Bootstrap"/> so parenting and presets apply before the quad is built.
+    /// </summary>
+    public static class LocalMp4ViewerBootstrapHints
+    {
+        public static string ParentFreeControllerId;
+
+        public static string VideoRelativePath;
+
+        public static bool ApplyTelevisionQuadPreset;
+
+        public static bool ApplyLaptopQuadPreset;
+
+        public static bool ShouldAutoPlayAfterLoad;
+
+        public static void ClearAll()
+        {
+            ParentFreeControllerId = null;
+            VideoRelativePath = null;
+            ApplyTelevisionQuadPreset = false;
+            ApplyLaptopQuadPreset = false;
+            ShouldAutoPlayAfterLoad = false;
+        }
+    }
+
+    /// <summary>
     /// Plays a local MP4 (or other formats Unity&apos;s <see cref="VideoPlayer"/> supports on your build)
     /// from a path <b>relative to the VaM install folder</b>, e.g. <c>Custom/MyVideos/clip.mp4</c>.
-    /// Renders to a quad parented under this atom&apos;s main controller. Uses <c>file:///</c> URLs — keep paths ASCII or spaces escaped.
+    /// Renders to a quad parented under this atom&apos;s main controller (default), or under a named <see cref="FreeControllerV3"/> when set.
+    /// Uses <c>file:///</c> URLs — keep paths ASCII or spaces escaped.
     /// </summary>
     public class LocalMp4Viewer : MVRScript
     {
@@ -46,6 +73,8 @@ namespace geesp0t
 
         public JSONStorableFloat quadLocalEulerPitch;
 
+        public JSONStorableString parentFreeControllerId;
+
         public JSONStorableAction playVideoAction;
 
         public JSONStorableAction stopVideoAction;
@@ -56,6 +85,12 @@ namespace geesp0t
                 "Video path (relative to VaM folder)",
                 "Custom/video/example.mp4");
             RegisterString(videoRelativePath);
+
+            parentFreeControllerId = new JSONStorableString(
+                "Parent FreeController id (empty = main)",
+                "");
+            RegisterString(parentFreeControllerId);
+            parentFreeControllerId.setCallbackFunction += OnParentFreeControllerIdChanged;
 
             loopPlayback = new JSONStorableBool("Loop", false);
             RegisterBool(loopPlayback);
@@ -96,6 +131,51 @@ namespace geesp0t
             quadLocalPositionY.setCallbackFunction += OnQuadTransformChanged;
             quadLocalPositionZ.setCallbackFunction += OnQuadTransformChanged;
             quadLocalEulerPitch.setCallbackFunction += OnQuadTransformChanged;
+
+            ApplyBootstrapHintsIfPresent();
+        }
+
+        private void ApplyBootstrapHintsIfPresent()
+        {
+            if (!string.IsNullOrEmpty(LocalMp4ViewerBootstrapHints.ParentFreeControllerId))
+            {
+                parentFreeControllerId.val = LocalMp4ViewerBootstrapHints.ParentFreeControllerId;
+                LocalMp4ViewerBootstrapHints.ParentFreeControllerId = null;
+            }
+
+            if (!string.IsNullOrEmpty(LocalMp4ViewerBootstrapHints.VideoRelativePath))
+            {
+                videoRelativePath.val = LocalMp4ViewerBootstrapHints.VideoRelativePath;
+                LocalMp4ViewerBootstrapHints.VideoRelativePath = null;
+            }
+
+            if (LocalMp4ViewerBootstrapHints.ApplyTelevisionQuadPreset)
+            {
+                quadWidthMeters.val = 0.95f;
+                quadHeightMeters.val = 0.53f;
+                quadLocalPositionX.val = 0f;
+                quadLocalPositionY.val = 0f;
+                quadLocalPositionZ.val = 0.02f;
+                quadLocalEulerPitch.val = 0f;
+                LocalMp4ViewerBootstrapHints.ApplyTelevisionQuadPreset = false;
+            }
+
+            if (LocalMp4ViewerBootstrapHints.ApplyLaptopQuadPreset)
+            {
+                quadWidthMeters.val = 0.42f;
+                quadHeightMeters.val = 0.24f;
+                quadLocalPositionX.val = 0f;
+                quadLocalPositionY.val = 0f;
+                quadLocalPositionZ.val = 0.015f;
+                quadLocalEulerPitch.val = 0f;
+                LocalMp4ViewerBootstrapHints.ApplyLaptopQuadPreset = false;
+            }
+
+            if (LocalMp4ViewerBootstrapHints.ShouldAutoPlayAfterLoad)
+            {
+                playWhenPluginStarts.val = true;
+                LocalMp4ViewerBootstrapHints.ShouldAutoPlayAfterLoad = false;
+            }
         }
 
         private void Start()
@@ -142,6 +222,11 @@ namespace geesp0t
                 quadLocalEulerPitch.setCallbackFunction -= OnQuadTransformChanged;
             }
 
+            if (parentFreeControllerId != null)
+            {
+                parentFreeControllerId.setCallbackFunction -= OnParentFreeControllerIdChanged;
+            }
+
             TeardownVideoResources();
         }
 
@@ -180,15 +265,75 @@ namespace geesp0t
             return "file:///" + escaped;
         }
 
+        private Transform ResolveQuadParentTransform()
+        {
+            if (containingAtom == null)
+            {
+                return null;
+            }
+
+            string fcId = parentFreeControllerId != null ? parentFreeControllerId.val.Trim() : "";
+
+            if (string.IsNullOrEmpty(fcId))
+            {
+                if (containingAtom.mainController == null)
+                {
+                    SuperController.LogError("LocalMp4Viewer: mainController missing (empty Parent FreeController id).");
+                    return null;
+                }
+
+                return containingAtom.mainController.transform;
+            }
+
+            FreeControllerV3 fc = containingAtom.GetStorableByID(fcId) as FreeControllerV3;
+
+            if (fc == null || fc.control == null)
+            {
+                SuperController.LogError(
+                    "LocalMp4Viewer: FreeController id \"" + fcId + "\" not found on atom \"" + containingAtom.uid +
+                    "\" — quad not created. Fix \"Parent FreeController id\" or leave empty for main controller.");
+
+                return null;
+            }
+
+            return fc.control;
+        }
+
+        private void OnParentFreeControllerIdChanged(string unusedNewValue)
+        {
+            if (videoQuadRoot == null)
+            {
+                TryCreateVideoQuadHierarchy();
+                return;
+            }
+
+            Transform parentTransform = ResolveQuadParentTransform();
+
+            if (parentTransform == null)
+            {
+                return;
+            }
+
+            videoQuadRoot.transform.SetParent(parentTransform, false);
+            ApplyQuadTransformAndVisibilityFromStorables();
+        }
+
         private void TryCreateVideoQuadHierarchy()
         {
-            if (containingAtom == null || containingAtom.mainController == null)
+            if (containingAtom == null)
             {
-                SuperController.LogError("LocalMp4Viewer: containingAtom or mainController missing.");
+                SuperController.LogError("LocalMp4Viewer: containingAtom missing.");
                 return;
             }
 
             if (videoQuadRoot != null)
+            {
+                return;
+            }
+
+            Transform parentTransform = ResolveQuadParentTransform();
+
+            if (parentTransform == null)
             {
                 return;
             }
@@ -203,7 +348,6 @@ namespace geesp0t
                 Destroy(quadCollider);
             }
 
-            Transform parentTransform = containingAtom.mainController.transform;
             videoQuadRoot.transform.SetParent(parentTransform, false);
 
             videoMeshRenderer = videoQuadRoot.GetComponent<MeshRenderer>();

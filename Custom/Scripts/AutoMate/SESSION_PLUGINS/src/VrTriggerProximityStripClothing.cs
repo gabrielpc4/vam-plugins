@@ -181,9 +181,9 @@ namespace geesp0t
                 return true;
             }
 
-            if (fc.mainTransform != null)
+            if (fc.control != null)
             {
-                world = fc.mainTransform.position;
+                world = fc.control.position;
                 return true;
             }
 

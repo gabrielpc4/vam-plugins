@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using SimpleJSON;
 
 namespace geesp0t
@@ -19,6 +20,10 @@ namespace geesp0t
         private static string _pendingExplicitSceneJsonPath = "";
 
         private static string _lastTrackerNotifyLogKey = "";
+
+        private static FieldInfo _superControllerLoadedNameField;
+
+        private static bool _loggedLoadedNameFieldReflectionMissing;
 
         public static void LogLoadingStartedSummary(SuperController sc)
         {
@@ -84,6 +89,8 @@ namespace geesp0t
             string normalizedPendingExplicit;
             string reconciledSceneJsonPath;
             string logKeyExplicit;
+            string reflectionSceneJsonFwd;
+            string logKeyReflection;
             string logKeyReconcile;
 
             if (sc == null)
@@ -118,6 +125,20 @@ namespace geesp0t
                     _pendingExplicitSceneJsonPath = "";
                     return;
                 }
+            }
+
+            if (TryResolveLoadedSceneJsonFromVaMLoadedNameField(sc, normalizedLoadDir, out reflectionSceneJsonFwd))
+            {
+                logKeyReflection = "reflection|" + normalizedLoadDir + "|" + NormalizeFwd(reflectionSceneJsonFwd);
+                LogTrackerPhaseOnce(
+                    logKeyReflection,
+                    string.Format(
+                        "EasyMate [scene tracker]: after load, using SuperController.loadedName (reflection) exact path={0} (currentLoadDir={1})",
+                        NormalizeFwd(reflectionSceneJsonFwd),
+                        normalizedLoadDir));
+                RememberLoadedScene(sc, reflectionSceneJsonFwd, false);
+                _pendingExplicitSceneJsonPath = "";
+                return;
             }
 
             normalizedPendingExplicit = NormalizeFwd(_pendingExplicitSceneJsonPath);
@@ -205,6 +226,164 @@ namespace geesp0t
             }
 
             return CombineFwd(installRoot, normalizedSceneJsonPath);
+        }
+
+        /// <summary>
+        /// VaM keeps the authoritative scene file in a protected <c>loadedName</c> field.
+        /// That is the only reliable way to know which <c>.json</c> was opened when a folder
+        /// contains several scene files.
+        /// </summary>
+        private static bool TryPeekSuperControllerLoadedNameViaReflection(
+            SuperController superControllerRef,
+            out string loadedPathNormalizedFwd)
+        {
+            object rawLoadedNameReference;
+            string loadedRawStringValue;
+
+            loadedPathNormalizedFwd = "";
+
+            if (superControllerRef == null)
+            {
+                return false;
+            }
+
+            if (_superControllerLoadedNameField == null)
+            {
+                try
+                {
+                    _superControllerLoadedNameField = typeof(SuperController).GetField(
+                        "loadedName",
+                        BindingFlags.Instance | BindingFlags.NonPublic);
+                }
+                catch (Exception resolverException)
+                {
+                    SuperController.LogError(string.Format(
+                        "EasyMate [scene tracker]: GetField(loadedName) threw: {0}",
+                        resolverException.Message));
+                    _superControllerLoadedNameField = null;
+                }
+
+                if (_superControllerLoadedNameField == null)
+                {
+                    if (!_loggedLoadedNameFieldReflectionMissing)
+                    {
+                        _loggedLoadedNameFieldReflectionMissing = true;
+                        SuperController.LogError(
+                            "EasyMate [scene tracker]: SuperController.loadedName field not found via reflection.");
+                    }
+
+                    return false;
+                }
+            }
+
+            try
+            {
+                rawLoadedNameReference = _superControllerLoadedNameField.GetValue(superControllerRef);
+            }
+            catch (Exception readFailureException)
+            {
+                SuperController.LogError(string.Format(
+                    "EasyMate [scene tracker]: reading SuperController.loadedName failed: {0}",
+                    readFailureException.Message));
+                return false;
+            }
+
+            loadedRawStringValue = rawLoadedNameReference as string;
+            if (string.IsNullOrEmpty(loadedRawStringValue))
+            {
+                return false;
+            }
+
+            loadedPathNormalizedFwd = NormalizeFwd(superControllerRef.NormalizePath(loadedRawStringValue));
+            if (loadedPathNormalizedFwd.Length == 0)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryStripLeadingContentBeforeSavesFolder(
+            string normalizedPathFwd,
+            out string savesRelativePathFwd)
+        {
+            int savesFolderIndex;
+            string upperPath;
+
+            savesRelativePathFwd = "";
+
+            if (string.IsNullOrEmpty(normalizedPathFwd))
+            {
+                return false;
+            }
+
+            if (normalizedPathFwd.StartsWith("Saves/", StringComparison.OrdinalIgnoreCase))
+            {
+                savesRelativePathFwd = normalizedPathFwd;
+                return true;
+            }
+
+            upperPath = normalizedPathFwd.ToUpperInvariant();
+            savesFolderIndex = upperPath.IndexOf("/SAVES/", StringComparison.Ordinal);
+            if (savesFolderIndex < 0)
+            {
+                return false;
+            }
+
+            savesRelativePathFwd = normalizedPathFwd.Substring(savesFolderIndex + 1);
+            return savesRelativePathFwd.Length > 0;
+        }
+
+        private static bool TryResolveLoadedSceneJsonFromVaMLoadedNameField(
+            SuperController superControllerRef,
+            string normalizedCurrentLoadDir,
+            out string sceneJsonRelativeForTrackerFwd)
+        {
+            string loadedNameNormalizedFwd;
+            string savesAnchoredFwd;
+            string directoryOfLoadedSceneFwd;
+
+            sceneJsonRelativeForTrackerFwd = "";
+
+            if (superControllerRef == null)
+            {
+                return false;
+            }
+
+            if (!TryPeekSuperControllerLoadedNameViaReflection(superControllerRef, out loadedNameNormalizedFwd))
+            {
+                return false;
+            }
+
+            if (!TryStripLeadingContentBeforeSavesFolder(loadedNameNormalizedFwd, out savesAnchoredFwd))
+            {
+                return false;
+            }
+
+            if (!IsPatchableLocalScenePath(savesAnchoredFwd))
+            {
+                return false;
+            }
+
+            if (!FileExists(superControllerRef, savesAnchoredFwd))
+            {
+                SuperController.LogError(string.Format(
+                    "EasyMate [scene tracker]: SuperController.loadedName resolved to {0} but that file was not found via GetFilesAtPath.",
+                    NormalizeFwd(savesAnchoredFwd)));
+                return false;
+            }
+
+            directoryOfLoadedSceneFwd = NormalizeFwd(GetDirectoryPath(savesAnchoredFwd));
+            if (!string.Equals(
+                directoryOfLoadedSceneFwd,
+                normalizedCurrentLoadDir,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            sceneJsonRelativeForTrackerFwd = savesAnchoredFwd;
+            return true;
         }
 
         private static bool LoadDirsMatch(SuperController sc, string rememberedLoadDir)

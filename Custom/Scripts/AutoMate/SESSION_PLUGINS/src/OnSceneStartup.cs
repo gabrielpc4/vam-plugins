@@ -7,7 +7,7 @@ namespace geesp0t
     /// While the scene is still settling (same signals as VaM&apos;s load UI / icon / isLoading):
     /// drives CoreControl GlobalLighting camExposure to 0, freezes simulation via SuperController.PauseSimulation,
     /// and forces AudioListener.pause so motion/sound do not run ahead of loaded assets.
-    /// After settle ends, starts a linear camExposure ramp from the current value to the backed-up target over 2 seconds, then raises the pause flag and restores the prior audio pause state.
+    /// After settle ends, waits 2 seconds at the current camExposure, then linearly ramps to the backed-up target over the configured duration.
     /// Tick runs from LateUpdate so CoreControl JSON usually reflects the scene before we read exposure backup.
     /// </summary>
     public class OnSceneStartup
@@ -38,7 +38,9 @@ namespace geesp0t
 
         private const string sceneSettlePauseFlagDisplayName = "AutoMate OnSceneStartup scene settle";
 
-        private const float camExposureRestoreRampDurationSeconds = 2f;
+        private const float camExposureRestoreHoldBeforeRampSeconds = 2f;
+
+        private const float camExposureRestoreRampDurationSeconds = 5f;
 
         /// <summary>Returns true the first tick after VaM&apos;s loading/settle UI has cleared — playback hold was released.</summary>
         public bool TickDuringSuperControllerLoad()
@@ -180,7 +182,16 @@ namespace geesp0t
             }
 
             float elapsedSeconds = Time.time - camExposureGradientRestoreStartTime;
-            float rampBlend = Mathf.Clamp01(elapsedSeconds / camExposureRestoreRampDurationSeconds);
+            float secondsIntoRamp = elapsedSeconds - camExposureRestoreHoldBeforeRampSeconds;
+
+            if (secondsIntoRamp <= 0f)
+            {
+                globalLightingStorable.SetFloatParamValue(camExposureParamName, camExposureGradientRestoreFrom);
+
+                return;
+            }
+
+            float rampBlend = Mathf.Clamp01(secondsIntoRamp / camExposureRestoreRampDurationSeconds);
             float blendedCamExposure = Mathf.Lerp(camExposureGradientRestoreFrom, camExposureGradientRestoreTo, rampBlend);
 
             globalLightingStorable.SetFloatParamValue(camExposureParamName, blendedCamExposure);

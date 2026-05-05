@@ -45,7 +45,7 @@ import shutil
 import sys
 from pathlib import Path
 from typing import Any, Iterable
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 
 _REPO = Path(__file__).resolve().parents[1]
@@ -132,6 +132,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
             "instead of using the https /ifr/ URL directly (local path; may fail in some VaM setups)."
         ),
     )
+    parser.add_argument(
+        "--no-porngifs-canonical",
+        action="store_true",
+        help=(
+            "Do not rewrite porngifs.com / www.porngifs.com http(s) URLs to "
+            "https://www.porngifs.com/.../ (trailing slash). "
+            "Default canonicalization avoids some VaM embedded-browser load quirks."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -159,6 +168,40 @@ def normalize_redgifs_media_mp4_to_watch(url: str) -> str:
     slug_lower = filename[:-4].lower()
 
     return "https://www.redgifs.com/watch/" + slug_lower
+
+
+def normalize_porngifs_browser_url(url: str) -> str:
+    """
+    Force https://www.porngifs.com/.../ for porngifs hosts.
+
+    VaM's embedded Chromium sometimes fails initial navigation for the apex host or for
+    extensionless numeric paths unless the canonical www host and trailing slash are used;
+    manual paste can still work because redirects differ from scripted first load.
+    """
+
+    trimmed = url.strip()
+    lowered = trimmed.lower()
+
+    if not (lowered.startswith("http://") or lowered.startswith("https://")):
+        return trimmed
+
+    parsed = urlparse(trimmed)
+    host = (parsed.hostname or "").lower()
+
+    if host != "porngifs.com" and host != "www.porngifs.com":
+        return trimmed
+
+    path = parsed.path or ""
+    if path and not path.endswith("/"):
+        path = path + "/"
+
+    scheme = parsed.scheme if parsed.scheme else "https"
+    if scheme != "http" and scheme != "https":
+        scheme = "https"
+
+    return urlunparse(
+        (scheme, "www.porngifs.com", path, parsed.params, parsed.query, parsed.fragment)
+    )
 
 
 def extract_redgifs_slug(token: str) -> str:
@@ -574,6 +617,21 @@ def main(argv: list[str]) -> int:
             mapped.append(normalized_url)
 
         urls = mapped
+
+    if not args.no_porngifs_canonical:
+        canonical_urls: list[str] = []
+        for candidate in urls:
+            rewritten = normalize_porngifs_browser_url(candidate)
+
+            if rewritten != candidate.strip():
+                print(
+                    f"Canonical porngifs URL: {rewritten!r} (from {candidate!r})",
+                    file=sys.stderr,
+                )
+
+            canonical_urls.append(rewritten)
+
+        urls = canonical_urls
 
     prefix_filter: str | None
     if args.only_if_url_starts_with is None:

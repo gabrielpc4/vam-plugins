@@ -623,17 +623,8 @@ public class ImprovedPoV : MVRScript
                 string replacementNameForSwap = null;
                 bool mapped = shaderName != null && ReplacementShaderNames.TryGetValue(shaderName, out replacementNameForSwap);
                 Shader shader = null;
-                if (!mapped)
-                {
-                    if (shaderName != null && shaderName.IndexOf("Custom/Subsurface/Transparent", StringComparison.Ordinal) >= 0)
+                    if (!mapped)
                         replacementNameForSwap = null;
-                    else
-                    {
-                        replacementNameForSwap = null;
-                        if (shaderName != null)
-                            SuperController.LogMessage("ImprovedPoV: no shader swap for skin material shader '" + shaderName + "' (hide pass may be partial).");
-                    }
-                }
 
                 if (!string.IsNullOrEmpty(replacementNameForSwap))
                 {

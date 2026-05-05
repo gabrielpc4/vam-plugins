@@ -13,7 +13,8 @@ namespace geesp0t
     /// materials and active **Glasses** / **Hat** clothing. On **male** figures only, hair is turned off via <see cref="DAZCharacterSelector.SetActiveHairItem"/>
     /// with backup/restore when leaving the zone so scalp/hair shaders are not forced through ImprovedPoV-style transparent swaps; females keep hair equipped.
     /// With <b>VR head proximity hide</b> enabled (Easy Mate storables default on), any Person whose head zone contains the HMD is a hide target
-    /// (closest Person along the cylinder test wins when multiple overlap).
+    /// (closest Person along the cylinder test wins when multiple overlap). Zone tests use <see cref="SuperController.centerCameraTarget"/> when present
+    /// so left/right eye cameras do not disagree inside a tight radial band (IPD).
     /// Same camera filters as before (VR eye only; not <c>MonitorRig</c> or mirror/reflection cameras).
     /// Skin opaque→transparent swaps and <c>BroadcastMessage</c> run only after all replacement shaders resolve via <c>Shader.Find</c>;
     /// hide passes are skipped while <c>SuperController.singleton.isLoading</c> to avoid load-order shader errors.
@@ -46,7 +47,10 @@ namespace geesp0t
         private const float InsideHeadRadiusBaseMeters = 0.065f;
         /// <summary>Radial band radius from possess-up axis through <c>headControl</c> (tighter than legacy ~19 cm).</summary>
         private static readonly float InsideHeadRadiusMeters = InsideHeadRadiusBaseMeters * 1.58740105f;
-        private static readonly float InsideHeadRadiusSqr = InsideHeadRadiusMeters * InsideHeadRadiusMeters;
+        /// <summary>
+        /// Wider cylinder only while hide handlers are already active — keeps L/R eye cameras agreeing near the tight radius (IPD straddles the band).
+        /// </summary>
+        private const float HeadZoneRelaxRadiusScaleWhileHiding = 1.28f;
         /// <summary>Along possess-up from <c>headControl.control</c>: toward feet (negative axis).</summary>
         private const float InsideHeadCylinderBelowHeadControlM = 0.15f;
         /// <summary>Along possess-up from <c>headControl.control</c>: toward crown (positive axis).</summary>
@@ -362,10 +366,33 @@ namespace geesp0t
             return s;
         }
 
-        private static bool TryGetRadialSqInHeadZone(HeadZoneScratch scratch, FreeControllerV3 head, Camera cam, out float radialSq)
+        /// <summary>
+        /// Stereo L/R eye cameras are IPD apart; <see cref="SuperController.centerCameraTarget"/> is a single rig point so both eyes share one in/out test.
+        /// </summary>
+        private static Vector3 ResolveHeadZoneProbeWorldPosition(SuperController sc, Camera invokingEyeCamera)
+        {
+            if (sc != null && sc.centerCameraTarget != null)
+            {
+                return sc.centerCameraTarget.transform.position;
+            }
+
+            if (sc != null && sc.lookCamera != null)
+            {
+                return sc.lookCamera.transform.position;
+            }
+
+            if (invokingEyeCamera != null)
+            {
+                return invokingEyeCamera.transform.position;
+            }
+
+            return Vector3.zero;
+        }
+
+        private static bool TryGetRadialSqInHeadZone(HeadZoneScratch scratch, FreeControllerV3 head, Vector3 probeWorldPosition, float radiusScale, out float radialSq)
         {
             radialSq = float.MaxValue;
-            if (scratch == null || head == null || cam == null)
+            if (scratch == null || head == null)
                 return false;
             Atom person = scratch.Person;
             if (person == null || !person.gameObject.activeInHierarchy)
@@ -379,14 +406,16 @@ namespace geesp0t
             axis.Normalize();
 
             Vector3 origin = head.control.position;
-            Vector3 w = cam.transform.position - origin;
+            Vector3 w = probeWorldPosition - origin;
             float axial = Vector3.Dot(w, axis);
             if (axial < -InsideHeadCylinderBelowHeadControlM || axial > InsideHeadCylinderAboveHeadControlM)
                 return false;
 
             Vector3 radial = w - axis * axial;
             float r2 = radial.sqrMagnitude;
-            if (r2 < InsideHeadRadiusSqr)
+            float radiusMeters = InsideHeadRadiusMeters * radiusScale;
+            float radiusSqr = radiusMeters * radiusMeters;
+            if (r2 < radiusSqr)
             {
                 radialSq = r2;
                 return true;
@@ -396,21 +425,44 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Picks the Person whose head cylinder contains the camera with smallest radial distance (requires proximity hide enabled).
+        /// Strict zone pick, then sticky relaxed zone for the current hide target so border frames do not split stereo passes.
         /// </summary>
-        private static Atom FindBestPersonWhoseHeadZoneContainsCamera(Camera cam, out FreeControllerV3 headOut)
+        private static void ResolveHeadHideTargetForCamera(Camera cam, out Atom bestAtom, out FreeControllerV3 bestHead)
         {
-            headOut = null;
-            if (cam == null || SuperController.singleton == null)
-                return null;
+            bestAtom = null;
+            bestHead = null;
+            if (cam == null)
+                return;
 
-            if (!_headProximityHide)
-                return null;
+            SuperController sc = SuperController.singleton;
+            if (sc == null || !_headProximityHide)
+                return;
 
-            return PickClosestPersonInHeadZone(cam, out headOut);
+            Vector3 probe = ResolveHeadZoneProbeWorldPosition(sc, cam);
+            Atom strictPerson = PickClosestPersonInHeadZone(probe, 1f, out FreeControllerV3 strictHead);
+            if (strictPerson != null)
+            {
+                bestAtom = strictPerson;
+                bestHead = strictHead;
+                return;
+            }
+
+            if (_hideHandlerPerson == null || !_handlersConfigured)
+                return;
+
+            FreeControllerV3 heldHead = _hideHandlerPerson.GetStorableByID("headControl") as FreeControllerV3;
+            if (heldHead == null)
+                return;
+
+            float unusedRsq;
+            if (!TryGetRadialSqInHeadZone(GetHeadZoneScratch(_hideHandlerPerson), heldHead, probe, HeadZoneRelaxRadiusScaleWhileHiding, out unusedRsq))
+                return;
+
+            bestAtom = _hideHandlerPerson;
+            bestHead = heldHead;
         }
 
-        private static Atom PickClosestPersonInHeadZone(Camera cam, out FreeControllerV3 headOut)
+        private static Atom PickClosestPersonInHeadZone(Vector3 probeWorldPosition, float radiusScale, out FreeControllerV3 headOut)
         {
             headOut = null;
             SuperController sc = SuperController.singleton;
@@ -429,7 +481,7 @@ namespace geesp0t
                 if (head == null || head.control == null)
                     continue;
                 float rsq;
-                if (!TryGetRadialSqInHeadZone(GetHeadZoneScratch(a), head, cam, out rsq))
+                if (!TryGetRadialSqInHeadZone(GetHeadZoneScratch(a), head, probeWorldPosition, radiusScale, out rsq))
                     continue;
                 if (rsq < bestRsq)
                 {
@@ -576,7 +628,8 @@ namespace geesp0t
             }
 
             FreeControllerV3 bestHead;
-            Atom best = FindBestPersonWhoseHeadZoneContainsCamera(cam, out bestHead);
+            Atom best;
+            ResolveHeadHideTargetForCamera(cam, out best, out bestHead);
             EnsureHideHandlersMatchZoneOwner(best);
 
             if (best == null || bestHead == null)
@@ -587,10 +640,6 @@ namespace geesp0t
                     "Hide pass eligible (VR eye cam): no Person head cylinder contains this camera — move HMD into head volume or check world scale.");
                 return;
             }
-
-            float unusedRsq;
-            if (!TryGetRadialSqInHeadZone(GetHeadZoneScratch(best), bestHead, cam, out unusedRsq))
-                return;
 
             if (!_handlersConfigured)
                 TryConfigureHandlers();
@@ -627,13 +676,11 @@ namespace geesp0t
                 return;
 
             FreeControllerV3 bestHead;
-            Atom best = FindBestPersonWhoseHeadZoneContainsCamera(cam, out bestHead);
+            Atom best;
+            ResolveHeadHideTargetForCamera(cam, out best, out bestHead);
             if (best == null || bestHead == null)
                 return;
             if (best != _hideHandlerPerson)
-                return;
-            float unusedRsq;
-            if (!TryGetRadialSqInHeadZone(GetHeadZoneScratch(best), bestHead, cam, out unusedRsq))
                 return;
 
             try

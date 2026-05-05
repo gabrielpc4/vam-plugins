@@ -73,8 +73,23 @@ namespace geesp0t
         private bool sceneLightAtomBackupActive = false;
         private bool wasSuperControllerLoading = false;
 
+        private const float sceneLightRestoreDelayAfterLoadSeconds = 30f;
+        private bool sceneLightRestoreDelayedPending = false;
+        private float sceneLightRestoreDueRealtime = 0f;
+
         private bool lightAtomBackupPendingDuringLoad = false;
         private bool lightAtomBackupWaitLogged = false;
+
+        private bool globalLightingDimBackupCaptured = false;
+        private bool globalLightingRestoreShowSkybox = false;
+        private float globalLightingRestoreMasterIntensity = 0f;
+        private float globalLightingRestoreDiffuseIntensity = 0f;
+        private float globalLightingRestoreSpecularIntensity = 0f;
+        private float globalLightingRestoreCamExposure = 0f;
+        private float globalLightingRestoreSkyboxIntensity = 0f;
+
+        private const string coreControlAtomUid = "CoreControl";
+        private const string globalLightingStorableId = "GlobalLighting";
 
         public class PluginSet
         {
@@ -855,20 +870,22 @@ namespace geesp0t
 
             if (superControllerLoading && !wasSuperControllerLoading)
             {
+                sceneLightRestoreDelayedPending = false;
                 sceneLightAtomBackupList.Clear();
                 sceneLightAtomBackupActive = false;
                 lightAtomBackupPendingDuringLoad = true;
                 lightAtomBackupWaitLogged = false;
+                globalLightingDimBackupCaptured = false;
                 LightAtomDebugLog("Load started: stale backup discarded; will capture InvisibleLight atoms when GetAtoms() lists them (often a few frames after isLoading).");
             }
 
-            TryCaptureLightAtomsDuringLoad();
+            MergeLightAtomsIntoBackupDuringLoad();
 
             if (!superControllerLoading && wasSuperControllerLoading)
             {
-                if (lightAtomBackupPendingDuringLoad)
+                if (lightAtomBackupPendingDuringLoad && sceneLightAtomBackupList.Count == 0 && !globalLightingDimBackupCaptured)
                 {
-                    LightAtomDebugLog("Load finished before any light atoms appeared in GetAtoms(); no backup for this load.");
+                    LightAtomDebugLog("Load finished before any InvisibleLight atoms or CoreControl GlobalLighting appeared; no lighting backup for this load.");
                 }
 
                 lightAtomBackupPendingDuringLoad = false;
@@ -876,21 +893,28 @@ namespace geesp0t
 
                 LightAtomDebugLog("Scene load finished (SuperController.isLoading became false).");
 
-                if (sceneLightAtomBackupActive)
+                if (sceneLightAtomBackupActive || globalLightingDimBackupCaptured)
                 {
-                    try
-                    {
-                        LightAtomDebugLog("Running RestoreLightAtomsFromBackup immediately after scene load.");
-                        RestoreLightAtomsFromBackup();
-                    }
-                    catch (Exception lightsRestoreException)
-                    {
-                        SuperController.LogError("[Auto_Load_Person_Plugins] RestoreLightAtomsFromBackup after scene load failed: " + lightsRestoreException);
-                    }
+                    LightAtomDebugLog(string.Format("Light atom restore scheduled in {0} seconds (realtime).", sceneLightRestoreDelayAfterLoadSeconds));
+                    sceneLightRestoreDelayedPending = true;
+                    sceneLightRestoreDueRealtime = Time.realtimeSinceStartup + sceneLightRestoreDelayAfterLoadSeconds;
                 }
                 else
                 {
-                    LightAtomDebugLog("No light atom backup is active; restore skipped.");
+                    LightAtomDebugLog("No light atom backup is active; delayed restore not scheduled.");
+                }
+            }
+
+            if (sceneLightRestoreDelayedPending && Time.realtimeSinceStartup >= sceneLightRestoreDueRealtime)
+            {
+                try
+                {
+                    LightAtomDebugLog("Running delayed RestoreLightAtomsFromBackup.");
+                    RestoreLightAtomsFromBackup();
+                }
+                catch (Exception lightsRestoreException)
+                {
+                    SuperController.LogError("[Auto_Load_Person_Plugins] RestoreLightAtomsFromBackup (delayed after scene load) failed: " + lightsRestoreException);
                 }
             }
 
@@ -1024,9 +1048,9 @@ namespace geesp0t
 
         void OnDestroy()
         {
-            if (sceneLightAtomBackupActive)
+            if (sceneLightAtomBackupActive || globalLightingDimBackupCaptured)
             {
-                LightAtomDebugLog("OnDestroy: restoring light atoms before unload.");
+                LightAtomDebugLog("OnDestroy: restoring scene lighting before unload.");
                 try
                 {
                     RestoreLightAtomsFromBackup();
@@ -1068,45 +1092,59 @@ namespace geesp0t
             return false;
         }
 
-        void TryCaptureLightAtomsDuringLoad()
+        bool LightAtomUidAlreadyInBackup(string atomUid)
+        {
+            for (int i = 0; i < sceneLightAtomBackupList.Count; i++)
+            {
+                if (sceneLightAtomBackupList[i].atomUid == atomUid)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        void MergeLightAtomsIntoBackupDuringLoad()
         {
             if (!SuperController.singleton.isLoading || !lightAtomBackupPendingDuringLoad)
             {
                 return;
             }
 
-            List<Atom> lightAtomsFound = new List<Atom>();
+            int totalLightAtomsInScene = 0;
 
             foreach (Atom sceneAtom in SuperController.singleton.GetAtoms())
             {
                 if (IsVaMLightAtom(sceneAtom))
                 {
-                    lightAtomsFound.Add(sceneAtom);
+                    totalLightAtomsInScene++;
                 }
             }
 
-            if (lightAtomsFound.Count == 0)
+            if (totalLightAtomsInScene == 0 && sceneLightAtomBackupList.Count == 0 && !globalLightingDimBackupCaptured && !lightAtomBackupWaitLogged)
             {
-                if (!lightAtomBackupWaitLogged)
+                lightAtomBackupWaitLogged = true;
+                LightAtomDebugLog("Load in progress: no InvisibleLight atoms in GetAtoms yet; retrying each frame until they spawn.");
+            }
+
+            foreach (Atom sceneAtom in SuperController.singleton.GetAtoms())
+            {
+                if (!IsVaMLightAtom(sceneAtom))
                 {
-                    lightAtomBackupWaitLogged = true;
-                    LightAtomDebugLog("Load in progress: no light atoms in GetAtoms yet; retrying each frame until they spawn.");
+                    continue;
                 }
 
-                return;
-            }
-
-            LightAtomDebugLog(string.Format("Load in progress: found {0} light atom(s); backing up and SetOn(false).", lightAtomsFound.Count));
-
-            sceneLightAtomBackupList.Clear();
-
-            for (int atomIndex = 0; atomIndex < lightAtomsFound.Count; atomIndex++)
-            {
-                Atom sceneAtom = lightAtomsFound[atomIndex];
-                bool wasOn = sceneAtom.on;
                 string atomUid = sceneAtom.uid;
 
-                LightAtomDebugLog(string.Format("Light atom \"{0}\" uid=\"{1}\": on {2} -> false", sceneAtom.name, atomUid, wasOn));
+                if (LightAtomUidAlreadyInBackup(atomUid))
+                {
+                    continue;
+                }
+
+                bool wasOn = sceneAtom.on;
+
+                LightAtomDebugLog(string.Format("Load in progress: new light atom \"{0}\" uid=\"{1}\": on {2} -> false", sceneAtom.name, atomUid, wasOn));
 
                 SceneLightAtomBackupEntry backupEntry = new SceneLightAtomBackupEntry();
                 backupEntry.atomUid = atomUid;
@@ -1118,38 +1156,124 @@ namespace geesp0t
                 LightAtomDebugLog(string.Format("After SetOn(false), uid=\"{0}\" read-back on: {1}", atomUid, sceneAtom.on));
             }
 
-            sceneLightAtomBackupActive = true;
-            lightAtomBackupPendingDuringLoad = false;
-            LightAtomDebugLog(string.Format("Backup complete during load; {0} light atom(s), backup active.", sceneLightAtomBackupList.Count));
+            if (sceneLightAtomBackupList.Count > 0)
+            {
+                sceneLightAtomBackupActive = true;
+            }
+
+            MergeGlobalLightingDuringLoad();
+        }
+
+        void MergeGlobalLightingDuringLoad()
+        {
+            if (!SuperController.singleton.isLoading || !lightAtomBackupPendingDuringLoad)
+            {
+                return;
+            }
+
+            Atom coreAtom = SuperController.singleton.GetAtomByUid(coreControlAtomUid);
+            if (coreAtom == null || coreAtom.destroyed)
+            {
+                return;
+            }
+
+            JSONStorable globalLightingStorable = coreAtom.GetStorableByID(globalLightingStorableId);
+            if (globalLightingStorable == null)
+            {
+                return;
+            }
+
+            if (!globalLightingDimBackupCaptured)
+            {
+                globalLightingRestoreShowSkybox = globalLightingStorable.GetBoolParamValue("showSkybox");
+                globalLightingRestoreMasterIntensity = globalLightingStorable.GetFloatParamValue("masterIntensity");
+                globalLightingRestoreDiffuseIntensity = globalLightingStorable.GetFloatParamValue("diffuseIntensity");
+                globalLightingRestoreSpecularIntensity = globalLightingStorable.GetFloatParamValue("specularIntensity");
+                globalLightingRestoreCamExposure = globalLightingStorable.GetFloatParamValue("camExposure");
+                globalLightingRestoreSkyboxIntensity = globalLightingStorable.GetFloatParamValue("skyboxIntensity");
+                globalLightingDimBackupCaptured = true;
+
+                LightAtomDebugLog(string.Format(
+                    "GlobalLighting snapshot (showSkybox={0}, skyboxIntensity={1}); forcing dark each frame until load completes.",
+                    globalLightingRestoreShowSkybox,
+                    globalLightingRestoreSkyboxIntensity));
+            }
+
+            globalLightingStorable.SetBoolParamValue("showSkybox", false);
+            globalLightingStorable.SetFloatParamValue("masterIntensity", 0f);
+            globalLightingStorable.SetFloatParamValue("diffuseIntensity", 0f);
+            globalLightingStorable.SetFloatParamValue("specularIntensity", 0f);
+            globalLightingStorable.SetFloatParamValue("camExposure", 0f);
+            globalLightingStorable.SetFloatParamValue("skyboxIntensity", 0f);
         }
 
         void RestoreLightAtomsFromBackup()
         {
             LightAtomDebugLog("RestoreLightAtomsFromBackup entered.");
+            sceneLightRestoreDelayedPending = false;
 
-            if (!sceneLightAtomBackupActive)
+            bool hadAtomBackup = sceneLightAtomBackupList.Count > 0;
+            bool hadGlobalBackup = globalLightingDimBackupCaptured;
+
+            if (!hadAtomBackup && !hadGlobalBackup)
             {
-                LightAtomDebugLog("No backup active; restore exits without changes.");
+                LightAtomDebugLog("No lighting backup active; restore exits without changes.");
                 return;
             }
 
-            LightAtomDebugLog(string.Format("Restoring {0} backup entry/entries.", sceneLightAtomBackupList.Count));
-
-            for (int entryIndex = 0; entryIndex < sceneLightAtomBackupList.Count; entryIndex++)
+            if (hadGlobalBackup)
             {
-                SceneLightAtomBackupEntry backupEntry = sceneLightAtomBackupList[entryIndex];
-                Atom sceneAtom = SuperController.singleton.GetAtomByUid(backupEntry.atomUid);
-
-                if (sceneAtom != null && IsVaMLightAtom(sceneAtom))
+                Atom coreAtom = SuperController.singleton.GetAtomByUid(coreControlAtomUid);
+                if (coreAtom != null && !coreAtom.destroyed)
                 {
-                    bool onBefore = sceneAtom.on;
-                    LightAtomDebugLog(string.Format("Try restore uid=\"{0}\": on now {1} -> saved {2}", backupEntry.atomUid, onBefore, backupEntry.savedOn));
-                    sceneAtom.SetOn(backupEntry.savedOn);
-                    LightAtomDebugLog(string.Format("After SetOn, uid=\"{0}\" read-back on: {1}", backupEntry.atomUid, sceneAtom.on));
+                    JSONStorable globalLightingStorable = coreAtom.GetStorableByID(globalLightingStorableId);
+                    if (globalLightingStorable != null)
+                    {
+                        LightAtomDebugLog(string.Format(
+                            "Restoring GlobalLighting (showSkybox={0}, skyboxIntensity={1}).",
+                            globalLightingRestoreShowSkybox,
+                            globalLightingRestoreSkyboxIntensity));
+
+                        globalLightingStorable.SetBoolParamValue("showSkybox", globalLightingRestoreShowSkybox);
+                        globalLightingStorable.SetFloatParamValue("masterIntensity", globalLightingRestoreMasterIntensity);
+                        globalLightingStorable.SetFloatParamValue("diffuseIntensity", globalLightingRestoreDiffuseIntensity);
+                        globalLightingStorable.SetFloatParamValue("specularIntensity", globalLightingRestoreSpecularIntensity);
+                        globalLightingStorable.SetFloatParamValue("camExposure", globalLightingRestoreCamExposure);
+                        globalLightingStorable.SetFloatParamValue("skyboxIntensity", globalLightingRestoreSkyboxIntensity);
+                    }
+                    else
+                    {
+                        SuperController.LogError("[Auto_Load_Person_Plugins] Restore: CoreControl has no GlobalLighting storable.");
+                    }
                 }
                 else
                 {
-                    LightAtomDebugLog(string.Format("Entry {0} uid=\"{1}\": atom missing or not a light atom; skip.", entryIndex, backupEntry.atomUid));
+                    SuperController.LogError("[Auto_Load_Person_Plugins] Restore: CoreControl atom missing; cannot restore GlobalLighting.");
+                }
+
+                globalLightingDimBackupCaptured = false;
+            }
+
+            if (hadAtomBackup)
+            {
+                LightAtomDebugLog(string.Format("Restoring {0} InvisibleLight backup entry/entries.", sceneLightAtomBackupList.Count));
+
+                for (int entryIndex = 0; entryIndex < sceneLightAtomBackupList.Count; entryIndex++)
+                {
+                    SceneLightAtomBackupEntry backupEntry = sceneLightAtomBackupList[entryIndex];
+                    Atom sceneAtom = SuperController.singleton.GetAtomByUid(backupEntry.atomUid);
+
+                    if (sceneAtom != null && IsVaMLightAtom(sceneAtom))
+                    {
+                        bool onBefore = sceneAtom.on;
+                        LightAtomDebugLog(string.Format("Try restore uid=\"{0}\": on now {1} -> saved {2}", backupEntry.atomUid, onBefore, backupEntry.savedOn));
+                        sceneAtom.SetOn(backupEntry.savedOn);
+                        LightAtomDebugLog(string.Format("After SetOn, uid=\"{0}\" read-back on: {1}", backupEntry.atomUid, sceneAtom.on));
+                    }
+                    else
+                    {
+                        LightAtomDebugLog(string.Format("Entry {0} uid=\"{1}\": atom missing or not a light atom; skip.", entryIndex, backupEntry.atomUid));
+                    }
                 }
             }
 

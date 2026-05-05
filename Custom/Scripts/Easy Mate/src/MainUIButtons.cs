@@ -994,9 +994,15 @@ namespace geesp0t
                 if (!labelLooksLikeNext)
                 {
                     JSONStorable textStorable = at.GetStorableByID(UiButtonTextStorableId);
-                    JSONStorableString jss = textStorable as JSONStorableString;
-                    if (jss != null && NextSceneUIButtonLabelMatches(jss.val))
-                        labelLooksLikeNext = true;
+                    if (textStorable != null)
+                    {
+                        JSONStorableString textParam = textStorable.GetStringJSONParam("text");
+                        if (textParam != null &&
+                            NextSceneUIButtonLabelMatches(textParam.val))
+                        {
+                            labelLooksLikeNext = true;
+                        }
+                    }
                 }
 
                 if (!labelLooksLikeNext)

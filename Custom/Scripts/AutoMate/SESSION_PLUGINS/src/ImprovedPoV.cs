@@ -526,8 +526,10 @@ namespace geesp0t
 
                 var materials = new List<Material>(MaterialsToHide.Length);
 
-                foreach (var material in skin.GPUmaterials)
+                foreach (Material material in skin.GPUmaterials)
                 {
+                    if (material == null)
+                        continue;
                     if (!MaterialsToHide.Any(materialToHide => material.name.StartsWith(materialToHide)))
                         continue;
 
@@ -537,15 +539,17 @@ namespace geesp0t
                 return materials;
             }
 
-            private static Dictionary<string, Shader> ReplacementShaders = new Dictionary<string, Shader>
+            /// <summary>Opaque shader name → transparent replacement name (<c>null</c> = already transparent / no swap). Resolved with <see cref="Shader.Find"/> in <see cref="Configure"/> so VaM has registered shaders.</summary>
+            private static readonly Dictionary<string, string> ReplacementShaderNames = new Dictionary<string, string>
             {
-                // Opaque materials
-                { "Custom/Subsurface/GlossCullComputeBuff", Shader.Find("Custom/Subsurface/TransparentGlossSeparateAlphaComputeBuff") },
-                { "Custom/Subsurface/GlossNMCullComputeBuff", Shader.Find("Custom/Subsurface/TransparentGlossNMSeparateAlphaComputeBuff") },
-                { "Custom/Subsurface/GlossNMDetailCullComputeBuff", Shader.Find("Custom/Subsurface/TransparentGlossNMDetailNoCullSeparateAlphaComputeBuff") },
-                { "Custom/Subsurface/CullComputeBuff", Shader.Find("Custom/Subsurface/TransparentSeparateAlphaComputeBuff") },
-
-                // Transparent materials
+                { "Custom/Subsurface/GlossCullComputeBuff", "Custom/Subsurface/TransparentGlossSeparateAlphaComputeBuff" },
+                { "Custom/Subsurface/GlossNMCullComputeBuff", "Custom/Subsurface/TransparentGlossNMSeparateAlphaComputeBuff" },
+                { "Custom/Subsurface/GlossNMDetailCullComputeBuff", "Custom/Subsurface/TransparentGlossNMDetailNoCullSeparateAlphaComputeBuff" },
+                { "Custom/Subsurface/CullComputeBuff", "Custom/Subsurface/TransparentSeparateAlphaComputeBuff" },
+                { "Custom/Subsurface/TransparentGlossSeparateAlphaComputeBuff", null },
+                { "Custom/Subsurface/TransparentGlossNMSeparateAlphaComputeBuff", null },
+                { "Custom/Subsurface/TransparentSeparateAlphaComputeBuff", null },
+                { "Custom/Subsurface/TransparentGlossNMDetailNoCullSeparateAlphaComputeBuff", null },
                 { "Custom/Subsurface/TransparentGlossNoCullSeparateAlphaComputeBuff", null },
                 { "Custom/Subsurface/TransparentGlossComputeBuff", null },
                 { "Custom/Subsurface/TransparentComputeBuff", null },
@@ -553,15 +557,42 @@ namespace geesp0t
                 { "Marmoset/Transparent/Simple Glass/Specular IBLComputeBuff", null },
             };
 
+            private static string NormalizeMaterialShaderName(string raw)
+            {
+                if (string.IsNullOrEmpty(raw))
+                    return null;
+                string s = raw.Trim().Trim('\'', '"');
+                return s.Length == 0 ? null : s;
+            }
+
+            private static string GetReplacementShaderNameForSkinMaterial(Material material)
+            {
+                if (material == null)
+                    return null;
+                string shaderName = material.shader != null ? NormalizeMaterialShaderName(material.shader.name) : null;
+                string replacementName = null;
+                bool mapped = shaderName != null && ReplacementShaderNames.TryGetValue(shaderName, out replacementName);
+                if (!mapped)
+                {
+                    if (shaderName != null && shaderName.IndexOf("Custom/Subsurface/Transparent", StringComparison.Ordinal) >= 0)
+                        replacementName = null;
+                    else
+                        replacementName = null;
+                }
+
+                return replacementName;
+            }
+
             private DAZSkinV2 _skin;
             private List<SkinShaderMaterialReference> _materialRefs;
 
             public int Configure(DAZSkinV2 skin)
             {
                 _skin = skin;
-                _materialRefs = new List<SkinShaderMaterialReference>();
+                _materialRefs = null;
 
-                foreach (var material in GetMaterialsToHide(skin))
+                IList<Material> hideSet = GetMaterialsToHide(skin);
+                foreach (Material material in hideSet)
                 {
 #if (IMPROVED_POV)
                 if(material == null)
@@ -570,27 +601,72 @@ namespace geesp0t
                 if (material.GetInt(SkinShaderMaterialReference.ImprovedPovEnabledShaderKey) == 1)
                     throw new InvalidOperationException("Attempts to apply the shader strategy on a skin that already has the plugin enabled (shader key).");
 #endif
+                    if (material == null)
+                        continue;
+                    string replacementName = GetReplacementShaderNameForSkinMaterial(material);
+                    if (!string.IsNullOrEmpty(replacementName) && Shader.Find(replacementName) == null)
+                        return HandlerConfigurationResult.TryAgainLater;
+                }
 
-                    var materialInfo = SkinShaderMaterialReference.FromMaterial(material);
+                _materialRefs = new List<SkinShaderMaterialReference>();
 
-                    Shader shader;
-                    if (!ReplacementShaders.TryGetValue(material.shader.name, out shader))
-                        SuperController.LogError("Missing replacement shader: '" + material.shader.name + "'");
+                foreach (Material material in hideSet)
+                {
+#if (IMPROVED_POV)
+                if(material == null)
+                    throw new InvalidOperationException("Attempts to apply the shader strategy on a destroyed material.");
+#endif
+                    if (material == null)
+                        continue;
 
-                    if (shader != null) material.shader = shader;
+                    SkinShaderMaterialReference materialInfo = SkinShaderMaterialReference.FromMaterial(material);
+                    string shaderName = material.shader != null ? NormalizeMaterialShaderName(material.shader.name) : null;
+                    string replacementNameForSwap = null;
+                    bool mapped = shaderName != null && ReplacementShaderNames.TryGetValue(shaderName, out replacementNameForSwap);
+                    Shader shader = null;
+                    if (!mapped)
+                    {
+                        if (shaderName != null && shaderName.IndexOf("Custom/Subsurface/Transparent", StringComparison.Ordinal) >= 0)
+                            replacementNameForSwap = null;
+                        else
+                        {
+                            replacementNameForSwap = null;
+                            if (shaderName != null)
+                                SuperController.LogMessage("ImprovedPoV: no shader swap for skin material shader '" + shaderName + "' (hide pass may be partial).");
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(replacementNameForSwap))
+                    {
+                        shader = Shader.Find(replacementNameForSwap);
+                        if (shader == null)
+                        {
+                            _materialRefs = null;
+                            return HandlerConfigurationResult.TryAgainLater;
+                        }
+                    }
+
+                    if (shader != null)
+                        material.shader = shader;
 
                     _materialRefs.Add(materialInfo);
                 }
 
-                // This is a hack to force a refresh of the shaders cache
                 skin.BroadcastMessage("OnApplicationFocus", true);
                 return HandlerConfigurationResult.Success;
             }
 
             public void Restore()
             {
-                foreach (var material in _materialRefs)
-                    material.material.shader = material.originalShader;
+                if (_materialRefs == null)
+                    return;
+                foreach (SkinShaderMaterialReference row in _materialRefs)
+                {
+                    if (row == null || row.material == null)
+                        continue;
+                    if (row.originalShader != null)
+                        row.material.shader = row.originalShader;
+                }
 
                 _materialRefs = null;
 
@@ -600,6 +676,8 @@ namespace geesp0t
 
             public void BeforeRender()
             {
+                if (_materialRefs == null)
+                    return;
                 foreach (var materialRef in _materialRefs)
                 {
                     var material = materialRef.material;
@@ -612,6 +690,8 @@ namespace geesp0t
 
             public void AfterRender()
             {
+                if (_materialRefs == null)
+                    return;
                 foreach (var materialRef in _materialRefs)
                 {
                     var material = materialRef.material;

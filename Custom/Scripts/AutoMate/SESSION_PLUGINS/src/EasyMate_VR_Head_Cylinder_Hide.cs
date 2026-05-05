@@ -16,8 +16,8 @@ namespace geesp0t
     /// (closest Person along the cylinder test wins when multiple overlap). Zone tests use <see cref="SuperController.centerCameraTarget"/> when present
     /// so left/right eye cameras do not disagree inside a tight radial band (IPD).
     /// Same camera filters as before (VR eye only; not <c>MonitorRig</c> or mirror/reflection cameras).
-    /// Skin opaque→transparent swaps and <c>BroadcastMessage</c> run only after all replacement shaders resolve via <c>Shader.Find</c>;
-    /// hide passes are skipped while <c>SuperController.singleton.isLoading</c> to avoid load-order shader errors.
+    /// Skin opaque→transparent swaps and <c>BroadcastMessage</c> run only after all replacement shaders resolve via <c>Shader.Find</c> at configure time
+    /// (returns <c>TryAgainLater</c> until VaM exposes those shaders — no static <c>Shader.Find</c> at type load).
     /// Adapted from ImprovedPoV 2.1.1 (Acidbubbles) — https://github.com/acidbubbles/vam-improved-pov
     /// Diagnostics: set <see cref="EnableHeadCylinderDiagnosticLogs"/> false to silence <c>[VrHeadCylinder]</c> messages.
     /// Controlled by Easy Mate storables <b>VR head proximity hide</b> (default on; scene JSON may override). Independent of navigation rig or alignment flows.
@@ -26,12 +26,6 @@ namespace geesp0t
     {
         /// <summary>When true, head-zone material hide runs for any Person whose cylinder contains the HMD (Easy Mate storables default on).</summary>
         private static bool _headProximityHide = false;
-
-        /// <summary>
-        /// False while <see cref="OnSceneStartup"/> reports scene settling (load UI / icon / isLoading). When false, hide passes do not run.
-        /// Default true if the session plugin never calls <see cref="NotifyScenePlaybackHoldStarted"/> (e.g. no AutoMate session).
-        /// </summary>
-        private static bool _scenePlaybackReadyForHeadHide = true;
 
         private static bool _shutdownInProgress;
 
@@ -104,21 +98,6 @@ namespace geesp0t
             SuperController sc = SuperController.singleton;
             if (sc == null)
                 return;
-            if (sc.isLoading)
-            {
-                DiagThrottled("eye_loading", 2f, "Eye camera pre-render: skipped while SuperController.isLoading.");
-                return;
-            }
-
-            if (!_scenePlaybackReadyForHeadHide)
-            {
-                DiagThrottled(
-                    "eye_scene_settle",
-                    4f,
-                    "Eye camera: head-cylinder hide waits for AutoMate OnSceneStartup scene settle (load UI cleared, assets settled).");
-                return;
-            }
-
             if (!_headProximityHide)
             {
                 DiagThrottled(
@@ -230,15 +209,6 @@ namespace geesp0t
         private static Dictionary<string, HeadZoneScratch> _headZoneScratchByUid;
 
         /// <summary>
-        /// Call when <see cref="OnSceneStartup"/> begins scene settle (load UI / pause hold). Suppresses head-cylinder hide until settle completes.
-        /// </summary>
-        public static void NotifyScenePlaybackHoldStarted()
-        {
-            _scenePlaybackReadyForHeadHide = false;
-            RestoreTransientHeadHideState();
-        }
-
-        /// <summary>
         /// Restores skin/accessory materials, clears hide-target state, and shows possessor alignment meshes.
         /// Does not unregister camera hooks while VR head proximity hide remains enabled — call after possession clears or similar flows.
         /// </summary>
@@ -299,7 +269,6 @@ namespace geesp0t
             _nextConfigureRetryTime = -1f;
             _headZoneScratchByUid = null;
             _coroutineHost = null;
-            _scenePlaybackReadyForHeadHide = true;
             _shutdownInProgress = false;
         }
 
@@ -321,7 +290,6 @@ namespace geesp0t
                 _coroutineHost = host;
             }
 
-            _scenePlaybackReadyForHeadHide = true;
             RestoreTransientHeadHideState();
 
             if (!_headProximityHide)
@@ -550,10 +518,6 @@ namespace geesp0t
                 return false;
             SuperController sc = SuperController.singleton;
             if (sc == null)
-                return false;
-            if (sc.isLoading)
-                return false;
-            if (!_scenePlaybackReadyForHeadHide)
                 return false;
             if (!_headProximityHide)
                 return false;

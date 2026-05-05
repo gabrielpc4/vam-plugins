@@ -952,6 +952,22 @@ namespace geesp0t
         }
 
         /// <summary>
+        /// VR palm HUD B/menu path: close VaM menu first, then pulse the next-scene
+        /// UIButton on the following frame so the default menu-open behavior does not
+        /// fight the scene advance.
+        /// </summary>
+        public static void RequestFireNextSceneAfterClosingMenu()
+        {
+            if (_pluginHost == null)
+                return;
+            SuperController sc = SuperController.singleton;
+            if (sc == null || sc.isLoading)
+                return;
+
+            _pluginHost.StartCoroutine(FireNextSceneUiButtonAfterClosingMenuCo(sc));
+        }
+
+        /// <summary>
         /// True when <see cref="RequestFireNextSceneUiButton"/> would resolve an active
         /// <c>UIButton</c> trigger (used to show palm-HUD <b>Próxima cena</b> only when it can fire).
         /// </summary>
@@ -1038,6 +1054,27 @@ namespace geesp0t
             yield return null;
             if (ubt != null && ubt.trigger != null)
                 ubt.trigger.active = false;
+        }
+
+        private static IEnumerator FireNextSceneUiButtonAfterClosingMenuCo(
+            SuperController sc)
+        {
+            if (sc == null)
+                yield break;
+
+            sc.activeUI = SuperController.ActiveUI.None;
+            sc.HideMainHUD();
+
+            yield return null;
+
+            if (sc == null || sc.isLoading)
+                yield break;
+
+            UIButtonTrigger ubt = TryResolveNextSceneUIButtonTrigger(sc);
+            if (ubt == null || ubt.trigger == null)
+                yield break;
+
+            yield return FireUIButtonTriggerActivePulseCo(ubt);
         }
 
         /// <summary>Merges <see cref="PluginEMotionLite"/> onto every Person (HUD). Removes other E-Motion family entries first.</summary>

@@ -206,8 +206,7 @@ namespace geesp0t
 
                 if (proximaCenaAvailable && proximaB)
                 {
-                    MainUIButtons.RequestFireNextSceneUiButton();
-                    DismissVaMOverlayUiIfAny();
+                    MainUIButtons.RequestFireNextSceneAfterClosingMenu();
                 }
                 else if (possessA)
                 {
@@ -223,8 +222,7 @@ namespace geesp0t
                 else if (proximaCenaAvailable &&
                     EasyMateVrInput.PollPalmHudProximaCenaFaceBDown(sc))
                 {
-                    MainUIButtons.RequestFireNextSceneUiButton();
-                    DismissVaMOverlayUiIfAny();
+                    MainUIButtons.RequestFireNextSceneAfterClosingMenu();
                 }
             }
         }
@@ -387,8 +385,7 @@ namespace geesp0t
             {
                 _btnProximaCena.onClick.AddListener(delegate
                 {
-                    MainUIButtons.RequestFireNextSceneUiButton();
-                    DismissVaMOverlayUiIfAny();
+                    MainUIButtons.RequestFireNextSceneAfterClosingMenu();
                 });
             }
         }

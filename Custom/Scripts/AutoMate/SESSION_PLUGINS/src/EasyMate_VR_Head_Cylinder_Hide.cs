@@ -439,7 +439,8 @@ namespace geesp0t
                 return;
 
             Vector3 probe = ResolveHeadZoneProbeWorldPosition(sc, cam);
-            Atom strictPerson = PickClosestPersonInHeadZone(probe, 1f, out FreeControllerV3 strictHead);
+            FreeControllerV3 strictHead;
+            Atom strictPerson = PickClosestPersonInHeadZone(probe, 1f, out strictHead);
             if (strictPerson != null)
             {
                 bestAtom = strictPerson;

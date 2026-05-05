@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using SimpleJSON;
 
 namespace geesp0t
@@ -8,6 +7,8 @@ namespace geesp0t
     /// <summary>
     /// Tracks the exact scene JSON path VaM most recently loaded so follow-up
     /// tools can target that same file instead of guessing from folder state.
+    /// When several <c>.json</c> files share <see cref="SuperController.currentLoadDir"/>,
+    /// the authoritative match uses public <see cref="SuperController.loadJson"/> (no reflection).
     /// </summary>
     public static class EasyMateLoadedSceneTracker
     {
@@ -20,10 +21,6 @@ namespace geesp0t
         private static string _pendingExplicitSceneJsonPath = "";
 
         private static string _lastTrackerNotifyLogKey = "";
-
-        private static FieldInfo _superControllerLoadedNameField;
-
-        private static bool _loggedLoadedNameFieldReflectionMissing;
 
         public static void LogLoadingStartedSummary(SuperController sc)
         {
@@ -89,8 +86,8 @@ namespace geesp0t
             string normalizedPendingExplicit;
             string reconciledSceneJsonPath;
             string logKeyExplicit;
-            string reflectionSceneJsonFwd;
-            string logKeyReflection;
+            string loadJsonMatchScenePathFwd;
+            string logKeyLoadJsonFingerprint;
             string logKeyReconcile;
 
             if (sc == null)
@@ -127,16 +124,19 @@ namespace geesp0t
                 }
             }
 
-            if (TryResolveLoadedSceneJsonFromVaMLoadedNameField(sc, normalizedLoadDir, out reflectionSceneJsonFwd))
+            if (TryResolveExactSceneJsonMatchingPublicSuperControllerLoadJsonFingerprint(
+                    sc,
+                    normalizedLoadDir,
+                    out loadJsonMatchScenePathFwd))
             {
-                logKeyReflection = "reflection|" + normalizedLoadDir + "|" + NormalizeFwd(reflectionSceneJsonFwd);
+                logKeyLoadJsonFingerprint = "loadjson|" + normalizedLoadDir + "|" + NormalizeFwd(loadJsonMatchScenePathFwd);
                 LogTrackerPhaseOnce(
-                    logKeyReflection,
+                    logKeyLoadJsonFingerprint,
                     string.Format(
-                        "EasyMate [scene tracker]: after load, using SuperController.loadedName (reflection) exact path={0} (currentLoadDir={1})",
-                        NormalizeFwd(reflectionSceneJsonFwd),
+                        "EasyMate [scene tracker]: after load, matched public SuperController.loadJson fingerprint to disk file={0} (currentLoadDir={1})",
+                        NormalizeFwd(loadJsonMatchScenePathFwd),
                         normalizedLoadDir));
-                RememberLoadedScene(sc, reflectionSceneJsonFwd, false);
+                RememberLoadedScene(sc, loadJsonMatchScenePathFwd, false);
                 _pendingExplicitSceneJsonPath = "";
                 return;
             }
@@ -229,73 +229,204 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// VaM keeps the authoritative scene file in a protected <c>loadedName</c> field.
-        /// That is the only reliable way to know which <c>.json</c> was opened when a folder
-        /// contains several scene files.
+        /// Uses public <see cref="SuperController.loadJson"/> versus each <c>.json</c>
+        /// under <see cref="SuperController.currentLoadDir"/> (<see cref="SuperController.ReadFileIntoString"/>).
+        /// This disambiguates folders with multiple scene files without reading non-public VaM fields.
         /// </summary>
-        private static bool TryPeekSuperControllerLoadedNameViaReflection(
-            SuperController superControllerRef,
-            out string loadedPathNormalizedFwd)
+        private static bool TryResolveExactSceneJsonMatchingPublicSuperControllerLoadJsonFingerprint(
+            SuperController superControllerReference,
+            string normalizedCurrentLoadDirFwdNormalized,
+            out string savesRelativeChosenSceneJsonPathFwd)
         {
-            object rawLoadedNameReference;
-            string loadedRawStringValue;
+            string trimmedLoadFolderFwd;
+            string liveFingerprintNorm;
+            List<string> jsonBasenamesDistinct;
+            int basenameIndexWalk;
+            string basenameEntry;
+            string relativeCandidatePathFwd;
+            string fileTextFromDiskWhole;
+            JSONNode parsedDiskRoot;
+            string diskFingerprintNorm;
+            List<string> matchingRelativePathsGathered;
+            JSONNode loadedGraphRootEarly;
+            int skippedProblematicDiskCandidatesFingerprintPass;
 
-            loadedPathNormalizedFwd = "";
+            savesRelativeChosenSceneJsonPathFwd = "";
 
-            if (superControllerRef == null)
+            loadedGraphRootEarly =
+                superControllerReference != null ? superControllerReference.loadJson : null;
+            if (!TryBuildNormalizedFingerprintFromJsonTreeRoot(loadedGraphRootEarly, out liveFingerprintNorm))
             {
                 return false;
             }
 
-            if (_superControllerLoadedNameField == null)
+            trimmedLoadFolderFwd = NormalizeFwd(normalizedCurrentLoadDirFwdNormalized).TrimEnd('/');
+            if (trimmedLoadFolderFwd.Length == 0)
             {
+                return false;
+            }
+
+            jsonBasenamesDistinct = new List<string>();
+            if (!TryFillDistinctSceneJsonBasenamesListedInFolder(
+                    superControllerReference,
+                    trimmedLoadFolderFwd,
+                    jsonBasenamesDistinct))
+            {
+                SuperController.LogError(string.Format(
+                    "EasyMate [scene tracker]: could not list .json candidates in folder {0}",
+                    trimmedLoadFolderFwd));
+                return false;
+            }
+
+            if (jsonBasenamesDistinct.Count == 0)
+            {
+                SuperController.LogError(string.Format(
+                    "EasyMate [scene tracker]: no .json files listed in folder {0} for fingerprint match.",
+                    trimmedLoadFolderFwd));
+                return false;
+            }
+
+            matchingRelativePathsGathered = new List<string>();
+            skippedProblematicDiskCandidatesFingerprintPass = 0;
+            basenameIndexWalk = 0;
+            while (basenameIndexWalk < jsonBasenamesDistinct.Count)
+            {
+                basenameEntry = jsonBasenamesDistinct[basenameIndexWalk];
+                relativeCandidatePathFwd = CombineFwd(trimmedLoadFolderFwd, basenameEntry);
+
+                fileTextFromDiskWhole = superControllerReference.ReadFileIntoString(relativeCandidatePathFwd);
+                if (fileTextFromDiskWhole == null || fileTextFromDiskWhole.Length == 0)
+                {
+                    basenameIndexWalk++;
+                    continue;
+                }
+
                 try
                 {
-                    _superControllerLoadedNameField = typeof(SuperController).GetField(
-                        "loadedName",
-                        BindingFlags.Instance | BindingFlags.NonPublic);
+                    parsedDiskRoot = JSON.Parse(fileTextFromDiskWhole);
                 }
-                catch (Exception resolverException)
+                catch (Exception)
                 {
-                    SuperController.LogError(string.Format(
-                        "EasyMate [scene tracker]: GetField(loadedName) threw: {0}",
-                        resolverException.Message));
-                    _superControllerLoadedNameField = null;
+                    skippedProblematicDiskCandidatesFingerprintPass++;
+                    basenameIndexWalk++;
+                    continue;
                 }
 
-                if (_superControllerLoadedNameField == null)
+                if (!TryBuildNormalizedFingerprintFromJsonTreeRoot(parsedDiskRoot, out diskFingerprintNorm))
                 {
-                    if (!_loggedLoadedNameFieldReflectionMissing)
-                    {
-                        _loggedLoadedNameFieldReflectionMissing = true;
-                        SuperController.LogError(
-                            "EasyMate [scene tracker]: SuperController.loadedName field not found via reflection.");
-                    }
-
-                    return false;
+                    skippedProblematicDiskCandidatesFingerprintPass++;
+                    basenameIndexWalk++;
+                    continue;
                 }
+
+                if (string.Equals(
+                        liveFingerprintNorm,
+                        diskFingerprintNorm,
+                        StringComparison.Ordinal))
+                {
+                    matchingRelativePathsGathered.Add(NormalizeFwd(relativeCandidatePathFwd));
+                }
+
+                basenameIndexWalk++;
+            }
+
+            if (matchingRelativePathsGathered.Count > 1)
+            {
+                SuperController.LogError(string.Format(
+                    "EasyMate [scene tracker]: ambiguous fingerprint match ({0}) in {1}; refusing to guess.",
+                    matchingRelativePathsGathered.Count,
+                    trimmedLoadFolderFwd));
+                return false;
+            }
+
+            if (matchingRelativePathsGathered.Count == 1)
+            {
+                savesRelativeChosenSceneJsonPathFwd = matchingRelativePathsGathered[0];
+                return true;
+            }
+
+            SuperController.LogMessage(string.Format(
+                "EasyMate [scene tracker]: no .json fingerprint match for public loadJson inside {0} " +
+                    "(candidate files={1}, unreadable-or-empty fingerprints skipped={2}).",
+                trimmedLoadFolderFwd,
+                jsonBasenamesDistinct.Count,
+                skippedProblematicDiskCandidatesFingerprintPass));
+            return false;
+        }
+
+        private static bool TryFillDistinctSceneJsonBasenamesListedInFolder(
+            SuperController superControllerReference,
+            string trimmedLoadFolderFwdNoTrailingSlash,
+            List<string> destinationOrderedDistinctJsonFilenamesOnly)
+        {
+            string[] listedPathsRawListed;
+            int listedPathIndexListed;
+            string listedPathFwd;
+
+            destinationOrderedDistinctJsonFilenamesOnly.Clear();
+
+            if (superControllerReference == null)
+            {
+                return false;
+            }
+
+            listedPathsRawListed = null;
+            try
+            {
+                listedPathsRawListed = superControllerReference.GetFilesAtPath(trimmedLoadFolderFwdNoTrailingSlash);
+            }
+            catch (Exception enumerationExceptionListing)
+            {
+                SuperController.LogError(string.Format(
+                    "EasyMate [scene tracker]: GetFilesAtPath threw for {0}: {1}",
+                    trimmedLoadFolderFwdNoTrailingSlash,
+                    enumerationExceptionListing.Message));
+                return false;
+            }
+
+            if (listedPathsRawListed == null)
+            {
+                return false;
+            }
+
+            listedPathIndexListed = 0;
+            while (listedPathIndexListed < listedPathsRawListed.Length)
+            {
+                listedPathFwd = NormalizeFwd(listedPathsRawListed[listedPathIndexListed]);
+                AppendJsonSceneFileNamesUnique(destinationOrderedDistinctJsonFilenamesOnly, listedPathFwd);
+                listedPathIndexListed++;
+            }
+
+            return true;
+        }
+
+        private static bool TryBuildNormalizedFingerprintFromJsonTreeRoot(
+            JSONNode loadedSceneGraphRootInMemory,
+            out string fingerprintNormalizedTextOutWide)
+        {
+            string rawDumpFingerprintSource;
+
+            fingerprintNormalizedTextOutWide = "";
+
+            if (loadedSceneGraphRootInMemory == null)
+            {
+                return false;
             }
 
             try
             {
-                rawLoadedNameReference = _superControllerLoadedNameField.GetValue(superControllerRef);
+                rawDumpFingerprintSource = loadedSceneGraphRootInMemory.ToString("");
             }
-            catch (Exception readFailureException)
+            catch (Exception dumpExceptionCaptured)
             {
                 SuperController.LogError(string.Format(
-                    "EasyMate [scene tracker]: reading SuperController.loadedName failed: {0}",
-                    readFailureException.Message));
+                    "EasyMate [scene tracker]: JSONNode.ToString for fingerprint threw: {0}",
+                    dumpExceptionCaptured.Message));
                 return false;
             }
 
-            loadedRawStringValue = rawLoadedNameReference as string;
-            if (string.IsNullOrEmpty(loadedRawStringValue))
-            {
-                return false;
-            }
-
-            loadedPathNormalizedFwd = NormalizeFwd(superControllerRef.NormalizePath(loadedRawStringValue));
-            if (loadedPathNormalizedFwd.Length == 0)
+            fingerprintNormalizedTextOutWide = NormalizeSimpleJsonFingerprintDumpText(rawDumpFingerprintSource);
+            if (fingerprintNormalizedTextOutWide.Length == 0)
             {
                 return false;
             }
@@ -303,87 +434,18 @@ namespace geesp0t
             return true;
         }
 
-        private static bool TryStripLeadingContentBeforeSavesFolder(
-            string normalizedPathFwd,
-            out string savesRelativePathFwd)
+        private static string NormalizeSimpleJsonFingerprintDumpText(string rawTextInputFingerprintSource)
         {
-            int savesFolderIndex;
-            string upperPath;
+            string workingTextSweep;
 
-            savesRelativePathFwd = "";
-
-            if (string.IsNullOrEmpty(normalizedPathFwd))
+            if (rawTextInputFingerprintSource == null)
             {
-                return false;
+                return "";
             }
 
-            if (normalizedPathFwd.StartsWith("Saves/", StringComparison.OrdinalIgnoreCase))
-            {
-                savesRelativePathFwd = normalizedPathFwd;
-                return true;
-            }
-
-            upperPath = normalizedPathFwd.ToUpperInvariant();
-            savesFolderIndex = upperPath.IndexOf("/SAVES/", StringComparison.Ordinal);
-            if (savesFolderIndex < 0)
-            {
-                return false;
-            }
-
-            savesRelativePathFwd = normalizedPathFwd.Substring(savesFolderIndex + 1);
-            return savesRelativePathFwd.Length > 0;
-        }
-
-        private static bool TryResolveLoadedSceneJsonFromVaMLoadedNameField(
-            SuperController superControllerRef,
-            string normalizedCurrentLoadDir,
-            out string sceneJsonRelativeForTrackerFwd)
-        {
-            string loadedNameNormalizedFwd;
-            string savesAnchoredFwd;
-            string directoryOfLoadedSceneFwd;
-
-            sceneJsonRelativeForTrackerFwd = "";
-
-            if (superControllerRef == null)
-            {
-                return false;
-            }
-
-            if (!TryPeekSuperControllerLoadedNameViaReflection(superControllerRef, out loadedNameNormalizedFwd))
-            {
-                return false;
-            }
-
-            if (!TryStripLeadingContentBeforeSavesFolder(loadedNameNormalizedFwd, out savesAnchoredFwd))
-            {
-                return false;
-            }
-
-            if (!IsPatchableLocalScenePath(savesAnchoredFwd))
-            {
-                return false;
-            }
-
-            if (!FileExists(superControllerRef, savesAnchoredFwd))
-            {
-                SuperController.LogError(string.Format(
-                    "EasyMate [scene tracker]: SuperController.loadedName resolved to {0} but that file was not found via GetFilesAtPath.",
-                    NormalizeFwd(savesAnchoredFwd)));
-                return false;
-            }
-
-            directoryOfLoadedSceneFwd = NormalizeFwd(GetDirectoryPath(savesAnchoredFwd));
-            if (!string.Equals(
-                directoryOfLoadedSceneFwd,
-                normalizedCurrentLoadDir,
-                StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            sceneJsonRelativeForTrackerFwd = savesAnchoredFwd;
-            return true;
+            workingTextSweep = rawTextInputFingerprintSource.Replace("\r\n", "\n");
+            workingTextSweep = workingTextSweep.Replace('\r', '\n');
+            return workingTextSweep;
         }
 
         private static bool LoadDirsMatch(SuperController sc, string rememberedLoadDir)

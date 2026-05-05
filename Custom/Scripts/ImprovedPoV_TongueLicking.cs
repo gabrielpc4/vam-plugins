@@ -9,7 +9,7 @@ using UnityEngine;
 /// Possession that actually feels right.
 /// Source: https://github.com/acidbubbles/vam-improved-pov
 /// </summary>
-public class ImprovedPoV : MVRScript
+public class ImprovedPoV_TongueLicking : MVRScript
 {
     private Atom _person;
     private Camera _mainCamera;
@@ -42,6 +42,99 @@ public class ImprovedPoV : MVRScript
     private float _originalWorldScale;
     private float _originalPlayerHeightAdjust;
 
+    //geesp0t mod for oral sex
+    private JSONStorableBool _animateTongueJSON;
+    private JSONStorableBool _showTongueJSON;
+    private JSONStorableFloat _tongueUpDownSpeedJSON; //updown here is really tongue curl
+    private JSONStorableFloat _tongueLeftRightSpeedJSON;
+    private JSONStorableFloat _tongueUpDownAmountJSON;
+    private JSONStorableFloat _tongueLeftRightAmountJSON;
+
+    private JSONStorableFloat _tongueLengthJSON;
+    private JSONStorableFloat _tongueRaiseLowerJSON;
+    private JSONStorableFloat _tongueRoll1JSON;
+    private JSONStorableFloat _tongueTwistJSON;
+    private JSONStorableFloat _tongueNarrowWideJSON;
+    private JSONStorableFloat _tongueUpDownJSON; // a different up/down morph
+    private JSONStorableFloat _tongueBendTipJSON;
+    protected int _tongueUpDownAnimationDirection;
+    protected int _tongueLeftRightAnimationDirection;
+    protected float _tongueUpDownValue = 0;
+    protected float _tongueLeftRightValue = 0;
+
+    public void TongueAnimation()
+    {
+        JSONStorable geometry = containingAtom.GetStorableByID("geometry");
+        DAZCharacterSelector character = geometry as DAZCharacterSelector;
+        GenerateDAZMorphsControlUI morphControl = character.morphsControlUI;
+
+        DAZMorph tongueLength = morphControl.GetMorphByDisplayName("Tongue Length");
+        DAZMorph tongueRaiseLower = morphControl.GetMorphByDisplayName("Tongue Raise-Lower");
+        DAZMorph tongueRoll1 = morphControl.GetMorphByDisplayName("Tongue Roll 1");
+        DAZMorph tongueTwist = morphControl.GetMorphByDisplayName("Tongue Twist");
+        DAZMorph tongueNarrowWide = morphControl.GetMorphByDisplayName("Tongue Narrow-Wide");
+        DAZMorph tongueUpDown = morphControl.GetMorphByDisplayName("Tongue Up-Down");
+        DAZMorph tongueBendTip = morphControl.GetMorphByDisplayName("Tongue Bend Tip");
+
+        tongueLength.SetValue(_tongueLengthJSON.val);
+        tongueRaiseLower.SetValue(_tongueRaiseLowerJSON.val);
+        tongueRoll1.SetValue(_tongueRoll1JSON.val);
+        tongueTwist.SetValue(_tongueTwistJSON.val);
+        tongueNarrowWide.SetValue(_tongueNarrowWideJSON.val);
+        tongueUpDown.SetValue(_tongueUpDownJSON.val);
+        
+        if (_animateTongueJSON.val) {
+            if (_tongueUpDownSpeedJSON.val != 0)
+            {
+
+                if (_tongueUpDownAnimationDirection == 1)
+                {
+                    _tongueUpDownValue += _tongueUpDownSpeedJSON.val * Time.deltaTime;
+                    if (_tongueUpDownValue >= _tongueUpDownAmountJSON.val)
+                    {
+                        _tongueUpDownAnimationDirection = -1;
+                    }
+                }
+                else
+                {
+                    _tongueUpDownValue -= _tongueUpDownSpeedJSON.val * Time.deltaTime;
+                    if (_tongueUpDownValue <= -_tongueUpDownAmountJSON.val)
+                    {
+                        _tongueUpDownAnimationDirection = 1;
+                    }
+
+                }
+
+                tongueBendTip.morphValue = _tongueUpDownValue;
+            }
+
+
+            DAZMorph tongueSideSide = morphControl.GetMorphByDisplayName("Tongue Side-Side");
+            if (_tongueLeftRightAnimationDirection == 1)
+            {
+                _tongueLeftRightValue += _tongueLeftRightSpeedJSON.val * Time.deltaTime;
+                if (_tongueLeftRightValue >= _tongueLeftRightAmountJSON.val)
+                {
+                    _tongueLeftRightAnimationDirection = -1;
+                }
+            }
+            else
+            {
+                _tongueLeftRightValue -= _tongueLeftRightSpeedJSON.val * Time.deltaTime;
+                if (_tongueLeftRightValue <= -_tongueLeftRightAmountJSON.val)
+                {
+                    _tongueLeftRightAnimationDirection = 1;
+                }
+
+            }
+
+            tongueSideSide.morphValue = _tongueLeftRightValue;
+        } else {
+            tongueBendTip.morphValue = _tongueBendTipJSON.val;
+        }
+    }
+
+
     public override void Init()
     {
         try
@@ -54,12 +147,7 @@ public class ImprovedPoV : MVRScript
             }
 
             _person = containingAtom;
-            _mainCamera = CameraTarget.centerTarget != null
-                ? CameraTarget.centerTarget.targetCamera
-                : null;
-            if (_mainCamera == null && SuperController.singleton != null &&
-                SuperController.singleton.lookCamera != null)
-                _mainCamera = SuperController.singleton.lookCamera;
+            _mainCamera = CameraTarget.centerTarget?.targetCamera;
             _possessor = SuperController
                 .FindObjectsOfType(typeof(Possessor))
                 .Where(p => p.name == "CenterEye")
@@ -140,8 +228,64 @@ public class ImprovedPoV : MVRScript
     {
         try
         {
+            _animateTongueJSON = new JSONStorableBool("Animate Tongue", true);
+            RegisterBool(_animateTongueJSON);
+            CreateToggle(_animateTongueJSON, true);
+
+            _showTongueJSON = new JSONStorableBool("Show Tongue", true);
+            RegisterBool(_showTongueJSON);
+            CreateToggle(_showTongueJSON, true);
+            _showTongueJSON.toggle.onValueChanged.AddListener(delegate (bool val)
             {
-                _cameraDepthJSON = new JSONStorableFloat("Camera depth", 0.17f, 0f, 0.5f, false);
+                _dirty = true;
+            });
+
+            _tongueUpDownSpeedJSON = new JSONStorableFloat("Tongue Up/Down Speed (Up/Down is Bend Tip)", 2.5f, 0f, 10.0f, false);
+            RegisterFloat(_tongueUpDownSpeedJSON);
+            CreateSlider(_tongueUpDownSpeedJSON, true);
+
+            _tongueUpDownAmountJSON = new JSONStorableFloat("Tongue Up/Down Amount", 0.4f, 0f, 10.0f, false);
+            RegisterFloat(_tongueUpDownAmountJSON);
+            CreateSlider(_tongueUpDownAmountJSON, true);
+
+            _tongueLeftRightSpeedJSON = new JSONStorableFloat("Tongue Left/Right Speed", 3.14f, 0f, 10.0f, false);
+            RegisterFloat(_tongueLeftRightSpeedJSON);
+            CreateSlider(_tongueLeftRightSpeedJSON, true);
+
+            _tongueLeftRightAmountJSON = new JSONStorableFloat("Tongue Left/Right Amount", 0.35f, 0f, 10.0f, false);
+            RegisterFloat(_tongueLeftRightAmountJSON);
+            CreateSlider(_tongueLeftRightAmountJSON, true);
+
+            _tongueLengthJSON = new JSONStorableFloat("Tongue Length", 0.5f, 0f, 2.0f, false);
+            RegisterFloat(_tongueLengthJSON);
+            CreateSlider(_tongueLengthJSON, true);
+
+            _tongueRaiseLowerJSON = new JSONStorableFloat("Tongue Raise-Lower", 0.5f, -1.0f, 2.0f, false);
+            RegisterFloat(_tongueRaiseLowerJSON);
+            CreateSlider(_tongueRaiseLowerJSON, true);
+
+            _tongueNarrowWideJSON = new JSONStorableFloat("Tongue Narrow-Wide", 0f, -1.0f, 1.0f, false);
+            RegisterFloat(_tongueNarrowWideJSON);
+            CreateSlider(_tongueNarrowWideJSON, true);
+
+            _tongueRoll1JSON = new JSONStorableFloat("Tongue Roll 1", 0.422f, -1.0f, 1.0f, false);
+            RegisterFloat(_tongueRoll1JSON);
+            CreateSlider(_tongueRoll1JSON, true);
+
+            _tongueTwistJSON = new JSONStorableFloat("Tongue Twist", 0f, -1.0f, 1.0f, false);
+            RegisterFloat(_tongueTwistJSON);
+            CreateSlider(_tongueTwistJSON, true);
+
+            _tongueUpDownJSON = new JSONStorableFloat("Tongue Up Down Position", 0f, -1.0f, 1.0f, false);
+            RegisterFloat(_tongueUpDownJSON);
+            CreateSlider(_tongueUpDownJSON, true);
+
+            _tongueBendTipJSON = new JSONStorableFloat("Tongue Bend Tip", 0f, -1.0f, 1.0f, false);
+            RegisterFloat(_tongueBendTipJSON);
+            CreateSlider(_tongueBendTipJSON, true);
+
+            {
+                _cameraDepthJSON = new JSONStorableFloat("Camera depth", 0.07f, 0f, 0.2f, false);
                 RegisterFloat(_cameraDepthJSON);
                 var cameraDepthSlider = CreateSlider(_cameraDepthJSON, false);
                 cameraDepthSlider.slider.onValueChanged.AddListener(delegate (float val)
@@ -151,7 +295,7 @@ public class ImprovedPoV : MVRScript
             }
 
             {
-                _cameraHeightJSON = new JSONStorableFloat("Camera height", 0.06f, -0.05f, 0.1f, false);
+                _cameraHeightJSON = new JSONStorableFloat("Camera height", 0f, -0.05f, 0.05f, false);
                 RegisterFloat(_cameraHeightJSON);
                 var cameraHeightSlider = CreateSlider(_cameraHeightJSON, false);
                 cameraHeightSlider.slider.onValueChanged.AddListener(delegate (float val)
@@ -161,7 +305,7 @@ public class ImprovedPoV : MVRScript
             }
 
             {
-                _cameraPitchJSON = new JSONStorableFloat("Camera pitch", 0f, -135f, 45f, true);
+                _cameraPitchJSON = new JSONStorableFloat("Camera pitch", -10f, -135f, 45f, false);
                 RegisterFloat(_cameraPitchJSON);
                 var cameraPitchSlider = CreateSlider(_cameraPitchJSON, false);
                 cameraPitchSlider.slider.onValueChanged.AddListener(delegate (float val)
@@ -171,7 +315,7 @@ public class ImprovedPoV : MVRScript
             }
 
             {
-                _clipDistanceJSON = new JSONStorableFloat("Clip distance", 0.01f, 0.01f, .2f, true);
+                _clipDistanceJSON = new JSONStorableFloat("Clip distance", 0.01f, 0.01f, .2f, false);
                 RegisterFloat(_clipDistanceJSON);
                 var clipDistanceSlider = CreateSlider(_clipDistanceJSON, false);
                 clipDistanceSlider.slider.onValueChanged.AddListener(delegate (float val)
@@ -183,7 +327,7 @@ public class ImprovedPoV : MVRScript
             {
                 _autoWorldScaleJSON = new JSONStorableBool("Auto world scale", false);
                 RegisterBool(_autoWorldScaleJSON);
-                var autoWorldScaleToggle = CreateToggle(_autoWorldScaleJSON, true);
+                var autoWorldScaleToggle = CreateToggle(_autoWorldScaleJSON, false);
                 autoWorldScaleToggle.toggle.onValueChanged.AddListener(delegate (bool val)
                 {
                     _dirty = true;
@@ -195,7 +339,7 @@ public class ImprovedPoV : MVRScript
 
                 _possessedOnlyJSON = new JSONStorableBool("Activate only when possessed", possessedOnlyDefaultValue);
                 RegisterBool(_possessedOnlyJSON);
-                var possessedOnlyCheckbox = CreateToggle(_possessedOnlyJSON, true);
+                var possessedOnlyCheckbox = CreateToggle(_possessedOnlyJSON, false);
                 possessedOnlyCheckbox.toggle.onValueChanged.AddListener(delegate (bool val)
                 {
                     _dirty = true;
@@ -205,7 +349,7 @@ public class ImprovedPoV : MVRScript
             {
                 _hideFaceJSON = new JSONStorableBool("Hide face", true);
                 RegisterBool(_hideFaceJSON);
-                var hideFaceToggle = CreateToggle(_hideFaceJSON, true);
+                var hideFaceToggle = CreateToggle(_hideFaceJSON, false);
                 hideFaceToggle.toggle.onValueChanged.AddListener(delegate (bool val)
                 {
                     _dirty = true;
@@ -215,7 +359,7 @@ public class ImprovedPoV : MVRScript
             {
                 _hideHairJSON = new JSONStorableBool("Hide hair", true);
                 RegisterBool(_hideHairJSON);
-                var hideHairToggle = CreateToggle(_hideHairJSON, true);
+                var hideHairToggle = CreateToggle(_hideHairJSON, false);
                 hideHairToggle.toggle.onValueChanged.AddListener(delegate (bool val)
                 {
                     _dirty = true;
@@ -247,12 +391,34 @@ public class ImprovedPoV : MVRScript
         OnDisable();
         Camera.onPreRender -= OnPreRender;
         Camera.onPostRender -= OnPostRender;
+
+        JSONStorable geometry = containingAtom.GetStorableByID("geometry");
+        DAZCharacterSelector character = geometry as DAZCharacterSelector;
+        GenerateDAZMorphsControlUI morphControl = character.morphsControlUI;
+
+        DAZMorph tongueLength = morphControl.GetMorphByDisplayName("Tongue Length");
+        DAZMorph tongueRaiseLower = morphControl.GetMorphByDisplayName("Tongue Raise-Lower");
+        DAZMorph tongueRoll1 = morphControl.GetMorphByDisplayName("Tongue Roll 1");
+        DAZMorph tongueTwist = morphControl.GetMorphByDisplayName("Tongue Twist");
+        DAZMorph tongueNarrowWide = morphControl.GetMorphByDisplayName("Tongue Narrow-Wide");
+        DAZMorph tongueUpDown = morphControl.GetMorphByDisplayName("Tongue Up-Down");
+        DAZMorph tongueBendTip = morphControl.GetMorphByDisplayName("Tongue Bend Tip");
+
+        if (tongueLength != null) tongueLength.Reset();
+        if (tongueRaiseLower != null) tongueRaiseLower.Reset();
+        if (tongueRoll1 != null) tongueRoll1.Reset();
+        if (tongueTwist != null) tongueTwist.Reset();
+        if (tongueNarrowWide != null) tongueNarrowWide.Reset();
+        if (tongueUpDown != null) tongueUpDown.Reset();
+        if (tongueBendTip != null) tongueBendTip.Reset();
     }
 
     public void Update()
     {
         try
         {
+            TongueAnimation();
+
             var active = _headControl.possessed || !_possessedOnlyJSON.val;
 
             if (!_lastActive && active)
@@ -316,7 +482,7 @@ public class ImprovedPoV : MVRScript
         ApplyCameraPosition(active);
         ApplyPossessorMeshVisibility(active);
         if (UpdateHandler(ref _skinHandler, active && _hideFaceJSON.val))
-            ConfigureHandler("Skin", ref _skinHandler, _skinHandler.Configure(_character.skin));
+            ConfigureHandler("Skin", ref _skinHandler, _skinHandler.Configure(_character.skin, _showTongueJSON.val));
         if (_hairHandlers == null)
             _hairHandlers = new List<HairHandler>(new HairHandler[_hair.Length]);
         for (var i = 0; i < _hairHandlers.Count; i++)
@@ -520,25 +686,62 @@ public class ImprovedPoV : MVRScript
             "Tear"
         };
 
-        public static IList<Material> GetMaterialsToHide(DAZSkinV2 skin)
+        public static readonly string[] MaterialsToHideExceptTongue = new[]
         {
+            "Lacrimals",
+            "Pupils",
+            "Lips",
+            "Gums",
+            "Irises",
+            "Teeth",
+            "Face",
+            "Head",
+            "InnerMouth",
+            "EyeReflection",
+            "Nostrils",
+            "Cornea",
+            "Eyelashes",
+            "Sclera",
+            "Ears",
+            "Tear"
+        };
 
-            var materials = new List<Material>(MaterialsToHide.Length);
-
-            foreach (Material material in skin.GPUmaterials)
+        public static IList<Material> GetMaterialsToHide(DAZSkinV2 skin, bool showTongue)
+        {
+            if (showTongue)
             {
-                if (material == null)
-                    continue;
-                if (!MaterialsToHide.Any(materialToHide => material.name.StartsWith(materialToHide)))
-                    continue;
+                var materials = new List<Material>(MaterialsToHideExceptTongue.Length);
 
-                materials.Add(material);
+                foreach (var material in skin.GPUmaterials)
+                {
+                    if (material == null)
+                        continue;
+                    if (!MaterialsToHideExceptTongue.Any(materialToHide => material.name.StartsWith(materialToHide)))
+                        continue;
+
+                    materials.Add(material);
+                }
+
+                return materials;
+            } 
+            else
+            {
+                var materials = new List<Material>(MaterialsToHide.Length);
+
+                foreach (var material in skin.GPUmaterials)
+                {
+                    if (material == null)
+                        continue;
+                    if (!MaterialsToHide.Any(materialToHide => material.name.StartsWith(materialToHide)))
+                        continue;
+
+                    materials.Add(material);
+                }
+
+                return materials;
             }
-
-            return materials;
         }
 
-        /// <summary>Opaque shader name → transparent replacement name (<c>null</c> = already transparent / no swap). Resolved with <see cref="Shader.Find"/> in <see cref="Configure"/> so VaM has registered shaders.</summary>
         private static readonly Dictionary<string, string> ReplacementShaderNames = new Dictionary<string, string>
         {
             { "Custom/Subsurface/GlossCullComputeBuff", "Custom/Subsurface/TransparentGlossSeparateAlphaComputeBuff" },
@@ -585,12 +788,12 @@ public class ImprovedPoV : MVRScript
         private DAZSkinV2 _skin;
         private List<SkinShaderMaterialReference> _materialRefs;
 
-        public int Configure(DAZSkinV2 skin)
+        public int Configure(DAZSkinV2 skin, bool showTongue)
         {
             _skin = skin;
             _materialRefs = null;
 
-            IList<Material> hideSet = GetMaterialsToHide(skin);
+            IList<Material> hideSet = GetMaterialsToHide(skin, showTongue);
             foreach (Material material in hideSet)
             {
 #if (IMPROVED_POV)
@@ -631,7 +834,7 @@ public class ImprovedPoV : MVRScript
                     {
                         replacementNameForSwap = null;
                         if (shaderName != null)
-                            SuperController.LogMessage("ImprovedPoV: no shader swap for skin material shader '" + shaderName + "' (hide pass may be partial).");
+                            SuperController.LogMessage("ImprovedPoV (tongue): no shader swap for skin material shader '" + shaderName + "' (hide pass may be partial).");
                     }
                 }
 

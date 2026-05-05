@@ -908,12 +908,33 @@ namespace geesp0t
 
         private const string NextSceneUIButtonAtomUid = "nxtUIButton";
         private const string UiButtonTriggerStorableId = "Trigger";
+        private const string UiButtonTextStorableId = "Text";
+
+        /// <summary>
+        /// True when a <c>UIButton</c> label should be treated as the scene-advance control
+        /// (English <c>next</c>, Portuguese <c>próxima</c> / <c>proxima</c>, or <c>próxima cena</c> style).
+        /// </summary>
+        private static bool NextSceneUIButtonLabelMatches(string raw)
+        {
+            if (string.IsNullOrEmpty(raw))
+                return false;
+            string trimmed = raw.Trim();
+            if (trimmed.Length == 0)
+                return false;
+            if (trimmed.IndexOf("next", StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+            if (trimmed.IndexOf("proxima", StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+            if (trimmed.IndexOf("pr\u00F3xima", StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+            return false;
+        }
 
         /// <summary>
         /// Pulses the scene &quot;next&quot; <c>UIButton</c> trigger: atom
         /// <see cref="NextSceneUIButtonAtomUid"/> if present, else any active
-        /// <c>UIButton</c> whose UI <c>Text</c> contains &quot;Next&quot;
-        /// (same as Quest thumbstick shortcut).
+        /// <c>UIButton</c> whose label matches <see cref="NextSceneUIButtonLabelMatches"/>
+        /// (Unity <c>Text</c> children or <c>Text</c> storable; same idea as Quest thumbstick shortcut).
         /// </summary>
         public static void RequestFireNextSceneUiButton()
         {
@@ -963,11 +984,19 @@ namespace geesp0t
                     Text t = texts[i];
                     if (t == null || t.text == null)
                         continue;
-                    if (t.text.Trim().IndexOf("next", StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (NextSceneUIButtonLabelMatches(t.text))
                     {
                         labelLooksLikeNext = true;
                         break;
                     }
+                }
+
+                if (!labelLooksLikeNext)
+                {
+                    JSONStorable textStorable = at.GetStorableByID(UiButtonTextStorableId);
+                    JSONStorableString jss = textStorable as JSONStorableString;
+                    if (jss != null && NextSceneUIButtonLabelMatches(jss.val))
+                        labelLooksLikeNext = true;
                 }
 
                 if (!labelLooksLikeNext)

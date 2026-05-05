@@ -12,8 +12,8 @@ namespace geesp0t
     /// <b>Possuir</b> / <b>Despossuir</b> on the <b>lower</b> row.
     /// <b>Upper</b> row (<b>Próxima cena</b>): face <b>B</b> / OpenVR menu, or tap the button.
     /// <b>Lower</b> row (<b>Possuir</b> / <b>Despossuir</b>): face <b>A</b> / OpenVR select.
-    /// While possessed, <b>A</b> or <b>B</b>
-    /// triggers Despossuir. Unity often
+    /// While possessed, <b>A</b> triggers Despossuir; <b>B</b> still runs
+    /// <see cref="MainUIButtons.RequestFireNextSceneUiButton"/> (same as when not possessed). Unity often
     /// sends no laser hits to this hand canvas, so face buttons are polled.
     /// The whole HUD, including this row, only shows while the right-hand
     /// euler window matches.
@@ -182,13 +182,15 @@ namespace geesp0t
             {
                 bool possessA = EasyMateVrInput.PollPalmHudPossessRowFaceADown(sc);
                 bool proximaB = EasyMateVrInput.PollPalmHudProximaCenaFaceBDown(sc);
-                if (possessA || proximaB)
+
+                if (proximaB)
+                {
+                    MainUIButtons.RequestFireNextSceneUiButton();
+                    DismissVaMOverlayUiIfAny();
+                }
+                else if (possessA)
                 {
                     InvokePossessRowPrimaryAction();
-                    if (proximaB)
-                    {
-                        DismissVaMOverlayUiIfAny();
-                    }
                 }
             }
             else

@@ -304,7 +304,7 @@ namespace geesp0t
         {
             try
             {
-                EasyMateHeadSnapPovRuntime.EndSnapSession();
+                EasyMateVrHeadCylinderHide.EndSnapSession();
 
                 SuperController sc = SuperController.singleton;
                 if (sc == null || person == null || person.type != "Person")

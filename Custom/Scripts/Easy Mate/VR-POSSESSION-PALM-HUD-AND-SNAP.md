@@ -146,11 +146,11 @@ On clear:
 1. Record **`hadPossessed`** =
    `EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed()`.
 2. **`StopAutoPossessRoutine()`**
-3. **`EasyMateHeadSnapPovRuntime.EndSnapSession()`**
+3. **`EasyMateVrHeadCylinderHide.EndSnapSession()`**
 4. **`sc.ClearPossess()`**
 5. **`UnlinkStrayHmdLinkedFreeControllersAndNaturalizeHeads`**
 6. **`sc.SelectModeOff()`** (try/catch + log)
-7. **`EasyMateHeadSnapPovRuntime.HidePossessorAlignmentPreviewMeshes()`**
+7. **`EasyMateVrHeadCylinderHide.HidePossessorAlignmentPreviewMeshes()`**
 8. If **`advanceVrPalmHudGenderCycle && hadPossessed`** → increment **both**
    `_vrPalmHudFemaleCycleIndex` and `_vrPalmHudMaleCycleIndex`.
 

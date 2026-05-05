@@ -8,7 +8,7 @@ using UnityEngine.XR;
 namespace geesp0t
 {
     /// <summary>
-    /// Easy Mate VR head zone: when the HMD eye is inside a **radial band** around a Person’s head (finite cylinder
+    /// File: <c>EasyMate_VR_Head_Cylinder_Hide.cs</c>. Easy Mate VR head zone: when the HMD eye is inside a **radial band** around a Person’s head (finite cylinder
     /// along possess **up** through <c>headControl.control</c>, 15 cm below to 50 cm above), temporarily hide face
     /// materials and active **Glasses** / **Hat** clothing. Hair is turned off via <see cref="DAZCharacterSelector.SetActiveHairItem"/>
     /// (restored when leaving the zone) so scalp/hair shaders are not forced through ImprovedPoV-style transparent swaps.
@@ -20,7 +20,7 @@ namespace geesp0t
     /// hide passes are skipped while <c>SuperController.singleton.isLoading</c> to avoid load-order shader errors.
     /// Adapted from ImprovedPoV 2.1.1 (Acidbubbles) — https://github.com/acidbubbles/vam-improved-pov
     /// </summary>
-    public static class EasyMateHeadSnapPovRuntime
+    public static class EasyMateVrHeadCylinderHide
     {
         /// <summary>When true, head-zone material hide runs for any Person near the HMD, without snap (Easy Mate storables default off).</summary>
         private static bool _headProximityHideWithoutSnap = false;
@@ -407,7 +407,7 @@ namespace geesp0t
             }
             catch (Exception e)
             {
-                SuperController.LogError("EasyMateHeadSnapPov: restore head facing failed: " + e.Message);
+                SuperController.LogError("EasyMateVrHeadCylinderHide: restore head facing failed: " + e.Message);
             }
         }
 
@@ -456,7 +456,7 @@ namespace geesp0t
             }
             catch (Exception e)
             {
-                SuperController.LogError("EasyMateHeadSnapPov pre-render: " + e);
+                SuperController.LogError("EasyMateVrHeadCylinderHide pre-render: " + e);
             }
         }
 
@@ -482,7 +482,7 @@ namespace geesp0t
             }
             catch (Exception e)
             {
-                SuperController.LogError("EasyMateHeadSnapPov post-render: " + e);
+                SuperController.LogError("EasyMateVrHeadCylinderHide post-render: " + e);
             }
         }
 
@@ -781,7 +781,7 @@ namespace geesp0t
                         {
                             replacementName = null;
                             if (shaderName != null)
-                                SuperController.LogMessage("EasyMateHeadSnapPov: no shader swap for skin material shader '" + shaderName + "' (hide pass may be partial).");
+                                SuperController.LogMessage("EasyMateVrHeadCylinderHide: no shader swap for skin material shader '" + shaderName + "' (hide pass may be partial).");
                         }
                     }
 

@@ -903,7 +903,7 @@ namespace geesp0t
             bool sceneSettleJustEnded = onSceneStartup.TickDuringSuperControllerLoad();
             if (sceneSettleJustEnded)
             {
-                EasyMateHeadSnapPovRuntime.AfterSuperControllerFinishedSceneSettle(this);
+                EasyMateVrHeadCylinderHide.AfterSuperControllerFinishedSceneSettle(this);
             }
         }
 

@@ -230,7 +230,7 @@ namespace geesp0t
 
         private void OnHeadProximityHideWithoutSnapChanged(bool v)
         {
-            EasyMateHeadSnapPovRuntime.SetHeadProximityHideWithoutSnapEnabled(v, this);
+            EasyMateVrHeadCylinderHide.SetHeadProximityHideWithoutSnapEnabled(v, this);
         }
 
         private void OnDisableRemoteGripHandLinkChanged(bool v)
@@ -292,7 +292,7 @@ namespace geesp0t
             if (mainUIButtons != null) mainUIButtons.Start();
             ApplyRemoteHoldGrabPreference();
             if (headProximityHideWithoutSnap != null)
-                EasyMateHeadSnapPovRuntime.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
+                EasyMateVrHeadCylinderHide.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
             StartCoroutine(CoRefreshHeadProximityHooksAfterStartFrames());
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
             EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
@@ -309,7 +309,7 @@ namespace geesp0t
                 yield break;
             }
 
-            EasyMateHeadSnapPovRuntime.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
+            EasyMateVrHeadCylinderHide.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
         }
 
         /// <summary>
@@ -657,7 +657,7 @@ namespace geesp0t
 
                 if (headProximityHideWithoutSnap != null)
                 {
-                    EasyMateHeadSnapPovRuntime.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
+                    EasyMateVrHeadCylinderHide.SetHeadProximityHideWithoutSnapEnabled(headProximityHideWithoutSnap.val, this);
                 }
             }
 
@@ -720,7 +720,7 @@ namespace geesp0t
             EasyMateMonitorModeLaserRestore.OnPluginDestroy();
             EasyMateVrEulerPossessHandHud.OnPluginDestroy();
             EasyMateFemalePassengerRuntime.OnPluginDestroy();
-            EasyMateHeadSnapPovRuntime.End();
+            EasyMateVrHeadCylinderHide.End();
             if (mainUIButtons != null) mainUIButtons.OnDestroy();
         }
 

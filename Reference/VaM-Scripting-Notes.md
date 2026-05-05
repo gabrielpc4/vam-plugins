@@ -78,7 +78,7 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
   - **Spankings:** Toggle label **`+ `** / **`- `** + **`Spankings Male`** when every `Person` has the Spankings plugin filename. Hotkey **Ctrl+Shift+S** still toggles the same merge/remove behavior.
   - **E‑Motion:** Same four actions as before (**Lite**, **Original**, **Final**, **Remove E‑Motion**); **`TryReplaceEmotionFamilyWithExactPath`** enforces one family pack per merge.
   - **Possess Male / Female:** `Possess+Align+Select` to first male/female `Person` by stable **uid** (not “closest head” — that is **P** hotkey).
-  - **Passenger Male / Female:** One-shot rig snap to closest male/female **by head distance** to look/center camera (was labeled Snap M / Snap F); still uses `Possessor.autoSnapPoint`, head offsets, **`EasyMateHeadSnapPovRuntime`**, etc. Closest-female / closest-male helpers apply.
+  - **Passenger Male / Female:** One-shot rig snap to closest male/female **by head distance** to look/center camera (was labeled Snap M / Snap F); still uses `Possessor.autoSnapPoint`, head offsets, **`EasyMateVrHeadCylinderHide`**, etc. Closest-female / closest-male helpers apply.
   - **Remove All Clothes / Remove underwear:** Same `DAZCharacterSelector` logic as before (`StripAllClothesOnAllPersons`, `RemoveUnderwearOnAllPersons`).
   - Shared plugin path: `GetJSON` → normalize paths → `LateRestoreFromJSON`; empty plugin set uses empty `PluginManager` JSON.
   - **`Show UI` / `Hide UI`:** Toggle **only** MainUIButtons HUD elements (not `VaMLogClipboardHud`).
@@ -119,7 +119,7 @@ Primitive atoms (e.g. **`Cube`**) expose a **`materials`** storable (**`Material
 
 Example: **`Custom/Scripts/DildoOnHands/DildoOnHands.cs`** — **`ApplySpawnToyMaterialLook`** (**`SetColor1`** on spawned atoms).
 
-- `Custom/Scripts/Easy Mate/src/EasyMateHeadSnapPovRuntime.cs`
+- `Custom/Scripts/AutoMate/SESSION_PLUGINS/src/EasyMate_VR_Head_Cylinder_Hide.cs`
   - Static helper: **`Camera.onPreRender` / `onPostRender`** for POV cameras; when the HMD is within a **radial band** (infinite **cylinder** along the person’s possess **up** through an anchor at eyes or possess point — **not** a distance sphere, so moving along the top/bottom of the head still counts as “inside”), applies temporary skin/hair material behavior plus active **`DAZClothingItem`** **hats** (`ExclusiveRegion.Hat`) and **eyewear** (`ExclusiveRegion.Glasses` **or** loose display/tag substrings such as glasses, sunglass, goggle, shades — e.g. “Heatwave Sunglasses”) (same idea as ImprovedPoV) **only on VR eye cameras** (`CenterEyeAnchor`, `Camera (eye)`), **not** on **`MonitorRig`** or cameras under a transform whose name contains **Mirror / Reflect / Reflection / Planar** — so **mirrors and monitor view still show the head** while the HMD view can hide it. While inside that zone (same test on **`CenterEyeAnchor`**), **`headControl`** is **`SelectLinkToRigidbody`**’d to **`[CameraRig]` / `CenterEye`** with **`PhysicsLink`** (HMD drives head); on exit the link is cleared, prior position/rotation states restored, and the head is **re-rotated** so **chest forward** (or possess forward fallback) lies in the possess-up plane (**straight** facing). If the head becomes **VaM-possessed** during use, the plugin link is released. A plugin **`Coroutine`** from **`EasyMate`** drives the zone monitor. Eye transforms and `DAZCharacterSelector` are **cached at snap**; anchor position and “skin not ready” polls are **throttled** (~500 ms). **Load order:** head-hide passes are inactive while **`SuperController.singleton.isLoading`**; **`SnapSkinHandler.Configure`** preflights every opaque→transparent **`Shader.Find`** before swapping materials or **`BroadcastMessage("OnApplicationFocus")`** so VaM’s subsurface replacement shaders must be registered first (avoids missing-replacement spam during scene load). **C# 6**: no inline `out` variable declarations (see **C# language level** above).
 
 ### `AutoMate`
@@ -216,7 +216,7 @@ Examples:
 
 - `Custom/Scripts/Easy Mate/EasyMate.cslist`
   - `src/EasyMate.cs`
-  - `src/EasyMateHeadSnapPovRuntime.cs`
+  - `../AutoMate/SESSION_PLUGINS/src/EasyMate_VR_Head_Cylinder_Hide.cs`
   - `src/MainUIButtons.cs`
   - (full list in the file — does **not** include `VaMLogClipboardHud.cs`)
 - `Custom/Scripts/Easy Mate/VaMLogClipboardHud.cslist`
@@ -810,7 +810,7 @@ Likely touch points for tweaks:
 
 ### 4. Buttons to snap the HMD into first / second female without attaching
 
-**Status (partial):** **Passenger Female** / **Passenger Male** in `MainUIButtons` one-shot-snap the rig to the **closest** female/male **by head** to the look/center camera (not “first by uid”). **Possess Female** / **Possess Male** use first person by **uid** for **Possess+Align+Select**. A dedicated second-female-only snap button is not added. **`EasyMateHeadSnapPovRuntime`** may **`PhysicsLink`** head to HMD **`CenterEye`** inside the head zone.
+**Status (partial):** **Passenger Female** / **Passenger Male** in `MainUIButtons` one-shot-snap the rig to the **closest** female/male **by head** to the look/center camera (not “first by uid”). **Possess Female** / **Possess Male** use first person by **uid** for **Possess+Align+Select**. A dedicated second-female-only snap button is not added. **`EasyMateVrHeadCylinderHide`** may **`PhysicsLink`** head to HMD **`CenterEye`** inside the head zone.
 
 Implementation mirrors `AlignRigAndController`-style rig peel and yaw on **`navigationRig.up`**; does not use built-in **`HeadPossess`** for the passenger snap path.
 

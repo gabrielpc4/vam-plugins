@@ -7,7 +7,7 @@ namespace geesp0t
     /// While the scene is still settling (same signals as VaM&apos;s load UI / icon / isLoading):
     /// drives CoreControl GlobalLighting camExposure to 0, freezes simulation via SuperController.PauseSimulation,
     /// and forces AudioListener.pause so motion/sound do not run ahead of loaded assets.
-    /// After settle ends, restores camExposure first, then raises the pause flag and restores the prior audio pause state.
+    /// After settle ends, starts a linear camExposure ramp from the current value to the backed-up target over 2 seconds, then raises the pause flag and restores the prior audio pause state.
     /// Tick runs from LateUpdate so CoreControl JSON usually reflects the scene before we read exposure backup.
     /// </summary>
     public class OnSceneStartup
@@ -23,6 +23,11 @@ namespace geesp0t
         private bool audioPauseSnapshotCapturedForSceneSettleHold;
         private bool savedAudioListenerPauseBeforeSceneSettleHold;
 
+        private bool camExposureGradientRestoreActive;
+        private float camExposureGradientRestoreStartTime;
+        private float camExposureGradientRestoreFrom;
+        private float camExposureGradientRestoreTo;
+
         private const string coreControlAtomUid = "CoreControl";
         private const string globalLightingStorableId = "GlobalLighting";
         private const string camExposureParamName = "camExposure";
@@ -33,17 +38,25 @@ namespace geesp0t
 
         private const string sceneSettlePauseFlagDisplayName = "AutoMate OnSceneStartup scene settle";
 
+        private const float camExposureRestoreRampDurationSeconds = 2f;
+
         /// <summary>Returns true the first tick after VaM&apos;s loading/settle UI has cleared — playback hold was released.</summary>
         public bool TickDuringSuperControllerLoad()
         {
             bool settlingNow = ShouldTreatSceneAsStillSettling();
             bool settleEndedThisTick = false;
 
+            if (!settlingNow && camExposureGradientRestoreActive)
+            {
+                TickCamExposureGradientRestore();
+            }
+
             if (settlingNow)
             {
                 if (!wasSceneStillSettling)
                 {
                     camExposureBackupCaptured = false;
+                    camExposureGradientRestoreActive = false;
                     BeginSceneSettleSimulationPauseHold();
                 }
 
@@ -68,9 +81,15 @@ namespace geesp0t
         {
             try
             {
-                if (camExposureBackupCaptured)
+                if (camExposureGradientRestoreActive)
                 {
-                    RestoreCamExposure();
+                    ApplyCamExposureImmediate(camExposureGradientRestoreTo);
+                    camExposureGradientRestoreActive = false;
+                }
+                else if (camExposureBackupCaptured)
+                {
+                    ApplyCamExposureImmediate(savedCamExposure);
+                    camExposureBackupCaptured = false;
                 }
             }
             catch (Exception destroyRestoreException)
@@ -116,11 +135,11 @@ namespace geesp0t
             {
                 try
                 {
-                    RestoreCamExposure();
+                    StartCamExposureGradientRestoreFromCurrentToSavedTarget();
                 }
                 catch (Exception restoreException)
                 {
-                    SuperController.LogError("[OnSceneStartup] Restore camExposure after settle phase failed: " + restoreException);
+                    SuperController.LogError("[OnSceneStartup] Start camExposure ramp after settle phase failed: " + restoreException);
                 }
             }
             else
@@ -129,6 +148,47 @@ namespace geesp0t
             }
 
             ReleaseSceneSettlePlaybackHold();
+        }
+
+        void StartCamExposureGradientRestoreFromCurrentToSavedTarget()
+        {
+            JSONStorable globalLightingStorable = TryGetGlobalLightingStorable();
+            if (globalLightingStorable == null)
+            {
+                SuperController.LogError("[OnSceneStartup] CamExposure ramp: CoreControl GlobalLighting not available.");
+                camExposureBackupCaptured = false;
+                return;
+            }
+
+            camExposureGradientRestoreFrom = globalLightingStorable.GetFloatParamValue(camExposureParamName);
+            camExposureGradientRestoreTo = savedCamExposure;
+            camExposureGradientRestoreStartTime = Time.time;
+            camExposureGradientRestoreActive = true;
+            camExposureBackupCaptured = false;
+
+            TickCamExposureGradientRestore();
+        }
+
+        void TickCamExposureGradientRestore()
+        {
+            JSONStorable globalLightingStorable = TryGetGlobalLightingStorable();
+            if (globalLightingStorable == null)
+            {
+                SuperController.LogError("[OnSceneStartup] CamExposure ramp tick: GlobalLighting missing; ramp aborted.");
+                camExposureGradientRestoreActive = false;
+                return;
+            }
+
+            float elapsedSeconds = Time.time - camExposureGradientRestoreStartTime;
+            float rampBlend = Mathf.Clamp01(elapsedSeconds / camExposureRestoreRampDurationSeconds);
+            float blendedCamExposure = Mathf.Lerp(camExposureGradientRestoreFrom, camExposureGradientRestoreTo, rampBlend);
+
+            globalLightingStorable.SetFloatParamValue(camExposureParamName, blendedCamExposure);
+
+            if (rampBlend >= 1f)
+            {
+                camExposureGradientRestoreActive = false;
+            }
         }
 
         void ReleaseSceneSettlePlaybackHold()
@@ -249,8 +309,7 @@ namespace geesp0t
             try
             {
                 savedCamExposure = fallbackCamExposure;
-                camExposureBackupCaptured = true;
-                RestoreCamExposure();
+                StartCamExposureGradientRestoreFromCurrentToSavedTarget();
             }
             catch (Exception fallbackRestoreException)
             {
@@ -258,18 +317,16 @@ namespace geesp0t
             }
         }
 
-        void RestoreCamExposure()
+        void ApplyCamExposureImmediate(float targetCamExposure)
         {
             JSONStorable globalLightingStorable = TryGetGlobalLightingStorable();
             if (globalLightingStorable == null)
             {
-                SuperController.LogError("[OnSceneStartup] Restore: CoreControl GlobalLighting not available.");
-                camExposureBackupCaptured = false;
+                SuperController.LogError("[OnSceneStartup] ApplyCamExposureImmediate: CoreControl GlobalLighting not available.");
                 return;
             }
 
-            globalLightingStorable.SetFloatParamValue(camExposureParamName, savedCamExposure);
-            camExposureBackupCaptured = false;
+            globalLightingStorable.SetFloatParamValue(camExposureParamName, targetCamExposure);
         }
 
         JSONStorable TryGetGlobalLightingStorable()

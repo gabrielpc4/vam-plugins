@@ -102,14 +102,6 @@ namespace geesp0t
         public JSONStorableFloat possessAutoUnpossessFeetMaxHorizontalM;
 
         /// <summary>
-        /// While <see cref="SuperController.isLoading"/> is true, disables
-        /// renderers on CustomUnityAsset atoms that use DillDoe cum /
-        /// <c>Fluid.assetbundle</c>, then restores prior enabled state after
-        /// load (see <see cref="EasyMateFluidCumHideDuringSceneLoad"/>).
-        /// </summary>
-        public JSONStorableBool hideFluidCumMeshDuringSceneLoad;
-
-        /// <summary>
         /// Restore navigation rig, monitor orientation, and player height after a
         /// load when VaM stays in the same <see cref="SuperController.currentLoadDir"/>
         /// (e.g. switching between JSON files inside one chapter folder).
@@ -159,11 +151,6 @@ namespace geesp0t
                 0.35f,
                 5f);
             RegisterFloat(possessAutoUnpossessFeetMaxHorizontalM);
-
-            hideFluidCumMeshDuringSceneLoad = new JSONStorableBool(
-                "Hide DillDoe cum mesh during scene load",
-                true);
-            RegisterBool(hideFluidCumMeshDuringSceneLoad);
 
             retainCameraPoseSameFolderLoads = new JSONStorableBool(
                 "Retain camera pose (loads from same folder)",
@@ -563,12 +550,6 @@ namespace geesp0t
 
         void Update()
         {
-            SuperController scFsm = SuperController.singleton;
-            EasyMateFluidCumHideDuringSceneLoad.Tick(
-                hideFluidCumMeshDuringSceneLoad != null &&
-                    hideFluidCumMeshDuringSceneLoad.val,
-                scFsm != null && scFsm.isLoading);
-
             bool loadingNow =
                 SuperController.singleton != null && SuperController.singleton.isLoading;
             if (!prevSuperLoading && loadingNow)
@@ -697,8 +678,6 @@ namespace geesp0t
 
         void OnDestroy()
         {
-            EasyMateFluidCumHideDuringSceneLoad.OnPluginDestroy();
-
             if (SuperController.singleton != null)
             {
                 SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;

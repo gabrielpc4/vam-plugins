@@ -8,7 +8,8 @@ namespace geesp0t
     /// Tracks the exact scene JSON path VaM most recently loaded so follow-up
     /// tools can target that same file instead of guessing from folder state.
     /// When several <c>.json</c> files share <see cref="SuperController.currentLoadDir"/>,
-    /// the authoritative match uses public <see cref="SuperController.loadJson"/> (no reflection).
+    /// resolution uses public <see cref="SuperController.loadJson"/> in tiers: one file in the folder
+    /// skips serialization; otherwise compare normalized raw disk text vs one dump, then parse only if needed.
     /// </summary>
     public static class EasyMateLoadedSceneTracker
     {
@@ -232,9 +233,10 @@ namespace geesp0t
         /// Uses public <see cref="SuperController.loadJson"/> versus each <c>.json</c>
         /// under <see cref="SuperController.currentLoadDir"/> (<see cref="SuperController.ReadFileIntoString"/>).
         /// This disambiguates folders with multiple scene files without reading non-public VaM fields.
-        /// It serializes entire scene trees (see <see cref="JSONNode.ToString(string)"/>)
-        /// — large saves can use noticeable CPU and memory;
-        /// nothing is shortened for speed so the fingerprint match stays exact.
+        /// Path selection is tiered for speed:
+        /// a single listing uses that file; multiple listings try normalized raw-text equality (one serialize of
+        /// <see cref="SuperController.loadJson"/>); only if that misses does it parse and reserialize candidates
+        /// (semantic match when VaM changes formatting vs disk).
         /// </summary>
         private static bool TryResolveExactSceneJsonMatchingPublicSuperControllerLoadJsonFingerprint(
             SuperController superControllerReference,
@@ -248,17 +250,20 @@ namespace geesp0t
             string basenameEntry;
             string relativeCandidatePathFwd;
             string fileTextFromDiskWhole;
+            string diskRawNormFingerprint;
             JSONNode parsedDiskRoot;
             string diskFingerprintNorm;
             List<string> matchingRelativePathsGathered;
             JSONNode loadedGraphRootEarly;
             int skippedProblematicDiskCandidatesFingerprintPass;
+            string onlyBasenameSingleton;
+            string onlyRelativeCombinedSingletonFwdNormalized;
 
             savesRelativeChosenSceneJsonPathFwd = "";
 
             loadedGraphRootEarly =
                 superControllerReference != null ? superControllerReference.loadJson : null;
-            if (!TryBuildNormalizedFingerprintFromJsonTreeRoot(loadedGraphRootEarly, out liveFingerprintNorm))
+            if (loadedGraphRootEarly == null)
             {
                 return false;
             }
@@ -289,12 +294,78 @@ namespace geesp0t
                 return false;
             }
 
+            if (jsonBasenamesDistinct.Count == 1)
+            {
+                onlyBasenameSingleton = jsonBasenamesDistinct[0];
+                onlyRelativeCombinedSingletonFwdNormalized = NormalizeFwd(CombineFwd(trimmedLoadFolderFwd, onlyBasenameSingleton));
+                if (FileExists(superControllerReference, onlyRelativeCombinedSingletonFwdNormalized))
+                {
+                    savesRelativeChosenSceneJsonPathFwd = onlyRelativeCombinedSingletonFwdNormalized;
+                    return true;
+                }
+
+                SuperController.LogError(string.Format(
+                    "EasyMate [scene tracker]: only one .json listed ({0}) but file not found via GetFilesAtPath.",
+                    onlyRelativeCombinedSingletonFwdNormalized));
+                return false;
+            }
+
+            if (!TryBuildNormalizedFingerprintFromJsonTreeRoot(loadedGraphRootEarly, out liveFingerprintNorm))
+            {
+                return false;
+            }
+
             SuperController.LogMessage(string.Format(
-                "EasyMate [scene tracker]: comparing full loadJson serialization to each of {0} scene JSON candidate(s) under {1} — very large saves can pause here while this runs.",
+                "EasyMate [scene tracker]: matching loadJson to {0} scene JSON candidate(s) under {1} (fast path: normalized raw text).",
                 jsonBasenamesDistinct.Count,
                 trimmedLoadFolderFwd));
 
             matchingRelativePathsGathered = new List<string>();
+            basenameIndexWalk = 0;
+            while (basenameIndexWalk < jsonBasenamesDistinct.Count)
+            {
+                basenameEntry = jsonBasenamesDistinct[basenameIndexWalk];
+                relativeCandidatePathFwd = CombineFwd(trimmedLoadFolderFwd, basenameEntry);
+
+                fileTextFromDiskWhole = superControllerReference.ReadFileIntoString(relativeCandidatePathFwd);
+                if (fileTextFromDiskWhole == null || fileTextFromDiskWhole.Length == 0)
+                {
+                    basenameIndexWalk++;
+                    continue;
+                }
+
+                diskRawNormFingerprint = NormalizeSimpleJsonFingerprintDumpText(fileTextFromDiskWhole);
+                if (string.Equals(
+                        liveFingerprintNorm,
+                        diskRawNormFingerprint,
+                        StringComparison.Ordinal))
+                {
+                    matchingRelativePathsGathered.Add(NormalizeFwd(relativeCandidatePathFwd));
+                }
+
+                basenameIndexWalk++;
+            }
+
+            if (matchingRelativePathsGathered.Count > 1)
+            {
+                SuperController.LogError(string.Format(
+                    "EasyMate [scene tracker]: ambiguous raw-text match ({0}) in {1}; refusing to guess.",
+                    matchingRelativePathsGathered.Count,
+                    trimmedLoadFolderFwd));
+                return false;
+            }
+
+            if (matchingRelativePathsGathered.Count == 1)
+            {
+                savesRelativeChosenSceneJsonPathFwd = matchingRelativePathsGathered[0];
+                return true;
+            }
+
+            SuperController.LogMessage(string.Format(
+                "EasyMate [scene tracker]: raw-text match missed for {0} candidate(s); running slower parse-and-reserialize compare.",
+                jsonBasenamesDistinct.Count));
+
+            matchingRelativePathsGathered.Clear();
             skippedProblematicDiskCandidatesFingerprintPass = 0;
             basenameIndexWalk = 0;
             while (basenameIndexWalk < jsonBasenamesDistinct.Count)

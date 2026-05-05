@@ -835,8 +835,6 @@ namespace geesp0t
             if (keyboardShortcuts != null)
                 keyboardShortcuts.ProcessHotkeysUpdate();
 
-            onSceneStartup.TickDuringSuperControllerLoad();
-
             //once finished loading, apply
             if (SuperController.singleton.isLoading)
             {
@@ -898,6 +896,11 @@ namespace geesp0t
                     SuperController.LogError("[Auto_Load_Person_Plugins] LoadPersonPlugins (deferred atom change) failed: " + e);
                 }
             }
+        }
+
+        void LateUpdate()
+        {
+            onSceneStartup.TickDuringSuperControllerLoad();
         }
 
         void FindMaleAtomLicking(bool adjustUIButtons)

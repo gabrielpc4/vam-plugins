@@ -658,7 +658,7 @@
             }, 
             {
                "id" : "Canvas", 
-               "xSize" : "2800.666"
+               "xSize" : "1400.333"
             }, 
             {
                "id" : "ButtonColor", 
@@ -747,7 +747,7 @@
             }, 
             {
                "id" : "Canvas", 
-               "xSize" : "261.4356", 
+               "xSize" : "130.7178", 
                "ySize" : "100"
             }, 
             {
@@ -863,7 +863,7 @@
             }, 
             {
                "id" : "Canvas", 
-               "xSize" : "272.2922", 
+               "xSize" : "136.1461", 
                "ySize" : "100"
             }, 
             {
@@ -987,7 +987,7 @@
             }, 
             {
                "id" : "Canvas", 
-               "xSize" : "2799.37"
+               "xSize" : "1399.685"
             }, 
             {
                "id" : "ButtonColor", 
@@ -1080,7 +1080,7 @@
             }, 
             {
                "id" : "Canvas", 
-               "xSize" : "2799.99"
+               "xSize" : "1399.995"
             }, 
             {
                "id" : "ButtonColor", 

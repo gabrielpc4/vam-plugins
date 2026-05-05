@@ -49,7 +49,7 @@ namespace geesp0t
 
         private static float _nextSceneButtonPresenceRecheckTime;
 
-        private const float NextSceneButtonPresenceRecheckSeconds = 0.35f;
+        private const float NextSceneButtonPresenceRecheckSeconds = 1f;
 
         private static readonly Color PossessRowPossuirColor =
             new Color(0.12f, 0.45f, 0.22f, 0.92f);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using SimpleJSON;
@@ -7,109 +8,148 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// <b>K</b> hotkey: logs navigation / monitor / height / WindowCamera /
-    /// <c>[CameraRig]</c> values, writes a request JSON, and runs
-    /// <c>tools/patch_scene_initial_camera.py</c> to update the loaded scene’s
-    /// main <c>.json</c> (see
-    /// <c>Reference/VaM-Camera-Initial-Scene-Pose.md</c>).
-    /// Scene folder comes from <see cref="SuperController.currentLoadDir"/>.
-    /// Absolute paths for Python are <see cref="Application.dataPath"/> minus
-    /// <c>VaM_Data</c>, plus forward-slash joins (dynamic scripts cannot use
-    /// <c>System.IO</c> or <c>MVR.FileManagement</c>). Process stdout/stderr
-    /// are not read (that would pull <c>System.IO</c>); see
-    /// <see cref="PatchToolLogRelative"/>.
+    /// <b>K</b> hotkey: captures navigation / monitor / height / WindowCamera /
+    /// <c>[CameraRig]</c>, writes <c>tools/last_scene_camera_patch_request.json</c>.
+    /// If <see cref="SuperController.currentLoadDir"/> contains exactly one non-meta
+    /// <c>.json</c>, runs <c>tools/patch_scene_initial_camera.py</c> automatically.
+    /// If there are none or multiple, logs an error and the full camera snapshot so you can run
+    /// <c>tools/patch_scene_camera_manual_cli.py</c> with the scene JSON you choose and the same request file.
     /// </summary>
     public static class EasyMateKSceneCameraPatch
     {
         public const string PatchScriptRelative = "Custom/Scripts/Easy Mate/tools/patch_scene_initial_camera.py";
+
+        /// <summary>Written on every successful K diagnostics pass (automatic or manual follow-up).</summary>
         public const string RequestJsonRelative = "Custom/Scripts/Easy Mate/tools/last_scene_camera_patch_request.json";
 
         /// <summary>
-        /// Append-only log next to the Python script (relative to VaM install).
+        /// Optional manual wrapper with friendlier CLI help (same argv as <see cref="PatchScriptRelative"/>).
+        /// </summary>
+        public const string ManualCliScriptRelative = "Custom/Scripts/Easy Mate/tools/patch_scene_camera_manual_cli.py";
+
+        /// <summary>
+        /// Append-only log next to <see cref="PatchScriptRelative"/>.
         /// </summary>
         public const string PatchToolLogRelative = "Custom/Scripts/Easy Mate/tools/last_scene_camera_patch_log.txt";
 
         public static void TryRunFromHotkey()
         {
-            SuperController sc = SuperController.singleton;
-            if (sc == null)
+            SuperController sceneControllerEarly;
+            string loadDirectoryFwdTrimmedNormalized;
+            List<string> jsonBasenamesSortedDistinct;
+            string singleSceneRelativePathChosenFwdNormalized;
+            string classifySummaryLine;
+            JSONClass requestPayloadRoot;
+            string requestPayloadText;
+            string installRootFwd;
+            string sceneJsonAbsolutePathFwd;
+            string scriptAbsolutePathFwd;
+            StringBuilder processArgumentsBuilderWide;
+            string pythonJoinedArgumentsWide;
+            Process launchedPythonProcessWide;
+            string pythonLaunchAttemptsSummaryWide;
+            bool finishedWaitingUpToDeadlineCaptureWideLate;
+            int exitStatusFromPythonInterpreterWideLate;
+
+            sceneControllerEarly = SuperController.singleton;
+            if (sceneControllerEarly == null)
             {
                 SuperController.LogError("EasyMate [key K]: SuperController.singleton is null.");
                 return;
             }
 
-            string loadDir = sc.currentLoadDir != null ? sc.currentLoadDir : "";
-            loadDir = NormalizeFwd(loadDir);
-            if (loadDir.Length == 0)
+            loadDirectoryFwdTrimmedNormalized = NormalizeFwd(
+                sceneControllerEarly.currentLoadDir != null ? sceneControllerEarly.currentLoadDir : "").TrimEnd('/');
+            if (loadDirectoryFwdTrimmedNormalized.Length == 0)
             {
-                SuperController.LogError("EasyMate [key K]: currentLoadDir is empty; cannot resolve scene folder.");
+                SuperController.LogError("EasyMate [key K]: SuperController.currentLoadDir is empty; cannot infer scene folder.");
                 return;
             }
 
-            JSONClass request = BuildPatchRequest(sc);
-            string payload = request.ToString("");
+            jsonBasenamesSortedDistinct =
+                CollectSortedDistinctImmediateSceneJsonBasenamesUnderFolder(
+                    sceneControllerEarly,
+                    loadDirectoryFwdTrimmedNormalized);
+            if (jsonBasenamesSortedDistinct == null)
+            {
+                SuperController.LogError(string.Format(
+                    "EasyMate [key K]: could not enumerate .json scene files under {0}.",
+                    loadDirectoryFwdTrimmedNormalized));
+                return;
+            }
+
+            requestPayloadRoot = BuildPatchRequest(sceneControllerEarly);
+
+            classifySummaryLine = ClassifyLoadFolderExclusiveJsonSelection(
+                loadDirectoryFwdTrimmedNormalized,
+                jsonBasenamesSortedDistinct,
+                out singleSceneRelativePathChosenFwdNormalized);
+
             try
             {
-                sc.SaveStringIntoFile(RequestJsonRelative, payload);
+                requestPayloadText = requestPayloadRoot.ToString("");
+                sceneControllerEarly.SaveStringIntoFile(RequestJsonRelative, requestPayloadText);
             }
-            catch (Exception e)
-            {
-                SuperController.LogError("EasyMate [key K]: failed to write request JSON: " + e.Message);
-                return;
-            }
-
-            LogCapturedPose(sc, loadDir, request);
-
-            string installRoot = GetVaMInstallRoot();
-            string sceneFolderAbs = CombineFwd(installRoot, loadDir);
-            string scriptAbs = CombineFwd(installRoot, PatchScriptRelative);
-            string requestAbs = CombineFwd(installRoot, RequestJsonRelative);
-
-            StringBuilder args = new StringBuilder();
-            args.Append("-u \"");
-            args.Append(scriptAbs);
-            args.Append("\" \"");
-            args.Append(sceneFolderAbs);
-            args.Append("\" \"");
-            args.Append(requestAbs);
-            args.Append("\"");
-
-            string pyArgs = args.ToString();
-            Process proc = null;
-            string launcherTried = "";
-            string[] launchers = new string[] { "python", "py" };
-            for (int li = 0; li < launchers.Length && proc == null; li++)
-            {
-                string exe = launchers[li];
-                launcherTried = launcherTried + (launcherTried.Length > 0 ? ", " : "") + exe;
-                ProcessStartInfo psi = new ProcessStartInfo();
-                psi.FileName = exe;
-                psi.Arguments = exe == "py" ? ("-3 " + pyArgs) : pyArgs;
-                psi.UseShellExecute = false;
-                psi.CreateNoWindow = true;
-                try
-                {
-                    proc = Process.Start(psi);
-                }
-                catch (Exception)
-                {
-                    proc = null;
-                }
-            }
-
-            if (proc == null)
+            catch (Exception requestWriteFailureExceptionCaptured)
             {
                 SuperController.LogError(
-                    "EasyMate [key K]: could not start Python (tried: " + launcherTried + "). Install Python 3 or add it to PATH.");
+                    "EasyMate [key K]: failed to write request JSON: " + requestWriteFailureExceptionCaptured.Message);
                 return;
             }
 
-            bool finished = proc.WaitForExit(180000);
-            if (!finished)
+            installRootFwd = GetVaMInstallRoot();
+            EmitDiagnosticsForKeyK(sceneControllerEarly, singleSceneRelativePathChosenFwdNormalized, classifySummaryLine);
+
+            SuperController.LogMessage("EasyMate [key K]: patch request JSON saved to " + RequestJsonRelative);
+            SuperController.LogMessage(
+                string.Format(
+                    "EasyMate [key K]: open load folder snapshot — {0} (distinct non-meta scene .json immediate children={1})",
+                    loadDirectoryFwdTrimmedNormalized,
+                    jsonBasenamesSortedDistinct.Count));
+            EmitCandidateSceneJsonListingToLog(loadDirectoryFwdTrimmedNormalized, jsonBasenamesSortedDistinct, installRootFwd);
+
+            if (singleSceneRelativePathChosenFwdNormalized.Length == 0)
+            {
+                EmitManualCliEscalationToLog(sceneControllerEarly, classifySummaryLine, installRootFwd, requestPayloadRoot);
+                return;
+            }
+
+            SuperController.LogMessage("EasyMate [key K]: auto patch target scene json=" + singleSceneRelativePathChosenFwdNormalized);
+
+            sceneJsonAbsolutePathFwd = CombineFwd(installRootFwd, singleSceneRelativePathChosenFwdNormalized);
+            scriptAbsolutePathFwd = CombineFwd(installRootFwd, PatchScriptRelative);
+
+            processArgumentsBuilderWide = new StringBuilder();
+            processArgumentsBuilderWide.Append("-u \"");
+            processArgumentsBuilderWide.Append(scriptAbsolutePathFwd);
+            processArgumentsBuilderWide.Append("\" \"");
+            processArgumentsBuilderWide.Append(sceneJsonAbsolutePathFwd);
+            processArgumentsBuilderWide.Append("\" \"");
+            processArgumentsBuilderWide.Append(CombineFwd(installRootFwd, RequestJsonRelative));
+            processArgumentsBuilderWide.Append("\"");
+
+            pythonJoinedArgumentsWide = processArgumentsBuilderWide.ToString();
+            launchedPythonProcessWide = null;
+            pythonLaunchAttemptsSummaryWide = "";
+            TryLaunchPythonInterpreterWithArgumentsSnippet(
+                pythonJoinedArgumentsWide,
+                out launchedPythonProcessWide,
+                out pythonLaunchAttemptsSummaryWide);
+
+            if (launchedPythonProcessWide == null)
+            {
+                SuperController.LogError(
+                    "EasyMate [key K]: could not start Python (tried: " + pythonLaunchAttemptsSummaryWide + "). Install Python 3 or add it to PATH.");
+                EmitManualCliEscalationToLog(sceneControllerEarly, "Python launch failed.", installRootFwd, requestPayloadRoot);
+                return;
+            }
+
+            finishedWaitingUpToDeadlineCaptureWideLate = launchedPythonProcessWide.WaitForExit(180000);
+            if (!finishedWaitingUpToDeadlineCaptureWideLate)
             {
                 try
                 {
-                    proc.Kill();
+                    launchedPythonProcessWide.Kill();
                 }
                 catch
                 {
@@ -119,162 +159,530 @@ namespace geesp0t
                 return;
             }
 
-            int exitCode = proc.ExitCode;
-            if (exitCode != 0)
+            exitStatusFromPythonInterpreterWideLate = launchedPythonProcessWide.ExitCode;
+            if (exitStatusFromPythonInterpreterWideLate != 0)
             {
                 SuperController.LogError(string.Format(
                     "EasyMate [key K]: python exit {0}. Details: {1}",
-                    exitCode,
+                    exitStatusFromPythonInterpreterWideLate,
                     PatchToolLogRelative));
             }
             else
+            {
                 SuperController.LogMessage(string.Format(
                     "EasyMate [key K]: python exit 0. Details: {0}",
                     PatchToolLogRelative));
+            }
+        }
+
+        private static void EmitManualCliEscalationToLog(
+            SuperController sceneControllerCaptured,
+            string situationSummaryLineCaptured,
+            string installRootCapturedFwdNormalized,
+            JSONClass serializedRequestCaptured)
+        {
+            string manualScriptAbsFwdCaptured;
+            string requestAbsCapturedFwdCaptured;
+            string requestCompactOneLineCaptured;
+
+            SuperController.LogError(
+                string.Format(
+                    "EasyMate [key K]: automatic patch aborted — {0}. Use the CLI below with YOUR chosen scene .json.",
+                    situationSummaryLineCaptured));
+
+            EmitPoseSnapshotLinesFromControllers(sceneControllerCaptured);
+
+            manualScriptAbsFwdCaptured = CombineFwd(installRootCapturedFwdNormalized, ManualCliScriptRelative);
+            requestAbsCapturedFwdCaptured = CombineFwd(installRootCapturedFwdNormalized, RequestJsonRelative);
+            SuperController.LogError(
+                string.Format(
+                    "EasyMate [key K]: manual CLI (pick scene path yourself): python \"{0}\" \"ABS_PATH_SCENE.json\" \"{1}\"",
+                    manualScriptAbsFwdCaptured,
+                    requestAbsCapturedFwdCaptured));
+
+            try
+            {
+                requestCompactOneLineCaptured = serializedRequestCaptured.ToString("");
+            }
+            catch (Exception serializeRequestFailureForLogCaptured)
+            {
+                requestCompactOneLineCaptured =
+                    "(could not stringify request payload: " + serializeRequestFailureForLogCaptured.Message + ")";
+            }
+
+            SuperController.LogError(
+                "EasyMate [key K]: request payload JSON (paste into file or compare): " +
+                requestCompactOneLineCaptured);
+        }
+
+        private static void EmitDiagnosticsForKeyK(
+            SuperController sceneControllerCaptured,
+            string chosenSceneRelativeFwdOrEmptyCaptured,
+            string classificationLineCapturedCaptured)
+        {
+            SuperController.LogMessage("EasyMate [key K]: folder classification — " + classificationLineCapturedCaptured);
+            if (chosenSceneRelativeFwdOrEmptyCaptured.Length > 0)
+            {
+                SuperController.LogMessage(
+                    string.Format(
+                        "EasyMate [key K]: auto-selected exclusive scene JSON under currentLoadDir → {0}",
+                        chosenSceneRelativeFwdOrEmptyCaptured));
+            }
+
+            EmitPoseSnapshotLinesFromControllers(sceneControllerCaptured);
+            SuperController.LogMessage("EasyMate [key K]: playerHeightAdjust=" + sceneControllerCaptured.playerHeightAdjust.ToString("G9"));
+        }
+
+        private static string ClassifyLoadFolderExclusiveJsonSelection(
+            string loadFolderFwdTrimmedNoTrailingCaptured,
+            List<string> basenamesAscendingSortedCaptured,
+            out string exclusiveRelativeCombinedPathChosenFwdCaptured)
+        {
+            int distinctCountCaptured;
+
+            distinctCountCaptured = basenamesAscendingSortedCaptured != null ? basenamesAscendingSortedCaptured.Count : 0;
+            exclusiveRelativeCombinedPathChosenFwdCaptured = "";
+
+            if (distinctCountCaptured == 0)
+            {
+                return "no qualifying .json in this folder (excluding meta.json; immediate children only)";
+            }
+
+            if (distinctCountCaptured == 1)
+            {
+                exclusiveRelativeCombinedPathChosenFwdCaptured =
+                    NormalizeFwd(
+                        CombineFwd(loadFolderFwdTrimmedNoTrailingCaptured, basenamesAscendingSortedCaptured[0]));
+                return "exactly one scene .json candidate — auto patch permitted";
+            }
+
+            return string.Format(
+                "{0} scene .json candidates in this folder — choose one manually via CLI",
+                distinctCountCaptured);
+        }
+
+        private static void EmitCandidateSceneJsonListingToLog(
+            string loadFolderRelativeFwdCaptured,
+            List<string> basenamesAscendingCaptured,
+            string installRootCapturedFwdCaptured)
+        {
+            int walkIndexEmitted;
+            string combinedRelativeEmitted;
+            string absoluteEmittedCaptured;
+
+            if (basenamesAscendingCaptured == null || basenamesAscendingCaptured.Count == 0)
+            {
+                return;
+            }
+
+            walkIndexEmitted = 0;
+            while (walkIndexEmitted < basenamesAscendingCaptured.Count)
+            {
+                combinedRelativeEmitted =
+                    NormalizeFwd(CombineFwd(loadFolderRelativeFwdCaptured, basenamesAscendingCaptured[walkIndexEmitted]));
+                absoluteEmittedCaptured =
+                    NormalizeFwd(
+                        CombineFwd(installRootCapturedFwdCaptured, combinedRelativeEmitted));
+                SuperController.LogMessage(string.Format(
+                    "EasyMate [key K]:   candidate [{0}/{1}] {2}",
+                    walkIndexEmitted + 1,
+                    basenamesAscendingCaptured.Count,
+                    absoluteEmittedCaptured));
+                walkIndexEmitted++;
+            }
+        }
+
+        private static List<string> CollectSortedDistinctImmediateSceneJsonBasenamesUnderFolder(
+            SuperController sceneControllerUsedCaptured,
+            string loadFolderFwdTrimmedNoTrailingSlashCaptured)
+        {
+            string[] rawListedPathsFromVaMCapturedWide;
+            int rawPathIndexCapturedWideScan;
+            string normalizedListedPathCapturedWideFwd;
+            List<string> workingDistinctBasenamesCaptured;
+            HashSetUppercaseKeyTracker distinctInsensitiveTrackerWide;
+
+            if (sceneControllerUsedCaptured == null)
+            {
+                return null;
+            }
+
+            rawListedPathsFromVaMCapturedWide = null;
+            try
+            {
+                rawListedPathsFromVaMCapturedWide =
+                    sceneControllerUsedCaptured.GetFilesAtPath(loadFolderFwdTrimmedNoTrailingSlashCaptured);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
+            if (rawListedPathsFromVaMCapturedWide == null)
+            {
+                return null;
+            }
+
+            workingDistinctBasenamesCaptured = new List<string>();
+            distinctInsensitiveTrackerWide = new HashSetUppercaseKeyTracker();
+            rawPathIndexCapturedWideScan = 0;
+            while (rawPathIndexCapturedWideScan < rawListedPathsFromVaMCapturedWide.Length)
+            {
+                normalizedListedPathCapturedWideFwd =
+                    NormalizeFwd(rawListedPathsFromVaMCapturedWide[rawPathIndexCapturedWideScan]);
+                if (!IsListedFilePathImmediateChildOfFolder(
+                        normalizedListedPathCapturedWideFwd,
+                        loadFolderFwdTrimmedNoTrailingSlashCaptured))
+                {
+                    rawPathIndexCapturedWideScan++;
+                    continue;
+                }
+
+                TryAppendSceneJsonLeafFilenameDistinct(
+                    workingDistinctBasenamesCaptured,
+                    distinctInsensitiveTrackerWide,
+                    normalizedListedPathCapturedWideFwd);
+                rawPathIndexCapturedWideScan++;
+            }
+
+            workingDistinctBasenamesCaptured.Sort(StringComparer.OrdinalIgnoreCase);
+            return workingDistinctBasenamesCaptured;
+        }
+
+        private sealed class HashSetUppercaseKeyTracker
+        {
+            private readonly HashSet<string> _uppercaseFingerprintsCollected = new HashSet<string>();
+
+            public bool TryRegisterNewInsensitive(string basenameOriginalCaseCapturedWide)
+            {
+                string fingerprintUpperCapturedWide;
+
+                if (basenameOriginalCaseCapturedWide == null || basenameOriginalCaseCapturedWide.Length == 0)
+                {
+                    return false;
+                }
+
+                fingerprintUpperCapturedWide =
+                    basenameOriginalCaseCapturedWide.ToUpperInvariant();
+
+                if (_uppercaseFingerprintsCollected.Contains(fingerprintUpperCapturedWide))
+                {
+                    return false;
+                }
+
+                _uppercaseFingerprintsCollected.Add(fingerprintUpperCapturedWide);
+                return true;
+            }
+        }
+
+        private static void TryAppendSceneJsonLeafFilenameDistinct(
+            List<string> destinationBasenamesCollectedWide,
+            HashSetUppercaseKeyTracker insensitiveRegistryCapturedWide,
+            string listedListedPathFwdCapturedWideNormalized)
+        {
+            int lastSlashCapturedWideEarly;
+            string leafFileNameCapturedWide;
+
+            lastSlashCapturedWideEarly = listedListedPathFwdCapturedWideNormalized.LastIndexOf('/');
+            if (lastSlashCapturedWideEarly < 0 || lastSlashCapturedWideEarly >= listedListedPathFwdCapturedWideNormalized.Length - 1)
+            {
+                return;
+            }
+
+            leafFileNameCapturedWide =
+                listedListedPathFwdCapturedWideNormalized.Substring(lastSlashCapturedWideEarly + 1);
+
+            if (leafFileNameCapturedWide.Length == 0 || !leafFileNameCapturedWide.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (string.Equals(leafFileNameCapturedWide, "meta.json", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (!insensitiveRegistryCapturedWide.TryRegisterNewInsensitive(leafFileNameCapturedWide))
+            {
+                return;
+            }
+
+            destinationBasenamesCollectedWide.Add(leafFileNameCapturedWide);
+        }
+
+        private static bool IsListedFilePathImmediateChildOfFolder(
+            string listedFileEntryPathFwdCapturedWide,
+            string expectedParentFolderFwdTrimmedNoTrailCapturedWide)
+        {
+            string parentFolderFwdComputedCapturedWide;
+            string expectedNormalizedWideCapturedWide;
+
+            expectedNormalizedWideCapturedWide =
+                NormalizeFwd(expectedParentFolderFwdTrimmedNoTrailCapturedWide).TrimEnd('/');
+            if (expectedNormalizedWideCapturedWide.Length == 0)
+            {
+                return false;
+            }
+
+            parentFolderFwdComputedCapturedWide =
+                NormalizeFwd(GetDirectoryPathOfRelativeFwd(listedFileEntryPathFwdCapturedWide));
+
+            return string.Equals(
+                parentFolderFwdComputedCapturedWide,
+                expectedNormalizedWideCapturedWide,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string GetDirectoryPathOfRelativeFwd(string fwdPathCapturedWideNormalized)
+        {
+            int lastSlashCapturedWideLocate;
+
+            if (fwdPathCapturedWideNormalized == null || fwdPathCapturedWideNormalized.Length == 0)
+            {
+                return "";
+            }
+
+            lastSlashCapturedWideLocate = fwdPathCapturedWideNormalized.LastIndexOf('/');
+            if (lastSlashCapturedWideLocate <= 0)
+            {
+                return "";
+            }
+
+            return fwdPathCapturedWideNormalized.Substring(0, lastSlashCapturedWideLocate);
+        }
+
+        private static void EmitPoseSnapshotLinesFromControllers(SuperController sc)
+        {
+            if (sc.MonitorCenterCamera != null)
+            {
+                Vector3 eulerMonitorCapturedWide;
+                eulerMonitorCapturedWide =
+                    sc.MonitorCenterCamera.transform.localEulerAngles;
+                SuperController.LogMessage(string.Format(
+                    "EasyMate [key K]: monitorCameraRotation (local euler)=({0:F4},{1:F4},{2:F4})",
+                    eulerMonitorCapturedWide.x,
+                    eulerMonitorCapturedWide.y,
+                    eulerMonitorCapturedWide.z));
+            }
+            else
+            {
+                SuperController.LogMessage("EasyMate [key K]: MonitorCenterCamera is null");
+            }
+
+            if (sc.navigationRig != null)
+            {
+                Transform nrCapturedWideEarly;
+                nrCapturedWideEarly = sc.navigationRig;
+                SuperController.LogMessage(string.Format(
+                    "EasyMate [key K]: [CameraRig]/navigationRig world pos=({0:F4},{1:F4},{2:F4}) euler=({3:F4},{4:F4},{5:F4})",
+                    nrCapturedWideEarly.position.x,
+                    nrCapturedWideEarly.position.y,
+                    nrCapturedWideEarly.position.z,
+                    nrCapturedWideEarly.rotation.eulerAngles.x,
+                    nrCapturedWideEarly.rotation.eulerAngles.y,
+                    nrCapturedWideEarly.rotation.eulerAngles.z));
+            }
+            else
+            {
+                SuperController.LogMessage("EasyMate [key K]: navigationRig is null");
+            }
+
+            Atom windowCameraAtomCapturedWide;
+            windowCameraAtomCapturedWide = sc.GetAtomByUid("WindowCamera");
+            if (windowCameraAtomCapturedWide != null &&
+                windowCameraAtomCapturedWide.mainController != null &&
+                windowCameraAtomCapturedWide.mainController.control != null)
+            {
+                Transform ctlCapturedWide;
+                ctlCapturedWide = windowCameraAtomCapturedWide.mainController.control;
+                SuperController.LogMessage(string.Format(
+                    "EasyMate [key K]: WindowCamera control world pos=({0:F4},{1:F4},{2:F4}) euler=({3:F4},{4:F4},{5:F4})",
+                    ctlCapturedWide.position.x,
+                    ctlCapturedWide.position.y,
+                    ctlCapturedWide.position.z,
+                    ctlCapturedWide.rotation.eulerAngles.x,
+                    ctlCapturedWide.rotation.eulerAngles.y,
+                    ctlCapturedWide.rotation.eulerAngles.z));
+            }
+            else
+            {
+                SuperController.LogMessage(
+                    "EasyMate [key K]: WindowCamera / mainController / control missing — JSON patch skips WindowCamera when absent.");
+            }
         }
 
         private static JSONClass BuildPatchRequest(SuperController sc)
         {
             JSONClass root = new JSONClass();
+            JSONClass navigationRigNodeCapturedWide;
+
             root["playerHeightAdjust"].AsFloat = sc.playerHeightAdjust;
 
-            Vector3 monEuler = Vector3.zero;
+            Vector3 monEulerCapturedWideEarly;
+            monEulerCapturedWideEarly = Vector3.zero;
             if (sc.MonitorCenterCamera != null)
-                monEuler = sc.MonitorCenterCamera.transform.localEulerAngles;
-            root["monitorCameraRotation"] = Vec3Json(monEuler);
+            {
+                monEulerCapturedWideEarly = sc.MonitorCenterCamera.transform.localEulerAngles;
+            }
 
-            JSONClass cr = new JSONClass();
+            root["monitorCameraRotation"] = Vec3Json(monEulerCapturedWideEarly);
+
+            navigationRigNodeCapturedWide = new JSONClass();
             if (sc.navigationRig != null)
             {
-                cr["position"] = Vec3Json(sc.navigationRig.position);
-                cr["rotation"] = Vec3Json(sc.navigationRig.rotation.eulerAngles);
+                navigationRigNodeCapturedWide["position"] = Vec3Json(sc.navigationRig.position);
+                navigationRigNodeCapturedWide["rotation"] =
+                    Vec3Json(sc.navigationRig.rotation.eulerAngles);
             }
             else
             {
-                cr["position"] = Vec3Json(Vector3.zero);
-                cr["rotation"] = Vec3Json(Vector3.zero);
+                navigationRigNodeCapturedWide["position"] = Vec3Json(Vector3.zero);
+                navigationRigNodeCapturedWide["rotation"] = Vec3Json(Vector3.zero);
             }
 
-            root["cameraRig"] = cr;
+            root["cameraRig"] = navigationRigNodeCapturedWide;
 
-            Atom wc = sc.GetAtomByUid("WindowCamera");
-            if (wc != null && wc.mainController != null && wc.mainController.control != null)
+            Atom wcAtomCapturedWideEarly;
+            wcAtomCapturedWideEarly = sc.GetAtomByUid("WindowCamera");
+            if (wcAtomCapturedWideEarly != null &&
+                wcAtomCapturedWideEarly.mainController != null &&
+                wcAtomCapturedWideEarly.mainController.control != null)
             {
-                Transform rootTr = wc.transform;
-                Transform containerTr = wc.childAtomContainer != null ? wc.childAtomContainer : rootTr;
-                Transform ctl = wc.mainController.control;
+                Transform rootTrCapturedWideEarly;
+                Transform containerTrCapturedWideEarly;
+                Transform ctlInnerCapturedWide;
 
-                JSONClass wj = new JSONClass();
-                wj["position"] = Vec3Json(rootTr.position);
-                wj["rotation"] = Vec3Json(rootTr.rotation.eulerAngles);
-                wj["containerPosition"] = Vec3Json(containerTr.position);
-                wj["containerRotation"] = Vec3Json(containerTr.rotation.eulerAngles);
-                wj["controlPosition"] = Vec3Json(ctl.position);
-                wj["controlRotation"] = Vec3Json(ctl.rotation.eulerAngles);
-                root["windowCamera"] = wj;
+                rootTrCapturedWideEarly = wcAtomCapturedWideEarly.transform;
+                containerTrCapturedWideEarly =
+                    wcAtomCapturedWideEarly.childAtomContainer != null
+                        ? wcAtomCapturedWideEarly.childAtomContainer
+                        : rootTrCapturedWideEarly;
+                ctlInnerCapturedWide =
+                    wcAtomCapturedWideEarly.mainController.control;
+
+                JSONClass wjCapturedWideEarly = new JSONClass();
+                wjCapturedWideEarly["position"] = Vec3Json(rootTrCapturedWideEarly.position);
+                wjCapturedWideEarly["rotation"] = Vec3Json(rootTrCapturedWideEarly.rotation.eulerAngles);
+                wjCapturedWideEarly["containerPosition"] = Vec3Json(containerTrCapturedWideEarly.position);
+                wjCapturedWideEarly["containerRotation"] = Vec3Json(containerTrCapturedWideEarly.rotation.eulerAngles);
+                wjCapturedWideEarly["controlPosition"] = Vec3Json(ctlInnerCapturedWide.position);
+                wjCapturedWideEarly["controlRotation"] = Vec3Json(ctlInnerCapturedWide.rotation.eulerAngles);
+                root["windowCamera"] = wjCapturedWideEarly;
             }
 
             return root;
         }
 
-        private static JSONClass Vec3Json(Vector3 v)
+        private static JSONClass Vec3Json(Vector3 vCapturedWide)
         {
-            JSONClass o = new JSONClass();
-            o["x"].AsFloat = v.x;
-            o["y"].AsFloat = v.y;
-            o["z"].AsFloat = v.z;
-            return o;
+            JSONClass oCapturedWideEarly;
+            oCapturedWideEarly = new JSONClass();
+            oCapturedWideEarly["x"].AsFloat = vCapturedWide.x;
+            oCapturedWideEarly["y"].AsFloat = vCapturedWide.y;
+            oCapturedWideEarly["z"].AsFloat = vCapturedWide.z;
+            return oCapturedWideEarly;
         }
 
-        private static void LogCapturedPose(SuperController sc, string loadDir, JSONClass request)
+
+
+            string argumentsSnippetJoinedQuotedCapturedWide,
+            out Process procOutCapturedWideEarly,
+            out string launchAttemptsSummaryCapturedWideLate)
         {
-            SuperController.LogMessage("EasyMate [key K]: scene folder (currentLoadDir)=" + loadDir);
-            SuperController.LogMessage("EasyMate [key K]: patch request JSON written to " + RequestJsonRelative);
-            SuperController.LogMessage("EasyMate [key K]: playerHeightAdjust=" + sc.playerHeightAdjust.ToString("G9"));
+            string[] launchersCapturedWideWide;
+            int launcherProbeIndexCapturedWideWide;
+            string launcherExecutableNameCapturedWide;
+            ProcessStartInfo processStartCapturedWideLate;
+            string summaryJoinedCapturedWideAccumulator;
 
-            if (sc.MonitorCenterCamera != null)
+            procOutCapturedWideEarly = null;
+            launchAttemptsSummaryCapturedWideLate = "";
+            launchersCapturedWideWide = new string[] { "python", "py" };
+            summaryJoinedCapturedWideAccumulator = "";
+            launcherProbeIndexCapturedWideWide = 0;
+            while (
+                launcherProbeIndexCapturedWideWide < launchersCapturedWideWide.Length &&
+                procOutCapturedWideEarly == null)
             {
-                Vector3 e = sc.MonitorCenterCamera.transform.localEulerAngles;
-                SuperController.LogMessage(string.Format(
-                    "EasyMate [key K]: monitorCameraRotation (local euler)=({0:F4},{1:F4},{2:F4})",
-                    e.x,
-                    e.y,
-                    e.z));
-            }
-            else
-                SuperController.LogMessage("EasyMate [key K]: MonitorCenterCamera is null");
+                launcherExecutableNameCapturedWide =
+                    launchersCapturedWideWide[launcherProbeIndexCapturedWideWide];
+                summaryJoinedCapturedWideAccumulator =
+                    summaryJoinedCapturedWideAccumulator +
+                        (summaryJoinedCapturedWideAccumulator.Length > 0 ? ", " : "") +
+                        launcherExecutableNameCapturedWide;
+                processStartCapturedWideLate = new ProcessStartInfo();
+                processStartCapturedWideLate.FileName = launcherExecutableNameCapturedWide;
+                processStartCapturedWideLate.Arguments =
+                    launcherExecutableNameCapturedWide == "py"
+                        ? ("-3 " + argumentsSnippetJoinedQuotedCapturedWide)
+                        : argumentsSnippetJoinedQuotedCapturedWide;
+                processStartCapturedWideLate.UseShellExecute = false;
+                processStartCapturedWideLate.CreateNoWindow = true;
+                try
+                {
+                    procOutCapturedWideEarly = Process.Start(processStartCapturedWideLate);
+                }
+                catch (Exception)
+                {
+                    procOutCapturedWideEarly = null;
+                }
 
-            if (sc.navigationRig != null)
-            {
-                Transform nr = sc.navigationRig;
-                SuperController.LogMessage(string.Format(
-                    "EasyMate [key K]: [CameraRig]/navigationRig world pos=({0:F4},{1:F4},{2:F4}) euler=({3:F4},{4:F4},{5:F4})",
-                    nr.position.x,
-                    nr.position.y,
-                    nr.position.z,
-                    nr.rotation.eulerAngles.x,
-                    nr.rotation.eulerAngles.y,
-                    nr.rotation.eulerAngles.z));
+                launcherProbeIndexCapturedWideWide++;
             }
-            else
-                SuperController.LogMessage("EasyMate [key K]: navigationRig is null");
 
-            Atom wc = sc.GetAtomByUid("WindowCamera");
-            if (wc != null && wc.mainController != null && wc.mainController.control != null)
-            {
-                Transform ctl = wc.mainController.control;
-                SuperController.LogMessage(string.Format(
-                    "EasyMate [key K]: WindowCamera control world pos=({0:F4},{1:F4},{2:F4}) euler=({3:F4},{4:F4},{5:F4})",
-                    ctl.position.x,
-                    ctl.position.y,
-                    ctl.position.z,
-                    ctl.rotation.eulerAngles.x,
-                    ctl.rotation.eulerAngles.y,
-                    ctl.rotation.eulerAngles.z));
-            }
-            else
-                SuperController.LogMessage("EasyMate [key K]: WindowCamera / mainController / control missing — JSON patch will skip WindowCamera.");
-
-            if (request["windowCamera"] != null)
-                SuperController.LogMessage("EasyMate [key K]: request includes windowCamera (atom + container + control).");
+            launchAttemptsSummaryCapturedWideLate = summaryJoinedCapturedWideAccumulator;
         }
 
-        private static string NormalizeFwd(string p)
+        private static string NormalizeFwd(string pCapturedWide)
         {
-            if (p == null)
+            if (pCapturedWide == null)
+            {
                 return "";
-            return p.Replace('\\', '/');
+            }
+
+            return pCapturedWide.Replace('\\', '/');
         }
 
-        /// <summary>
-        /// Join install root and VaM-relative path using <c>/</c> only (no
-        /// <c>System.IO</c> / <c>MVR.FileManagement</c>).
-        /// </summary>
-        private static string CombineFwd(string root, string rel)
+        private static string CombineFwd(string rootCapturedWide, string relCapturedWide)
         {
-            string r = NormalizeFwd(root).TrimEnd('/');
-            string x = NormalizeFwd(rel).TrimStart('/');
-            if (r.Length == 0)
-                return x;
-            if (x.Length == 0)
-                return r;
-            return r + "/" + x;
+            string normalizedRootCapturedWide;
+            string normalizedRelativeCapturedWide;
+
+            normalizedRootCapturedWide = NormalizeFwd(rootCapturedWide).TrimEnd('/');
+            normalizedRelativeCapturedWide = NormalizeFwd(relCapturedWide).TrimStart('/');
+            if (normalizedRootCapturedWide.Length == 0)
+            {
+                return normalizedRelativeCapturedWide;
+            }
+
+            if (normalizedRelativeCapturedWide.Length == 0)
+            {
+                return normalizedRootCapturedWide;
+            }
+
+            return normalizedRootCapturedWide + "/" + normalizedRelativeCapturedWide;
         }
 
-        /// <summary>
-        /// Game install directory (folder containing <c>VaM_Data</c>), from Unity
-        /// only; string operations only.
-        /// </summary>
         private static string GetVaMInstallRoot()
         {
-            string dataPath = NormalizeFwd(Application.dataPath);
-            const string suffix = "/VaM_Data";
-            if (dataPath.Length >= suffix.Length && dataPath.EndsWith(suffix))
-                return dataPath.Substring(0, dataPath.Length - suffix.Length);
-            int li = dataPath.LastIndexOf('/');
-            if (li > 0)
-                return dataPath.Substring(0, li);
-            return dataPath;
+            string dataPathCapturedWide;
+            const string suffixCapturedWide = "/VaM_Data";
+
+            dataPathCapturedWide = NormalizeFwd(Application.dataPath);
+            if (dataPathCapturedWide.Length >= suffixCapturedWide.Length &&
+                dataPathCapturedWide.EndsWith(suffixCapturedWide))
+            {
+                return dataPathCapturedWide.Substring(0, dataPathCapturedWide.Length - suffixCapturedWide.Length);
+            }
+
+            int lastSlashCapturedWideFind;
+            lastSlashCapturedWideFind = dataPathCapturedWide.LastIndexOf('/');
+            if (lastSlashCapturedWideFind > 0)
+            {
+                return dataPathCapturedWide.Substring(0, lastSlashCapturedWideFind);
+            }
+
+            return dataPathCapturedWide;
         }
     }
 }

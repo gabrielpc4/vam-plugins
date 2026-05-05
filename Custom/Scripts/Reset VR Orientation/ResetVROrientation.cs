@@ -7,15 +7,11 @@ using UnityEngine.XR;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using SimpleJSON;
 
 namespace geesp0t
 {
     public class ResetVROrientation : MVRScript
     {
-        private const string EasyMateSceneTrackerPathRelative =
-            "Custom/Scripts/Easy Mate/tools/last_loaded_scene_tracker.json";
-
         protected JSONStorableBool _uiNeedsUpdate;
         protected JSONStorableBool _showMainMenuButton;
         protected JSONStorableBool _hardResetToggle;
@@ -472,7 +468,6 @@ namespace geesp0t
             SuperController.LogMessage(string.Format(
                 "EasyMate [scene load]: starting Load(scene) - {0}",
                 NormalizeFwd(sceneJsonPath)));
-            RememberEasyMateSceneTrackerForUpcomingLoad(sceneJsonPath);
             SuperController.singleton.Load(sceneJsonPath);
         }
 
@@ -481,106 +476,7 @@ namespace geesp0t
             SuperController.LogMessage(string.Format(
                 "EasyMate [scene load]: starting LoadMerge(scene) - {0}",
                 NormalizeFwd(sceneJsonPath)));
-            RememberEasyMateSceneTrackerForUpcomingLoad(sceneJsonPath);
             SuperController.singleton.LoadMerge(sceneJsonPath);
-        }
-
-        private void RememberEasyMateSceneTrackerForUpcomingLoad(string requestedSceneJsonPath)
-        {
-            string normalizedRequestedPath;
-            string derivedLoadFolderPath;
-            JSONClass trackerPayload;
-
-            SuperController.LogMessage(string.Format(
-                "EasyMate [scene tracker]: registering upcoming load target path={0}",
-                NormalizeFwd(requestedSceneJsonPath)));
-
-            if (!IsPatchableScenePathForEasyMateTracker(requestedSceneJsonPath))
-            {
-                SuperController.LogMessage(
-                    "EasyMate [scene tracker]: skipping register (not a patchable local Saves/.json scene path).");
-                return;
-            }
-
-            if (SuperController.singleton == null)
-            {
-                return;
-            }
-
-            normalizedRequestedPath = NormalizeFwd(requestedSceneJsonPath);
-            derivedLoadFolderPath = GetDirectoryPathForEasyMateTracker(normalizedRequestedPath);
-
-            trackerPayload = new JSONClass();
-            trackerPayload["lastLoadedSceneJsonPath"] = normalizedRequestedPath;
-            trackerPayload["lastLoadedSceneLoadDir"] = derivedLoadFolderPath;
-            trackerPayload["trustExactPath"] = "true";
-
-            try
-            {
-                SuperController.singleton.SaveStringIntoFile(
-                    EasyMateSceneTrackerPathRelative,
-                    trackerPayload.ToString(""));
-            }
-            catch (Exception persistException)
-            {
-                SuperController.LogError(
-                    "EasyMate scene tracker (ResetVROrientation): failed to persist: " +
-                    persistException.Message);
-
-                return;
-            }
-
-            SuperController.LogMessage(string.Format(
-                "EasyMate [scene tracker]: wrote state file ({0}); scene JSON={1} derived folder={2}",
-                EasyMateSceneTrackerPathRelative,
-                normalizedRequestedPath,
-                derivedLoadFolderPath));
-        }
-
-        private bool IsPatchableScenePathForEasyMateTracker(string candidatePath)
-        {
-            string normalizedCandidatePath;
-            int packageColonSlashIndex;
-
-            if (candidatePath == null || candidatePath.Length == 0)
-            {
-                return false;
-            }
-
-            normalizedCandidatePath = NormalizeFwd(candidatePath);
-
-            if (!normalizedCandidatePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            packageColonSlashIndex = normalizedCandidatePath.IndexOf(":/", StringComparison.Ordinal);
-
-            if (packageColonSlashIndex > 1)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        private string GetDirectoryPathForEasyMateTracker(string normalizedFwdPath)
-        {
-            int lastSlashIndex;
-
-            if (normalizedFwdPath == null || normalizedFwdPath.Length == 0)
-            {
-                return "";
-            }
-
-            lastSlashIndex = normalizedFwdPath.LastIndexOf('/');
-
-            if (lastSlashIndex <= 0)
-            {
-                return "";
-            }
-
-            return normalizedFwdPath.Substring(0, lastSlashIndex);
         }
 
         private string NormalizeFwd(string path)

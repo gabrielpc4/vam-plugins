@@ -5,11 +5,10 @@ written by EasyMate (EasyMateKSceneCameraPatch). See
 Reference/VaM-Camera-Initial-Scene-Pose.md.
 
 Usage:
-  python patch_scene_initial_camera.py <scene_folder_abs> <request_json_abs>
+  python patch_scene_initial_camera.py <scene_json_abs> <request_json_abs>
 
-Creates <scene>.json.backup once (if missing), then patches the main scene JSON
-in scene_folder using string-preserving replacements (suited to very large
-files).
+Creates <scene>.json.backup once (if missing), then patches the target scene
+JSON using string-preserving replacements (suited to very large files).
 """
 from __future__ import print_function
 
@@ -181,6 +180,21 @@ def pick_main_scene_json(scene_dir):
     return os.path.join(folder, longest)
 
 
+def resolve_scene_json_target(scene_target):
+    normalized_target = os.path.normpath(scene_target)
+
+    if os.path.isdir(normalized_target):
+        return pick_main_scene_json(normalized_target)
+
+    if not normalized_target.lower().endswith(".json"):
+        raise SystemExit("target is not a .json file: %s" % normalized_target)
+
+    if not os.path.isfile(normalized_target):
+        raise SystemExit("scene json not found: %s" % normalized_target)
+
+    return normalized_target
+
+
 def patch_window_camera_atom(atom, wc):
     atom2 = patch_xyz_block(atom, "position", wc["position"]["x"], wc["position"]["y"], wc["position"]["z"])
     atom3 = patch_xyz_block(atom2, "rotation", wc["rotation"]["x"], wc["rotation"]["y"], wc["rotation"]["z"])
@@ -205,13 +219,15 @@ def patch_window_camera_atom(atom, wc):
     return atom5[:ci] + tail3
 
 
-def main():
-    if len(sys.argv) < 3:
-        print("Usage: patch_scene_initial_camera.py <scene_folder> <request_json>", file=sys.stderr)
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    if len(argv) < 2:
+        print("Usage: patch_scene_initial_camera.py <scene_json> <request_json>", file=sys.stderr)
         return 2
 
-    scene_folder = sys.argv[1]
-    request_path = sys.argv[2]
+    scene_target = argv[0]
+    request_path = argv[1]
 
     tools_dir = os.path.dirname(os.path.abspath(__file__))
     log_path = os.path.join(tools_dir, LOG_NAME)
@@ -225,7 +241,7 @@ def main():
             return 1
 
         try:
-            scene_path = pick_main_scene_json(scene_folder)
+            scene_path = resolve_scene_json_target(scene_target)
         except SystemExit as e:
             _log("FAIL %s" % e, log_fp)
             return 1

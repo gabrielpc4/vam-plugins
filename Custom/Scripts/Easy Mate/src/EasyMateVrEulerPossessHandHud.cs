@@ -10,7 +10,9 @@ namespace geesp0t
     /// <c>rightHand</c> (back of hand / watch pose): <b>Próxima cena</b> on the
     /// <b>upper</b> row and
     /// <b>Possuir</b> / <b>Despossuir</b> on the <b>lower</b> row.
-    /// <b>Upper</b> row (<b>Próxima cena</b>): face <b>B</b> / OpenVR menu, or tap the button.
+    /// <b>Upper</b> row (<b>Próxima cena</b>): only when the scene has a resolvable
+    /// &quot;next&quot; <c>UIButton</c> (same rules as <see cref="MainUIButtons.HasNextSceneUiButtonInScene"/>);
+    /// face <b>B</b> / OpenVR menu, or tap the button.
     /// <b>Lower</b> row (<b>Possuir</b> / <b>Despossuir</b>): face <b>A</b> / OpenVR select.
     /// While possessed, <b>A</b> triggers Despossuir; <b>B</b> still runs
     /// <see cref="MainUIButtons.RequestFireNextSceneUiButton"/> (same as when not possessed). Unity often
@@ -42,6 +44,12 @@ namespace geesp0t
         private static bool _listenersAttached;
 
         private static Sprite _whiteSprite;
+
+        private static bool _cachedSceneHasNextSceneUIButton;
+
+        private static float _nextSceneButtonPresenceRecheckTime;
+
+        private const float NextSceneButtonPresenceRecheckSeconds = 0.35f;
 
         private static readonly Color PossessRowPossuirColor =
             new Color(0.12f, 0.45f, 0.22f, 0.92f);
@@ -75,6 +83,7 @@ namespace geesp0t
             SuperController sc = SuperController.singleton;
             if (sc == null || sc.isLoading)
             {
+                _nextSceneButtonPresenceRecheckTime = 0f;
                 SetVisible(false);
                 return;
             }
@@ -146,6 +155,16 @@ namespace geesp0t
 
             SetVisible(true);
 
+            float nowUnscaled = Time.unscaledTime;
+            if (_nextSceneButtonPresenceRecheckTime <= 0f ||
+                nowUnscaled >= _nextSceneButtonPresenceRecheckTime)
+            {
+                _nextSceneButtonPresenceRecheckTime =
+                    nowUnscaled + NextSceneButtonPresenceRecheckSeconds;
+                _cachedSceneHasNextSceneUIButton =
+                    MainUIButtons.HasNextSceneUiButtonInScene();
+            }
+
             bool possessed =
                 EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending() ||
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed();
@@ -155,6 +174,8 @@ namespace geesp0t
             RefreshGenderVersusMainRows(possessed);
 
             bool onGenderChoosePanel = _genderChooseStepActive && !possessed;
+            bool proximaCenaAvailable =
+                _cachedSceneHasNextSceneUIButton && !onGenderChoosePanel;
 
             if (_btnPossessRow != null)
                 _btnPossessRow.interactable = true;
@@ -183,7 +204,7 @@ namespace geesp0t
                 bool possessA = EasyMateVrInput.PollPalmHudPossessRowFaceADown(sc);
                 bool proximaB = EasyMateVrInput.PollPalmHudProximaCenaFaceBDown(sc);
 
-                if (proximaB)
+                if (proximaCenaAvailable && proximaB)
                 {
                     MainUIButtons.RequestFireNextSceneUiButton();
                     DismissVaMOverlayUiIfAny();
@@ -199,7 +220,8 @@ namespace geesp0t
                 {
                     InvokePossessRowPrimaryAction();
                 }
-                else if (EasyMateVrInput.PollPalmHudProximaCenaFaceBDown(sc))
+                else if (proximaCenaAvailable &&
+                    EasyMateVrInput.PollPalmHudProximaCenaFaceBDown(sc))
                 {
                     MainUIButtons.RequestFireNextSceneUiButton();
                     DismissVaMOverlayUiIfAny();
@@ -229,6 +251,8 @@ namespace geesp0t
             _genderChooseStepActive = false;
             _listenersAttached = false;
             _whiteSprite = null;
+            _cachedSceneHasNextSceneUIButton = false;
+            _nextSceneButtonPresenceRecheckTime = 0f;
         }
 
         private static void SetVisible(bool v)
@@ -242,6 +266,7 @@ namespace geesp0t
         private static void RefreshGenderVersusMainRows(bool possessed)
         {
             bool gender = _genderChooseStepActive && !possessed;
+            bool showProximaCenaRow = !gender && _cachedSceneHasNextSceneUIButton;
             if (_btnMulher != null)
                 _btnMulher.gameObject.SetActive(gender);
             if (_btnHomem != null)
@@ -249,7 +274,10 @@ namespace geesp0t
             if (_btnPossessRow != null)
                 _btnPossessRow.gameObject.SetActive(!gender);
             if (_btnProximaCena != null)
-                _btnProximaCena.gameObject.SetActive(!gender);
+                _btnProximaCena.gameObject.SetActive(showProximaCenaRow);
+
+            if (!gender)
+                ApplyPossessRowAnchorsForProximaVisible(showProximaCenaRow);
 
             if (gender || _possessRowText == null)
                 return;
@@ -262,6 +290,30 @@ namespace geesp0t
                     PossessRowDespossuirColor :
                     PossessRowPossuirColor;
             }
+        }
+
+        /// <summary>
+        /// When the upper <b>Próxima cena</b> row is hidden, stretch the possess row over the full HUD height.
+        /// </summary>
+        private static void ApplyPossessRowAnchorsForProximaVisible(bool proximaRowVisible)
+        {
+            if (_btnPossessRow == null)
+                return;
+            RectTransform rowRt = _btnPossessRow.GetComponent<RectTransform>();
+            if (rowRt == null)
+                return;
+            if (proximaRowVisible)
+            {
+                rowRt.anchorMin = new Vector2(0.05f, 0.02f);
+                rowRt.anchorMax = new Vector2(0.95f, 0.48f);
+            }
+            else
+            {
+                rowRt.anchorMin = new Vector2(0.05f, 0.02f);
+                rowRt.anchorMax = new Vector2(0.95f, 0.98f);
+            }
+            rowRt.offsetMin = new Vector2(4f, 3f);
+            rowRt.offsetMax = new Vector2(-4f, -3f);
         }
 
         private static void InvokeGenderMulherChoice()

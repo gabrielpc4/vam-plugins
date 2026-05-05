@@ -951,6 +951,19 @@ namespace geesp0t
             _pluginHost.StartCoroutine(FireUIButtonTriggerActivePulseCo(ubt));
         }
 
+        /// <summary>
+        /// True when <see cref="RequestFireNextSceneUiButton"/> would resolve an active
+        /// <c>UIButton</c> trigger (used to show palm-HUD <b>Próxima cena</b> only when it can fire).
+        /// </summary>
+        public static bool HasNextSceneUiButtonInScene()
+        {
+            SuperController sc = SuperController.singleton;
+            if (sc == null || sc.isLoading)
+                return false;
+            UIButtonTrigger ubt = TryResolveNextSceneUIButtonTrigger(sc);
+            return ubt != null && ubt.trigger != null;
+        }
+
         private static UIButtonTrigger TryResolveNextSceneUIButtonTrigger(
             SuperController sc)
         {

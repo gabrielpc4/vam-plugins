@@ -249,6 +249,7 @@ def main(argv=None):
         backup_path = scene_path + ".backup"
         _log("scene json=%s" % scene_path, log_fp)
 
+        # First successful run snapshots the untouched scene once; further runs reuse in-place edits.
         if not os.path.isfile(backup_path):
             try:
                 shutil.copy2(scene_path, backup_path)

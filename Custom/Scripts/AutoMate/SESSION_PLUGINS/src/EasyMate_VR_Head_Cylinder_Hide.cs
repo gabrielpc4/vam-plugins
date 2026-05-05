@@ -10,8 +10,8 @@ namespace geesp0t
     /// <summary>
     /// File: <c>EasyMate_VR_Head_Cylinder_Hide.cs</c>. Easy Mate VR head zone: when the HMD eye is inside a **radial band** around a Person’s head (finite cylinder
     /// along possess **up** through <c>headControl.control</c>, 15 cm below to 50 cm above), temporarily hide face
-    /// materials and active **Glasses** / **Hat** clothing. Hair is turned off via <see cref="DAZCharacterSelector.SetActiveHairItem"/>
-    /// (restored when leaving the zone) so scalp/hair shaders are not forced through ImprovedPoV-style transparent swaps.
+    /// materials and active **Glasses** / **Hat** clothing. On **male** figures only, hair is turned off via <see cref="DAZCharacterSelector.SetActiveHairItem"/>
+    /// with backup/restore when leaving the zone so scalp/hair shaders are not forced through ImprovedPoV-style transparent swaps; females keep hair equipped.
     /// With <b>VR head proximity hide</b> enabled (Easy Mate storables default on), any Person whose head zone contains the HMD is a hide target
     /// (closest Person along the cylinder test wins when multiple overlap).
     /// Same camera filters as before (VR eye only; not <c>MonitorRig</c> or mirror/reflection cameras).
@@ -37,8 +37,8 @@ namespace geesp0t
         private static bool _hooksRegistered;
         private static bool _handlersConfigured;
         /// <summary>Radial distance from possess-up line through <c>headControl.control</c> (finite segment on that axis).</summary>
-        private const float InsideHeadRadiusBaseMeters = 0.12f;
-        /// <summary>Radial band radius (same scale as former 4× sphere radius for similar cross-section).</summary>
+        private const float InsideHeadRadiusBaseMeters = 0.065f;
+        /// <summary>Radial band radius from possess-up axis through <c>headControl</c> (tighter than legacy ~19 cm).</summary>
         private static readonly float InsideHeadRadiusMeters = InsideHeadRadiusBaseMeters * 1.58740105f;
         private static readonly float InsideHeadRadiusSqr = InsideHeadRadiusMeters * InsideHeadRadiusMeters;
         /// <summary>Along possess-up from <c>headControl.control</c>: toward feet (negative axis).</summary>
@@ -646,7 +646,14 @@ namespace geesp0t
 
             _nextConfigureRetryTime = -1f;
 
-            _hairUnequipRestore = SnapHairUnequipRestore.TryApply(_cachedSelector);
+            if (character.isMale)
+            {
+                _hairUnequipRestore = SnapHairUnequipRestore.TryApply(_cachedSelector);
+            }
+            else
+            {
+                _hairUnequipRestore = null;
+            }
 
             _accessoryClothingHandler = SnapAccessoryClothingMaterialsHandler.TryBuild(_cachedSelector);
 

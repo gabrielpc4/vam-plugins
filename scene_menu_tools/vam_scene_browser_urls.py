@@ -9,9 +9,9 @@ VaM saves in-scene web panels under storables like::
 This tool walks each scene JSON (full parse), finds those objects in **depth-first**
 order, and assigns your URL list with **cycling** (``urls[i % len(urls)]``).
 
-Backup policy (per file): copy ``scene.json`` → ``scene.json.bak`` only when
-``scene.json.bak`` does **not** already exist (so reruns do not clobber an older
-backup). Use ``--force-new-backup`` to always write ``scene.json.<timestamp>.bak``.
+Backup policy (per file): copy ``scene.json`` → ``scene.json.bak`` **once**, only when
+that ``.bak`` does **not** already exist. Later runs keep editing ``scene.json`` but never
+add extra backup files—the original snapshot stays in ``scene.json.bak``.
 
 After each write, the file is **re-read and parsed** to verify valid JSON.
 """
@@ -22,7 +22,6 @@ import argparse
 import json
 import shutil
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -51,11 +50,6 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--dry-run",
         action="store_true",
         help="Print planned changes; do not write files.",
-    )
-    parser.add_argument(
-        "--force-new-backup",
-        action="store_true",
-        help="Always create a backup even when scene.json.bak exists (timestamped sidecar).",
     )
     parser.add_argument(
         "--only-if-url-starts-with",
@@ -122,30 +116,21 @@ def assign_browser_urls(data: Any, urls: list[str], url_prefix_filter: str | Non
     return changed
 
 
-def backup_if_needed(scene_path: Path, dry_run: bool, force_new_backup: bool) -> Path | None:
+def ensure_original_backup(scene_path: Path, dry_run: bool) -> Path | None:
     """
-    Returns path of backup written, or None if skipped.
-    Default sidecar: scene.json.bak (skipped if it exists and force_new_backup is False).
+    Returns the path of ``scene.json.bak`` if a new copy was made, or None if
+    it already existed (original backup kept as-is).
     """
 
-    default_bak = scene_path.with_suffix(scene_path.suffix + ".bak")
+    sidecar_bak = scene_path.with_suffix(scene_path.suffix + ".bak")
 
-    if force_new_backup:
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        target_bak = scene_path.with_suffix(scene_path.suffix + f".{stamp}.bak")
-
-        if not dry_run:
-            shutil.copy2(scene_path, target_bak)
-
-        return target_bak
-
-    if default_bak.is_file():
+    if sidecar_bak.is_file():
         return None
 
     if not dry_run:
-        shutil.copy2(scene_path, default_bak)
+        shutil.copy2(scene_path, sidecar_bak)
 
-    return default_bak
+    return sidecar_bak
 
 
 def load_scene_json(scene_path: Path) -> Any:
@@ -203,6 +188,7 @@ def main(argv: list[str]) -> int:
 
     total_files_touched = 0
     total_panels_changed = 0
+    skipped_backup_count = 0
 
     for scene_path in scene_paths:
         try:
@@ -224,14 +210,10 @@ def main(argv: list[str]) -> int:
         if after_snapshot == snapshot:
             continue
 
-        backup_path = backup_if_needed(scene_path, args.dry_run, args.force_new_backup)
+        backup_written_path = ensure_original_backup(scene_path, args.dry_run)
 
-        if backup_path is None and not args.dry_run and not args.force_new_backup:
-            print(
-                f"WARN no backup created for {relative_repo(scene_path)} "
-                f"(already exists: {scene_path.name}.bak); modifying anyway.",
-                file=sys.stderr,
-            )
+        if backup_written_path is None and not args.dry_run:
+            skipped_backup_count += 1
 
         if args.dry_run:
             print(
@@ -240,8 +222,8 @@ def main(argv: list[str]) -> int:
                 flush=True,
             )
 
-            if backup_path is not None:
-                print(f"          backup -> {relative_repo(backup_path)}", flush=True)
+            if backup_written_path is not None:
+                print(f"          backup -> {relative_repo(backup_written_path)}", flush=True)
 
             total_files_touched += 1
             total_panels_changed += changed
@@ -259,9 +241,9 @@ def main(argv: list[str]) -> int:
             )
             return 2
 
-        label_backup = "none"
-        if backup_path is not None:
-            label_backup = relative_repo(backup_path)
+        label_backup = "existing .bak unchanged"
+        if backup_written_path is not None:
+            label_backup = relative_repo(backup_written_path)
 
         print(
             f"OK {relative_repo(scene_path)} — {changed} panel(s); backup: {label_backup}",
@@ -274,6 +256,13 @@ def main(argv: list[str]) -> int:
         f"Done. Files modified: {total_files_touched}; BrowserGUI url updates: {total_panels_changed}.",
         flush=True,
     )
+
+    if skipped_backup_count > 0 and not args.dry_run:
+        print(
+            f"Original backup (*.json.bak) already existed for {skipped_backup_count} file(s); "
+            "those scenes were updated without creating another backup.",
+            file=sys.stderr,
+        )
 
     return 0
 

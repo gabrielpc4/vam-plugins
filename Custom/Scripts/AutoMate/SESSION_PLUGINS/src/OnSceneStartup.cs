@@ -4,12 +4,11 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// Forces CoreControl GlobalLighting &quot;camExposure&quot; to 0 while VaM is still settling after a load:
-    /// SuperController scene load, full-screen loading UI/geometry (which stays up briefly after isLoading clears),
-    /// and the loading icon used for queued textures (ImageLoader) and URL audio loads.
-    /// Restores the snapshot value once all of those are inactive.
-    /// Bright reads (&gt;= ~1) always set the backup even while isLoading (Default.json). Dim reads use Mathf.Min so transient 1.0 then 0.03 still restores 0.03 (pass.json). Bright after dim overrides stale low carryover from the previous scene (MainMenu after pass.json).
-    /// Tick runs from LateUpdate so CoreControl JSON usually reflects the scene before we read.
+    /// While the scene is still settling (same signals as VaM&apos;s load UI / icon / isLoading):
+    /// drives CoreControl GlobalLighting camExposure to 0, freezes simulation via SuperController.PauseSimulation,
+    /// and forces AudioListener.pause so motion/sound do not run ahead of loaded assets.
+    /// After settle ends, restores camExposure first, then raises the pause flag and restores the prior audio pause state.
+    /// Tick runs from LateUpdate so CoreControl JSON usually reflects the scene before we read exposure backup.
     /// </summary>
     public class OnSceneStartup
     {
@@ -18,6 +17,12 @@ namespace geesp0t
         private bool camExposureBackupCaptured = false;
         private float savedCamExposure = 0f;
 
+        private AsyncFlag sceneSettleSimulationPauseFlag;
+        private bool sceneSettleSimulationPauseAppliedToSuperController;
+
+        private bool audioPauseSnapshotCapturedForSceneSettleHold;
+        private bool savedAudioListenerPauseBeforeSceneSettleHold;
+
         private const string coreControlAtomUid = "CoreControl";
         private const string globalLightingStorableId = "GlobalLighting";
         private const string camExposureParamName = "camExposure";
@@ -25,6 +30,8 @@ namespace geesp0t
         private const float forcedExposureEpsilon = 0.001f;
 
         private const float nearDefaultFullExposure = 0.99f;
+
+        private const string sceneSettlePauseFlagDisplayName = "AutoMate OnSceneStartup scene settle";
 
         public void TickDuringSuperControllerLoad()
         {
@@ -35,7 +42,10 @@ namespace geesp0t
                 if (!wasSceneStillSettling)
                 {
                     camExposureBackupCaptured = false;
+                    BeginSceneSettleSimulationPauseHold();
                 }
+
+                MaintainSceneSettleAudioPauseDuringTick();
 
                 ApplyCamExposureWhileSceneSettling();
             }
@@ -43,21 +53,7 @@ namespace geesp0t
             {
                 if (wasSceneStillSettling)
                 {
-                    if (camExposureBackupCaptured)
-                    {
-                        try
-                        {
-                            RestoreCamExposure();
-                        }
-                        catch (Exception restoreException)
-                        {
-                            SuperController.LogError("[OnSceneStartup] Restore camExposure after settle phase failed: " + restoreException);
-                        }
-                    }
-                    else
-                    {
-                        RestoreCamExposureUsingGlobalLightingDefaultBecauseBackupWasNeverCaptured();
-                    }
+                    FinishSceneSettleExposureThenReleasePlaybackHold();
                 }
             }
 
@@ -66,18 +62,83 @@ namespace geesp0t
 
         public void OnOwningPluginDestroy()
         {
-            if (!camExposureBackupCaptured)
-            {
-                return;
-            }
-
             try
             {
-                RestoreCamExposure();
+                if (camExposureBackupCaptured)
+                {
+                    RestoreCamExposure();
+                }
             }
             catch (Exception destroyRestoreException)
             {
                 SuperController.LogError("[OnSceneStartup] Restore camExposure in OnDestroy failed: " + destroyRestoreException);
+            }
+
+            ReleaseSceneSettlePlaybackHold();
+        }
+
+        void BeginSceneSettleSimulationPauseHold()
+        {
+            SuperController superController = SuperController.singleton;
+            if (superController == null)
+            {
+                return;
+            }
+
+            if (sceneSettleSimulationPauseFlag == null)
+            {
+                sceneSettleSimulationPauseFlag = new AsyncFlag(sceneSettlePauseFlagDisplayName);
+            }
+
+            sceneSettleSimulationPauseFlag.Lower();
+            superController.PauseSimulation(sceneSettleSimulationPauseFlag, true);
+            sceneSettleSimulationPauseAppliedToSuperController = true;
+        }
+
+        void MaintainSceneSettleAudioPauseDuringTick()
+        {
+            if (!audioPauseSnapshotCapturedForSceneSettleHold)
+            {
+                savedAudioListenerPauseBeforeSceneSettleHold = AudioListener.pause;
+                audioPauseSnapshotCapturedForSceneSettleHold = true;
+            }
+
+            AudioListener.pause = true;
+        }
+
+        void FinishSceneSettleExposureThenReleasePlaybackHold()
+        {
+            if (camExposureBackupCaptured)
+            {
+                try
+                {
+                    RestoreCamExposure();
+                }
+                catch (Exception restoreException)
+                {
+                    SuperController.LogError("[OnSceneStartup] Restore camExposure after settle phase failed: " + restoreException);
+                }
+            }
+            else
+            {
+                RestoreCamExposureUsingGlobalLightingDefaultBecauseBackupWasNeverCaptured();
+            }
+
+            ReleaseSceneSettlePlaybackHold();
+        }
+
+        void ReleaseSceneSettlePlaybackHold()
+        {
+            if (sceneSettleSimulationPauseAppliedToSuperController && sceneSettleSimulationPauseFlag != null)
+            {
+                sceneSettleSimulationPauseFlag.Raise();
+                sceneSettleSimulationPauseAppliedToSuperController = false;
+            }
+
+            if (audioPauseSnapshotCapturedForSceneSettleHold)
+            {
+                AudioListener.pause = savedAudioListenerPauseBeforeSceneSettleHold;
+                audioPauseSnapshotCapturedForSceneSettleHold = false;
             }
         }
 

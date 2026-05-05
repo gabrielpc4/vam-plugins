@@ -15,10 +15,15 @@ add extra backup files—the original snapshot stays in ``scene.json.bak``.
 
 VaM **does not** substitute Google via scene JSON. If you still see Google, the panel’s
 embedded Chromium often never left its **built‑in default page** (many prefabs ship with
-Google), or navigation failed. **Direct ``*.mp4``** URLs on ``media.redgifs.com`` usually
-do **not** behave like a normal website in VaM’s browser—use RedGIFs **watch** pages
-(HTML + player), e.g. ``https://www.redgifs.com/watch/<slug>``. By default this tool
-rewrites ``https://media.redgifs.com/<Name>.mp4`` arguments to that watch form (slug lowercased).
+Google), or navigation failed.
+
+**RedGIFs:** by default, ``https://media.redgifs.com/<Name>.mp4`` arguments are rewritten to
+``https://www.redgifs.com/watch/<slug>`` so the stock site loads in the browser. That page is
+**not** edge‑to‑edge video (controls, layout), and HTML **fullscreen** APIs usually **do not**
+map to “fill the VaM web panel”. For a **viewport‑filling** clip inside the panel, pass
+``--video-fill-viewport`` together with **direct** ``*.mp4`` (or other http video) URLs; the
+tool writes tiny HTML files under ``_vam_browser_video_fill/`` and points **BrowserGUI** at
+those paths so a ``<video>`` tag can use CSS ``object-fit`` to fill the texture.
 
 After each write, the file is **re-read and parsed** to verify valid JSON.
 """
@@ -26,6 +31,8 @@ After each write, the file is **re-read and parsed** to verify valid JSON.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import html
 import json
 import shutil
 import sys
@@ -76,6 +83,31 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
             "(``https://media.redgifs.com/<Slug>.mp4``) to ``/watch/<slug>`` pages."
         ),
     )
+    parser.add_argument(
+        "--video-fill-viewport",
+        action="store_true",
+        help=(
+            "Write minimal HTML pages that play direct http(s) video URLs edge-to-edge in "
+            "the browser panel (see module docstring). Implies keeping mp4 URLs (no RedGIFs "
+            "watch rewrite)."
+        ),
+    )
+    parser.add_argument(
+        "--video-object-fit",
+        choices=("cover", "contain"),
+        default="cover",
+        help="How the <video> fills the panel when using --video-fill-viewport (default: cover).",
+    )
+    parser.add_argument(
+        "--video-unmuted",
+        action="store_true",
+        help="Do not mute the <video> element (autoplay may be blocked; user can click to play).",
+    )
+    parser.add_argument(
+        "--video-hide-controls",
+        action="store_true",
+        help="Omit the browser video control bar for a cleaner fullscreen-style look.",
+    )
     return parser.parse_args(argv)
 
 
@@ -103,6 +135,123 @@ def normalize_redgifs_media_mp4_to_watch(url: str) -> str:
     slug_lower = filename[:-4].lower()
 
     return "https://www.redgifs.com/watch/" + slug_lower
+
+
+def looks_like_direct_http_video_url(url: str) -> bool:
+    """True when the URL looks like a direct video asset over http(s)."""
+
+    trimmed = url.strip()
+    lowered = trimmed.lower()
+
+    if not (lowered.startswith("http://") or lowered.startswith("https://")):
+        return False
+
+    parsed = urlparse(trimmed)
+    resource_path = (parsed.path or "").lower()
+
+    return resource_path.endswith((".mp4", ".webm", ".m4v", ".ogg"))
+
+
+def build_viewport_fill_html(
+    video_src_url: str,
+    object_fit: str,
+    muted: bool,
+    show_controls: bool,
+) -> str:
+    """Single-page player: video stretched to the browser viewport via CSS."""
+
+    safe_src = html.escape(video_src_url.strip(), quote=True)
+    muted_attr = " muted" if muted else ""
+    controls_attr = " controls" if show_controls else ""
+
+    document_lines = [
+        "<!DOCTYPE html>",
+        '<html lang="en">',
+        "<head>",
+        '<meta charset="utf-8"/>',
+        '<meta name="viewport" content="width=device-width, initial-scale=1"/>',
+        "<title>VaM video fill</title>",
+        "<style>",
+        "html, body { margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; }",
+        "video {",
+        "  position: fixed;",
+        "  top: 0;",
+        "  left: 0;",
+        "  right: 0;",
+        "  bottom: 0;",
+        "  width: 100%;",
+        "  height: 100%;",
+        f"  object-fit: {object_fit};",
+        "}",
+        "</style>",
+        "</head>",
+        "<body>",
+        f'<video src="{safe_src}" autoplay loop playsinline{muted_attr}{controls_attr}></video>',
+        "<script>",
+        "(function () {",
+        "  var video = document.querySelector('video');",
+        "  if (!video) { return; }",
+        "  video.addEventListener('click', function () {",
+        "    if (video.paused) { video.play(); }",
+        "  });",
+        "})();",
+        "</script>",
+        "</body>",
+        "</html>",
+        "",
+    ]
+
+    return "\n".join(document_lines)
+
+
+def materialize_viewport_fill_pages(
+    scene_folder: Path,
+    video_urls: list[str],
+    object_fit: str,
+    video_muted: bool,
+    video_controls: bool,
+    dry_run: bool,
+) -> list[str]:
+    """
+    Writes HTML under scene_folder/_vam_browser_video_fill/ unless dry_run.
+    Returns one VaM‑root relative posix path per input URL (same order, cycling-ready).
+    """
+
+    fill_root = scene_folder / "_vam_browser_video_fill"
+    mapping_cache: dict[str, str] = {}
+    resolved_paths: list[str] = []
+
+    repo_root = _REPO.resolve()
+
+    for raw_url in video_urls:
+        trimmed = raw_url.strip()
+
+        if trimmed not in mapping_cache:
+            digest = hashlib.sha256(trimmed.encode("utf-8")).hexdigest()[:16]
+            filename = f"viewport_{digest}.html"
+            html_path = fill_root / filename
+            relative_install = html_path.resolve().relative_to(repo_root).as_posix()
+            document = build_viewport_fill_html(
+                trimmed,
+                object_fit=object_fit,
+                muted=video_muted,
+                show_controls=video_controls,
+            )
+
+            if not dry_run:
+                fill_root.mkdir(parents=True, exist_ok=True)
+                html_path.write_text(document, encoding="utf-8")
+
+            action_word = "Would write" if dry_run else "Wrote"
+            print(
+                f"{action_word} viewport-fill page {relative_install!r} (video {trimmed!r})",
+                file=sys.stderr,
+            )
+            mapping_cache[trimmed] = relative_install
+
+        resolved_paths.append(mapping_cache[trimmed])
+
+    return resolved_paths
 
 
 def iter_browser_gui_nodes(root: Any) -> Iterable[dict[str, Any]]:
@@ -216,7 +365,27 @@ def main(argv: list[str]) -> int:
     folder = args.scene_folder.resolve()
     urls = list(args.urls)
 
-    if not args.keep_redgifs_media_mp4:
+    skip_redgifs_watch_rewrite = args.keep_redgifs_media_mp4 or args.video_fill_viewport
+
+    if args.video_fill_viewport:
+        for candidate_url in urls:
+            if not looks_like_direct_http_video_url(candidate_url):
+                raise SystemExit(
+                    "--video-fill-viewport needs direct http(s) video URLs "
+                    "(path ending in .mp4, .webm, .m4v, or .ogg). "
+                    f"Offending argument: {candidate_url!r}"
+                )
+
+        urls = materialize_viewport_fill_pages(
+            folder,
+            urls,
+            object_fit=args.video_object_fit,
+            video_muted=not args.video_unmuted,
+            video_controls=not args.video_hide_controls,
+            dry_run=args.dry_run,
+        )
+
+    elif not skip_redgifs_watch_rewrite:
         mapped: list[str] = []
         for original_url in urls:
             normalized_url = normalize_redgifs_media_mp4_to_watch(original_url)

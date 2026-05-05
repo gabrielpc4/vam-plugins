@@ -7,7 +7,8 @@ namespace geesp0t
     /// While the scene is still settling (same signals as VaM&apos;s load UI / icon / isLoading):
     /// drives CoreControl GlobalLighting camExposure to 0, freezes simulation via SuperController.PauseSimulation,
     /// and forces AudioListener.pause so motion/sound do not run ahead of loaded assets.
-    /// After settle ends, waits 2 seconds at the current camExposure, then linearly ramps to the backed-up target over the configured duration.
+    /// After settle ends, waits 2 seconds at the current camExposure, then ramps to the target over 5 seconds:
+    /// the first 3 seconds add only a small fraction of brightness (stay very dark); the last 2 seconds cover the rest quickly.
     /// Tick runs from LateUpdate so CoreControl JSON usually reflects the scene before we read exposure backup.
     /// </summary>
     public class OnSceneStartup
@@ -40,7 +41,11 @@ namespace geesp0t
 
         private const float camExposureRestoreHoldBeforeRampSeconds = 2f;
 
-        private const float camExposureRestoreRampDurationSeconds = 5f;
+        private const float camExposureRestoreRampSlowDarkPhaseSeconds = 3f;
+
+        private const float camExposureRestoreRampFastBrightenPhaseSeconds = 2f;
+
+        private const float camExposureRestoreRampBlendAfterSlowPhase = 0.06f;
 
         /// <summary>Returns true the first tick after VaM&apos;s loading/settle UI has cleared — playback hold was released.</summary>
         public bool TickDuringSuperControllerLoad()
@@ -191,7 +196,7 @@ namespace geesp0t
                 return;
             }
 
-            float rampBlend = Mathf.Clamp01(secondsIntoRamp / camExposureRestoreRampDurationSeconds);
+            float rampBlend = ComputeCamExposureRampBlendPiecewise(secondsIntoRamp);
             float blendedCamExposure = Mathf.Lerp(camExposureGradientRestoreFrom, camExposureGradientRestoreTo, rampBlend);
 
             globalLightingStorable.SetFloatParamValue(camExposureParamName, blendedCamExposure);
@@ -200,6 +205,22 @@ namespace geesp0t
             {
                 camExposureGradientRestoreActive = false;
             }
+        }
+
+        float ComputeCamExposureRampBlendPiecewise(float secondsIntoRamp)
+        {
+            if (secondsIntoRamp < camExposureRestoreRampSlowDarkPhaseSeconds)
+            {
+                float slowPhaseProgress = secondsIntoRamp / camExposureRestoreRampSlowDarkPhaseSeconds;
+
+                return slowPhaseProgress * camExposureRestoreRampBlendAfterSlowPhase;
+            }
+
+            float fastPhaseElapsedSeconds = secondsIntoRamp - camExposureRestoreRampSlowDarkPhaseSeconds;
+            float fastPhaseProgress = Mathf.Clamp01(fastPhaseElapsedSeconds / camExposureRestoreRampFastBrightenPhaseSeconds);
+            float blendValueAfterSlowPhase = camExposureRestoreRampBlendAfterSlowPhase;
+
+            return blendValueAfterSlowPhase + fastPhaseProgress * (1f - blendValueAfterSlowPhase);
         }
 
         void ReleaseSceneSettlePlaybackHold()

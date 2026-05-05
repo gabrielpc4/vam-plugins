@@ -25,6 +25,12 @@ map to “fill the VaM web panel”. For a **viewport‑filling** clip inside th
 tool writes tiny HTML files under ``_vam_browser_video_fill/`` and points **BrowserGUI** at
 those paths so a ``<video>`` tag can use CSS ``object-fit`` to fill the texture.
 
+If VaM never leaves the default Google page when **BrowserGUI** points at a ``Saves/.../*.html``
+path, the install may not load local HTML in the embedded browser. In that case use
+``--redgifs-ifr`` to set **https** embed URLs like ``https://www.redgifs.com/ifr/<slug>``
+(no local file). Optional ``--redgifs-ifr-wrapper-html`` writes a tiny wrapper page that
+iframes the same URL (still a local path—only use if direct ``/ifr/`` works but you want layout).
+
 After each write, the file is **re-read and parsed** to verify valid JSON.
 """
 
@@ -34,6 +40,7 @@ import argparse
 import hashlib
 import html
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -108,6 +115,23 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="Omit the browser video control bar for a cleaner fullscreen-style look.",
     )
+    parser.add_argument(
+        "--redgifs-ifr",
+        action="store_true",
+        help=(
+            "Resolve each argument to a RedGIFs slug and set BrowserGUI to "
+            "https://www.redgifs.com/ifr/<slug> (embed player over HTTPS). "
+            "Accepts /watch/…, /ifr/…, media…mp4, or a bare slug."
+        ),
+    )
+    parser.add_argument(
+        "--redgifs-ifr-wrapper-html",
+        action="store_true",
+        help=(
+            "With --redgifs-ifr, write wrapper HTML under _vam_browser_redgifs_iframe/ "
+            "instead of using the https /ifr/ URL directly (local path; may fail in some VaM setups)."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -135,6 +159,136 @@ def normalize_redgifs_media_mp4_to_watch(url: str) -> str:
     slug_lower = filename[:-4].lower()
 
     return "https://www.redgifs.com/watch/" + slug_lower
+
+
+def extract_redgifs_slug(token: str) -> str:
+    """
+    Normalize user input (watch URL, ifr URL, media mp4, or bare slug) to a lowercase slug.
+    """
+
+    trimmed = token.strip()
+
+    if not trimmed:
+        raise SystemExit("Empty RedGIFs slug or URL.")
+
+    lowered = trimmed.lower()
+    if lowered.startswith("http://") or lowered.startswith("https://"):
+        parsed = urlparse(trimmed)
+        host = (parsed.hostname or "").lower()
+        resource_path = parsed.path or ""
+        path_lower = resource_path.lower()
+
+        if "/ifr/" in path_lower:
+            fragment = resource_path[path_lower.index("/ifr/") + len("/ifr/") :]
+            slug = fragment.strip("/").split("/")[0]
+
+        elif "/watch/" in path_lower:
+            fragment = resource_path[path_lower.index("/watch/") + len("/watch/") :]
+            slug = fragment.strip("/").split("/")[0]
+
+        elif host == "media.redgifs.com":
+            filename = resource_path.rsplit("/", 1)[-1]
+            if not filename.lower().endswith(".mp4"):
+                raise SystemExit(
+                    f"Expected media.redgifs.com … .mp4 for slug inference, got: {token!r}"
+                )
+
+            slug = filename[:-4]
+
+        else:
+            raise SystemExit(f"Unrecognized RedGIFs URL (need /watch/, /ifr/, or media mp4): {token!r}")
+
+        slug = slug.split("?")[0].split("#")[0]
+
+    else:
+        slug = trimmed
+
+    slug = slug.strip().strip("/")
+    slug_normalized = slug.lower()
+
+    if not re.match(r"^[a-z0-9_-]+$", slug_normalized):
+        raise SystemExit(f"Invalid RedGIFs slug after parsing: {token!r} -> {slug_normalized!r}")
+
+    return slug_normalized
+
+
+def redgifs_ifr_https_url(slug: str) -> str:
+    return "https://www.redgifs.com/ifr/" + slug
+
+
+def build_redgifs_iframe_wrapper_html(ifr_https_url: str) -> str:
+    """Minimal full-viewport iframe embed (RedGIFs /ifr/ page inside local wrapper)."""
+
+    safe_src = html.escape(ifr_https_url.strip(), quote=True)
+
+    document_lines = [
+        "<!DOCTYPE html>",
+        '<html lang="en">',
+        "<head>",
+        '<meta charset="utf-8"/>',
+        '<meta name="viewport" content="width=device-width, initial-scale=1"/>',
+        "<title>RedGIFs</title>",
+        "<style>",
+        "html, body { margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; }",
+        ".wrap { position:relative; width:100%; height:100%; }",
+        "iframe {",
+        "  position:absolute;",
+        "  top:0;",
+        "  left:0;",
+        "  width:100%;",
+        "  height:100%;",
+        "  border:0;",
+        "}",
+        "</style>",
+        "</head>",
+        "<body>",
+        '<div class="wrap">',
+        f'<iframe src="{safe_src}" scrolling="no" allowfullscreen></iframe>',
+        "</div>",
+        "</body>",
+        "</html>",
+        "",
+    ]
+
+    return "\n".join(document_lines)
+
+
+def materialize_redgifs_iframe_wrappers(
+    scene_folder: Path,
+    slugs: list[str],
+    dry_run: bool,
+) -> list[str]:
+    """Writes one HTML per distinct slug; returns VaM-root relative paths (same order as slugs)."""
+
+    fill_root = scene_folder / "_vam_browser_redgifs_iframe"
+    mapping_cache: dict[str, str] = {}
+    resolved_paths: list[str] = []
+
+    repo_root = _REPO.resolve()
+
+    for slug in slugs:
+        if slug not in mapping_cache:
+            target_https = redgifs_ifr_https_url(slug)
+            digest = hashlib.sha256(slug.encode("utf-8")).hexdigest()[:16]
+            filename = f"redgifs_ifr_{digest}.html"
+            html_path = fill_root / filename
+            relative_install = html_path.resolve().relative_to(repo_root).as_posix()
+            document = build_redgifs_iframe_wrapper_html(target_https)
+
+            if not dry_run:
+                fill_root.mkdir(parents=True, exist_ok=True)
+                html_path.write_text(document, encoding="utf-8")
+
+            action_word = "Would write" if dry_run else "Wrote"
+            print(
+                f"{action_word} RedGIFs iframe wrapper {relative_install!r} (slug {slug!r})",
+                file=sys.stderr,
+            )
+            mapping_cache[slug] = relative_install
+
+        resolved_paths.append(mapping_cache[slug])
+
+    return resolved_paths
 
 
 def looks_like_direct_http_video_url(url: str) -> bool:
@@ -365,9 +519,30 @@ def main(argv: list[str]) -> int:
     folder = args.scene_folder.resolve()
     urls = list(args.urls)
 
-    skip_redgifs_watch_rewrite = args.keep_redgifs_media_mp4 or args.video_fill_viewport
+    if args.video_fill_viewport and args.redgifs_ifr:
+        raise SystemExit("Choose only one of --video-fill-viewport or --redgifs-ifr.")
 
-    if args.video_fill_viewport:
+    if args.redgifs_ifr_wrapper_html and not args.redgifs_ifr:
+        raise SystemExit("--redgifs-ifr-wrapper-html requires --redgifs-ifr.")
+
+    skip_redgifs_watch_rewrite = (
+        args.keep_redgifs_media_mp4 or args.video_fill_viewport or args.redgifs_ifr
+    )
+
+    if args.redgifs_ifr:
+        slug_list = [extract_redgifs_slug(token) for token in urls]
+
+        if args.redgifs_ifr_wrapper_html:
+            urls = materialize_redgifs_iframe_wrappers(folder, slug_list, args.dry_run)
+        else:
+            urls = [redgifs_ifr_https_url(slug) for slug in slug_list]
+            for slug, browser_url in zip(slug_list, urls):
+                print(
+                    f"RedGIFs BrowserGUI URL: {browser_url!r} (slug {slug!r})",
+                    file=sys.stderr,
+                )
+
+    elif args.video_fill_viewport:
         for candidate_url in urls:
             if not looks_like_direct_http_video_url(candidate_url):
                 raise SystemExit(

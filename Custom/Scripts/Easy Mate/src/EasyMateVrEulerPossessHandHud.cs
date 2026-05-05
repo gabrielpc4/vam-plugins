@@ -276,9 +276,6 @@ namespace geesp0t
             if (_btnProximaCena != null)
                 _btnProximaCena.gameObject.SetActive(showProximaCenaRow);
 
-            if (!gender)
-                ApplyPossessRowAnchorsForProximaVisible(showProximaCenaRow);
-
             if (gender || _possessRowText == null)
                 return;
             _possessRowText.text = possessed ?
@@ -290,30 +287,6 @@ namespace geesp0t
                     PossessRowDespossuirColor :
                     PossessRowPossuirColor;
             }
-        }
-
-        /// <summary>
-        /// When the upper <b>Próxima cena</b> row is hidden, stretch the possess row over the full HUD height.
-        /// </summary>
-        private static void ApplyPossessRowAnchorsForProximaVisible(bool proximaRowVisible)
-        {
-            if (_btnPossessRow == null)
-                return;
-            RectTransform rowRt = _btnPossessRow.GetComponent<RectTransform>();
-            if (rowRt == null)
-                return;
-            if (proximaRowVisible)
-            {
-                rowRt.anchorMin = new Vector2(0.05f, 0.02f);
-                rowRt.anchorMax = new Vector2(0.95f, 0.48f);
-            }
-            else
-            {
-                rowRt.anchorMin = new Vector2(0.05f, 0.02f);
-                rowRt.anchorMax = new Vector2(0.95f, 0.98f);
-            }
-            rowRt.offsetMin = new Vector2(4f, 3f);
-            rowRt.offsetMax = new Vector2(-4f, -3f);
         }
 
         private static void InvokeGenderMulherChoice()

@@ -583,8 +583,7 @@ namespace geesp0t
             return oCapturedWideEarly;
         }
 
-
-
+        private static void TryLaunchPythonInterpreterWithArgumentsSnippet(
             string argumentsSnippetJoinedQuotedCapturedWide,
             out Process procOutCapturedWideEarly,
             out string launchAttemptsSummaryCapturedWideLate)

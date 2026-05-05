@@ -19,6 +19,8 @@ namespace geesp0t
     /// Skin opaque→transparent swaps and <c>BroadcastMessage</c> run only after all replacement shaders resolve via <c>Shader.Find</c>;
     /// hide passes are skipped while <c>SuperController.singleton.isLoading</c> to avoid load-order shader errors.
     /// Adapted from ImprovedPoV 2.1.1 (Acidbubbles) — https://github.com/acidbubbles/vam-improved-pov
+    /// Diagnostics: set <see cref="EnableHeadCylinderDiagnosticLogs"/> false to silence <c>[VrHeadCylinder]</c> messages.
+    /// Proximity mode requires Easy Mate storables <b>VR head proximity hide (no Snap required)</b> enabled (default off).
     /// </summary>
     public static class EasyMateVrHeadCylinderHide
     {
@@ -54,6 +56,105 @@ namespace geesp0t
         private static float _nextConfigureRetryTime = -1f;
 
         private static MVRScript _coroutineHost;
+
+        /// <summary>Set false to stop <c>[VrHeadCylinder]</c> console messages (VaM message log).</summary>
+        public static bool EnableHeadCylinderDiagnosticLogs = true;
+
+        private static Dictionary<string, float> _diagNextLogTimeByKey;
+
+        private static void Diag(string message)
+        {
+            if (!EnableHeadCylinderDiagnosticLogs)
+                return;
+            SuperController.LogMessage("[VrHeadCylinder] " + message);
+        }
+
+        private static void DiagThrottled(string throttleKey, float intervalSeconds, string message)
+        {
+            if (!EnableHeadCylinderDiagnosticLogs)
+                return;
+            float now = Time.realtimeSinceStartup;
+            if (_diagNextLogTimeByKey == null)
+                _diagNextLogTimeByKey = new Dictionary<string, float>();
+            float nextAllowed;
+            if (_diagNextLogTimeByKey.TryGetValue(throttleKey, out nextAllowed))
+            {
+                if (now < nextAllowed)
+                    return;
+            }
+
+            _diagNextLogTimeByKey[throttleKey] = now + intervalSeconds;
+            SuperController.LogMessage("[VrHeadCylinder] " + message);
+        }
+
+        /// <summary>Explains why the HMD eye camera skipped the hide pass (throttled).</summary>
+        private static void DiagSkipForEyeCameraIfNeeded(Camera cam)
+        {
+            if (!EnableHeadCylinderDiagnosticLogs || cam == null)
+                return;
+            if (cam.name != "CenterEyeAnchor" && cam.name != "Camera (eye)")
+                return;
+
+            SuperController sc = SuperController.singleton;
+            if (sc == null)
+                return;
+            if (sc.isLoading)
+            {
+                DiagThrottled("eye_loading", 2f, "Eye camera pre-render: skipped while SuperController.isLoading.");
+                return;
+            }
+
+            if (!HasSnapHeadContext() && !_headProximityHideWithoutSnap)
+            {
+                DiagThrottled(
+                    "eye_proximity_off",
+                    5f,
+                    "Eye camera active but hide is OFF: enable Easy Mate plugin → storables → \"VR head proximity hide (no Snap required)\", or start a snap session that registers this runtime.");
+                return;
+            }
+
+            if (!HasSnapHeadContext() && _headProximityHideWithoutSnap &&
+                !sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
+            {
+                DiagThrottled(
+                    "eye_not_vr",
+                    5f,
+                    "Proximity hide is enabled but VaM reports desktop/non-VR (isOVR/isOpenVR/XRSettings.enabled all false); hide runs only on VR eye cameras.");
+                return;
+            }
+
+            if (cam.name == "MonitorRig")
+                return;
+
+            if (IsCameraUnderMirrorOrReflectionHierarchy(cam))
+                return;
+        }
+
+        /// <summary>If VR + hide active, logs unrecognized camera names (throttled) so alternate HMD rigs show up in the log.</summary>
+        private static void DiagUnknownEyeCameraNameIfNeeded(Camera cam)
+        {
+            if (!EnableHeadCylinderDiagnosticLogs || cam == null)
+                return;
+            if (!_headProximityHideWithoutSnap && !HasSnapHeadContext())
+                return;
+
+            SuperController sc = SuperController.singleton;
+            if (sc == null || sc.isLoading)
+                return;
+            if (!sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
+                return;
+            if (cam.name == "MonitorRig")
+                return;
+            if (IsCameraUnderMirrorOrReflectionHierarchy(cam))
+                return;
+            if (cam.name == "CenterEyeAnchor" || cam.name == "Camera (eye)")
+                return;
+
+            DiagThrottled(
+                "cam_unrecognized_" + cam.name,
+                12f,
+                "Pre-render saw camera '" + cam.name + "' — hide only applies to CenterEyeAnchor / Camera (eye). Extend ShouldApplyHeadHideForThisCamera if this is your VR eye.");
+        }
 
         private sealed class HeadZoneScratch
         {
@@ -103,6 +204,7 @@ namespace geesp0t
 
             RegisterHooks();
             SetPossessorPreviewMeshesVisible(false);
+            Diag("Begin snap session: hooks ON for " + (person != null ? person.uid : "?"));
         }
 
         /// <summary>Plugin toggle: hide head materials when HMD is inside any Person’s head zone without using Snap.</summary>
@@ -113,10 +215,29 @@ namespace geesp0t
                 _coroutineHost = host;
 
             SuperController sc = SuperController.singleton;
-            if (enabled && sc != null && (sc.isOVR || sc.isOpenVR || XRSettings.enabled))
+            bool vr = sc != null && (sc.isOVR || sc.isOpenVR || XRSettings.enabled);
+            Diag(string.Format(
+                "SetHeadProximityHideWithoutSnapEnabled enabled={0} snapSession={1} vr={2} (isOVR={3} isOpenVR={4} XRSettings.enabled={5}) host={6}",
+                enabled,
+                HasSnapHeadContext(),
+                vr,
+                sc != null && sc.isOVR,
+                sc != null && sc.isOpenVR,
+                XRSettings.enabled,
+                host != null));
+
+            if (enabled && sc != null && vr)
+            {
                 RegisterHooks();
+            }
+            else if (enabled && sc != null && !vr)
+            {
+                Diag("Proximity hide requested but VR not active — hooks not registered until VR is available (EasyMate will retry from Start/scene change).");
+            }
             else if (!enabled && !HasSnapHeadContext())
+            {
                 UnregisterHooks();
+            }
         }
 
         private static bool HasSnapHeadContext()
@@ -185,14 +306,20 @@ namespace geesp0t
             SuperController sc = SuperController.singleton;
             if (sc == null)
             {
+                Diag("AfterSuperControllerFinishedSceneSettle: SuperController null.");
                 return;
             }
 
             if (!sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
             {
+                DiagThrottled(
+                    "settle_not_vr",
+                    15f,
+                    "AfterSuperControllerFinishedSceneSettle: proximity hide on but VR not reported yet — hooks not refreshed.");
                 return;
             }
 
+            Diag("AfterSuperControllerFinishedSceneSettle: registering camera hooks for proximity hide.");
             RegisterHooks();
         }
 
@@ -318,6 +445,7 @@ namespace geesp0t
             Camera.onPreRender += OnPreRender;
             Camera.onPostRender += OnPostRender;
             _hooksRegistered = true;
+            Diag("Camera.onPreRender / onPostRender hooks REGISTERED.");
         }
 
         private static void UnregisterHooks()
@@ -327,6 +455,7 @@ namespace geesp0t
             Camera.onPreRender -= OnPreRender;
             Camera.onPostRender -= OnPostRender;
             _hooksRegistered = false;
+            Diag("Camera hooks UNREGISTERED.");
         }
 
         private static bool IsCameraUnderMirrorOrReflectionHierarchy(Camera cam)
@@ -433,14 +562,24 @@ namespace geesp0t
         private static void OnPreRender(Camera cam)
         {
             if (!ShouldApplyHeadHideForThisCamera(cam))
+            {
+                DiagUnknownEyeCameraNameIfNeeded(cam);
+                DiagSkipForEyeCameraIfNeeded(cam);
                 return;
+            }
 
             FreeControllerV3 bestHead;
             Atom best = FindBestPersonWhoseHeadZoneContainsCamera(cam, out bestHead);
             EnsureHideHandlersMatchZoneOwner(best);
 
             if (best == null || bestHead == null)
+            {
+                DiagThrottled(
+                    "no_person_in_cylinder",
+                    3f,
+                    "Hide pass eligible (VR eye cam): no Person head cylinder contains this camera — move HMD into head volume or check world scale.");
                 return;
+            }
 
             float unusedRsq;
             if (!TryGetRadialSqInHeadZone(GetHeadZoneScratch(best), bestHead, cam, out unusedRsq))
@@ -448,6 +587,21 @@ namespace geesp0t
 
             if (!_handlersConfigured)
                 TryConfigureHandlers();
+
+            if (_skinHandler == null)
+            {
+                if (_cachedSelector != null || !_handlersConfigured)
+                {
+                    DiagThrottled(
+                        "handlers_not_ready_" + best.uid,
+                        2f,
+                        "Inside head zone for " + best.uid + " but skin/handlers not ready yet (selector/skin/configure); waiting.");
+                }
+
+                return;
+            }
+
+            DiagThrottled("hide_active_" + best.uid, 8f, "BeforeRender hide active for Person " + best.uid + ".");
 
             try
             {
@@ -493,6 +647,11 @@ namespace geesp0t
 
             if (_cachedSelector == null)
             {
+                string uid = _hideHandlerPerson != null ? _hideHandlerPerson.uid : "?";
+                DiagThrottled(
+                    "no_character_selector_" + uid,
+                    5f,
+                    "Person " + uid + " has no DAZCharacterSelector under atom; cannot configure skin hide.");
                 _handlersConfigured = true;
                 return;
             }
@@ -511,6 +670,11 @@ namespace geesp0t
                 if (t < _nextPollSkinNullTime)
                     return;
                 _nextPollSkinNullTime = t + TryConfigureHandlersIntervalSeconds;
+                string uidSkin = _hideHandlerPerson != null ? _hideHandlerPerson.uid : "?";
+                DiagThrottled(
+                    "skin_not_ready_" + uidSkin,
+                    3f,
+                    "Waiting for DAZCharacterSelector.selectedCharacter.skin on " + uidSkin + ".");
                 return;
             }
 
@@ -523,6 +687,10 @@ namespace geesp0t
             {
                 _skinHandler = null;
                 _nextConfigureRetryTime = t + TryConfigureHandlersIntervalSeconds;
+                DiagThrottled(
+                    "skin_configure_retry_" + (_hideHandlerPerson != null ? _hideHandlerPerson.uid : "?"),
+                    2f,
+                    "SnapSkinHandler.Configure did not succeed yet (TryAgainLater or shaders); retrying.");
                 return;
             }
 

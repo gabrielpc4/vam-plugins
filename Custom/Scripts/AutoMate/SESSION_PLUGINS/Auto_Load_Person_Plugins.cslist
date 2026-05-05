@@ -1,3 +1,4 @@
+src/OnSceneStartup.cs
 src/Auto_Load_Person_Plugins.cs
 src/KeyboardShortcuts.cs
 ../../Easy Mate/src/EasyMateHeadSnapPovRuntime.cs

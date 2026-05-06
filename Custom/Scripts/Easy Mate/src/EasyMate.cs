@@ -40,7 +40,13 @@ namespace geesp0t
 
         private Coroutine _pathRuleEmotionMergeCo;
 
-        private Coroutine _mergeSpankingsAfterGripCo;
+        private Coroutine _spankingsAutoMergeProximityCo;
+
+        private bool _spankingsAutoMergeCompletedThisScene;
+
+        private const float SpankingsAutoMergePollSeconds = 0.2f;
+
+        private const float SpankingsAutoMergeDistanceMeters = 0.16f;
 
         public JSONStorableAction hideUI;
         public JSONStorableAction showUI;
@@ -58,10 +64,13 @@ namespace geesp0t
         /// toggles <b>both</b> sides together between articulated VR hands (<b>Male2</b>) and VaM’s sphere/kinematic hand mode
         /// (see <see cref="EasyMateGripHandVisibility"/>); while any <c>Person</c> head or hand is possessed, VR proxies use
         /// <b>None</b> (not sphere / not Male2). Collisions stay off while both
-        /// sides sphere. The <b>first</b> such grip press this scene queues a merge of <b>Spankings</b> onto <b>female</b> <c>Person</c> atoms only
-        /// that do not already have the plugin (deferred; merge-only), then after <b>4</b> seconds re-checks and merges again if any female still
-        /// lacks the plugin — unless <c>Custom/Scripts/Easy Mate/spankings_grip_merge_block_path_keywords.txt</c> matches current load/save dirs (same
-        /// substring rules as <c>emotion_path_keywords.txt</c>), in which case no grip Spankings merge runs. Hands still toggle regardless.
+        /// sides sphere. When grip first enables articulated <b>Male2</b> hands,
+        /// Easy Mate starts a lightweight timed proximity check (not every frame).
+        /// Once any controller hand gets very close to any female body, it merges
+        /// <b>Spankings</b> onto all female <c>Person</c> atoms missing it, then
+        /// 4 seconds later retries once if any female still lacks the plugin.
+        /// If <c>Custom/Scripts/Easy Mate/spankings_grip_merge_block_path_keywords.txt</c>
+        /// matches current load/save dirs, no automatic grip-hand Spankings logic runs.
         /// </summary>
         public JSONStorableBool gripTogglesHandVisibility;
 
@@ -185,44 +194,115 @@ namespace geesp0t
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
 
-            EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(QueueMergeSpankingsAfterGripDeferred);
+            EasyMateGripHandVisibility.SetOnMale2HandsEnabled(
+                StartSpankingsAutoMergeProximityCheck);
         }
 
-        private void QueueMergeSpankingsAfterGripDeferred()
+        private void ResetSpankingsAutoMergeStateForScene()
         {
-            if (mainUIButtons == null)
-                return;
-            if (EasyMateSpankingsGripBlockPathKeywords.CurrentSceneBlocksGripSpankingsMerge())
-                return;
-            if (_mergeSpankingsAfterGripCo != null)
-                StopCoroutine(_mergeSpankingsAfterGripCo);
-            _mergeSpankingsAfterGripCo = StartCoroutine(CoMergeSpankingsAfterGripDeferred());
+            _spankingsAutoMergeCompletedThisScene = false;
+            if (_spankingsAutoMergeProximityCo != null)
+            {
+                StopCoroutine(_spankingsAutoMergeProximityCo);
+                _spankingsAutoMergeProximityCo = null;
+            }
         }
 
-        private IEnumerator CoMergeSpankingsAfterGripDeferred()
+        private void StartSpankingsAutoMergeProximityCheck()
+        {
+            if (mainUIButtons == null || _spankingsAutoMergeCompletedThisScene)
+                return;
+            if (EasyMateSpankingsGripBlockPathKeywords
+                .CurrentSceneBlocksGripSpankingsMerge())
+            {
+                _spankingsAutoMergeCompletedThisScene = true;
+                return;
+            }
+            if (!EasyMateGripHandVisibility.IsAnyPreferredHandArticulated())
+                return;
+            if (!mainUIButtons.AnyFemalePersonMissingSpankings())
+            {
+                _spankingsAutoMergeCompletedThisScene = true;
+                return;
+            }
+            if (_spankingsAutoMergeProximityCo != null)
+                return;
+            _spankingsAutoMergeProximityCo =
+                StartCoroutine(CoWaitForHandNearFemaleThenMergeSpankings());
+        }
+
+        private IEnumerator CoWaitForHandNearFemaleThenMergeSpankings()
         {
             try
             {
-                yield return null;
-                yield return null;
-                if (mainUIButtons == null)
-                    yield break;
-                if (EasyMateSpankingsGripBlockPathKeywords
-                    .CurrentSceneBlocksGripSpankingsMerge())
-                    yield break;
-                mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
-                yield return new WaitForSeconds(4f);
-                if (mainUIButtons == null)
-                    yield break;
-                if (EasyMateSpankingsGripBlockPathKeywords
-                    .CurrentSceneBlocksGripSpankingsMerge())
-                    yield break;
-                if (mainUIButtons.AnyFemalePersonMissingSpankings())
+                while (true)
+                {
+                    if (mainUIButtons == null ||
+                        _spankingsAutoMergeCompletedThisScene)
+                    {
+                        yield break;
+                    }
+
+                    if (EasyMateSpankingsGripBlockPathKeywords
+                        .CurrentSceneBlocksGripSpankingsMerge())
+                    {
+                        _spankingsAutoMergeCompletedThisScene = true;
+                        yield break;
+                    }
+
+                    if (!EasyMateGripHandVisibility
+                        .IsAnyPreferredHandArticulated())
+                    {
+                        yield break;
+                    }
+
+                    if (!mainUIButtons.AnyFemalePersonMissingSpankings())
+                    {
+                        _spankingsAutoMergeCompletedThisScene = true;
+                        yield break;
+                    }
+
+                    if (!mainUIButtons
+                        .AnyFemalePersonWithinControllerHandDistance(
+                            SpankingsAutoMergeDistanceMeters))
+                    {
+                        yield return new WaitForSeconds(
+                            SpankingsAutoMergePollSeconds);
+                        continue;
+                    }
+
                     mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
+                    yield return new WaitForSeconds(4f);
+
+                    if (mainUIButtons == null)
+                        yield break;
+                    if (EasyMateSpankingsGripBlockPathKeywords
+                        .CurrentSceneBlocksGripSpankingsMerge())
+                    {
+                        _spankingsAutoMergeCompletedThisScene = true;
+                        yield break;
+                    }
+                    if (!EasyMateGripHandVisibility
+                        .IsAnyPreferredHandArticulated())
+                    {
+                        yield break;
+                    }
+
+                    if (mainUIButtons.AnyFemalePersonMissingSpankings())
+                    {
+                        mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
+                        yield return new WaitForSeconds(
+                            SpankingsAutoMergePollSeconds);
+                        continue;
+                    }
+
+                    _spankingsAutoMergeCompletedThisScene = true;
+                    yield break;
+                }
             }
             finally
             {
-                _mergeSpankingsAfterGripCo = null;
+                _spankingsAutoMergeProximityCo = null;
             }
         }
 
@@ -292,6 +372,7 @@ namespace geesp0t
             if (headProximityHide != null)
                 EasyMateVrHeadCylinderHide.SetHeadProximityHideEnabled(headProximityHide.val, this);
             StartCoroutine(CoRefreshHeadProximityHooksAfterStartFrames());
+            ResetSpankingsAutoMergeStateForScene();
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
             EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
             ApplyDefaultMonitorCameraFovIfNeeded();
@@ -646,6 +727,7 @@ namespace geesp0t
                 ApplyRemoteHoldGrabPreference();
                 ApplyDefaultMonitorCameraFovIfNeeded();
                 EasyMateVrInput.ResetEdgeState();
+                ResetSpankingsAutoMergeStateForScene();
                 EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
 
                 if (headProximityHide != null)
@@ -701,13 +783,13 @@ namespace geesp0t
                 _pathRuleEmotionMergeCo = null;
             }
 
-            if (_mergeSpankingsAfterGripCo != null)
+            if (_spankingsAutoMergeProximityCo != null)
             {
-                StopCoroutine(_mergeSpankingsAfterGripCo);
-                _mergeSpankingsAfterGripCo = null;
+                StopCoroutine(_spankingsAutoMergeProximityCo);
+                _spankingsAutoMergeProximityCo = null;
             }
 
-            EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
+            EasyMateGripHandVisibility.SetOnMale2HandsEnabled(null);
             EasyMateMonitorModeLaserRestore.OnPluginDestroy();
             EasyMateVrEulerPossessHandHud.OnPluginDestroy();
             EasyMateFemalePassengerRuntime.OnPluginDestroy();

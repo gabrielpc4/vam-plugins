@@ -1394,6 +1394,96 @@ namespace geesp0t
             }
         }
 
+        private static bool TransformUsable(Transform t)
+        {
+            return t != null && t.gameObject != null &&
+                t.gameObject.activeInHierarchy;
+        }
+
+        private static void UpdateMinDistanceToRigidbodies(
+            Transform hand,
+            Rigidbody[] rigidbodies,
+            ref float best)
+        {
+            if (!TransformUsable(hand) || rigidbodies == null)
+                return;
+
+            Vector3 hp = hand.position;
+            for (int i = 0; i < rigidbodies.Length; i++)
+            {
+                Rigidbody rb = rigidbodies[i];
+                if (rb == null)
+                    continue;
+                float d = Vector3.Distance(hp, rb.position);
+                if (d < best)
+                    best = d;
+            }
+        }
+
+        private static float GetMinControllerHandDistanceToPersonBody(
+            Atom person)
+        {
+            if (person == null)
+                return float.MaxValue;
+
+            SuperController sc = SuperController.singleton;
+            if (sc == null)
+                return float.MaxValue;
+
+            Rigidbody[] rigidbodies = person.linkableRigidbodies;
+            if (rigidbodies == null || rigidbodies.Length == 0)
+                rigidbodies = person.rigidbodies;
+            if (rigidbodies == null || rigidbodies.Length == 0)
+                return float.MaxValue;
+
+            float best = float.MaxValue;
+            UpdateMinDistanceToRigidbodies(sc.leftHand, rigidbodies, ref best);
+            UpdateMinDistanceToRigidbodies(sc.rightHand, rigidbodies, ref best);
+            UpdateMinDistanceToRigidbodies(
+                sc.leftHandAlternate,
+                rigidbodies,
+                ref best);
+            UpdateMinDistanceToRigidbodies(
+                sc.rightHandAlternate,
+                rigidbodies,
+                ref best);
+            return best;
+        }
+
+        /// <summary>
+        /// True when any female <c>Person</c> body gets within
+        /// <paramref name="maxDistanceMeters"/> of any usable controller hand.
+        /// Uses person rigidbody positions as a lightweight approximation so
+        /// polling can happen infrequently instead of every frame.
+        /// </summary>
+        public bool AnyFemalePersonWithinControllerHandDistance(
+            float maxDistanceMeters)
+        {
+            try
+            {
+                foreach (Atom at in SuperController.singleton.GetAtoms()
+                    .Where(a => a.type == "Person"))
+                {
+                    if (at == null || !IsPersonFemale(at))
+                        continue;
+                    if (GetMinControllerHandDistanceToPersonBody(at) <=
+                        maxDistanceMeters)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "AnyFemalePersonWithinControllerHandDistance: " +
+                    e.Message);
+                return false;
+            }
+        }
+
         private void OnEmotionLiteHudClicked()
         {
             try

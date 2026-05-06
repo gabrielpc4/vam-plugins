@@ -8,7 +8,9 @@ namespace geesp0t
     /// drives CoreControl GlobalLighting camExposure to 0, freezes simulation via SuperController.PauseSimulation,
     /// and forces AudioListener.pause so motion/sound do not run ahead of loaded assets.
     /// After the first full settle for a load, ignores later loading UI / icon-only activity (so streaming assets do not force exposure to 0 again).
-    /// Re-arms when SuperController.isLoading becomes true (new VaM scene load).
+    /// Re-arms when SuperController.isLoading becomes true for a new scene folder
+    /// (<see cref="SuperController.currentLoadDir"/> differs from the last idle value).
+    /// Same-folder <c>isLoading</c> pulses (spawn atom/toy, merge) do not re-arm.
     /// Worst case: 30s (unscaled) after SuperController.isLoading becomes false — not from scene load start —
     /// forces the same finish path as a normal settle if the pause flag is still held.
     /// Tick runs from LateUpdate so CoreControl JSON usually reflects the scene before we read exposure backup.
@@ -62,6 +64,8 @@ namespace geesp0t
 
         private int dbgStuckZeroLogForLoadSerial = -1;
 
+        private string exposureWorkflowLastIdleLoadDirNorm = "";
+
         static AsyncFlag GetSharedSceneSettlePauseAsyncFlag()
         {
             if (sharedSceneSettlePauseAsyncFlag == null)
@@ -79,26 +83,53 @@ namespace geesp0t
             bool superControllerIsLoadingNow = superController != null && superController.isLoading;
             bool superControllerIsLoadingFellThisTick = lastSuperControllerIsLoading && !superControllerIsLoadingNow;
 
+            if (!superControllerIsLoadingNow && superController != null &&
+                !string.IsNullOrEmpty(superController.currentLoadDir))
+            {
+                exposureWorkflowLastIdleLoadDirNorm =
+                    SameFolderSceneLoadCheck.NormalizeLoadDir(
+                        superController.currentLoadDir);
+            }
+
             if (superControllerIsLoadingNow && !lastSuperControllerIsLoading)
             {
-                dbgLoadSerial++;
-                if (exposureDebugLog)
+                bool transientSameDirLoadPulse =
+                    initialSceneLoadSettleWorkflowFinished &&
+                    IsExposureTransientSameDirIsLoadingPulse(superController);
+
+                if (!transientSameDirLoadPulse)
                 {
-                    bool rawForLog = ShouldTreatSceneAsStillSettling();
-                    LogExposureDbg(
-                        "isLoading rose serial=" + dbgLoadSerial +
-                        " skipWorkflowFlag=" + skipExposureWorkflowForCurrentLoad +
-                        " " + DiagFormatExposureState() +
-                        " " + DiagSettleBreakdown(
-                            superController,
-                            rawForLog,
-                            superControllerIsLoadingNow));
+                    dbgLoadSerial++;
+                    if (exposureDebugLog)
+                    {
+                        bool rawForLog = ShouldTreatSceneAsStillSettling();
+                        LogExposureDbg(
+                            "isLoading rose serial=" + dbgLoadSerial +
+                            " skipWorkflowFlag=" +
+                            skipExposureWorkflowForCurrentLoad +
+                            " " + DiagFormatExposureState() +
+                            " " + DiagSettleBreakdown(
+                                superController,
+                                rawForLog,
+                                superControllerIsLoadingNow));
+                    }
+                    ClearGlobalLightingCache();
+                    GetSharedSceneSettlePauseAsyncFlag().Raise();
+                    FinishSceneSettleExposureThenReleasePlaybackHold("loadStart");
+                    initialSceneLoadSettleWorkflowFinished = false;
+                    wasSceneStillSettling = false;
                 }
-                ClearGlobalLightingCache();
-                GetSharedSceneSettlePauseAsyncFlag().Raise();
-                FinishSceneSettleExposureThenReleasePlaybackHold("loadStart");
-                initialSceneLoadSettleWorkflowFinished = false;
-                wasSceneStillSettling = false;
+                else if (exposureDebugLog)
+                {
+                    LogExposureDbg(
+                        "isLoading rose: skip re-arm (same idle load dir; " +
+                        "atom/toy/stream pulse) idle=<" +
+                        exposureWorkflowLastIdleLoadDirNorm + "> now=<" +
+                        SameFolderSceneLoadCheck.NormalizeLoadDir(
+                            superController != null
+                                ? superController.currentLoadDir
+                                : null) + ">");
+                }
             }
 
             if (superControllerIsLoadingFellThisTick && sceneSettleSimulationPauseAppliedToSuperController)
@@ -159,6 +190,12 @@ namespace geesp0t
             bool sceneSettlingForExposureWorkflow = rawSceneSettlingIndicatorsActive;
 
             if (initialSceneLoadSettleWorkflowFinished && !superControllerIsLoadingNow)
+            {
+                sceneSettlingForExposureWorkflow = false;
+            }
+            else if (initialSceneLoadSettleWorkflowFinished &&
+                superControllerIsLoadingNow &&
+                IsExposureTransientSameDirIsLoadingPulse(superController))
             {
                 sceneSettlingForExposureWorkflow = false;
             }
@@ -558,6 +595,27 @@ namespace geesp0t
                 IsTransformActive(sc.loadingUIAlt),
                 IsTransformActive(sc.loadingGeometry),
                 IsTransformActive(sc.loadingIcon));
+        }
+
+        /// <summary>
+        /// Hand spawn and other atom loads raise <c>isLoading</c> without changing
+        /// <see cref="SuperController.currentLoadDir"/> compared to last idle sample.
+        /// </summary>
+        bool IsExposureTransientSameDirIsLoadingPulse(SuperController superController)
+        {
+            if (superController == null ||
+                string.IsNullOrEmpty(exposureWorkflowLastIdleLoadDirNorm))
+            {
+                return false;
+            }
+
+            string nowNorm = SameFolderSceneLoadCheck.NormalizeLoadDir(
+                superController.currentLoadDir);
+            return nowNorm.Length > 0 &&
+                string.Equals(
+                    nowNorm,
+                    exposureWorkflowLastIdleLoadDirNorm,
+                    StringComparison.OrdinalIgnoreCase);
         }
     }
 }

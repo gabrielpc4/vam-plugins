@@ -83,10 +83,15 @@ namespace geesp0t
         /// </summary>
         public JSONStorableBool possessAutoUnpossessWhenFarFromFeet;
 
-        /// <summary>When true (default), after a non-looping scene mocap at least <see cref="longMocapMinSecondsForEmotionMerge"/> long finishes, merge E-Motion Final onto female Persons once (uses <see cref="SuperController.motionAnimationMaster"/>).</summary>
+        /// <summary>When true (default), after a non-looping scene mocap at least
+        /// <see cref="longMocapMinSecondsForEmotionMerge"/> long finishes, loads
+        /// <c>Saves/scene/Default.json</c> once (uses
+        /// <see cref="SuperController.motionAnimationMaster"/>).</summary>
         public JSONStorableBool mergeEmotionWhenLongMocapEndsNoLoop;
 
-        /// <summary>Minimum longest <see cref="MotionAnimationClip.clipLength"/> in the scene (seconds) for end-of-mocap female E-Motion Final merge; avoids short clips.</summary>
+        /// <summary>Minimum longest <see cref="MotionAnimationClip.clipLength"/> in
+        /// the scene (seconds) for end-of-mocap default scene load; avoids short clips.
+        /// </summary>
         public JSONStorableFloat longMocapMinSecondsForEmotionMerge;
 
         /// <summary>
@@ -160,10 +165,16 @@ namespace geesp0t
             EasyMateSameFolderCameraRetain.SetRetainEnabled(
                 retainCameraPoseSameFolderLoads.val);
 
-            mergeEmotionWhenLongMocapEndsNoLoop = new JSONStorableBool("Merge E-Motion Final on females when long mocap ends (no loop)", true);
+            mergeEmotionWhenLongMocapEndsNoLoop = new JSONStorableBool(
+                "Load Saves/scene/Default.json when long mocap ends (no loop)",
+                true);
             RegisterBool(mergeEmotionWhenLongMocapEndsNoLoop);
 
-            longMocapMinSecondsForEmotionMerge = new JSONStorableFloat("Min mocap length (s) for end-of-clip E-Motion Final", 45f, 5f, 600f);
+            longMocapMinSecondsForEmotionMerge = new JSONStorableFloat(
+                "Min mocap length (s) for end-of-clip default scene load",
+                45f,
+                5f,
+                600f);
             RegisterFloat(longMocapMinSecondsForEmotionMerge);
 
             restoreMonitorModeControllerLaser = new JSONStorableBool(
@@ -669,7 +680,7 @@ namespace geesp0t
 
             bool mocapEmotionEnd = mergeEmotionWhenLongMocapEndsNoLoop != null && mergeEmotionWhenLongMocapEndsNoLoop.val;
             float mocapMinSec = longMocapMinSecondsForEmotionMerge != null ? longMocapMinSecondsForEmotionMerge.val : 45f;
-            EasyMateMotionAnimationEmotionEnd.LateTick(mocapEmotionEnd, mocapMinSec, mainUIButtons);
+            EasyMateMotionAnimationEmotionEnd.LateTick(mocapEmotionEnd, mocapMinSec);
 
             bool monitorLaser = restoreMonitorModeControllerLaser != null && restoreMonitorModeControllerLaser.val;
             EasyMateMonitorModeLaserRestore.Tick(monitorLaser);

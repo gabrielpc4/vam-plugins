@@ -3,13 +3,18 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// When scene motion / mocap playback uses <see cref="SuperController.motionAnimationMaster"/> with loop off and
-    /// at least one clip longer than a configurable minimum, merges E-Motion Final (<see cref="MainUIButtons.PluginEMotionFinal"/>) onto female Persons once when playback
-    /// reaches the end (timeline counter enters the tail or resets from the tail toward zero).
+    /// When scene motion / mocap uses <see cref="SuperController.motionAnimationMaster"/> with
+    /// loop off and at least one clip longer than a configurable minimum, loads
+    /// <c>Saves/scene/Default.json</c> once when playback reaches the end (timeline counter
+    /// enters the tail or resets from the tail toward zero).
     /// </summary>
     internal static class EasyMateMotionAnimationEmotionEnd
     {
-        private static bool _mergeFiredThisScene;
+        /// <summary>Relative to VaM install; same pattern as <c>ResetVROrientation</c>.
+        /// </summary>
+        private const string MocapEndLoadScenePath = "Saves/scene/Default.json";
+
+        private static bool _mocapEndLoadFiredThisScene;
 
         private static float _prevPlaybackCounter;
 
@@ -19,24 +24,22 @@ namespace geesp0t
 
         public static void ResetForNewScene()
         {
-            _mergeFiredThisScene = false;
+            _mocapEndLoadFiredThisScene = false;
             _prevPlaybackCounter = 0f;
             _hasPrevPlaybackCounter = false;
             _seenPlaybackAdvance = false;
         }
 
-        public static void LateTick(bool featureEnabled, float minClipLengthSeconds, MainUIButtons mainUIButtons)
+        public static void LateTick(bool featureEnabled, float minClipLengthSeconds)
         {
             if (!featureEnabled)
-                return;
-            if (mainUIButtons == null)
                 return;
 
             SuperController sc = SuperController.singleton;
             if (sc == null || sc.isLoading)
                 return;
 
-            if (_mergeFiredThisScene)
+            if (_mocapEndLoadFiredThisScene)
                 return;
 
             MotionAnimationMaster mam = sc.motionAnimationMaster;
@@ -66,29 +69,32 @@ namespace geesp0t
             bool atEnd = pc >= maxClip - endEps;
             bool prevAtEnd = _prevPlaybackCounter >= maxClip - endEps;
 
-            bool shouldMerge = false;
+            bool shouldLoad = false;
             if (_seenPlaybackAdvance)
             {
                 if (atEnd && !prevAtEnd)
-                    shouldMerge = true;
+                    shouldLoad = true;
                 else if (prevAtEnd && pc < Mathf.Max(0.04f * maxClip, 0.25f))
-                    shouldMerge = true;
+                    shouldLoad = true;
             }
 
             _prevPlaybackCounter = pc;
 
-            if (!shouldMerge)
+            if (!shouldLoad)
                 return;
 
-            _mergeFiredThisScene = true;
+            _mocapEndLoadFiredThisScene = true;
             try
             {
-                mainUIButtons.MergeEmotionFinalOnFemalePersonsOnly();
-                mainUIButtons.RefreshPluginToggleLabels();
+                sc.Load(MocapEndLoadScenePath);
+                SuperController.LogMessage(
+                    "EasyMate: Loaded " + MocapEndLoadScenePath +
+                    " after non-loop mocap end.");
             }
             catch (System.Exception e)
             {
-                SuperController.LogError("EasyMate: E-Motion Final merge after mocap end: " + e.Message);
+                SuperController.LogError(
+                    "EasyMate: scene load after mocap end: " + e.Message);
             }
         }
 

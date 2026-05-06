@@ -37,6 +37,7 @@ namespace geesp0t
             "ToyAH",
             "ToyBP",
             "Paddle",
+            "ISSphere",
         };
 
         private SuperController _sc;
@@ -89,19 +90,25 @@ namespace geesp0t
             public readonly string SceneAtomId;
             public readonly string AtomTypeName;
             public readonly string SerializedAtomJson;
+            public readonly float ApproxSizeSortKey;
 
             public SceneToyTemplate(
                 string sceneAtomId,
                 string atomTypeName,
-                string serializedAtomJson)
+                string serializedAtomJson,
+                float approxSizeSortKey)
             {
                 SceneAtomId = sceneAtomId;
                 AtomTypeName = atomTypeName;
                 SerializedAtomJson = serializedAtomJson;
+                ApproxSizeSortKey = approxSizeSortKey;
             }
         }
 
         private List<SceneToyTemplate> _catalogToyTemplates;
+        private Dictionary<string, List<SceneToyTemplate>> _catalogByTypeSorted;
+        private Dictionary<string, int> _nextCatalogIndexByType;
+        private int _nextCatalogTypeCursor;
 
         private string _catalogPathLastLoaded;
 
@@ -303,6 +310,114 @@ namespace geesp0t
             }
 
             dest.Add(trimmed);
+        }
+
+        private static bool TryParseFloatInvariant(string raw, out float parsed)
+        {
+            parsed = 0f;
+            if (string.IsNullOrEmpty(raw))
+                return false;
+            return float.TryParse(
+                raw,
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out parsed);
+        }
+
+        private static float ApproxSizeSortKeyFromCatalogEntry(JSONClass entry)
+        {
+            JSONArray arr = entry["storables"] != null
+                ? entry["storables"].AsArray
+                : null;
+            if (arr == null)
+                return 1f;
+
+            for (int i = 0; i < arr.Count; i++)
+            {
+                JSONClass st = arr[i] as JSONClass;
+                if (st == null)
+                    continue;
+
+                JSONNode idN = st["id"];
+                string sid = idN != null ? idN.Value : "";
+                if (sid != "scale")
+                    continue;
+
+                float sv;
+                float sx;
+                float sy;
+                float sz;
+                bool hasAny = false;
+                float maxVal = 1f;
+
+                if (TryParseFloatInvariant(st["scale"] != null ? st["scale"].Value : null,
+                    out sv))
+                {
+                    maxVal = sv;
+                    hasAny = true;
+                }
+
+                if (TryParseFloatInvariant(st["scaleX"] != null ? st["scaleX"].Value : null,
+                    out sx))
+                {
+                    maxVal = hasAny ? Mathf.Max(maxVal, sx) : sx;
+                    hasAny = true;
+                }
+
+                if (TryParseFloatInvariant(st["scaleY"] != null ? st["scaleY"].Value : null,
+                    out sy))
+                {
+                    maxVal = hasAny ? Mathf.Max(maxVal, sy) : sy;
+                    hasAny = true;
+                }
+
+                if (TryParseFloatInvariant(st["scaleZ"] != null ? st["scaleZ"].Value : null,
+                    out sz))
+                {
+                    maxVal = hasAny ? Mathf.Max(maxVal, sz) : sz;
+                    hasAny = true;
+                }
+
+                if (hasAny)
+                    return maxVal;
+            }
+
+            return 1f;
+        }
+
+        private void BuildCatalogOrderCaches()
+        {
+            _catalogByTypeSorted = new Dictionary<string, List<SceneToyTemplate>>();
+            _nextCatalogIndexByType = new Dictionary<string, int>();
+            _nextCatalogTypeCursor = 0;
+
+            if (_catalogToyTemplates == null)
+                return;
+
+            foreach (SceneToyTemplate t in _catalogToyTemplates)
+            {
+                List<SceneToyTemplate> bucket;
+                if (!_catalogByTypeSorted.TryGetValue(t.AtomTypeName, out bucket))
+                {
+                    bucket = new List<SceneToyTemplate>();
+                    _catalogByTypeSorted[t.AtomTypeName] = bucket;
+                }
+
+                bucket.Add(t);
+            }
+
+            foreach (KeyValuePair<string, List<SceneToyTemplate>> kv in _catalogByTypeSorted)
+            {
+                kv.Value.Sort(delegate (SceneToyTemplate a, SceneToyTemplate b)
+                {
+                    int cmp = a.ApproxSizeSortKey.CompareTo(b.ApproxSizeSortKey);
+                    if (cmp != 0)
+                        return cmp;
+                    return string.CompareOrdinal(a.SceneAtomId, b.SceneAtomId);
+                });
+
+                _nextCatalogIndexByType[kv.Key] = 0;
+            }
         }
 
         private HashSet<string> BuildCatalogTypeWhitelist()
@@ -587,7 +702,8 @@ namespace geesp0t
                 SceneToyTemplate row = new SceneToyTemplate(
                     sceneUid,
                     typeName,
-                    entry.ToString());
+                    entry.ToString(),
+                    ApproxSizeSortKeyFromCatalogEntry(entry));
 
                 _catalogToyTemplates.Add(row);
 
@@ -609,6 +725,8 @@ namespace geesp0t
                     break;
                 }
             }
+
+            BuildCatalogOrderCaches();
 
             return _catalogToyTemplates.Count > 0;
         }
@@ -703,64 +821,44 @@ namespace geesp0t
             return false;
         }
 
-        /// <remarks>
-        /// Prefer a catalog toy not yet spawned (by uid prefix scan). When every
-        /// row has an instance present, reuse the whole pool (duplicate ok).
-        /// </remarks>
         private SceneToyTemplate PickVarietyToyTemplate()
         {
-            SuperController svc;
-            svc = SuperController.singleton;
-
-            int count;
-            count = (_catalogToyTemplates != null)
-                ? _catalogToyTemplates.Count
-                : 0;
-
-            if (count == 0)
+            if (_catalogByTypeSorted == null ||
+                _catalogByTypeSorted.Count == 0)
                 return null;
 
-            if (count == 1)
-                return _catalogToyTemplates[0];
+            List<string> typeKeys = new List<string>(_catalogByTypeSorted.Keys);
+            typeKeys.Sort(StringComparer.Ordinal);
+            if (typeKeys.Count == 0)
+                return null;
 
-            List<SceneToyTemplate> absent;
-            absent = new List<SceneToyTemplate>();
-
-            foreach (SceneToyTemplate t in _catalogToyTemplates)
+            int checks = 0;
+            while (checks < typeKeys.Count)
             {
-                if (!IsCatalogToyInstanceInScene(t, svc))
-                    absent.Add(t);
-            }
+                int typeIdx = _nextCatalogTypeCursor % typeKeys.Count;
+                _nextCatalogTypeCursor = (_nextCatalogTypeCursor + 1) % typeKeys.Count;
+                checks++;
 
-            List<SceneToyTemplate> bag;
-            if (absent.Count > 0)
-                bag = absent;
-            else
-                bag = _catalogToyTemplates;
-
-            int bagCount;
-            bagCount = bag.Count;
-
-            int guard;
-
-            guard = 0;
-
-            while (guard < 96)
-            {
-                guard++;
-
-                SceneToyTemplate pick;
-                pick = bag[UnityEngine.Random.Range(0, bagCount)];
-
-                if (_lastSceneToySourceId != null &&
-                    pick.SceneAtomId == _lastSceneToySourceId &&
-                    bagCount > 1)
+                string typeName = typeKeys[typeIdx];
+                List<SceneToyTemplate> bucket;
+                if (!_catalogByTypeSorted.TryGetValue(typeName, out bucket) ||
+                    bucket == null ||
+                    bucket.Count == 0)
                     continue;
 
+                int nextIdx = 0;
+                if (_nextCatalogIndexByType != null &&
+                    _nextCatalogIndexByType.ContainsKey(typeName))
+                    nextIdx = _nextCatalogIndexByType[typeName];
+
+                SceneToyTemplate pick = bucket[nextIdx % bucket.Count];
+
+                _nextCatalogIndexByType[typeName] =
+                    (nextIdx + 1) % bucket.Count;
                 return pick;
             }
 
-            return bag[0];
+            return null;
         }
 
         private string PickLegacyTypePreferringAbsentFromScene()
@@ -949,6 +1047,9 @@ namespace geesp0t
         /// <remarks>Alternate label some meshes use vs engine default.</remarks>
         private const string MATERIAL_FLOAT_ALPHA_ADJUST_ALT = "Alpha Adjustment";
         private const float ToyBpAlphaAdjustPreset = -0.5f;
+        private const float LegacySphereSpawnChance = 0.25f;
+        private const float PingPongSphereScaleCenter = 0.04f;
+        private const float PingPongSphereScaleJitter = 0.006f;
 
         private static Color RandomToyDiffuseRgb()
         {
@@ -1009,6 +1110,37 @@ namespace geesp0t
                     MATERIAL_FLOAT_ALPHA_ADJUST_ALT,
                     ToyBpAlphaAdjustPreset);
             }
+        }
+
+        private static bool ShouldInjectLegacySphereSpawn()
+        {
+            return UnityEngine.Random.value < LegacySphereSpawnChance;
+        }
+
+        private static void TryApplyPingPongSphereScale(Atom spawned)
+        {
+            if (spawned == null || spawned.type != "ISSphere")
+                return;
+
+            JSONStorable scaleSt = spawned.GetStorableByID("scale");
+            if (scaleSt == null)
+                return;
+
+            float sphereScale = PingPongSphereScaleCenter +
+                UnityEngine.Random.Range(
+                    -PingPongSphereScaleJitter,
+                    PingPongSphereScaleJitter);
+
+            sphereScale = Mathf.Clamp(sphereScale, 0.02f, 0.09f);
+
+            if (scaleSt.IsFloatJSONParam("scale"))
+                scaleSt.SetFloatParamValue("scale", sphereScale);
+            if (scaleSt.IsFloatJSONParam("scaleX"))
+                scaleSt.SetFloatParamValue("scaleX", sphereScale);
+            if (scaleSt.IsFloatJSONParam("scaleY"))
+                scaleSt.SetFloatParamValue("scaleY", sphereScale);
+            if (scaleSt.IsFloatJSONParam("scaleZ"))
+                scaleSt.SetFloatParamValue("scaleZ", sphereScale);
         }
 
         private void PlaceSpawnAtHand(Atom spawned, bool leftHand)
@@ -1196,10 +1328,15 @@ namespace geesp0t
             bool cloneMode =
                 (_cloneFromCatalogScene != null &&
                     _cloneFromCatalogScene.val);
+            bool forceLegacySphere =
+                !_waitingMandatoryFirstDildo &&
+                ShouldInjectLegacySphereSpawn();
 
             try
             {
-                if (cloneMode && EnsureToyCatalogFresh())
+                if (cloneMode &&
+                    !forceLegacySphere &&
+                    EnsureToyCatalogFresh())
                 {
                     SceneToyTemplate tmpl = null;
 
@@ -1286,6 +1423,7 @@ namespace geesp0t
                                         _lastSceneToySourceId =
                                             tmpl.SceneAtomId;
 
+                                        TryApplyPingPongSphereScale(spawned);
                                         ApplySpawnToyMaterialLook(spawned);
 
                                         PlaceSpawnAtHand(spawned, false);
@@ -1324,6 +1462,10 @@ namespace geesp0t
                 {
                     atomLegacy = "Dildo";
                     consumedMandatory = true;
+                }
+                else if (forceLegacySphere)
+                {
+                    atomLegacy = "ISSphere";
                 }
                 else
                 {
@@ -1383,6 +1525,7 @@ namespace geesp0t
                 _lastToyAtomTypeSpawned = atomLegacy;
                 _lastSceneToySourceId = null;
 
+                TryApplyPingPongSphereScale(spawnedLegacy);
                 ApplySpawnToyMaterialLook(spawnedLegacy);
 
                 PlaceSpawnAtHand(spawnedLegacy, false);

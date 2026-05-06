@@ -72,6 +72,13 @@ namespace geesp0t
 
         private JSONStorableBool _spawnAtHandPivotOnly;
 
+        /// <summary>
+        /// Added to hand-local +Z (same axis as “Hand local offset forward”).
+        /// Applies to Paddle only so the strike surface sits past the grip even
+        /// when “Spawn exactly at hand” zeros the generic sliders.
+        /// </summary>
+        private JSONStorableFloat _paddleSpawnExtraHandForward;
+
         private JSONStorableString _extraToyAtomTypes;
 
         private bool _spawnCoroutineRunning;
@@ -243,6 +250,15 @@ namespace geesp0t
                     "Spawn exactly at hand (ignore offset sliders)",
                     true);
                 RegisterBool(_spawnAtHandPivotOnly);
+
+                _paddleSpawnExtraHandForward =
+                    new JSONStorableFloat(
+                        "Paddle only: extra hand-forward offset (m)",
+                        0.14f,
+                        0f,
+                        0.45f,
+                        false);
+                RegisterFloat(_paddleSpawnExtraHandForward);
 
                 _extraToyAtomTypes = new JSONStorableString(
                     "Legacy fallback: extra atom types (one per line)",
@@ -1167,6 +1183,10 @@ namespace geesp0t
                         _localOffsetRight.val,
                         _localOffsetUp.val,
                         _localOffsetForward.val);
+
+            if (spawned.type == "Paddle" &&
+                _paddleSpawnExtraHandForward != null)
+                localOff.z += _paddleSpawnExtraHandForward.val;
 
             Vector3 worldPos =
                 hand.TransformPoint(localOff);

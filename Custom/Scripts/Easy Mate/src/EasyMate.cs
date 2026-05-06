@@ -79,12 +79,6 @@ namespace geesp0t
         /// </summary>
         public JSONStorableBool headProximityHide;
 
-        /// <summary>
-        /// When true (default), clears all possession if the look camera moves farther than
-        /// <see cref="possessAutoUnpossessFeetMaxHorizontalM"/> (meters) from the possessed character’s feet in the horizontal plane (rig up).
-        /// </summary>
-        public JSONStorableBool possessAutoUnpossessWhenFarFromFeet;
-
         /// <summary>When true (default), after a non-looping scene mocap at least
         /// <see cref="longMocapMinSecondsForEmotionMerge"/> long finishes, loads
         /// <c>Saves/scene/Default.json</c> once (uses
@@ -104,9 +98,6 @@ namespace geesp0t
         /// <see cref="SuperController.GetRightUIPointerShow"/>.
         /// </summary>
         public JSONStorableBool restoreMonitorModeControllerLaser;
-
-        /// <summary>Horizontal distance threshold from look camera to feet midpoint for <see cref="possessAutoUnpossessWhenFarFromFeet"/>.</summary>
-        public JSONStorableFloat possessAutoUnpossessFeetMaxHorizontalM;
 
         /// <summary>
         /// Restore navigation rig, monitor orientation, and player height after a
@@ -147,18 +138,6 @@ namespace geesp0t
             headProximityHide = new JSONStorableBool("VR head proximity hide", true, OnHeadProximityHideChanged);
             RegisterBool(headProximityHide);
 
-            possessAutoUnpossessWhenFarFromFeet = new JSONStorableBool(
-                "Auto-unpossess when look camera drifts from feet (horizontal)",
-                true);
-            RegisterBool(possessAutoUnpossessWhenFarFromFeet);
-
-            possessAutoUnpossessFeetMaxHorizontalM = new JSONStorableFloat(
-                "Max horizontal camera–feet distance (m)",
-                1.35f,
-                0.35f,
-                5f);
-            RegisterFloat(possessAutoUnpossessFeetMaxHorizontalM);
-
             retainCameraPoseSameFolderLoads = new JSONStorableBool(
                 "Retain camera pose (loads from same folder)",
                 true,
@@ -196,6 +175,17 @@ namespace geesp0t
                 return;
             if (EasyMateSpankingsGripBlockPathKeywords.CurrentSceneBlocksGripSpankingsMerge())
                 return;
+            if (mergeEmotionWhenLongMocapEndsNoLoop != null &&
+                mergeEmotionWhenLongMocapEndsNoLoop.val)
+            {
+                float mocapMinSec =
+                    longMocapMinSecondsForEmotionMerge != null
+                    ? longMocapMinSecondsForEmotionMerge.val
+                    : 45f;
+                if (EasyMateMotionAnimationEmotionEnd
+                    .CurrentSceneUsesLongNonLoopMocap(mocapMinSec))
+                    return;
+            }
             if (_mergeSpankingsAfterGripCo != null)
                 StopCoroutine(_mergeSpankingsAfterGripCo);
             _mergeSpankingsAfterGripCo = StartCoroutine(CoMergeSpankingsAfterGripDeferred());
@@ -212,6 +202,17 @@ namespace geesp0t
                 if (EasyMateSpankingsGripBlockPathKeywords
                     .CurrentSceneBlocksGripSpankingsMerge())
                     yield break;
+                if (mergeEmotionWhenLongMocapEndsNoLoop != null &&
+                    mergeEmotionWhenLongMocapEndsNoLoop.val)
+                {
+                    float mocapMinSec =
+                        longMocapMinSecondsForEmotionMerge != null
+                        ? longMocapMinSecondsForEmotionMerge.val
+                        : 45f;
+                    if (EasyMateMotionAnimationEmotionEnd
+                        .CurrentSceneUsesLongNonLoopMocap(mocapMinSec))
+                        yield break;
+                }
                 mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
                 yield return new WaitForSeconds(4f);
                 if (mainUIButtons == null)
@@ -219,6 +220,17 @@ namespace geesp0t
                 if (EasyMateSpankingsGripBlockPathKeywords
                     .CurrentSceneBlocksGripSpankingsMerge())
                     yield break;
+                if (mergeEmotionWhenLongMocapEndsNoLoop != null &&
+                    mergeEmotionWhenLongMocapEndsNoLoop.val)
+                {
+                    float mocapMinSec =
+                        longMocapMinSecondsForEmotionMerge != null
+                        ? longMocapMinSecondsForEmotionMerge.val
+                        : 45f;
+                    if (EasyMateMotionAnimationEmotionEnd
+                        .CurrentSceneUsesLongNonLoopMocap(mocapMinSec))
+                        yield break;
+                }
                 if (mainUIButtons.AnyFemalePersonMissingSpankings())
                     mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
             }
@@ -375,7 +387,7 @@ namespace geesp0t
         {
             try
             {
-                EasyMateFemalePassengerRuntime.NotifyAtomUidsChanged(
+                EasyMatePassengerRuntime.NotifyAtomUidsChanged(
                     atomUids,
                     this);
 
@@ -599,7 +611,7 @@ namespace geesp0t
                 scFsm != null && scFsm.isLoading;
             if (!prevSuperLoading && loadingNow)
             {
-                EasyMateFemalePassengerRuntime.NotifySceneChanged(this);
+                EasyMatePassengerRuntime.NotifySceneChanged(this);
             }
 
             if (retainCameraPoseSameFolderLoads != null &&
@@ -642,7 +654,7 @@ namespace geesp0t
                 if (mainUIButtons != null)
                     mainUIButtons.InvalidateCachedPersonLists();
 
-                EasyMateFemalePassengerRuntime.NotifySceneChanged(this);
+                EasyMatePassengerRuntime.NotifySceneChanged(this);
 
                 ClearAllPossessionIfLoadedSceneHadAny();
 
@@ -707,10 +719,6 @@ namespace geesp0t
             if (retainCameraPoseSameFolderLoads != null && retainCameraPoseSameFolderLoads.val)
                 EasyMateSameFolderCameraRetain.LateTickIdleCapture(SuperController.singleton);
 
-            bool footDist = possessAutoUnpossessWhenFarFromFeet != null && possessAutoUnpossessWhenFarFromFeet.val;
-            float footMax = possessAutoUnpossessFeetMaxHorizontalM != null ? possessAutoUnpossessFeetMaxHorizontalM.val : 1.35f;
-            EasyMatePossessFootDistanceAutoRelease.LateTick(footDist, footMax);
-
             bool mocapEmotionEnd = mergeEmotionWhenLongMocapEndsNoLoop != null && mergeEmotionWhenLongMocapEndsNoLoop.val;
             float mocapMinSec = longMocapMinSecondsForEmotionMerge != null ? longMocapMinSecondsForEmotionMerge.val : 45f;
             EasyMateMotionAnimationEmotionEnd.LateTick(
@@ -721,7 +729,7 @@ namespace geesp0t
             bool monitorLaser = restoreMonitorModeControllerLaser != null && restoreMonitorModeControllerLaser.val;
             EasyMateMonitorModeLaserRestore.Tick(monitorLaser);
             EasyMateVrEulerPossessHandHud.Tick();
-            EasyMateFemalePassengerRuntime.Tick(this);
+            EasyMatePassengerRuntime.Tick(this);
         }
 
         void OnDestroy()
@@ -752,7 +760,7 @@ namespace geesp0t
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
             EasyMateMonitorModeLaserRestore.OnPluginDestroy();
             EasyMateVrEulerPossessHandHud.OnPluginDestroy();
-            EasyMateFemalePassengerRuntime.OnPluginDestroy();
+            EasyMatePassengerRuntime.OnPluginDestroy();
             EasyMateVrHeadCylinderHide.End();
             if (mainUIButtons != null) mainUIButtons.OnDestroy();
         }

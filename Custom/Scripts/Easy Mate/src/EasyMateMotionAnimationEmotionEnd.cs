@@ -49,26 +49,15 @@ namespace geesp0t
             if (coroutineHost == null)
                 return;
 
-            SuperController sc = SuperController.singleton;
-            if (sc == null || sc.isLoading)
-                return;
-
-            if (CurrentScenePathIndicatesBootyShake(sc))
-                return;
-
             if (_mocapEndLoadFiredThisScene)
                 return;
 
+            if (!CurrentSceneUsesLongNonLoopMocap(minClipLengthSeconds))
+                return;
+
+            SuperController sc = SuperController.singleton;
             MotionAnimationMaster mam = sc.motionAnimationMaster;
-            if (mam == null)
-                return;
-
             float maxClip = GetMaxSceneMotionClipLength(sc);
-            if (maxClip < minClipLengthSeconds || maxClip < 0.01f)
-                return;
-
-            if (mam.loop)
-                return;
 
             float pc = mam.playbackCounter;
 
@@ -102,6 +91,33 @@ namespace geesp0t
 
             _mocapEndLoadFiredThisScene = true;
             coroutineHost.StartDelayedMocapEndDefaultScene();
+        }
+
+        /// <summary>
+        /// Same scene qualification used by the delayed Default.json load:
+        /// current scene is not a booty-shake exception, has scene motion,
+        /// at least one clip is long enough, and the motion master is not
+        /// looping.
+        /// </summary>
+        internal static bool CurrentSceneUsesLongNonLoopMocap(
+            float minClipLengthSeconds)
+        {
+            SuperController sc = SuperController.singleton;
+            if (sc == null || sc.isLoading)
+                return false;
+
+            if (CurrentScenePathIndicatesBootyShake(sc))
+                return false;
+
+            MotionAnimationMaster mam = sc.motionAnimationMaster;
+            if (mam == null)
+                return false;
+
+            float maxClip = GetMaxSceneMotionClipLength(sc);
+            if (maxClip < minClipLengthSeconds || maxClip < 0.01f)
+                return false;
+
+            return !mam.loop;
         }
 
         /// <summary>Called from <see cref="EasyMate"/> coroutine after delay.</summary>

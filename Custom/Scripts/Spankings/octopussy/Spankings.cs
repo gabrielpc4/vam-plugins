@@ -103,6 +103,8 @@ namespace octopussy
 
         GameObject playerHands;
 
+        private bool deferredColliderRefreshFromAtomList;
+
         public static T FindInPlugin<T>(MVRScript self) where T : MVRScript // thanks mcgruber
         {
             int i = self.name.IndexOf('_');
@@ -359,6 +361,23 @@ namespace octopussy
 
         public void Update()
         {
+            if (deferredColliderRefreshFromAtomList &&
+                SC != null &&
+                !SC.isLoading)
+            {
+                deferredColliderRefreshFromAtomList = false;
+                try
+                {
+                    RefreshColliders();
+                }
+                catch (Exception refreshEx)
+                {
+                    SuperController.LogError(
+                        "Spankings RefreshColliders (atoms changed): " +
+                            refreshEx.Message);
+                }
+            }
+
             arousalString.val = string.Format("Arousal from Spanking: {0:P}", arousal);
             if (easyMoanCycleForce != null)
             {
@@ -378,6 +397,26 @@ namespace octopussy
             //col.enabled = false;
             c.invertAtomFilter = true;
             c.atomFilterPopup.currentValue = her.uid;
+        }
+
+        /// <summary>
+        /// VaM assigns some strike props (notably Paddle) atom types whose
+        /// <see cref="Atom.category"/> is not Toys; hook their rigidbodies too.
+        /// </summary>
+        private static bool AtomHasToyLikeSpankStrikeColliders(Atom a)
+        {
+            if (a == null)
+                return false;
+            if (a.category == "Toys")
+                return true;
+            if (a.type != null && a.type == "Paddle")
+                return true;
+            return false;
+        }
+
+        private void ScheduleColliderRefreshDeferred(List<string> atomUidsIgnored)
+        {
+            deferredColliderRefreshFromAtomList = true;
         }
 
         /// <summary>One <see cref="TriggerCollide"/> per GameObject; all Spankings handlers share it and filter by struck Person.</summary>
@@ -493,7 +532,7 @@ namespace octopussy
                    }));
 
             GetSceneAtoms()
-                .Where(a => a.category == "Toys")
+                .Where(a => AtomHasToyLikeSpankStrikeColliders(a))
                 .ToList().ForEach(h => {
                     if (h.rigidbodies.Length > 0)
                     {
@@ -574,7 +613,7 @@ namespace octopussy
                    }));
 
             GetSceneAtoms()
-                .Where(a => a.category == "Toys")
+                .Where(a => AtomHasToyLikeSpankStrikeColliders(a))
                 .ToList().ForEach(h => {
                     if (h.rigidbodies.Length > 0) { 
                         foreach (Rigidbody rigidbody in h.rigidbodies) { 
@@ -655,6 +694,13 @@ namespace octopussy
                 }
 
                 RefreshColliders();
+
+                SC.onAtomUIDsChangedHandlers -=
+                    new SuperController.OnAtomUIDsChanged(
+                        ScheduleColliderRefreshDeferred);
+                SC.onAtomUIDsChangedHandlers +=
+                    new SuperController.OnAtomUIDsChanged(
+                        ScheduleColliderRefreshDeferred);
             }
             catch (Exception e)
             {
@@ -708,6 +754,12 @@ namespace octopussy
             try
             {
                 UnhookObserveFromAllKnownColliders();
+                if (SC != null)
+                {
+                    SC.onAtomUIDsChangedHandlers -=
+                        new SuperController.OnAtomUIDsChanged(
+                            ScheduleColliderRefreshDeferred);
+                }
             }
             catch (Exception e)
             {

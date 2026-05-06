@@ -1182,6 +1182,26 @@ namespace geesp0t
             SnapSpawnRigidbodyToHand(fc);
         }
 
+        /// <remarks>
+        /// Spankings attaches <c>TriggerCollide</c> to toy rigidbodies after
+        /// <c>RefreshColliders</c>; ensure the paddle main RB is simulating and
+        /// grabbable so impacts register with the butt trigger volumes.
+        /// </remarks>
+        private static void EnsurePaddleStrikeReadyForSpankings(Atom spawned)
+        {
+            FreeControllerV3 fc;
+
+            if (spawned == null || spawned.type != "Paddle")
+                return;
+
+            fc = spawned.mainController;
+            if (fc == null)
+                return;
+
+            UnlockMainPhysicsForGrab(fc);
+            SnapSpawnRigidbodyToHand(fc);
+        }
+
         /// <summary>
         /// Match Easy Mate / VaM POV: skip toy spawn while a Person head or
         /// hand is possessed (input is used for UI / grab).
@@ -1428,6 +1448,8 @@ namespace geesp0t
 
                                         PlaceSpawnAtHand(spawned, false);
 
+                                        EnsurePaddleStrikeReadyForSpankings(spawned);
+
                                         yield break;
                                     }
                                     catch (Exception exR)
@@ -1529,6 +1551,8 @@ namespace geesp0t
                 ApplySpawnToyMaterialLook(spawnedLegacy);
 
                 PlaceSpawnAtHand(spawnedLegacy, false);
+
+                EnsurePaddleStrikeReadyForSpankings(spawnedLegacy);
             }
             finally
             {

@@ -285,7 +285,16 @@
             "z": "329.8117"
           },
           "positionState": "On",
-          "rotationState": "On"
+          "rotationState": "On",
+          "physicsEnabled": "true",
+          "canGrabPosition": "true",
+          "canGrabRotation": "true",
+          "xPositionLock": "false",
+          "yPositionLock": "false",
+          "zPositionLock": "false",
+          "xRotationLock": "false",
+          "yRotationLock": "false",
+          "zRotationLock": "false"
         }
       ]
     },

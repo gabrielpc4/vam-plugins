@@ -78,9 +78,12 @@ def atom_end(s, open_idx):
 def find_atom_bounds(content, uid):
     needle_spaced = '"id" : "%s"' % uid
     needle_compact = '"id":"%s"' % uid
+    needle_va_colon_space = '"id": "%s"' % uid
     pos = content.find(needle_spaced)
     if pos < 0:
         pos = content.find(needle_compact)
+    if pos < 0:
+        pos = content.find(needle_va_colon_space)
     if pos < 0:
         return None
     sub_start = content.rfind("{", 0, pos)
@@ -211,6 +214,8 @@ def patch_window_camera_atom(atom, wc):
     ci = atom5.find('"id" : "control"')
     if ci < 0:
         ci = atom5.find('"id":"control"')
+    if ci < 0:
+        ci = atom5.find('"id": "control"')
     if ci < 0:
         raise ValueError("WindowCamera: no control storable found")
     tail = atom5[ci:]

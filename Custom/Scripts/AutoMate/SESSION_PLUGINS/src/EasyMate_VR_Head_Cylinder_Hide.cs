@@ -10,8 +10,10 @@ namespace geesp0t
     /// <summary>
     /// File: <c>EasyMate_VR_Head_Cylinder_Hide.cs</c>. Easy Mate VR head zone: when the HMD eye is inside a **radial band** around a Person’s head (finite cylinder
     /// along possess **up** through <c>headControl.control</c>, 15 cm below to 50 cm above), temporarily hide face
-    /// materials and active **Glasses** / **Hat** clothing. On **male** figures only, hair is turned off via <see cref="DAZCharacterSelector.SetActiveHairItem"/>
-    /// with backup/restore when leaving the zone so scalp/hair shaders are not forced through ImprovedPoV-style transparent swaps; females keep hair equipped.
+    /// materials and active **Glasses** / **Hat** clothing. **Male** figures: hair is unequipped via
+    /// <see cref="DAZCharacterSelector.SetActiveHairItem"/> (restored on leave). **Female** figures:
+    /// active hair uses per-eye <c>_AlphaAdjust</c> and Sim-V2 <c>_StandWidth</c> like ImprovedPoV
+    /// <c>HairHandler</c> (no unequip).
     /// With <b>VR head proximity hide</b> enabled (Easy Mate storables default on), any Person whose head zone contains the HMD is a hide target
     /// (closest Person along the cylinder test wins when multiple overlap). Zone tests use <see cref="SuperController.centerCameraTarget"/> when present
     /// so left/right eye cameras do not disagree inside a tight radial band (IPD).
@@ -28,12 +30,13 @@ namespace geesp0t
 
         private static bool _shutdownInProgress;
 
-        /// <summary>Person whose skin / hair unequip / accessory handlers are configured for the current VO hide pass.</summary>
+        /// <summary>Person whose skin / hair handlers are configured for the current VO hide pass.</summary>
         private static Atom _hideHandlerPerson;
         private static DAZCharacterSelector _cachedSelector;
         private static SnapSkinHandler _skinHandler;
         private static SnapHairUnequipRestore _hairUnequipRestore;
         private static SnapAccessoryClothingMaterialsHandler _accessoryClothingHandler;
+        private static ISnapMaterialHandler _femaleHairAlphaHandler;
         private static bool _hooksRegistered;
         private static bool _handlersConfigured;
         /// <summary>Radial distance from possess-up line through <c>headControl.control</c> (finite segment on that axis).</summary>
@@ -464,6 +467,7 @@ namespace geesp0t
             try
             {
                 _skinHandler?.BeforeRender();
+                _femaleHairAlphaHandler?.BeforeRender();
                 _accessoryClothingHandler?.BeforeRender();
             }
             catch (Exception e)
@@ -488,6 +492,7 @@ namespace geesp0t
             try
             {
                 _skinHandler?.AfterRender();
+                _femaleHairAlphaHandler?.AfterRender();
                 _accessoryClothingHandler?.AfterRender();
             }
             catch (Exception e)
@@ -541,10 +546,12 @@ namespace geesp0t
             if (character.isMale)
             {
                 _hairUnequipRestore = SnapHairUnequipRestore.TryApply(_cachedSelector);
+                _femaleHairAlphaHandler = null;
             }
             else
             {
                 _hairUnequipRestore = null;
+                _femaleHairAlphaHandler = SnapFemaleHairAlphaHandler.TryBuild(_cachedSelector);
             }
 
             _accessoryClothingHandler = SnapAccessoryClothingMaterialsHandler.TryBuild(_cachedSelector);
@@ -558,6 +565,8 @@ namespace geesp0t
             _skinHandler = null;
             _hairUnequipRestore?.Restore();
             _hairUnequipRestore = null;
+            _femaleHairAlphaHandler?.Restore();
+            _femaleHairAlphaHandler = null;
             _accessoryClothingHandler?.Restore();
             _accessoryClothingHandler = null;
         }
@@ -660,6 +669,181 @@ namespace geesp0t
 
                 _rows = null;
                 _selector = null;
+            }
+        }
+
+        /// <summary>
+        /// Female hair inside the head zone: matches ImprovedPoV <c>HairHandler</c> — mesh materials
+        /// use <c>_AlphaAdjust</c> per eye; Sim2 / Custom hair also drives strand <c>_StandWidth</c>.
+        /// SimHairGroup / SimHairGroup2 are skipped (same as ImprovedPoV).
+        /// </summary>
+        private sealed class SnapFemaleHairAlphaHandler : ISnapMaterialHandler
+        {
+            private sealed class AlphaMatRow
+            {
+                public Material material;
+                public float originalAlphaAdjust;
+            }
+
+            private sealed class SimStrandRow
+            {
+                public Material strandMaterial;
+                public string shaderPropertyName;
+                public float hiddenValue;
+                public float originalValue;
+            }
+
+            private List<AlphaMatRow> _alphaRows;
+            private List<SimStrandRow> _strandRows;
+
+            public static SnapFemaleHairAlphaHandler TryBuild(DAZCharacterSelector selector)
+            {
+                if (selector == null || selector.hairItems == null)
+                    return null;
+
+                Dictionary<int, AlphaMatRow> alphaById = new Dictionary<int, AlphaMatRow>();
+                List<SimStrandRow> strandRows = new List<SimStrandRow>();
+
+                for (int hi = 0; hi < selector.hairItems.Length; hi++)
+                {
+                    DAZHairGroup hair = selector.hairItems[hi];
+                    if (hair == null || !hair.active || hair.name == "NoHair")
+                        continue;
+
+                    string hn = hair.name;
+                    if (hn == "Sim2Hair" || hn == "Sim2HairMale" || hn == "CustomHairItem")
+                    {
+                        AccumulateScalpAlphaMaterials(hair, alphaById);
+                        MeshRenderer strandRend = hair.GetComponentInChildren<MeshRenderer>();
+                        Material strand = strandRend != null ? strandRend.material : null;
+                        if (strand != null)
+                        {
+                            string propName = "_StandWidth";
+                            strandRows.Add(new SimStrandRow
+                            {
+                                strandMaterial = strand,
+                                shaderPropertyName = propName,
+                                hiddenValue = 0f,
+                                originalValue = strand.GetFloat(propName)
+                            });
+                        }
+                    }
+                    else if (hn == "SimHairGroup" || hn == "SimHairGroup2")
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        AccumulateSimpleHairAlphaMaterials(hair, alphaById);
+                    }
+                }
+
+                if (alphaById.Count == 0 && strandRows.Count == 0)
+                    return null;
+
+                SnapFemaleHairAlphaHandler h = new SnapFemaleHairAlphaHandler();
+                h._alphaRows = alphaById.Values.ToList();
+                h._strandRows = strandRows;
+                return h;
+            }
+
+            private static void AccumulateScalpAlphaMaterials(DAZHairGroup hair, Dictionary<int, AlphaMatRow> alphaById)
+            {
+                DAZSkinWrap[] wraps = hair.GetComponentsInChildren<DAZSkinWrap>();
+                for (int i = 0; i < wraps.Length; i++)
+                {
+                    DAZSkinWrap w = wraps[i];
+                    if (w == null || w.GPUmaterials == null)
+                        continue;
+
+                    Material[] mats = w.GPUmaterials;
+                    for (int j = 0; j < mats.Length; j++)
+                        AddAlphaMaterialUnique(mats[j], alphaById);
+                }
+            }
+
+            private static void AccumulateSimpleHairAlphaMaterials(DAZHairGroup hair, Dictionary<int, AlphaMatRow> alphaById)
+            {
+                DAZMesh[] meshes = hair.GetComponentsInChildren<DAZMesh>();
+                for (int i = 0; i < meshes.Length; i++)
+                {
+                    DAZMesh mesh = meshes[i];
+                    if (mesh == null)
+                        continue;
+
+                    Material[] mats = mesh.materials;
+                    if (mats == null)
+                        continue;
+
+                    for (int j = 0; j < mats.Length; j++)
+                        AddAlphaMaterialUnique(mats[j], alphaById);
+                }
+
+                AccumulateScalpAlphaMaterials(hair, alphaById);
+            }
+
+            private static void AddAlphaMaterialUnique(Material m, Dictionary<int, AlphaMatRow> alphaById)
+            {
+                if (m == null)
+                    return;
+                int instanceId = m.GetInstanceID();
+                if (alphaById.ContainsKey(instanceId))
+                    return;
+
+                alphaById[instanceId] = new AlphaMatRow
+                {
+                    material = m,
+                    originalAlphaAdjust = m.GetFloat("_AlphaAdjust")
+                };
+            }
+
+            public void BeforeRender()
+            {
+                ApplyStrandWidths(false);
+                ApplyAlphaMaterials(false);
+            }
+
+            public void AfterRender()
+            {
+                ApplyStrandWidths(true);
+                ApplyAlphaMaterials(true);
+            }
+
+            private void ApplyStrandWidths(bool restoreOriginal)
+            {
+                if (_strandRows == null)
+                    return;
+
+                for (int i = 0; i < _strandRows.Count; i++)
+                {
+                    SimStrandRow row = _strandRows[i];
+                    if (row == null || row.strandMaterial == null)
+                        continue;
+                    float nextVal = restoreOriginal ? row.originalValue : row.hiddenValue;
+                    row.strandMaterial.SetFloat(row.shaderPropertyName, nextVal);
+                }
+            }
+
+            private void ApplyAlphaMaterials(bool restoreOriginal)
+            {
+                if (_alphaRows == null)
+                    return;
+
+                for (int i = 0; i < _alphaRows.Count; i++)
+                {
+                    AlphaMatRow row = _alphaRows[i];
+                    if (row == null || row.material == null)
+                        continue;
+                    float adj = restoreOriginal ? row.originalAlphaAdjust : -1f;
+                    row.material.SetFloat("_AlphaAdjust", adj);
+                }
+            }
+
+            public void Restore()
+            {
+                AfterRender();
+                _alphaRows = null;
+                _strandRows = null;
             }
         }
 

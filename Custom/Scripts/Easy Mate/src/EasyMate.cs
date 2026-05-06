@@ -40,6 +40,8 @@ namespace geesp0t
 
         private Coroutine _pathRuleEmotionMergeCo;
 
+        private Coroutine _mocapEndDelayedDefaultSceneCo;
+
         public JSONStorableAction hideUI;
         public JSONStorableAction showUI;
 
@@ -85,9 +87,10 @@ namespace geesp0t
         public JSONStorableBool possessAutoUnpossessWhenFarFromFeet;
 
         /// <summary>When true (default), after a non-looping scene mocap at least
-        /// <see cref="longMocapMinSecondsForEmotionMerge"/> long finishes, loads
-        /// <c>Saves/scene/Default.json</c> once (uses
-        /// <see cref="SuperController.motionAnimationMaster"/>).</summary>
+        /// <see cref="longMocapMinSecondsForEmotionMerge"/> long finishes, waits
+        /// <see cref="EasyMateMotionAnimationEmotionEnd.MocapEndToDefaultSceneRealtimeDelaySeconds"/>
+        /// realtime seconds, then loads <c>Saves/scene/Default.json</c>
+        /// (uses <see cref="SuperController.motionAnimationMaster"/>).</summary>
         public JSONStorableBool mergeEmotionWhenLongMocapEndsNoLoop;
 
         /// <summary>Minimum longest <see cref="MotionAnimationClip.clipLength"/> in
@@ -167,7 +170,7 @@ namespace geesp0t
                 retainCameraPoseSameFolderLoads.val);
 
             mergeEmotionWhenLongMocapEndsNoLoop = new JSONStorableBool(
-                "Load Saves/scene/Default.json when long mocap ends (no loop)",
+                "Load Default.json 5s after long mocap ends (no loop)",
                 true);
             RegisterBool(mergeEmotionWhenLongMocapEndsNoLoop);
 
@@ -259,8 +262,36 @@ namespace geesp0t
             StartCoroutine(CoRefreshHeadProximityHooksAfterStartFrames());
             EasyMateSpankingsHandNearAutoLoad.ResetForScene();
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
+            CancelDelayedMocapEndDefaultScene();
             EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
             ApplyDefaultMonitorCameraFovIfNeeded();
+        }
+
+        /// <summary>Called from <see cref="EasyMateMotionAnimationEmotionEnd"/>.</summary>
+        internal void StartDelayedMocapEndDefaultScene()
+        {
+            CancelDelayedMocapEndDefaultScene();
+            _mocapEndDelayedDefaultSceneCo = StartCoroutine(CoDelayedMocapEndDefaultScene());
+        }
+
+        private void CancelDelayedMocapEndDefaultScene()
+        {
+            if (_mocapEndDelayedDefaultSceneCo == null)
+                return;
+
+            StopCoroutine(_mocapEndDelayedDefaultSceneCo);
+            _mocapEndDelayedDefaultSceneCo = null;
+        }
+
+        private IEnumerator CoDelayedMocapEndDefaultScene()
+        {
+            float delaySeconds =
+                EasyMateMotionAnimationEmotionEnd.MocapEndToDefaultSceneRealtimeDelaySeconds;
+            if (delaySeconds > 0f)
+                yield return new WaitForSecondsRealtime(delaySeconds);
+
+            EasyMateMotionAnimationEmotionEnd.ExecuteDeferredDefaultSceneLoad();
+            _mocapEndDelayedDefaultSceneCo = null;
         }
 
         private IEnumerator CoRefreshHeadProximityHooksAfterStartFrames()
@@ -566,6 +597,7 @@ namespace geesp0t
 
             if (sceneChanged)
             {
+                CancelDelayedMocapEndDefaultScene();
                 EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
                 sceneChanged = false;
                 Log("EasyMate Scene Changed, Load Dir: " + SuperController.singleton.currentLoadDir + ", Time Since Level Load: " + Time.timeSinceLevelLoad);
@@ -647,7 +679,7 @@ namespace geesp0t
 
             bool mocapEmotionEnd = mergeEmotionWhenLongMocapEndsNoLoop != null && mergeEmotionWhenLongMocapEndsNoLoop.val;
             float mocapMinSec = longMocapMinSecondsForEmotionMerge != null ? longMocapMinSecondsForEmotionMerge.val : 45f;
-            EasyMateMotionAnimationEmotionEnd.LateTick(mocapEmotionEnd, mocapMinSec);
+            EasyMateMotionAnimationEmotionEnd.LateTick(mocapEmotionEnd, mocapMinSec, this);
 
             bool monitorLaser = restoreMonitorModeControllerLaser != null && restoreMonitorModeControllerLaser.val;
             EasyMateMonitorModeLaserRestore.Tick(monitorLaser);
@@ -657,6 +689,8 @@ namespace geesp0t
 
         void OnDestroy()
         {
+            CancelDelayedMocapEndDefaultScene();
+
             if (SuperController.singleton != null)
             {
                 SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;

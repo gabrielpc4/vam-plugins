@@ -4,17 +4,20 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// When scene motion / mocap uses <see cref="SuperController.motionAnimationMaster"/> with
-    /// loop off and at least one clip longer than a configurable minimum, loads
-    /// <c>Saves/scene/Default.json</c> once when playback reaches the end (timeline counter
-    /// enters the tail or resets from the tail toward zero). Skips loading when load/save dir
-    /// paths contain booty shake (case-insensitive), same folders as emotion path keywords.
+    /// When scene motion uses <see cref="SuperController.motionAnimationMaster"/> with loop off
+    /// and at least one clip longer than a configurable minimum, detects mocap end (timeline
+    /// counter enters the tail or resets from the tail toward zero). Then schedules loading
+    /// <c>Saves/scene/Default.json</c> after <see cref="MocapEndToDefaultSceneRealtimeDelaySeconds"/>
+    /// realtime seconds. Skips when load/save dir paths contain booty shake (case-insensitive).
     /// </summary>
     internal static class EasyMateMotionAnimationEmotionEnd
     {
         /// <summary>Relative to VaM install; same pattern as <c>ResetVROrientation</c>.
         /// </summary>
         private const string MocapEndLoadScenePath = "Saves/scene/Default.json";
+
+        /// <summary>Realtime wait after mocap end before <c>Load(Default.json)</c>.</summary>
+        internal const float MocapEndToDefaultSceneRealtimeDelaySeconds = 5f;
 
         /// <summary>Substring on load/save dir haystack for exception from default load.</summary>
         private const string BootyShakePathToken = "booty shake";
@@ -35,9 +38,15 @@ namespace geesp0t
             _seenPlaybackAdvance = false;
         }
 
-        public static void LateTick(bool featureEnabled, float minClipLengthSeconds)
+        public static void LateTick(
+            bool featureEnabled,
+            float minClipLengthSeconds,
+            EasyMate coroutineHost)
         {
             if (!featureEnabled)
+                return;
+
+            if (coroutineHost == null)
                 return;
 
             SuperController sc = SuperController.singleton;
@@ -92,12 +101,22 @@ namespace geesp0t
                 return;
 
             _mocapEndLoadFiredThisScene = true;
+            coroutineHost.StartDelayedMocapEndDefaultScene();
+        }
+
+        /// <summary>Called from <see cref="EasyMate"/> coroutine after delay.</summary>
+        internal static void ExecuteDeferredDefaultSceneLoad()
+        {
+            SuperController sc = SuperController.singleton;
+            if (sc == null || sc.isLoading)
+                return;
+
             try
             {
                 sc.Load(MocapEndLoadScenePath);
                 SuperController.LogMessage(
                     "EasyMate: Loaded " + MocapEndLoadScenePath +
-                    " after non-loop mocap end.");
+                    " after non-loop mocap end (delayed).");
             }
             catch (System.Exception e)
             {

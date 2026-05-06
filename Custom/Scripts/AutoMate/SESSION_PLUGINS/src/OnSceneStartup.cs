@@ -35,6 +35,9 @@ namespace geesp0t
 
         private float sceneSettlePauseHoldDeadlineUnscaledTime;
 
+        private Atom cachedCoreControlAtom;
+        private JSONStorable cachedGlobalLightingStorable;
+
         private const string coreControlAtomUid = "CoreControl";
         private const string globalLightingStorableId = "GlobalLighting";
         private const string camExposureParamName = "camExposure";
@@ -66,6 +69,7 @@ namespace geesp0t
 
             if (superControllerIsLoadingNow && !lastSuperControllerIsLoading)
             {
+                ClearGlobalLightingCache();
                 GetSharedSceneSettlePauseAsyncFlag().Raise();
                 ReleaseSceneSettlePlaybackHold();
                 initialSceneLoadSettleWorkflowFinished = false;
@@ -284,7 +288,10 @@ namespace geesp0t
 
             MaybeUpdateCamExposureBackupFromScene(rawCamExposure);
 
-            globalLightingStorable.SetFloatParamValue(camExposureParamName, 0f);
+            if (rawCamExposure > forcedExposureEpsilon)
+            {
+                globalLightingStorable.SetFloatParamValue(camExposureParamName, 0f);
+            }
         }
 
         void MaybeUpdateCamExposureBackupFromScene(float rawCamExposure)
@@ -358,13 +365,44 @@ namespace geesp0t
 
         JSONStorable TryGetGlobalLightingStorable()
         {
-            Atom coreAtom = SuperController.singleton.GetAtomByUid(coreControlAtomUid);
-            if (coreAtom == null || coreAtom.destroyed)
+            if (cachedCoreControlAtom != null &&
+                !cachedCoreControlAtom.destroyed &&
+                cachedGlobalLightingStorable != null)
             {
+                return cachedGlobalLightingStorable;
+            }
+
+            SuperController superController = SuperController.singleton;
+            if (superController == null)
+            {
+                ClearGlobalLightingCache();
                 return null;
             }
 
-            return coreAtom.GetStorableByID(globalLightingStorableId);
+            Atom coreAtom = superController.GetAtomByUid(coreControlAtomUid);
+            if (coreAtom == null || coreAtom.destroyed)
+            {
+                ClearGlobalLightingCache();
+                return null;
+            }
+
+            JSONStorable globalLightingStorable = coreAtom.GetStorableByID(globalLightingStorableId);
+            if (globalLightingStorable == null)
+            {
+                ClearGlobalLightingCache();
+                return null;
+            }
+
+            cachedCoreControlAtom = coreAtom;
+            cachedGlobalLightingStorable = globalLightingStorable;
+
+            return globalLightingStorable;
+        }
+
+        void ClearGlobalLightingCache()
+        {
+            cachedCoreControlAtom = null;
+            cachedGlobalLightingStorable = null;
         }
     }
 }

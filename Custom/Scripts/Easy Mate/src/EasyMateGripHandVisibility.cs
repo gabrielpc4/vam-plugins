@@ -72,12 +72,19 @@ namespace geesp0t
                 ApplyBothControls(SuperController.singleton);
         }
 
-        /// <summary>Scene load: both sides sphere (or legacy-off if slot missing); collisions off until first VR grip.</summary>
-        public static void DisableVrHandModelsForSceneStart()
+        /// <summary>
+        /// Scene load: both sides sphere (or legacy-off if slot missing);
+        /// collisions off until first VR grip. Optionally marks the
+        /// first-grip Spankings merge as already consumed, used for
+        /// same-folder continuation loads.
+        /// </summary>
+        public static void DisableVrHandModelsForSceneStart(
+            bool suppressFirstGripSpankingsMergeThisScene = false)
         {
             _leftArticulated = false;
             _rightArticulated = false;
-            _mergedSpankingsAfterFirstGripThisScene = false;
+            _mergedSpankingsAfterFirstGripThisScene =
+                suppressFirstGripSpankingsMergeThisScene;
             _vrGripUsedThisScene = false;
             SuperController sc = SuperController.singleton;
             ApplyBothControls(sc);

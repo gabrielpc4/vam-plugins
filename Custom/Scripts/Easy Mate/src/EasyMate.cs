@@ -112,6 +112,18 @@ namespace geesp0t
 
         private const float EasyMateDefaultMonitorCameraFov = 50f;
 
+        private static string NormalizeLoadDir(string dir)
+        {
+            if (string.IsNullOrEmpty(dir))
+                return "";
+
+            string normalized = dir.Replace('\\', '/').Trim();
+            while (normalized.Length > 1 && normalized.EndsWith("/"))
+                normalized = normalized.Substring(0, normalized.Length - 1);
+
+            return normalized;
+        }
+
         public override void Init()
         {
             Log("EasyMate Init");
@@ -648,6 +660,14 @@ namespace geesp0t
                 EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
                 sceneChanged = false;
                 Log("EasyMate Scene Changed, Load Dir: " + SuperController.singleton.currentLoadDir + ", Time Since Level Load: " + Time.timeSinceLevelLoad);
+                string currentLoadDirNorm =
+                    NormalizeLoadDir(SuperController.singleton.currentLoadDir);
+                bool sameFolderLoad =
+                    currentLoadDirNorm.Length > 0 &&
+                    string.Equals(
+                        NormalizeLoadDir(lastLoadDir),
+                        currentLoadDirNorm,
+                        StringComparison.OrdinalIgnoreCase);
                 //get menu data, if this is a menu
                 GetMenuData();
 
@@ -669,7 +689,7 @@ namespace geesp0t
                     _applyEmotionAfterSceneCo = StartCoroutine(CoApplyEmotionAfterSceneSettles());
                 }
 
-                if (lastLoadDir != SuperController.singleton.currentLoadDir)
+                if (!sameFolderLoad)
                 {
                     Log("Load Dir Changed from " + lastLoadDir + " to " + SuperController.singleton.currentLoadDir);
                     lastLoadDir = SuperController.singleton.currentLoadDir;
@@ -691,7 +711,8 @@ namespace geesp0t
                 ApplyRemoteHoldGrabPreference();
                 ApplyDefaultMonitorCameraFovIfNeeded();
                 EasyMateVrInput.ResetEdgeState();
-                EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
+                EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart(
+                    sameFolderLoad);
 
                 if (headProximityHide != null)
                 {

@@ -1133,21 +1133,26 @@ namespace geesp0t
             return UnityEngine.Random.value < LegacySphereSpawnChance;
         }
 
-        private static void TryApplyPingPongSphereScale(Atom spawned)
+        private static float BuildPingPongSphereScale()
         {
-            if (spawned == null || spawned.type != "ISSphere")
-                return;
-
-            JSONStorable scaleSt = spawned.GetStorableByID("scale");
-            if (scaleSt == null)
-                return;
-
             float sphereScale = PingPongSphereScaleCenter +
                 UnityEngine.Random.Range(
                     -PingPongSphereScaleJitter,
                     PingPongSphereScaleJitter);
 
-            sphereScale = Mathf.Clamp(sphereScale, 0.02f, 0.09f);
+            return Mathf.Clamp(sphereScale, 0.02f, 0.09f);
+        }
+
+        private static void TryApplyPingPongSphereScale(Atom spawned, float sphereScale)
+        {
+            if (spawned == null || spawned.type != "ISSphere")
+                return;
+            if (sphereScale <= 0f)
+                sphereScale = BuildPingPongSphereScale();
+
+            JSONStorable scaleSt = spawned.GetStorableByID("scale");
+            if (scaleSt == null)
+                return;
 
             if (scaleSt.IsFloatJSONParam("scale"))
                 scaleSt.SetFloatParamValue("scale", sphereScale);
@@ -1371,6 +1376,10 @@ namespace geesp0t
             bool forceLegacySphere =
                 !_waitingMandatoryFirstDildo &&
                 ShouldInjectLegacySphereSpawn();
+            float plannedSphereScale =
+                forceLegacySphere
+                    ? BuildPingPongSphereScale()
+                    : -1f;
 
             try
             {
@@ -1443,6 +1452,16 @@ namespace geesp0t
                             if (uidCandidate != null)
                             {
                                 atomJc["id"] = uidCandidate;
+                                SuperController.LogMessage(
+                                    PluginName +
+                                    ": thumb click -> catalog '" +
+                                    tmpl.SceneAtomId +
+                                    "' type '" +
+                                    atomType +
+                                    "' planned size " +
+                                    tmpl.ApproxSizeSortKey.ToString(
+                                        "0.###",
+                                        CultureInfo.InvariantCulture) + ".");
 
                                 yield return svc.AddAtomByType(atomType,
                                     uidCandidate);
@@ -1463,7 +1482,9 @@ namespace geesp0t
                                         _lastSceneToySourceId =
                                             tmpl.SceneAtomId;
 
-                                        TryApplyPingPongSphereScale(spawned);
+                                        TryApplyPingPongSphereScale(
+                                            spawned,
+                                            plannedSphereScale);
                                         ApplySpawnToyMaterialLook(spawned);
 
                                         PlaceSpawnAtHand(spawned, false);
@@ -1548,6 +1569,22 @@ namespace geesp0t
                     yield break;
                 }
 
+                string plannedLegacySize;
+                if (atomLegacy == "ISSphere")
+                    plannedLegacySize =
+                        plannedSphereScale.ToString(
+                            "0.###",
+                            CultureInfo.InvariantCulture);
+                else
+                    plannedLegacySize = "default";
+
+                SuperController.LogMessage(
+                    PluginName +
+                    ": thumb click -> legacy type '" +
+                    atomLegacy +
+                    "' planned size " +
+                    plannedLegacySize + ".");
+
                 yield return svc.AddAtomByType(atomLegacy, uid);
 
                 Atom spawnedLegacy = svc.GetAtomByUid(uid);
@@ -1567,7 +1604,7 @@ namespace geesp0t
                 _lastToyAtomTypeSpawned = atomLegacy;
                 _lastSceneToySourceId = null;
 
-                TryApplyPingPongSphereScale(spawnedLegacy);
+                TryApplyPingPongSphereScale(spawnedLegacy, plannedSphereScale);
                 ApplySpawnToyMaterialLook(spawnedLegacy);
 
                 PlaceSpawnAtHand(spawnedLegacy, false);

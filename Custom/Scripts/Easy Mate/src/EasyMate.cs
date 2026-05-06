@@ -42,6 +42,8 @@ namespace geesp0t
 
         private Coroutine _mergeSpankingsAfterGripCo;
 
+        private Coroutine _mocapEndDefaultSceneCo;
+
         public JSONStorableAction hideUI;
         public JSONStorableAction showUI;
 
@@ -223,6 +225,37 @@ namespace geesp0t
             finally
             {
                 _mergeSpankingsAfterGripCo = null;
+            }
+        }
+
+        /// <summary>
+        /// Called by <see cref="EasyMateMotionAnimationEmotionEnd"/> after mocap-end
+        /// is detected; waits realtime then loads Default.json.
+        /// </summary>
+        public void StartDelayedMocapEndDefaultScene()
+        {
+            if (_mocapEndDefaultSceneCo != null)
+            {
+                StopCoroutine(_mocapEndDefaultSceneCo);
+                _mocapEndDefaultSceneCo = null;
+            }
+
+            _mocapEndDefaultSceneCo =
+                StartCoroutine(CoDelayedMocapEndDefaultScene());
+        }
+
+        private IEnumerator CoDelayedMocapEndDefaultScene()
+        {
+            try
+            {
+                yield return new WaitForSecondsRealtime(
+                    EasyMateMotionAnimationEmotionEnd
+                        .MocapEndToDefaultSceneRealtimeDelaySeconds);
+                EasyMateMotionAnimationEmotionEnd.ExecuteDeferredDefaultSceneLoad();
+            }
+            finally
+            {
+                _mocapEndDefaultSceneCo = null;
             }
         }
 
@@ -680,7 +713,10 @@ namespace geesp0t
 
             bool mocapEmotionEnd = mergeEmotionWhenLongMocapEndsNoLoop != null && mergeEmotionWhenLongMocapEndsNoLoop.val;
             float mocapMinSec = longMocapMinSecondsForEmotionMerge != null ? longMocapMinSecondsForEmotionMerge.val : 45f;
-            EasyMateMotionAnimationEmotionEnd.LateTick(mocapEmotionEnd, mocapMinSec);
+            EasyMateMotionAnimationEmotionEnd.LateTick(
+                mocapEmotionEnd,
+                mocapMinSec,
+                this);
 
             bool monitorLaser = restoreMonitorModeControllerLaser != null && restoreMonitorModeControllerLaser.val;
             EasyMateMonitorModeLaserRestore.Tick(monitorLaser);
@@ -705,6 +741,12 @@ namespace geesp0t
             {
                 StopCoroutine(_mergeSpankingsAfterGripCo);
                 _mergeSpankingsAfterGripCo = null;
+            }
+
+            if (_mocapEndDefaultSceneCo != null)
+            {
+                StopCoroutine(_mocapEndDefaultSceneCo);
+                _mocapEndDefaultSceneCo = null;
             }
 
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);

@@ -17,14 +17,7 @@ namespace geesp0t
         /// keyboard <b>I</b>.
         /// </summary>
         public Action TriggerVrOverHeadHandUnpossessAll;
-
-        /// <summary>
-        /// Possess + Align + Select closest female when both
-        /// <c>leftHand</c>/<c>rightHand</c> match HMD-relative euler windows
-        /// (~3s dwell; not keyboard <b>P</b>).
-        /// </summary>
-        public Action TriggerPossessAlignSelectClosestFemaleByHead;
-   }
+    }
 
     /// <summary>
     /// Called from <see cref="MainUIButtons.ProcessHotkeysUpdate"/> after
@@ -34,29 +27,20 @@ namespace geesp0t
     public static class EasyMateVrGestureRuntime
     {
         /// <summary>
-        /// When false: skip gesture modules entirely so we do not run the
-        /// over-head hand zone math or dual-hand euler dwell each frame
-        /// (see private types <c>OverHeadRightHandGesture</c> and
-        /// <c>DualHandHmdRelativeEulerPossessClosestFemale</c> below) —
-        /// palm HUD uses its own right-hand-only pose. Set <c>true</c> to
-        /// restore unpossess-above-head and dual-hand auto-possess; revisit
-        /// here for a runtime toggle if needed.
+        /// When false: skip over-head gesture zone math each frame (module
+        /// below). Palm HUD uses its own pose. Set true to restore
+        /// unpossess-above-head; revisit for a runtime toggle if needed.
         /// </summary>
-        private const bool EnableOverHeadUnpossessAndDualHandPossessGestures =
-            false;
+        private const bool EnableOverHeadUnpossessGesture = false;
 
         public static void ProcessUpdate(EasyMateVrGestureBindings bindings)
         {
             if (bindings == null)
                 return;
-            // Early out when off: avoids over-head zone math and dual-hand
-            // euler/dwell work (re-enable via the flag above if we revisit).
-            if (!EnableOverHeadUnpossessAndDualHandPossessGestures)
+            if (!EnableOverHeadUnpossessGesture)
                 return;
             OverHeadRightHandGesture.ProcessUpdate(
                 bindings.TriggerVrOverHeadHandUnpossessAll);
-            DualHandHmdRelativeEulerPossessClosestFemale.ProcessUpdate(
-                bindings.TriggerPossessAlignSelectClosestFemaleByHead);
         }
 
         /// <summary>
@@ -143,93 +127,6 @@ namespace geesp0t
                 {
                     _insideLatch = false;
                 }
-            }
-        }
-
-        /// <summary>
-        /// Both hands: HMD-relative euler on <c>leftHand</c>/<c>rightHand</c>
-        /// (~3s dwell); release pose once after trigger before the next dwell.
-        /// </summary>
-        private static class DualHandHmdRelativeEulerPossessClosestFemale
-        {
-            private const float DwellSeconds = 3f;
-            private const float CooldownSeconds = 10f;
-
-            private static float _dwellAccumUnscaled;
-            private static float _lastTriggerUnscaledTime = -1000f;
-            /// <summary>
-            /// After a fire, false until both-hands pose has been left once
-            /// (stops re-trigger while holding through cooldown).
-            /// </summary>
-            private static bool _dwellArmed = true;
-
-            public static void ProcessUpdate(Action boundAction)
-            {
-                if (boundAction == null)
-                    return;
-
-                SuperController sc = SuperController.singleton;
-                if (sc == null || sc.isLoading)
-                    return;
-                if (!(sc.isOVR || sc.isOpenVR || XRSettings.enabled))
-                    return;
-
-                Transform camTf = EasyMateVrEulerPossessPoseCheck.ResolveHmdTransform(sc);
-                if (camTf == null)
-                    return;
-
-                Transform lh = sc.leftHand;
-                Transform rh = sc.rightHand;
-
-                Vector3 leftEuler = Vector3.zero;
-                Vector3 rightEuler = Vector3.zero;
-                bool leftOk = lh != null &&
-                    EasyMateVrEulerPossessPoseCheck.TryHmdRelativeEuler360(
-                        lh,
-                        camTf,
-                        out leftEuler) &&
-                    EasyMateVrEulerPossessPoseCheck.LeftMatches(leftEuler);
-                bool rightOk = rh != null &&
-                    EasyMateVrEulerPossessPoseCheck.TryHmdRelativeEuler360(
-                        rh,
-                        camTf,
-                        out rightEuler) &&
-                    EasyMateVrEulerPossessPoseCheck.RightMatches(rightEuler);
-                bool poseOk = leftOk && rightOk;
-
-                if (EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed())
-                {
-                    _dwellAccumUnscaled = 0f;
-                    _dwellArmed = true;
-                    return;
-                }
-
-                if (!poseOk)
-                {
-                    _dwellAccumUnscaled = 0f;
-                    _dwellArmed = true;
-                    return;
-                }
-
-                if (!_dwellArmed)
-                    return;
-
-                float dt = Time.unscaledDeltaTime;
-                if (dt < 0f || dt > 0.5f)
-                    dt = 0.016f;
-
-                _dwellAccumUnscaled += dt;
-                float now = Time.unscaledTime;
-                if (_dwellAccumUnscaled < DwellSeconds)
-                    return;
-
-                if (now - _lastTriggerUnscaledTime < CooldownSeconds)
-                    return;
-
-                boundAction();
-                _lastTriggerUnscaledTime = now;
-                _dwellAccumUnscaled = 0f;
-                _dwellArmed = false;
             }
         }
     }

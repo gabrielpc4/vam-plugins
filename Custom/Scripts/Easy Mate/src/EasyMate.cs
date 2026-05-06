@@ -108,6 +108,20 @@ namespace geesp0t
         /// </summary>
         public JSONStorableBool retainCameraPoseSameFolderLoads;
 
+        /// <summary>
+        /// Hides DillDoe cum Fluid CustomUnityAsset until load completes plus
+        /// <see cref="fluidCumRevealDelayRealtimeSeconds"/> (see
+        /// <see cref="EasyMateFluidCumHideDuringSceneLoad"/>).
+        /// </summary>
+        public JSONStorableBool hideFluidCumMeshUntilAfterLoadDelay;
+
+        /// <summary>
+        /// Realtime seconds after <see cref="SuperController.isLoading"/> becomes
+        /// false before DillDoe cum mesh / embedded canvases under that atom are
+        /// shown again.
+        /// </summary>
+        public JSONStorableFloat fluidCumRevealDelayRealtimeSeconds;
+
         private bool prevSuperLoading;
 
         private const float VamDefaultMonitorCameraFov = 40f;
@@ -176,6 +190,18 @@ namespace geesp0t
                 "Monitor mode: beams (Quest X/A touch or SteamVR TargetShow)",
                 true);
             RegisterBool(restoreMonitorModeControllerLaser);
+
+            hideFluidCumMeshUntilAfterLoadDelay = new JSONStorableBool(
+                "Hide DillDoe cum (Fluid) until after load delay",
+                true);
+            RegisterBool(hideFluidCumMeshUntilAfterLoadDelay);
+
+            fluidCumRevealDelayRealtimeSeconds = new JSONStorableFloat(
+                "Fluid cum: seconds after load before show (realtime)",
+                10f,
+                0f,
+                120f);
+            RegisterFloat(fluidCumRevealDelayRealtimeSeconds);
 
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
@@ -260,6 +286,8 @@ namespace geesp0t
         {
             if (mainUIButtons == null)
                 return;
+            if (CurrentSceneHasLongNonLoopMocap())
+                return;
             if (_mergeClothingTouchFallOffAfterGripCo != null)
                 StopCoroutine(_mergeClothingTouchFallOffAfterGripCo);
             _mergeClothingTouchFallOffAfterGripCo =
@@ -274,6 +302,8 @@ namespace geesp0t
                 yield return null;
                 if (mainUIButtons == null)
                     yield break;
+                if (CurrentSceneHasLongNonLoopMocap())
+                    yield break;
                 mainUIButtons.MergeClothingTouchFallOffOnAllPersonsOnly();
                 mainUIButtons.RefreshPluginToggleLabels();
             }
@@ -281,6 +311,17 @@ namespace geesp0t
             {
                 _mergeClothingTouchFallOffAfterGripCo = null;
             }
+        }
+
+        private bool CurrentSceneHasLongNonLoopMocap()
+        {
+            float mocapMinSec =
+                longMocapMinSecondsForEmotionMerge != null
+                ? longMocapMinSecondsForEmotionMerge.val
+                : 45f;
+
+            return EasyMateMotionAnimationEmotionEnd
+                .CurrentSceneUsesLongNonLoopMocap(mocapMinSec);
         }
 
         /// <summary>
@@ -656,6 +697,18 @@ namespace geesp0t
                 EasyMatePassengerRuntime.NotifySceneChanged(this);
             }
 
+            bool fluidCumHide =
+                hideFluidCumMeshUntilAfterLoadDelay != null &&
+                hideFluidCumMeshUntilAfterLoadDelay.val;
+            float fluidCumDelay =
+                fluidCumRevealDelayRealtimeSeconds != null
+                    ? fluidCumRevealDelayRealtimeSeconds.val
+                    : 10f;
+            EasyMateFluidCumHideDuringSceneLoad.Tick(
+                fluidCumHide,
+                loadingNow,
+                fluidCumDelay);
+
             if (retainCameraPoseSameFolderLoads != null &&
                 retainCameraPoseSameFolderLoads.val &&
                 scFsm != null)
@@ -785,6 +838,8 @@ namespace geesp0t
 
         void OnDestroy()
         {
+            EasyMateFluidCumHideDuringSceneLoad.OnPluginDestroy();
+
             if (SuperController.singleton != null)
             {
                 SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;

@@ -5,17 +5,18 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// During <see cref="SuperController.isLoading"/>, turns off renderers on
-    /// CustomUnityAsset atoms using DillDoe cum (<c>Fluid.assetbundle</c> /
-    /// <c>DillDoe_Cum</c>) so the mesh does not appear while JSON is still
-    /// applying (VaM skips <see cref="SuperController.SyncHiddenAtoms"/> while
-    /// loading, so atom "hidden" is ineffective for this).
+    /// Keeps CustomUnityAsset DillDoe cum (<c>Fluid.assetbundle</c> /
+    /// <c>DillDoe_Cum</c>) from drawing until VaM finishes a scene load, then for
+    /// an extra realtime interval (VaM skips
+    /// <see cref="SuperController.SyncHiddenAtoms"/> while loading; atom Hidden is
+    /// ineffective during that window). Disables <see cref="Renderer"/> and
+    /// embedded <see cref="Canvas"/> under matched atoms until release time.
     /// </summary>
     internal static class EasyMateFluidCumHideDuringSceneLoad
     {
         private sealed class Entry
         {
-            public Renderer renderer;
+            public Behaviour behaviour;
             public bool wasEnabled;
         }
 
@@ -23,14 +24,41 @@ namespace geesp0t
 
         private static readonly HashSet<int> SeenIds = new HashSet<int>();
 
-        public static void Tick(bool featureEnabled, bool superIsLoading)
+        private static bool _prevSuperLoading;
+
+        private static float _releaseShowAtRealtime;
+
+        public static void Tick(
+            bool featureEnabled,
+            bool superIsLoading,
+            float delayRealtimeSecondsAfterLoadEnds)
         {
             if (!featureEnabled)
             {
                 RestoreAll();
+                _prevSuperLoading = superIsLoading;
+                _releaseShowAtRealtime = 0f;
                 return;
             }
+
+            if (delayRealtimeSecondsAfterLoadEnds < 0f)
+                delayRealtimeSecondsAfterLoadEnds = 0f;
+
             if (superIsLoading)
+            {
+                _prevSuperLoading = true;
+                ApplyHide();
+                return;
+            }
+
+            if (_prevSuperLoading)
+            {
+                _prevSuperLoading = false;
+                _releaseShowAtRealtime =
+                    Time.realtimeSinceStartup + delayRealtimeSecondsAfterLoadEnds;
+            }
+
+            if (Time.realtimeSinceStartup < _releaseShowAtRealtime)
                 ApplyHide();
             else
                 RestoreAll();
@@ -39,6 +67,8 @@ namespace geesp0t
         public static void OnPluginDestroy()
         {
             RestoreAll();
+            _prevSuperLoading = false;
+            _releaseShowAtRealtime = 0f;
         }
 
         private static void RestoreAll()
@@ -46,8 +76,8 @@ namespace geesp0t
             for (int i = 0; i < Records.Count; i++)
             {
                 Entry e = Records[i];
-                if (e.renderer != null)
-                    e.renderer.enabled = e.wasEnabled;
+                if (e.behaviour != null)
+                    e.behaviour.enabled = e.wasEnabled;
             }
             Records.Clear();
             SeenIds.Clear();
@@ -73,6 +103,22 @@ namespace geesp0t
             return false;
         }
 
+        private static void RememberAndDisableBehaviour(Behaviour b)
+        {
+            if (b == null)
+                return;
+            int id = b.GetInstanceID();
+            if (!SeenIds.Contains(id))
+            {
+                SeenIds.Add(id);
+                Entry e = new Entry();
+                e.behaviour = b;
+                e.wasEnabled = b.enabled;
+                Records.Add(e);
+            }
+            b.enabled = false;
+        }
+
         private static void ApplyHide()
         {
             SuperController sc = SuperController.singleton;
@@ -86,24 +132,14 @@ namespace geesp0t
                         continue;
                     if (!IsFluidCumAtom(atom))
                         continue;
-                    Renderer[] rends = atom.gameObject.GetComponentsInChildren<Renderer>(
-                        true);
+                    Renderer[] rends =
+                        atom.gameObject.GetComponentsInChildren<Renderer>(true);
                     for (int i = 0; i < rends.Length; i++)
-                    {
-                        Renderer r = rends[i];
-                        if (r == null)
-                            continue;
-                        int id = r.GetInstanceID();
-                        if (!SeenIds.Contains(id))
-                        {
-                            SeenIds.Add(id);
-                            Entry e = new Entry();
-                            e.renderer = r;
-                            e.wasEnabled = r.enabled;
-                            Records.Add(e);
-                        }
-                        r.enabled = false;
-                    }
+                        RememberAndDisableBehaviour(rends[i]);
+                    Canvas[] canvases =
+                        atom.gameObject.GetComponentsInChildren<Canvas>(true);
+                    for (int c = 0; c < canvases.Length; c++)
+                        RememberAndDisableBehaviour(canvases[c]);
                 }
             }
             catch

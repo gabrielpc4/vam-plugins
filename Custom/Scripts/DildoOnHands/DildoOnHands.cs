@@ -1073,8 +1073,18 @@ namespace geesp0t
         private const string MATERIAL_FLOAT_ALPHA_ADJUST_ALT = "Alpha Adjustment";
         private const float ToyBpAlphaAdjustPreset = -0.5f;
         private const float LegacySphereSpawnChance = 0.25f;
-        private const float PingPongSphereScaleCenter = 0.04f;
-        private const float PingPongSphereScaleJitter = 0.006f;
+
+        /// <remarks>~40 mm ball in meters; scene presets often ~0.06–0.08.</remarks>
+        private const float PingPongSphereScaleCenter = 0.065f;
+
+        private const float PingPongSphereScaleJitter = 0.012f;
+
+        private static string CompanionSphereAtomType(string sphereLikeType)
+        {
+            if (sphereLikeType == "ISSphere")
+                return "Sphere";
+            return "ISSphere";
+        }
 
         private static Color RandomToyDiffuseRgb()
         {
@@ -1149,14 +1159,19 @@ namespace geesp0t
                     -PingPongSphereScaleJitter,
                     PingPongSphereScaleJitter);
 
-            return Mathf.Clamp(sphereScale, 0.02f, 0.09f);
+            return Mathf.Clamp(sphereScale, 0.04f, 0.12f);
+        }
+
+        private static bool IsSphereLikeAtomType(string atomType)
+        {
+            if (atomType == null)
+                return false;
+            return atomType == "ISSphere" || atomType == "Sphere";
         }
 
         private static void TryApplyPingPongSphereScale(Atom spawned, float sphereScale)
         {
-            if (spawned == null ||
-                (spawned.type != "ISSphere" &&
-                    spawned.type != "Sphere"))
+            if (spawned == null || !IsSphereLikeAtomType(spawned.type))
                 return;
             if (sphereScale <= 0f)
                 sphereScale = BuildPingPongSphereScale();
@@ -1175,6 +1190,47 @@ namespace geesp0t
                 scaleSt.SetFloatParamValue("scaleZ", sphereScale);
         }
 
+        /// <summary>
+        /// Some primitives leave <see cref="Atom.mainController"/> unset; fall back to
+        /// <c>control</c> or the first listed free controller.
+        /// </summary>
+        private static FreeControllerV3 ResolveSpawnMainFreeController(Atom spawned)
+        {
+            FreeControllerV3 fc;
+
+            if (spawned == null)
+                return null;
+
+            fc = spawned.mainController;
+            if (fc != null)
+                return fc;
+
+            fc = spawned.GetStorableByID("control") as FreeControllerV3;
+            if (fc != null)
+                return fc;
+
+            if (spawned.freeControllers != null &&
+                spawned.freeControllers.Length > 0)
+                return spawned.freeControllers[0];
+
+            return null;
+        }
+
+        private static void EnsureAtomOnForSpawn(Atom spawned)
+        {
+            if (spawned == null)
+                return;
+
+            try
+            {
+                if (spawned.IsBoolJSONParam("on"))
+                    spawned.SetBoolParamValue("on", true);
+            }
+            catch
+            {
+            }
+        }
+
         private void PlaceSpawnAtHand(Atom spawned, bool leftHand)
         {
             if (spawned == null || _sc == null)
@@ -1184,7 +1240,7 @@ namespace geesp0t
             if (hand == null)
                 return;
 
-            FreeControllerV3 fc = spawned.mainController;
+            FreeControllerV3 fc = ResolveSpawnMainFreeController(spawned);
 
             if (fc == null)
                 return;
@@ -1472,12 +1528,51 @@ namespace geesp0t
                                     "' planned size " +
                                     tmpl.ApproxSizeSortKey.ToString(
                                         "0.###",
-                                        CultureInfo.InvariantCulture) + ".");
+                                        CultureInfo.InvariantCulture) +
+                                    ".");
 
-                                yield return svc.AddAtomByType(atomType,
-                                    uidCandidate);
+                                Atom spawned = null;
 
-                                Atom spawned = svc.GetAtomByUid(uidCandidate);
+                                if (IsSphereLikeAtomType(atomType))
+                                {
+                                    string sPrimary;
+                                    string sSecondary;
+
+                                    sPrimary = atomType;
+                                    sSecondary =
+                                        CompanionSphereAtomType(atomType);
+
+                                    yield return svc.AddAtomByType(
+                                        sPrimary,
+                                        uidCandidate);
+
+                                    spawned =
+                                        svc.GetAtomByUid(uidCandidate);
+
+                                    if (spawned == null)
+                                    {
+                                        yield return svc.AddAtomByType(
+                                            sSecondary,
+                                            uidCandidate);
+
+                                        spawned =
+                                            svc.GetAtomByUid(uidCandidate);
+
+                                        if (spawned != null)
+                                            atomType = spawned.type;
+                                    }
+                                    else
+                                        atomType = spawned.type;
+                                }
+                                else
+                                {
+                                    yield return svc.AddAtomByType(
+                                        atomType,
+                                        uidCandidate);
+
+                                    spawned = svc.GetAtomByUid(uidCandidate);
+                                }
+
                                 if (spawned != null)
                                 {
                                     try
@@ -1492,6 +1587,8 @@ namespace geesp0t
                                         _lastToyAtomTypeSpawned = atomType;
                                         _lastSceneToySourceId =
                                             tmpl.SceneAtomId;
+
+                                        EnsureAtomOnForSpawn(spawned);
 
                                         TryApplyPingPongSphereScale(
                                             spawned,
@@ -1581,29 +1678,89 @@ namespace geesp0t
                 }
 
                 string plannedLegacySize;
-                if (atomLegacy == "Sphere")
-                    plannedLegacySize =
-                        plannedSphereScale.ToString(
-                            "0.###",
-                            CultureInfo.InvariantCulture);
+                bool legacySphereCandidates;
+                Atom spawnedLegacy;
+
+                legacySphereCandidates =
+                    forceLegacySphere ||
+                        IsSphereLikeAtomType(atomLegacy);
+
+                if (IsSphereLikeAtomType(atomLegacy))
+                {
+                    if (plannedSphereScale > 0f)
+                        plannedLegacySize =
+                            plannedSphereScale.ToString(
+                                "0.###",
+                                CultureInfo.InvariantCulture);
+                    else
+                        plannedLegacySize = "random ping-pong";
+                }
                 else
                     plannedLegacySize = "default";
 
-                SuperController.LogMessage(
-                    PluginName +
-                    ": thumb click -> legacy type '" +
-                    atomLegacy +
-                    "' planned size " +
-                    plannedLegacySize + ".");
+                spawnedLegacy = null;
 
-                yield return svc.AddAtomByType(atomLegacy, uid);
+                if (legacySphereCandidates)
+                {
+                    string sPrimary;
+                    string sSecondary;
 
-                Atom spawnedLegacy = svc.GetAtomByUid(uid);
+                    if (atomLegacy == "ISSphere")
+                    {
+                        sPrimary = "ISSphere";
+                        sSecondary = "Sphere";
+                    }
+                    else
+                    {
+                        sPrimary = "Sphere";
+                        sSecondary = "ISSphere";
+                    }
+
+                    SuperController.LogMessage(
+                        PluginName +
+                        ": thumb click -> legacy sphere try " +
+                            sPrimary + " then " + sSecondary +
+                            ", planned size " +
+                            plannedLegacySize + ".");
+
+                    yield return svc.AddAtomByType(sPrimary, uid);
+
+                    spawnedLegacy = svc.GetAtomByUid(uid);
+
+                    if (spawnedLegacy == null)
+                    {
+                        yield return svc.AddAtomByType(sSecondary, uid);
+
+                        spawnedLegacy = svc.GetAtomByUid(uid);
+
+                        if (spawnedLegacy != null)
+                            atomLegacy = spawnedLegacy.type;
+                    }
+                    else
+                        atomLegacy = spawnedLegacy.type;
+                }
+                else
+                {
+                    SuperController.LogMessage(
+                        PluginName +
+                        ": thumb click -> legacy type '" +
+                        atomLegacy +
+                        "' planned size " +
+                        plannedLegacySize + ".");
+
+                    yield return svc.AddAtomByType(atomLegacy, uid);
+
+                    spawnedLegacy = svc.GetAtomByUid(uid);
+                }
+
                 if (spawnedLegacy == null)
                 {
                     SuperController.LogError(
                         PluginName +
-                            ": legacy failed '" + atomLegacy + "'.");
+                            ": legacy failed '" + atomLegacy +
+                            (legacySphereCandidates
+                                ? "' (tried sphere types)."
+                                : "'."));
 
                     if (consumedMandatory)
                         _waitingMandatoryFirstDildo = true;
@@ -1614,6 +1771,8 @@ namespace geesp0t
                 _waitingMandatoryFirstDildo = false;
                 _lastToyAtomTypeSpawned = atomLegacy;
                 _lastSceneToySourceId = null;
+
+                EnsureAtomOnForSpawn(spawnedLegacy);
 
                 TryApplyPingPongSphereScale(spawnedLegacy, plannedSphereScale);
                 ApplySpawnToyMaterialLook(spawnedLegacy);

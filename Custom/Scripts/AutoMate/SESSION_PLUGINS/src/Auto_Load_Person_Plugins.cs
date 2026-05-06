@@ -44,8 +44,9 @@ namespace geesp0t
         private bool isLoading = true;
         private float loadingTimeCounter = 0;
         private bool prevSuperControllerIsLoading = false;
-        private string lastIdleLoadDirNorm = "";
         private bool suppressSpankingsForPendingSceneLoad = false;
+        private SameFolderSceneLoadCheck sameFolderSceneLoadCheck =
+            new SameFolderSceneLoadCheck();
 
         private OnSceneStartup onSceneStartup = new OnSceneStartup();
 
@@ -264,18 +265,6 @@ namespace geesp0t
             LoadSettingsFrom(SETTINGS_FILE_PATH + "/" + SETTINGS_FILE_NAME);
         }
 
-        private static string NormalizeLoadDir(string dir)
-        {
-            if (string.IsNullOrEmpty(dir))
-                return "";
-
-            string normalized = dir.Replace('\\', '/').Trim();
-            while (normalized.Length > 1 && normalized.EndsWith("/"))
-                normalized = normalized.Substring(0, normalized.Length - 1);
-
-            return normalized;
-        }
-
         //DOESN'T YET WORK AND DON'T KNOW IF WE NEED IT
         //void StoreOriginalPluginSet()
         //{
@@ -338,16 +327,14 @@ namespace geesp0t
             bool superLoadingNow = SuperController.singleton.isLoading;
             if (!prevSuperControllerIsLoading && superLoadingNow)
             {
-                string newLoadDirNorm =
-                    NormalizeLoadDir(SuperController.singleton.currentLoadDir);
                 suppressSpankingsForPendingSceneLoad =
-                    newLoadDirNorm.Length > 0 &&
-                    newLoadDirNorm == lastIdleLoadDirNorm;
+                    sameFolderSceneLoadCheck.IsSameFolderLoad(
+                        SuperController.singleton);
             }
             else if (!superLoadingNow)
             {
-                lastIdleLoadDirNorm =
-                    NormalizeLoadDir(SuperController.singleton.currentLoadDir);
+                sameFolderSceneLoadCheck.CaptureIdleLoadDir(
+                    SuperController.singleton);
             }
             prevSuperControllerIsLoading = superLoadingNow;
 

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace geesp0t
@@ -6,13 +7,17 @@ namespace geesp0t
     /// When scene motion / mocap uses <see cref="SuperController.motionAnimationMaster"/> with
     /// loop off and at least one clip longer than a configurable minimum, loads
     /// <c>Saves/scene/Default.json</c> once when playback reaches the end (timeline counter
-    /// enters the tail or resets from the tail toward zero).
+    /// enters the tail or resets from the tail toward zero). Skips loading when load/save dir
+    /// paths contain booty shake (case-insensitive), same folders as emotion path keywords.
     /// </summary>
     internal static class EasyMateMotionAnimationEmotionEnd
     {
         /// <summary>Relative to VaM install; same pattern as <c>ResetVROrientation</c>.
         /// </summary>
         private const string MocapEndLoadScenePath = "Saves/scene/Default.json";
+
+        /// <summary>Substring on load/save dir haystack for exception from default load.</summary>
+        private const string BootyShakePathToken = "booty shake";
 
         private static bool _mocapEndLoadFiredThisScene;
 
@@ -37,6 +42,9 @@ namespace geesp0t
 
             SuperController sc = SuperController.singleton;
             if (sc == null || sc.isLoading)
+                return;
+
+            if (CurrentScenePathIndicatesBootyShake(sc))
                 return;
 
             if (_mocapEndLoadFiredThisScene)
@@ -125,6 +133,22 @@ namespace geesp0t
             }
 
             return maxLen;
+        }
+
+        /// <summary>
+        /// Exclude certain folder-named scenes from post-mocap default load (Haystack-style
+        /// match on <see cref="SuperController.currentLoadDir"/> and
+        /// <see cref="SuperController.currentSaveDir"/>.
+        /// </summary>
+        private static bool CurrentScenePathIndicatesBootyShake(SuperController sc)
+        {
+            if (sc == null)
+                return false;
+
+            string loadDir = sc.currentLoadDir;
+            string saveDir = sc.currentSaveDir;
+            string hay = ((loadDir != null ? loadDir : "") + " " + (saveDir != null ? saveDir : "")).Replace('\\', '/');
+            return hay.IndexOf(BootyShakePathToken, StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 }

@@ -11,6 +11,9 @@ namespace geesp0t
     /// Re-arms when SuperController.isLoading becomes true for a new scene folder
     /// (<see cref="SuperController.currentLoadDir"/> differs from the last idle value).
     /// Same-folder <c>isLoading</c> pulses (spawn atom/toy, merge) do not re-arm.
+    /// When exposure is skipped for the current load (same-folder person-plugin guard),
+    /// still marks the one-shot settle finished once VaM is idle so fast loads do not
+    /// stick waiting for an exposure workflow that never ran.
     /// Worst case: 30s (unscaled) after SuperController.isLoading becomes false — not from scene load start —
     /// forces the same finish path as a normal settle if the pause flag is still held.
     /// Tick runs from LateUpdate so CoreControl JSON usually reflects the scene before we read exposure backup.
@@ -144,6 +147,8 @@ namespace geesp0t
 
             if (skipExposureWorkflowForCurrentLoad)
             {
+                bool settleJustEndedFromSkipIdle = false;
+
                 if (exposureDebugLog && dbgSkipLogForLoadSerial != dbgLoadSerial)
                 {
                     dbgSkipLogForLoadSerial = dbgLoadSerial;
@@ -161,8 +166,22 @@ namespace geesp0t
                     FinishSceneSettleExposureThenReleasePlaybackHold("skipWorkflow");
                 }
 
+                if (!initialSceneLoadSettleWorkflowFinished &&
+                    !rawSceneSettlingIndicatorsActive &&
+                    !superControllerIsLoadingNow)
+                {
+                    initialSceneLoadSettleWorkflowFinished = true;
+                    settleJustEndedFromSkipIdle = true;
+                    if (exposureDebugLog)
+                    {
+                        LogExposureDbg(
+                            "skipWorkflow: settle idle (no UI/isLoading); " +
+                            "mark one-shot done serial=" + dbgLoadSerial);
+                    }
+                }
+
                 wasSceneStillSettling = false;
-                return false;
+                return settleJustEndedFromSkipIdle;
             }
 
             bool settleEndedThisTick = false;
@@ -223,6 +242,23 @@ namespace geesp0t
             }
 
             wasSceneStillSettling = sceneSettlingForExposureWorkflow;
+
+            if (!initialSceneLoadSettleWorkflowFinished &&
+                dbgLoadSerial > 0 &&
+                !rawSceneSettlingIndicatorsActive &&
+                !superControllerIsLoadingNow &&
+                !sceneSettleSimulationPauseAppliedToSuperController)
+            {
+                initialSceneLoadSettleWorkflowFinished = true;
+                settleEndedThisTick = true;
+                if (exposureDebugLog)
+                {
+                    LogExposureDbg(
+                        "settle idle without pause hold serial=" + dbgLoadSerial +
+                        " (" +
+                        "e.g. fast load); mark one-shot done");
+                }
+            }
 
             if (exposureDebugLog && settleEndedThisTick)
             {

@@ -340,6 +340,9 @@ namespace geesp0t
             if (sc == null)
                 return;
 
+            if (sc.gameMode == SuperController.GameMode.Edit)
+                return;
+
             if (EasyMateVrEulerPossessHandHud.IsVisible())
                 return;
 

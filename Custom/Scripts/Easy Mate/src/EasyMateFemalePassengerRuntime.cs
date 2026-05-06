@@ -6,7 +6,7 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// Female &quot;Be the girl&quot; mode: navigation rig follows the model head
+    /// Passenger mode: navigation rig follows the model head
     /// <b>position</b> (Passenger-style); <b>rotation</b> aligns to the head only on
     /// the first activation frame, then stays independent so the model can turn without
     /// dragging the rig&apos;s yaw/pitch/roll. ImprovedPoV setup; VR hand possession starts
@@ -54,9 +54,30 @@ namespace geesp0t
         private static float _preservedInitialHeadDownwardPitchDegrees;
         private static int _headNeutralizeDebugLogCount;
 
-        public static bool IsFemalePassengerModeActiveOrPending()
+        public static bool IsPassengerModeActiveOrPending()
         {
             return _isFemalePassengerModeActive || !string.IsNullOrEmpty(_pendingPassengerModeTargetUid);
+        }
+
+        public static bool IsFemalePassengerModeActiveOrPending()
+        {
+            return IsPassengerModeActiveOrPending();
+        }
+
+        /// <summary>
+        /// When true for <paramref name="person"/>, skip Easy Mate VR head proximity hide for that atom:
+        /// female Passenger VR hand flow is active (<c>_passengerVrHandsPossessionStartedThisSession</c>
+        /// after grip/trigger — same lifecycle as palm <b>Despossuir</b>), and ImprovedPoV already owns
+        /// face/hair hiding on the target from <see cref="PrepareImprovedPoVForPassenger"/>.
+        /// </summary>
+        internal static bool ShouldSuppressVrHeadProximityHideForPerson(Atom person)
+        {
+            if (person == null || !_isFemalePassengerModeActive ||
+                !_passengerVrHandsPossessionStartedThisSession ||
+                _femalePassengerTargetPerson == null)
+                return false;
+
+            return person.uid == _femalePassengerTargetPerson.uid;
         }
 
         /// <summary>
@@ -156,23 +177,19 @@ namespace geesp0t
                 return;
             }
 
-            RequestStopForPalmHud();
+            RequestStartForPerson(femalePerson);
+        }
 
-            JSONStorable improvedPoVStorable = FindPluginStorableByClassSuffix(
-                femalePerson,
-                ImprovedPoVClassSuffix);
-
-            if (improvedPoVStorable == null)
+        public static void RequestStartForMale(Atom malePerson)
+        {
+            if (!IsMalePerson(malePerson))
             {
-                MainUIButtons.TryMergePluginOntoPerson(
-                    femalePerson,
-                    ImprovedPoVPluginPath);
-                QueuePassengerModeUntilImprovedPoVReady(femalePerson.uid);
+                SuperController.LogError(
+                    "Easy Mate passenger: missing male Person target.");
                 return;
             }
 
-            PrepareImprovedPoVForPassenger(improvedPoVStorable);
-            ActivatePassengerForPerson(femalePerson);
+            RequestStartForPerson(malePerson);
         }
 
         public static void RequestStopForPalmHud()
@@ -265,6 +282,27 @@ namespace geesp0t
             _sessionPluginHost = null;
         }
 
+        private static void RequestStartForPerson(Atom passengerPerson)
+        {
+            RequestStopForPalmHud();
+
+            JSONStorable improvedPoVStorable = FindPluginStorableByClassSuffix(
+                passengerPerson,
+                ImprovedPoVClassSuffix);
+
+            if (improvedPoVStorable == null)
+            {
+                MainUIButtons.TryMergePluginOntoPerson(
+                    passengerPerson,
+                    ImprovedPoVPluginPath);
+                QueuePassengerModeUntilImprovedPoVReady(passengerPerson.uid);
+                return;
+            }
+
+            PrepareImprovedPoVForPassenger(improvedPoVStorable);
+            ActivatePassengerForPerson(passengerPerson);
+        }
+
         private static void QueuePassengerModeUntilImprovedPoVReady(string femaleUid)
         {
             _pendingPassengerModeTargetUid = femaleUid;
@@ -291,7 +329,7 @@ namespace geesp0t
                 string expiredUid = _pendingPassengerModeTargetUid;
                 ClearPendingPassengerModeActivation();
                 SuperController.LogError(
-                    "Easy Mate Be the girl: ImprovedPoV did not finish loading on '" +
+                    "Easy Mate passenger: ImprovedPoV did not finish loading on '" +
                     expiredUid +
                     "'.");
                 return;
@@ -299,7 +337,7 @@ namespace geesp0t
 
             Atom pendingPerson = superController.GetAtomByUid(
                 _pendingPassengerModeTargetUid);
-            if (!IsFemalePerson(pendingPerson))
+            if (!IsPassengerPerson(pendingPerson))
             {
                 ClearPendingPassengerModeActivation();
                 return;
@@ -320,7 +358,7 @@ namespace geesp0t
 
         private static void ActivatePassengerForPerson(Atom femalePerson)
         {
-            if (!IsFemalePerson(femalePerson))
+            if (!IsPassengerPerson(femalePerson))
             {
                 return;
             }
@@ -329,7 +367,7 @@ namespace geesp0t
             if (superController == null || superController.navigationRig == null)
             {
                 SuperController.LogError(
-                    "Easy Mate Be the girl: missing navigationRig.");
+                    "Easy Mate passenger: missing navigationRig.");
                 return;
             }
 
@@ -337,7 +375,7 @@ namespace geesp0t
             if (headRigidbody == null)
             {
                 SuperController.LogError(
-                    "Easy Mate Be the girl: '" +
+                    "Easy Mate passenger: '" +
                     femalePerson.uid +
                     "' has no head rigidbody.");
                 return;
@@ -346,7 +384,7 @@ namespace geesp0t
             if (superController.centerCameraTarget == null)
             {
                 SuperController.LogError(
-                    "Easy Mate Be the girl: missing centerCameraTarget.");
+                    "Easy Mate passenger: missing centerCameraTarget.");
                 return;
             }
 
@@ -355,7 +393,7 @@ namespace geesp0t
             if (_possessor == null || _possessor.autoSnapPoint == null)
             {
                 SuperController.LogError(
-                    "Easy Mate Be the girl: missing Possessor or autoSnapPoint.");
+                    "Easy Mate passenger: missing Possessor or autoSnapPoint.");
                 return;
             }
 
@@ -391,7 +429,7 @@ namespace geesp0t
             LogPassengerHeadNeutralizeDebug("start", headControl);
 
             SuperController.LogMessage(
-                "Easy Mate Be the girl: press any VR grip or trigger to possess the model's hands.");
+                "Easy Mate passenger: press any VR grip or trigger to possess the model's hands.");
         }
 
         private static void UpdatePassengerRuntime(
@@ -402,7 +440,7 @@ namespace geesp0t
                 return;
             }
 
-            if (!IsFemalePerson(_femalePassengerTargetPerson) || _femalePassengerHeadRigidbody == null)
+            if (!IsPassengerPerson(_femalePassengerTargetPerson) || _femalePassengerHeadRigidbody == null)
             {
                 RequestStopForPalmHud();
                 return;
@@ -717,6 +755,33 @@ namespace geesp0t
             }
 
             return !dazCharacter.isMale;
+        }
+
+        private static bool IsMalePerson(Atom atom)
+        {
+            if (atom == null || atom.type != "Person")
+            {
+                return false;
+            }
+
+            if (!atom.gameObject.activeInHierarchy || atom.hidden)
+            {
+                return false;
+            }
+
+            DAZCharacter dazCharacter =
+                atom.GetComponentInChildren<DAZCharacter>();
+            if (dazCharacter == null)
+            {
+                return false;
+            }
+
+            return dazCharacter.isMale;
+        }
+
+        private static bool IsPassengerPerson(Atom atom)
+        {
+            return IsFemalePerson(atom) || IsMalePerson(atom);
         }
 
         private static Rigidbody FindHeadRigidbody(Atom femalePerson)

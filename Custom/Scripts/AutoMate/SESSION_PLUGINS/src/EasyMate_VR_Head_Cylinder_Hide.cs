@@ -21,7 +21,8 @@ namespace geesp0t
     /// Skin opaque→transparent swaps and <c>BroadcastMessage</c> run only after all replacement shaders resolve via <c>Shader.Find</c> at configure time
     /// (returns <c>TryAgainLater</c> until VaM exposes those shaders — no static <c>Shader.Find</c> at type load).
     /// Adapted from ImprovedPoV 2.1.1 (Acidbubbles) — https://github.com/acidbubbles/vam-improved-pov
-    /// Controlled by Easy Mate storables <b>VR head proximity hide</b> (default on; scene JSON may override). Independent of navigation rig or alignment flows.
+    /// Controlled by Easy Mate storables <b>VR head proximity hide</b> (default on; scene JSON may override).
+    /// Skips persons under female Passenger VR hand possession (same step as palm <b>Despossuir</b>) so ImprovedPoV is not doubled.
     /// </summary>
     public static class EasyMateVrHeadCylinderHide
     {
@@ -281,6 +282,9 @@ namespace geesp0t
             if (_hideHandlerPerson == null || !_handlersConfigured)
                 return;
 
+            if (EasyMateFemalePassengerRuntime.ShouldSuppressVrHeadProximityHideForPerson(_hideHandlerPerson))
+                return;
+
             FreeControllerV3 heldHead = _hideHandlerPerson.GetStorableByID("headControl") as FreeControllerV3;
             if (heldHead == null)
                 return;
@@ -307,6 +311,8 @@ namespace geesp0t
             foreach (Atom a in sc.GetAtoms())
             {
                 if (a == null || a.type != "Person" || !a.gameObject.activeInHierarchy || a.hidden)
+                    continue;
+                if (EasyMateFemalePassengerRuntime.ShouldSuppressVrHeadProximityHideForPerson(a))
                     continue;
                 FreeControllerV3 head = a.GetStorableByID("headControl") as FreeControllerV3;
                 if (head == null || head.control == null)

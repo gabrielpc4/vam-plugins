@@ -133,7 +133,7 @@ namespace geesp0t
 
             keyboardShortcuts = new KeyboardShortcuts();
 
-            keyboardShortcuts.Init(this);
+            keyboardShortcuts.Init(this, onSceneStartup);
 
             createdMaleAtom = SuperController.singleton.GetAtomByUid(createdMaleName);
         }

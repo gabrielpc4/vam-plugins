@@ -79,6 +79,32 @@ namespace geesp0t
             return sharedSceneSettlePauseAsyncFlag;
         }
 
+        /// <summary>
+        /// Emergency: release pause, audio hold, and exposure clamp, and mark first
+        /// settle done (Space in session plugin).
+        /// </summary>
+        /// <returns>True if something was held or settle was incomplete; session
+        /// hooks should run when true.</returns>
+        public bool ForceReleaseSceneSettleHoldUserKey()
+        {
+            bool needFinish =
+                sceneSettleSimulationPauseAppliedToSuperController ||
+                camExposureBackupCaptured ||
+                wasSceneStillSettling ||
+                (!initialSceneLoadSettleWorkflowFinished && dbgLoadSerial > 0);
+
+            if (!needFinish)
+            {
+                return false;
+            }
+
+            FinishSceneSettleExposureThenReleasePlaybackHold("userKeySpace");
+            initialSceneLoadSettleWorkflowFinished = true;
+            wasSceneStillSettling = false;
+            sceneSettlePauseHoldDeadlineActive = false;
+            return true;
+        }
+
         /// <summary>Returns true the first tick after VaM&apos;s loading/settle UI has cleared — playback hold was released.</summary>
         public bool TickDuringSuperControllerLoad(bool skipExposureWorkflowForCurrentLoad)
         {

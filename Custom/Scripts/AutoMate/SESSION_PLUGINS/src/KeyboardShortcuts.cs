@@ -7,31 +7,56 @@ namespace geesp0t
 {
     /// <summary>
     /// Keyboard shortcuts for the session Auto Load Person Plugins plugin (e.g.
-    /// <b>P</b> = possess+align+select Person under look or closest). World-space
-    /// HUD was removed; use the plugin panel for load/sets.
+    /// <b>Space</b> = force release scene settle pause / exposure hold even while
+    /// loading; <b>P</b> = possess+align+select Person under look or closest).
+    /// World-space HUD was removed; use the plugin panel for load/sets.
     /// </summary>
     public class KeyboardShortcuts
     {
         private static MVRScript _pluginHost;
         private static Coroutine _autoPossessCoroutine;
+        private static OnSceneStartup _onSceneStartup;
 
-        public void Init(MVRScript host)
+        public void Init(MVRScript host, OnSceneStartup onSceneStartup)
         {
             _pluginHost = host;
+            _onSceneStartup = onSceneStartup;
         }
 
         public void ProcessHotkeysUpdate()
         {
             if (_pluginHost == null || SuperController.singleton == null)
                 return;
+
+            bool noTextFocus =
+                EventSystem.current == null ||
+                EventSystem.current.currentSelectedGameObject == null;
+            bool noCtrlAlt =
+                !Input.GetKey(KeyCode.LeftControl) &&
+                !Input.GetKey(KeyCode.RightControl) &&
+                !Input.GetKey(KeyCode.LeftAlt) &&
+                !Input.GetKey(KeyCode.RightAlt);
+
+            if (noTextFocus && noCtrlAlt && Input.GetKeyDown(KeyCode.Space) &&
+                _onSceneStartup != null)
+            {
+                if (_onSceneStartup.ForceReleaseSceneSettleHoldUserKey())
+                {
+                    EasyMateVrHeadCylinderHide.AfterSuperControllerFinishedSceneSettle(
+                        _pluginHost);
+                    SuperController.LogMessage(
+                        "Auto_Load: Space — scene settle hold released.");
+                }
+                return;
+            }
+
             if (SuperController.singleton.isLoading)
                 return;
-            if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null)
+            if (!noTextFocus)
                 return;
             if (!Input.GetKeyDown(KeyCode.P))
                 return;
-            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl) ||
-                Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
+            if (!noCtrlAlt)
                 return;
 
             PossessAlignSelectPersonUnderLookOrClosest();
@@ -41,6 +66,7 @@ namespace geesp0t
         {
             StopAutoPossessRoutine();
             _pluginHost = null;
+            _onSceneStartup = null;
         }
 
         private static bool TryGetLookCamera(out Camera cam)

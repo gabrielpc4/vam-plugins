@@ -13,7 +13,7 @@ namespace geesp0t
     /// once per session when you press any grip or trigger (see
     /// <see cref="EasyMateVrInput.PollVrAnyTriggerOrGripPressDown"/>).
     /// </summary>
-    internal static class EasyMateFemalePassengerRuntime
+    internal static class EasyMatePassengerRuntime
     {
         private const string ImprovedPoVPluginPath =
             "Custom/Scripts/ImprovedPoV.cs";
@@ -31,9 +31,9 @@ namespace geesp0t
 
         private static MVRScript _sessionPluginHost;
 
-        private static bool _isFemalePassengerModeActive;
-        private static Atom _femalePassengerTargetPerson;
-        private static Rigidbody _femalePassengerHeadRigidbody;
+        private static bool _isPassengerModeActive;
+        private static Atom _passengerTargetPerson;
+        private static Rigidbody _passengerHeadRigidbody;
         private static Possessor _possessor;
         private static Vector3 _previousNavigationRigPosition;
         private static Quaternion _previousNavigationRigRotation;
@@ -56,28 +56,23 @@ namespace geesp0t
 
         public static bool IsPassengerModeActiveOrPending()
         {
-            return _isFemalePassengerModeActive || !string.IsNullOrEmpty(_pendingPassengerModeTargetUid);
-        }
-
-        public static bool IsFemalePassengerModeActiveOrPending()
-        {
-            return IsPassengerModeActiveOrPending();
+            return _isPassengerModeActive || !string.IsNullOrEmpty(_pendingPassengerModeTargetUid);
         }
 
         /// <summary>
         /// When true for <paramref name="person"/>, skip Easy Mate VR head proximity hide for that atom:
-        /// female Passenger VR hand flow is active (<c>_passengerVrHandsPossessionStartedThisSession</c>
+        /// passenger VR hand flow is active (<c>_passengerVrHandsPossessionStartedThisSession</c>
         /// after grip/trigger — same lifecycle as palm <b>Despossuir</b>), and ImprovedPoV already owns
         /// face/hair hiding on the target from <see cref="PrepareImprovedPoVForPassenger"/>.
         /// </summary>
         internal static bool ShouldSuppressVrHeadProximityHideForPerson(Atom person)
         {
-            if (person == null || !_isFemalePassengerModeActive ||
+            if (person == null || !_isPassengerModeActive ||
                 !_passengerVrHandsPossessionStartedThisSession ||
-                _femalePassengerTargetPerson == null)
+                _passengerTargetPerson == null)
                 return false;
 
-            return person.uid == _femalePassengerTargetPerson.uid;
+            return person.uid == _passengerTargetPerson.uid;
         }
 
         /// <summary>
@@ -162,7 +157,7 @@ namespace geesp0t
 
             TryProcessPendingPassengerModeStartup(superController);
 
-            if (_isFemalePassengerModeActive)
+            if (_isPassengerModeActive)
             {
                 UpdatePassengerRuntime(superController);
             }
@@ -173,7 +168,7 @@ namespace geesp0t
             if (!IsFemalePerson(femalePerson))
             {
                 SuperController.LogError(
-                    "Easy Mate Be the girl: missing female Person target.");
+                    "Easy Mate passenger: missing female Person target.");
                 return;
             }
 
@@ -225,16 +220,16 @@ namespace geesp0t
             ClearPalmHandHudPassengerTriggerCooldown();
             _passengerVrHandsPossessionStartedThisSession = false;
 
-            if (!_isFemalePassengerModeActive)
+            if (!_isPassengerModeActive)
             {
                 return;
             }
 
-            Atom personForDeferredImprovedPoVRestore = _femalePassengerTargetPerson;
+            Atom passengerPersonForDeferredImprovedPoVRestore = _passengerTargetPerson;
 
             try
             {
-                RestoreImprovedPoVForPassengerTarget(_femalePassengerTargetPerson);
+                RestoreImprovedPoVForPassengerTarget(_passengerTargetPerson);
 
                 SuperController superController = SuperController.singleton;
                 if (superController != null &&
@@ -257,11 +252,11 @@ namespace geesp0t
             finally
             {
                 ScheduleDeferredImprovedPoVRestore(
-                    personForDeferredImprovedPoVRestore);
+                    passengerPersonForDeferredImprovedPoVRestore);
 
-                _isFemalePassengerModeActive = false;
-                _femalePassengerTargetPerson = null;
-                _femalePassengerHeadRigidbody = null;
+                _isPassengerModeActive = false;
+                _passengerTargetPerson = null;
+                _passengerHeadRigidbody = null;
                 _possessor = null;
                 _currentRotationVelocity = Quaternion.identity;
                 _currentPositionVelocity = Vector3.zero;
@@ -356,9 +351,9 @@ namespace geesp0t
             ActivatePassengerForPerson(pendingPerson);
         }
 
-        private static void ActivatePassengerForPerson(Atom femalePerson)
+        private static void ActivatePassengerForPerson(Atom passengerPerson)
         {
-            if (!IsPassengerPerson(femalePerson))
+            if (!IsPassengerPerson(passengerPerson))
             {
                 return;
             }
@@ -371,12 +366,12 @@ namespace geesp0t
                 return;
             }
 
-            Rigidbody headRigidbody = FindHeadRigidbody(femalePerson);
+            Rigidbody headRigidbody = FindHeadRigidbody(passengerPerson);
             if (headRigidbody == null)
             {
                 SuperController.LogError(
                     "Easy Mate passenger: '" +
-                    femalePerson.uid +
+                    passengerPerson.uid +
                     "' has no head rigidbody.");
                 return;
             }
@@ -405,13 +400,13 @@ namespace geesp0t
                 superController.playerHeightAdjust;
 
             EasyMatePassengerHandPrePossessSnapshot
-                .CaptureHeadFromPersonBeforePassengerFollow(femalePerson);
+                .CaptureHeadFromPersonBeforePassengerFollow(passengerPerson);
 
-            _femalePassengerTargetPerson = femalePerson;
-            _femalePassengerHeadRigidbody = headRigidbody;
+            _passengerTargetPerson = passengerPerson;
+            _passengerHeadRigidbody = headRigidbody;
             _currentRotationVelocity = Quaternion.identity;
             _currentPositionVelocity = Vector3.zero;
-            _isFemalePassengerModeActive = true;
+            _isPassengerModeActive = true;
             _passengerVrHandsPossessionStartedThisSession = false;
             _waitingForInitialTeleportAfterHeadNeutralize = true;
             _initialHeadNeutralizeFramesRemaining =
@@ -419,7 +414,7 @@ namespace geesp0t
             _headNeutralizeDebugLogCount = 0;
 
             FreeControllerV3 headControl =
-                femalePerson.GetStorableByID("headControl") as FreeControllerV3;
+                passengerPerson.GetStorableByID("headControl") as FreeControllerV3;
             _preservedInitialHeadDownwardPitchDegrees =
                 GetPassengerDownwardPitchToPreserve(
                     headControl != null && headControl.control != null
@@ -435,12 +430,12 @@ namespace geesp0t
         private static void UpdatePassengerRuntime(
             SuperController superController)
         {
-            if (!_isFemalePassengerModeActive)
+            if (!_isPassengerModeActive)
             {
                 return;
             }
 
-            if (!IsPassengerPerson(_femalePassengerTargetPerson) || _femalePassengerHeadRigidbody == null)
+            if (!IsPassengerPerson(_passengerTargetPerson) || _passengerHeadRigidbody == null)
             {
                 RequestStopForPalmHud();
                 return;
@@ -462,7 +457,7 @@ namespace geesp0t
             }
 
             FreeControllerV3 headControl =
-                _femalePassengerTargetPerson.GetStorableByID("headControl") as FreeControllerV3;
+                _passengerTargetPerson.GetStorableByID("headControl") as FreeControllerV3;
             if (headControl != null && headControl.possessed)
             {
                 RequestStopForPalmHud();
@@ -515,7 +510,7 @@ namespace geesp0t
             bool activeThisTurn)
         {
             Transform navigationRig = superController.navigationRig;
-            if (navigationRig == null || _femalePassengerHeadRigidbody == null)
+            if (navigationRig == null || _passengerHeadRigidbody == null)
             {
                 return;
             }
@@ -560,8 +555,8 @@ namespace geesp0t
 
             Vector3 up = navigationRig.up;
             Vector3 targetPosition =
-                _femalePassengerHeadRigidbody.position +
-                _femalePassengerHeadRigidbody.transform.forward *
+                _passengerHeadRigidbody.position +
+                _passengerHeadRigidbody.transform.forward *
                 PositionOffsetZMeters;
 
             Vector3 positionOffset =
@@ -586,8 +581,8 @@ namespace geesp0t
                 SuperController.LogMessage(
                     "EasyMate DEBUG passenger first teleport: " +
                     "person=" +
-                    (_femalePassengerTargetPerson != null ?
-                        _femalePassengerTargetPerson.uid :
+                    (_passengerTargetPerson != null ?
+                        _passengerTargetPerson.uid :
                         "null") +
                     " hmdRot=" +
                     FormatEulerForDebug(
@@ -606,7 +601,7 @@ namespace geesp0t
                     FormatEulerForDebug(navigationRig.rotation) +
                     " charHeadRot=" +
                     FormatEulerForDebug(
-                        _femalePassengerHeadRigidbody.transform.rotation) +
+                        _passengerHeadRigidbody.transform.rotation) +
                     " hmdPos=" +
                     FormatVectorForDebug(
                         motionControllerHead != null ?
@@ -624,7 +619,7 @@ namespace geesp0t
                     FormatVectorForDebug(navigationRig.position) +
                     " charHeadPos=" +
                     FormatVectorForDebug(
-                        _femalePassengerHeadRigidbody.position) +
+                        _passengerHeadRigidbody.position) +
                     " playerHeightAdjustBefore=" +
                     playerHeightAdjustBefore.ToString("F4") +
                     " playerHeightAdjustAfter=" +
@@ -656,7 +651,7 @@ namespace geesp0t
             Transform motionControllerHead)
         {
             if (superController == null || motionControllerHead == null ||
-                _femalePassengerTargetPerson == null)
+                _passengerTargetPerson == null)
             {
                 return;
             }
@@ -668,16 +663,16 @@ namespace geesp0t
             }
 
             FreeControllerV3 torso =
-                _femalePassengerTargetPerson.GetStorableByID("chestControl") as FreeControllerV3;
+                _passengerTargetPerson.GetStorableByID("chestControl") as FreeControllerV3;
             if (torso == null || torso.control == null)
             {
                 torso =
-                    _femalePassengerTargetPerson.GetStorableByID("pelvisControl") as FreeControllerV3;
+                    _passengerTargetPerson.GetStorableByID("pelvisControl") as FreeControllerV3;
             }
             if (torso == null || torso.control == null)
             {
                 torso =
-                    _femalePassengerTargetPerson.GetStorableByID("abdomenControl") as FreeControllerV3;
+                    _passengerTargetPerson.GetStorableByID("abdomenControl") as FreeControllerV3;
             }
             if (torso == null || torso.control == null)
             {
@@ -784,20 +779,20 @@ namespace geesp0t
             return IsFemalePerson(atom) || IsMalePerson(atom);
         }
 
-        private static Rigidbody FindHeadRigidbody(Atom femalePerson)
+        private static Rigidbody FindHeadRigidbody(Atom passengerPerson)
         {
-            if (femalePerson == null ||
-                femalePerson.linkableRigidbodies == null)
+            if (passengerPerson == null ||
+                passengerPerson.linkableRigidbodies == null)
             {
                 return null;
             }
 
             for (int bodyIndex = 0;
-                bodyIndex < femalePerson.linkableRigidbodies.Length;
+                bodyIndex < passengerPerson.linkableRigidbodies.Length;
                 bodyIndex++)
             {
                 Rigidbody rigidbody =
-                    femalePerson.linkableRigidbodies[bodyIndex];
+                    passengerPerson.linkableRigidbodies[bodyIndex];
                 if (rigidbody != null && rigidbody.name == "head")
                 {
                     return rigidbody;
@@ -839,11 +834,11 @@ namespace geesp0t
         }
 
         private static void RestoreImprovedPoVForPassengerTarget(
-            Atom femalePerson)
+            Atom passengerPerson)
         {
             JSONStorable improvedPoVStorable =
                 FindPluginStorableByClassSuffix(
-                    femalePerson,
+                    passengerPerson,
                     ImprovedPoVClassSuffix);
             if (improvedPoVStorable == null)
             {
@@ -859,9 +854,9 @@ namespace geesp0t
             }
         }
 
-        private static void ScheduleDeferredImprovedPoVRestore(Atom femalePerson)
+        private static void ScheduleDeferredImprovedPoVRestore(Atom passengerPerson)
         {
-            if (_sessionPluginHost == null || femalePerson == null)
+            if (_sessionPluginHost == null || passengerPerson == null)
             {
                 return;
             }
@@ -869,7 +864,7 @@ namespace geesp0t
             try
             {
                 _sessionPluginHost.StartCoroutine(
-                    CoDeferImprovedPoVSkinRestoreKick(femalePerson));
+                    CoDeferImprovedPoVSkinRestoreKick(passengerPerson));
             }
             catch (Exception exception)
             {
@@ -880,16 +875,16 @@ namespace geesp0t
         }
 
         private static IEnumerator CoDeferImprovedPoVSkinRestoreKick(
-            Atom femalePerson)
+            Atom passengerPerson)
         {
             yield return null;
 
-            if (!IsFemalePerson(femalePerson))
+            if (!IsPassengerPerson(passengerPerson))
             {
                 yield break;
             }
 
-            RestoreImprovedPoVForPassengerTarget(femalePerson);
+            RestoreImprovedPoVForPassengerTarget(passengerPerson);
         }
 
         private static void TryStartPassengerVrHandsFromUserPress(
@@ -905,15 +900,15 @@ namespace geesp0t
                 return;
             }
 
-            if (_femalePassengerTargetPerson == null ||
-                string.IsNullOrEmpty(_femalePassengerTargetPerson.uid))
+            if (_passengerTargetPerson == null ||
+                string.IsNullOrEmpty(_passengerTargetPerson.uid))
             {
                 return;
             }
 
-            Atom resolvedFemalePerson =
-                superController.GetAtomByUid(_femalePassengerTargetPerson.uid);
-            if (!IsFemalePerson(resolvedFemalePerson))
+            Atom resolvedPassengerPerson =
+                superController.GetAtomByUid(_passengerTargetPerson.uid);
+            if (!IsPassengerPerson(resolvedPassengerPerson))
             {
                 return;
             }
@@ -921,9 +916,9 @@ namespace geesp0t
             _passengerVrHandsPossessionStartedThisSession = true;
 
             EasyMatePassengerHandPrePossessSnapshot.CaptureFromPersonBeforeHandPossess(
-                resolvedFemalePerson);
+                resolvedPassengerPerson);
             NotifyPassengerHandsPossessionTriggeredForPalmHud();
-            MainUIButtons.StartVrPassengerHandsRoutine(resolvedFemalePerson);
+            MainUIButtons.StartVrPassengerHandsRoutine(resolvedPassengerPerson);
         }
 
         private static JSONStorable FindPluginStorableByClassSuffix(
@@ -1096,8 +1091,8 @@ namespace geesp0t
                 "EasyMate DEBUG passenger head neutralize: phase=" +
                 phase +
                 " person=" +
-                (_femalePassengerTargetPerson != null ?
-                    _femalePassengerTargetPerson.uid :
+                (_passengerTargetPerson != null ?
+                    _passengerTargetPerson.uid :
                     "null") +
                 " currentWorld=" +
                 FormatEulerForDebug(headControl.control.rotation) +
@@ -1199,10 +1194,10 @@ namespace geesp0t
             upAxis = Vector3.up;
             Vector3 neutralForward = Vector3.zero;
 
-            if (_femalePassengerTargetPerson != null)
+            if (_passengerTargetPerson != null)
             {
                 FreeControllerV3 chest =
-                    _femalePassengerTargetPerson.GetStorableByID(
+                    _passengerTargetPerson.GetStorableByID(
                         "chestControl") as FreeControllerV3;
                 if (chest != null && chest.control != null)
                 {
@@ -1220,7 +1215,7 @@ namespace geesp0t
                 if (neutralForward.sqrMagnitude < 1e-10f)
                 {
                     FreeControllerV3 pelvis =
-                        _femalePassengerTargetPerson.GetStorableByID(
+                        _passengerTargetPerson.GetStorableByID(
                             "pelvisControl") as FreeControllerV3;
                     if (pelvis != null && pelvis.control != null)
                     {
@@ -1239,7 +1234,7 @@ namespace geesp0t
                 if (neutralForward.sqrMagnitude < 1e-10f)
                 {
                     FreeControllerV3 abdomen =
-                        _femalePassengerTargetPerson.GetStorableByID(
+                        _passengerTargetPerson.GetStorableByID(
                             "abdomenControl") as FreeControllerV3;
                     if (abdomen != null && abdomen.control != null)
                     {
@@ -1257,12 +1252,12 @@ namespace geesp0t
 
                 if (neutralForward.sqrMagnitude < 1e-10f)
                 {
-                    upAxis = _femalePassengerTargetPerson.transform.up;
+                    upAxis = _passengerTargetPerson.transform.up;
                     if (upAxis.sqrMagnitude < 1e-10f)
                         upAxis = Vector3.up;
                     upAxis.Normalize();
                     neutralForward = Vector3.ProjectOnPlane(
-                        _femalePassengerTargetPerson.transform.forward,
+                        _passengerTargetPerson.transform.forward,
                         upAxis);
                     if (neutralForward.sqrMagnitude >= 1e-10f)
                         sourceName = "person.transform.forward";
@@ -1270,14 +1265,14 @@ namespace geesp0t
             }
 
             if (neutralForward.sqrMagnitude < 1e-10f &&
-                _femalePassengerHeadRigidbody != null)
+                _passengerHeadRigidbody != null)
             {
-                upAxis = _femalePassengerHeadRigidbody.transform.up;
+                upAxis = _passengerHeadRigidbody.transform.up;
                 if (upAxis.sqrMagnitude < 1e-10f)
                     upAxis = Vector3.up;
                 upAxis.Normalize();
                 neutralForward = Vector3.ProjectOnPlane(
-                    _femalePassengerHeadRigidbody.transform.forward,
+                    _passengerHeadRigidbody.transform.forward,
                     upAxis);
                 if (neutralForward.sqrMagnitude >= 1e-10f)
                     sourceName = "headRigidbody.forward";
@@ -1300,11 +1295,11 @@ namespace geesp0t
             out string sourceName)
         {
             sourceName = "none";
-            if (_femalePassengerHeadRigidbody == null)
+            if (_passengerHeadRigidbody == null)
                 return Quaternion.identity;
 
             Quaternion headRotationWithOffset =
-                _femalePassengerHeadRigidbody.transform.rotation *
+                _passengerHeadRigidbody.transform.rotation *
                 Quaternion.Euler(
                     RotationOffsetXDegrees,
                     0f,

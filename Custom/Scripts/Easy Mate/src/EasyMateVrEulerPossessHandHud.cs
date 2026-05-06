@@ -101,7 +101,7 @@ namespace geesp0t
                 return;
             }
 
-            if (EasyMateFemalePassengerRuntime.IsPalmHandHudBlockedAfterPassengerHandsTrigger())
+            if (EasyMatePassengerRuntime.IsPalmHandHudBlockedAfterPassengerHandsTrigger())
             {
                 SetVisible(false);
                 return;
@@ -166,7 +166,7 @@ namespace geesp0t
             }
 
             bool possessed =
-                EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending() ||
+                EasyMatePassengerRuntime.IsPassengerModeActiveOrPending() ||
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed();
             if (possessed)
                 _genderChooseStepActive = false;
@@ -293,7 +293,7 @@ namespace geesp0t
             MainUIButtons.RequestPossessVrPalmHudByGender(true);
             _genderChooseStepActive = false;
             RefreshGenderVersusMainRows(
-                EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending() ||
+                EasyMatePassengerRuntime.IsPassengerModeActiveOrPending() ||
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
             DismissVaMOverlayUiIfAny();
         }
@@ -301,11 +301,10 @@ namespace geesp0t
         private static void InvokeGenderHomemChoice()
         {
             DismissVaMOverlayUiIfAny();
-            SuperController.LogMessage(
-                "Easy Mate: fluxo masculino desativado.");
+            MainUIButtons.RequestPossessVrPalmHudByGender(false);
             _genderChooseStepActive = false;
             RefreshGenderVersusMainRows(
-                EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending() ||
+                EasyMatePassengerRuntime.IsPassengerModeActiveOrPending() ||
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed());
             DismissVaMOverlayUiIfAny();
         }
@@ -319,10 +318,10 @@ namespace geesp0t
 
         private static void InvokePossessRowPrimaryAction()
         {
-            if (EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending() ||
+            if (EasyMatePassengerRuntime.IsPassengerModeActiveOrPending() ||
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed())
             {
-                EasyMateFemalePassengerRuntime.RequestStopForPalmHud();
+                EasyMatePassengerRuntime.RequestStopForPalmHud();
             }
             else if (MainUIButtons.VrPalmHudNeedsGenderChoiceStep())
             {

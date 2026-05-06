@@ -58,11 +58,11 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Palm HUD <b>Possuir</b> row (lower): face <b>A</b> / right Select.
+        /// Right face <b>A</b> / right Select confirmation input.
         /// OVR <c>RTouch</c> <see cref="OVRInput.Button.One"/>; OpenVR
         /// <see cref="SuperController.GetRightSelect"/>.
         /// </summary>
-        public static bool PollPalmHudPossessRowFaceADown(SuperController sc)
+        public static bool PollRightFaceADown(SuperController sc)
         {
             if (sc == null)
             {
@@ -85,6 +85,15 @@ namespace geesp0t
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Palm HUD <b>Possuir</b> row (lower): same as
+        /// <see cref="PollRightFaceADown"/>.
+        /// </summary>
+        public static bool PollPalmHudPossessRowFaceADown(SuperController sc)
+        {
+            return PollRightFaceADown(sc);
         }
 
         /// <summary>
@@ -131,11 +140,11 @@ namespace geesp0t
 
         /// <summary>
         /// Palm HUD gender row <b>Mulher (A)</b>: same as
-        /// <see cref="PollPalmHudPossessRowFaceADown"/> (face A / right Select).
+        /// <see cref="PollRightFaceADown"/> (face A / right Select).
         /// </summary>
         public static bool PollPalmHudMulherChoiceDown(SuperController sc)
         {
-            return PollPalmHudPossessRowFaceADown(sc);
+            return PollRightFaceADown(sc);
         }
 
         /// <summary>

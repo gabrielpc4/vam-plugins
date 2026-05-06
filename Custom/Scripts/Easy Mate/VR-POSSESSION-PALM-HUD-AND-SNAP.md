@@ -151,7 +151,6 @@ On clear:
 | Palm **Despossuir** | `true` |
 | **O** hotkey | `true` |
 | Over-head unpossess gesture (when enabled) | `true` |
-| **`EasyMatePossessFootDistanceAutoRelease`** | `true` |
 | Scene load cleanup in **`EasyMate.cs`** | **`false`** |
 
 ---
@@ -189,12 +188,9 @@ auto path for those flows. Set to **`true`** to restore old behavior.
 
 ## 8. Other related pieces
 
-- **`EasyMatePossessFootDistanceAutoRelease.cs`:** Optional auto-unpossess
-  when look camera moves too far from possessed person’s feet; calls
-  **`RequestClearAllPossession` with advance `true`**.
 - **Desktop / HUD:** Hotkeys (**P**, **O**, etc.) and any remaining world-space
-  buttons live in **`MainUIButtons`** (not duplicated here). Palm **Mulher** uses
-  the female runtime path (`EasyMateFemalePassengerRuntime`).
+  buttons live in **`MainUIButtons`** (not duplicated here). Palm **Mulher** and
+  **Homem** use the shared passenger runtime path (`EasyMatePassengerRuntime`).
 
 ---
 
@@ -207,7 +203,6 @@ auto path for those flows. Set to **`true`** to restore old behavior.
 | Possess / snap / palm API / clear | `src/MainUIButtons.cs` |
 | VR face/menu/select polling | `src/EasyMateVrInput.cs` |
 | Over-head + dual-hand modules | `src/EasyMateVrGestureRuntime.cs` |
-| Foot-distance unpossess | `src/EasyMatePossessFootDistanceAutoRelease.cs` |
 | Calls `HandHud.Tick` | `src/EasyMate.cs` |
 | Plugin file list | `EasyMate.cslist` |
 

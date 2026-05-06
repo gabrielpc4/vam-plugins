@@ -7,7 +7,7 @@ src/EasyMateGripHandVisibility.cs
 src/EasyMateMonitorModeLaserRestore.cs
 src/EasyMateMotionAnimationEmotionEnd.cs
 ../AutoMate/SESSION_PLUGINS/src/EasyMate_VR_Head_Cylinder_Hide.cs
-src/EasyMateFemalePassengerRuntime.cs
+src/EasyMatePassengerRuntime.cs
 src/EasyMatePassengerHandPrePossessSnapshot.cs
 src/EasyMatePassengerPossessableNarrow.cs
 src/EasyMateOverlapFullGrabRelease.cs
@@ -16,4 +16,3 @@ src/EasyMateVrEulerPossessPoseCheck.cs
 src/EasyMateVrGestureRuntime.cs
 src/MainUIButtons.cs
 src/EasyMateVrEulerPossessHandHud.cs
-src/EasyMatePossessFootDistanceAutoRelease.cs

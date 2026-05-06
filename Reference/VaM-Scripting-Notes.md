@@ -78,7 +78,7 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
 
   - **Spankings:** Toggle label **`+ `** / **`- `** + **`Spankings Male`** when every `Person` has the Spankings plugin filename; row 3 **Remove Spankings** clears the plugin from all Persons. Hotkey **Ctrl+Shift+S** still toggles the same merge/remove behavior.
   - **E‑Motion:** **Lite**, **Original**, **Final**, **Remove E‑Motion**; **`TryReplaceEmotionFamilyWithExactPath`** enforces one family pack per merge. Row 4 **E‑Motion M** / **E‑Motion F** are gender-specific merge entry points.
-  - **VR palm HUD / hotkeys:** Rig alignment, female/male targeting cycles, and related clears live in **`MainUIButtons`**, **`EasyMateVrEulerPossessHandHud`**, and **`EasyMateFemalePassengerRuntime`** — see **`Custom/Scripts/Easy Mate/VR-POSSESSION-PALM-HUD-AND-SNAP.md`**.
+  - **VR palm HUD / hotkeys:** Rig alignment, female/male targeting cycles, and related clears live in **`MainUIButtons`**, **`EasyMateVrEulerPossessHandHud`**, and **`EasyMatePassengerRuntime`** — see **`Custom/Scripts/Easy Mate/VR-POSSESSION-PALM-HUD-AND-SNAP.md`**.
   - **Remove All Clothes / Remove underwear:** Same `DAZCharacterSelector` logic as before (`StripAllClothesOnAllPersons`, `RemoveUnderwearOnAllPersons`).
   - Shared plugin path: `GetJSON` → normalize paths → `LateRestoreFromJSON`; empty plugin set uses empty `PluginManager` JSON.
   - **`Show UI` / `Hide UI`:** Toggle **only** MainUIButtons HUD elements (not `VaMLogClipboardHud`).
@@ -810,7 +810,7 @@ Likely touch points for tweaks:
 
 ### 4. Rig alignment, palm HUD targets, and head-zone hide
 
-**Status:** Use **`MainUIButtons`**, **`EasyMateVrEulerPossessHandHud`**, and **`EasyMateFemalePassengerRuntime`** for current VR entry points; see **`VR-POSSESSION-PALM-HUD-AND-SNAP.md`**. **`EasyMateVrHeadCylinderHide`** applies temporary face/material hide when the HMD is inside a Person head cylinder on VR eye cameras (Easy Mate storables **VR head proximity hide**); it does not depend on navigation-rig alignment.
+**Status:** Use **`MainUIButtons`**, **`EasyMateVrEulerPossessHandHud`**, and **`EasyMatePassengerRuntime`** for current VR entry points; see **`VR-POSSESSION-PALM-HUD-AND-SNAP.md`**. **`EasyMateVrHeadCylinderHide`** applies temporary face/material hide when the HMD is inside a Person head cylinder on VR eye cameras (Easy Mate storables **VR head proximity hide**); it does not depend on navigation-rig alignment.
 
 Likely touch points for polish:
 
@@ -1176,7 +1176,7 @@ When implementing later, revisit these first:
 
 - `Custom/Scripts/Easy Mate/src/MainUIButtons.cs`
   - world-space HUD on `mainHUD` (columns 1–3; see grid in **Easy Mate** section)
-  - merge-add / remove plugins; **Remove All Clothes** / **Remove underwear**; **E‑Motion M/F**; Spankings toggles; VR palm HUD and female runtime wiring (`EasyMateVrEulerPossessHandHud`, **`EasyMateFemalePassengerRuntime`**)
+  - merge-add / remove plugins; **Remove All Clothes** / **Remove underwear**; **E‑Motion M/F**; Spankings toggles; VR palm HUD and passenger runtime wiring (`EasyMateVrEulerPossessHandHud`, **`EasyMatePassengerRuntime`**)
 - `Custom/Scripts/Easy Mate/src/VaMLogClipboardHud.cs`
   - separate `.cslist`; **Copy Errors** / **Copy Console** / **Clear logs** aligned to HUD column 0
 

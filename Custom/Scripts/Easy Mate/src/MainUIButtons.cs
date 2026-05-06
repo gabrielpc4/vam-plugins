@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
@@ -363,14 +363,14 @@ namespace geesp0t
             {
                 try
                 {
-                    EasyMateFemalePassengerRuntime.RequestStopForPalmHud();
+                    EasyMatePassengerRuntime.RequestStopForPalmHud();
                     SuperController.LogMessage(
-                        "Easy Mate: O — stopped female Passenger mode.");
+                        "Easy Mate: O — stopped Passenger mode.");
                 }
                 catch (Exception e)
                 {
                     SuperController.LogError(
-                        "O hotkey (stop female Passenger): " + e);
+                        "O hotkey (stop Passenger): " + e);
                 }
 
                 return;
@@ -665,7 +665,7 @@ namespace geesp0t
                 EasyMateGripHandVisibility.IsAnyPersonHeadOrHandPossessed();
             StopAutoPossessRoutine();
             EasyMateVrHeadCylinderHide.RestoreTransientHeadHideState();
-            EasyMateFemalePassengerRuntime.StopPassengerMode();
+            EasyMatePassengerRuntime.StopPassengerMode();
             sc.ClearPossess();
             EasyMatePassengerHandPrePossessSnapshot.RestoreAfterPossessClearThenDiscardSnapshot();
             UnlinkStrayHmdLinkedFreeControllersAndNaturalizeHeads(sc);
@@ -830,7 +830,7 @@ namespace geesp0t
                     return;
                 }
 
-                EasyMateFemalePassengerRuntime.RequestStartForFemale(
+                EasyMatePassengerRuntime.RequestStartForFemale(
                     femaleTarget);
                 return;
             }
@@ -844,7 +844,29 @@ namespace geesp0t
                 return;
             }
 
-            EasyMateFemalePassengerRuntime.RequestStartForMale(maleTarget);
+            EasyMatePassengerRuntime.RequestStartForMale(maleTarget);
+        }
+
+        public static bool RequestPassengerForSpecificPerson(Atom targetPerson)
+        {
+            if (targetPerson == null || targetPerson.type != "Person")
+            {
+                return false;
+            }
+
+            if (IsPersonFemale(targetPerson))
+            {
+                EasyMatePassengerRuntime.RequestStartForFemale(targetPerson);
+                return true;
+            }
+
+            if (IsMalePerson(targetPerson))
+            {
+                EasyMatePassengerRuntime.RequestStartForMale(targetPerson);
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

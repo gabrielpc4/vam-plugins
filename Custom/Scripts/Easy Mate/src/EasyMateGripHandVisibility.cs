@@ -9,7 +9,7 @@ namespace geesp0t
     /// <summary>
     /// Quest squeeze / OpenVR HoldGrab: toggles Male2 vs sphere unless blocked
     /// (10s after VR euler possess, or while any Person head/hand is possessed,
-    /// or female passenger mode is active/pending — then <b>None</b> hand models,
+    /// or passenger mode is active/pending — then <b>None</b> hand models,
     /// no Spankings merge on grip).
     /// </summary>
     internal static class EasyMateGripHandVisibility
@@ -147,7 +147,7 @@ namespace geesp0t
         private static bool ShouldForceNoneVrHandProxies()
         {
             return AnyPersonHeadOrHandPossessed() ||
-                EasyMateFemalePassengerRuntime.IsPassengerModeActiveOrPending();
+                EasyMatePassengerRuntime.IsPassengerModeActiveOrPending();
         }
 
         /// <summary>
@@ -187,7 +187,7 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Name is historical: also used when female passenger mode hides proxies
+        /// Name is historical: also used when passenger mode hides proxies
         /// before possession flags flip.
         /// </summary>
         private static void ApplyNoneBothHandsWhilePossessed(SuperController sc)

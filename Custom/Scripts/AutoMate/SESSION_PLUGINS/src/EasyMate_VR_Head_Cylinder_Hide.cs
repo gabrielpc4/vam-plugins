@@ -282,7 +282,7 @@ namespace geesp0t
             if (_hideHandlerPerson == null || !_handlersConfigured)
                 return;
 
-            if (EasyMateFemalePassengerRuntime.ShouldSuppressVrHeadProximityHideForPerson(_hideHandlerPerson))
+            if (ShouldSuppressForPassengerImprovedPoV(_hideHandlerPerson))
                 return;
 
             FreeControllerV3 heldHead = _hideHandlerPerson.GetStorableByID("headControl") as FreeControllerV3;
@@ -312,7 +312,7 @@ namespace geesp0t
             {
                 if (a == null || a.type != "Person" || !a.gameObject.activeInHierarchy || a.hidden)
                     continue;
-                if (EasyMateFemalePassengerRuntime.ShouldSuppressVrHeadProximityHideForPerson(a))
+                if (ShouldSuppressForPassengerImprovedPoV(a))
                     continue;
                 FreeControllerV3 head = a.GetStorableByID("headControl") as FreeControllerV3;
                 if (head == null || head.control == null)
@@ -330,6 +330,72 @@ namespace geesp0t
 
             headOut = bestHead;
             return bestPerson;
+        }
+
+        private static bool ShouldSuppressForPassengerImprovedPoV(Atom person)
+        {
+            if (person == null)
+                return false;
+
+            JSONStorable improvedPoVStorable =
+                FindPluginStorableByClassSuffix(person, "ImprovedPoV");
+            if (improvedPoVStorable == null)
+                return false;
+
+            JSONStorableBool hideFaceBool =
+                improvedPoVStorable.GetBoolJSONParam("Hide face");
+            JSONStorableBool hideHairBool =
+                improvedPoVStorable.GetBoolJSONParam("Hide hair");
+            JSONStorableBool possessedOnlyBool =
+                improvedPoVStorable.GetBoolJSONParam("Activate only when possessed");
+
+            if (possessedOnlyBool == null || possessedOnlyBool.val)
+                return false;
+
+            bool hideFace = hideFaceBool != null && hideFaceBool.val;
+            bool hideHair = hideHairBool != null && hideHairBool.val;
+            return hideFace || hideHair;
+        }
+
+        private static JSONStorable FindPluginStorableByClassSuffix(
+            Atom atom,
+            string classSuffix)
+        {
+            if (atom == null || string.IsNullOrEmpty(classSuffix))
+            {
+                return null;
+            }
+
+            List<string> storableIds = atom.GetStorableIDs();
+            if (storableIds == null)
+            {
+                return null;
+            }
+
+            for (int storableIndex = 0;
+                storableIndex < storableIds.Count;
+                storableIndex++)
+            {
+                string storableId = storableIds[storableIndex];
+                if (string.IsNullOrEmpty(storableId))
+                {
+                    continue;
+                }
+
+                if (!storableId.StartsWith("plugin#", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (!storableId.EndsWith(classSuffix, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                return atom.GetStorableByID(storableId);
+            }
+
+            return null;
         }
 
         private static void RegisterHooks()

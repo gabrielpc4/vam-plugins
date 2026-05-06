@@ -681,6 +681,7 @@ namespace octopussy
             AudioSource hs = headAudio.audioSource;
             string clipName = hs.clip != null ? hs.clip.name : "none";
             return "isPlaying=" + hs.isPlaying +
+                ", loop=" + hs.loop +
                 ", clip=" + clipName +
                 ", volume=" + hs.volume.ToString("F3") +
                 ", pitch=" + hs.pitch.ToString("F3");
@@ -721,6 +722,15 @@ namespace octopussy
             }
 
             AudioSource hs = headAudio.audioSource;
+            if (hs.loop)
+            {
+                LogMoanDebug(
+                    "headAudio.loop was true before moan attempt; forcing false; "
+                    + "source=" + sourceTag +
+                    "; trigger=" + triggerDetail +
+                    "; headAudio(before)=" + DescribeCurrentHeadAudio());
+                hs.loop = false;
+            }
             voiceRand.playNow = playMoansHighPriority.val;
             bool wasPlayingBeforeAttempt = hs.isPlaying;
             string clipBeforeAttempt = hs.clip != null ? hs.clip.name : "none";

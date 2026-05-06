@@ -40,14 +40,6 @@ namespace geesp0t
 
         private Coroutine _pathRuleEmotionMergeCo;
 
-        private Coroutine _spankingsAutoMergeProximityCo;
-
-        private bool _spankingsAutoMergeCompletedThisScene;
-
-        private const float SpankingsAutoMergePollSeconds = 0.2f;
-
-        private const float SpankingsAutoMergeDistanceMeters = 0.16f;
-
         public JSONStorableAction hideUI;
         public JSONStorableAction showUI;
 
@@ -194,116 +186,9 @@ namespace geesp0t
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
 
+            EasyMateSpankingsHandNearAutoLoad.Initialize(this, mainUIButtons);
             EasyMateGripHandVisibility.SetOnMale2HandsEnabled(
-                StartSpankingsAutoMergeProximityCheck);
-        }
-
-        private void ResetSpankingsAutoMergeStateForScene()
-        {
-            _spankingsAutoMergeCompletedThisScene = false;
-            if (_spankingsAutoMergeProximityCo != null)
-            {
-                StopCoroutine(_spankingsAutoMergeProximityCo);
-                _spankingsAutoMergeProximityCo = null;
-            }
-        }
-
-        private void StartSpankingsAutoMergeProximityCheck()
-        {
-            if (mainUIButtons == null || _spankingsAutoMergeCompletedThisScene)
-                return;
-            if (EasyMateSpankingsGripBlockPathKeywords
-                .CurrentSceneBlocksGripSpankingsMerge())
-            {
-                _spankingsAutoMergeCompletedThisScene = true;
-                return;
-            }
-            if (!EasyMateGripHandVisibility.IsAnyPreferredHandArticulated())
-                return;
-            if (!mainUIButtons.AnyFemalePersonMissingSpankings())
-            {
-                _spankingsAutoMergeCompletedThisScene = true;
-                return;
-            }
-            if (_spankingsAutoMergeProximityCo != null)
-                return;
-            _spankingsAutoMergeProximityCo =
-                StartCoroutine(CoWaitForHandNearFemaleThenMergeSpankings());
-        }
-
-        private IEnumerator CoWaitForHandNearFemaleThenMergeSpankings()
-        {
-            try
-            {
-                while (true)
-                {
-                    if (mainUIButtons == null ||
-                        _spankingsAutoMergeCompletedThisScene)
-                    {
-                        yield break;
-                    }
-
-                    if (EasyMateSpankingsGripBlockPathKeywords
-                        .CurrentSceneBlocksGripSpankingsMerge())
-                    {
-                        _spankingsAutoMergeCompletedThisScene = true;
-                        yield break;
-                    }
-
-                    if (!EasyMateGripHandVisibility
-                        .IsAnyPreferredHandArticulated())
-                    {
-                        yield break;
-                    }
-
-                    if (!mainUIButtons.AnyFemalePersonMissingSpankings())
-                    {
-                        _spankingsAutoMergeCompletedThisScene = true;
-                        yield break;
-                    }
-
-                    if (!mainUIButtons
-                        .AnyFemalePersonWithinControllerHandDistance(
-                            SpankingsAutoMergeDistanceMeters))
-                    {
-                        yield return new WaitForSeconds(
-                            SpankingsAutoMergePollSeconds);
-                        continue;
-                    }
-
-                    mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
-                    yield return new WaitForSeconds(4f);
-
-                    if (mainUIButtons == null)
-                        yield break;
-                    if (EasyMateSpankingsGripBlockPathKeywords
-                        .CurrentSceneBlocksGripSpankingsMerge())
-                    {
-                        _spankingsAutoMergeCompletedThisScene = true;
-                        yield break;
-                    }
-                    if (!EasyMateGripHandVisibility
-                        .IsAnyPreferredHandArticulated())
-                    {
-                        yield break;
-                    }
-
-                    if (mainUIButtons.AnyFemalePersonMissingSpankings())
-                    {
-                        mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
-                        yield return new WaitForSeconds(
-                            SpankingsAutoMergePollSeconds);
-                        continue;
-                    }
-
-                    _spankingsAutoMergeCompletedThisScene = true;
-                    yield break;
-                }
-            }
-            finally
-            {
-                _spankingsAutoMergeProximityCo = null;
-            }
+                EasyMateSpankingsHandNearAutoLoad.NotifyMale2HandsEnabled);
         }
 
         private void OnHeadProximityHideChanged(bool v)
@@ -372,7 +257,7 @@ namespace geesp0t
             if (headProximityHide != null)
                 EasyMateVrHeadCylinderHide.SetHeadProximityHideEnabled(headProximityHide.val, this);
             StartCoroutine(CoRefreshHeadProximityHooksAfterStartFrames());
-            ResetSpankingsAutoMergeStateForScene();
+            EasyMateSpankingsHandNearAutoLoad.ResetForScene();
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
             EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
             ApplyDefaultMonitorCameraFovIfNeeded();
@@ -727,7 +612,7 @@ namespace geesp0t
                 ApplyRemoteHoldGrabPreference();
                 ApplyDefaultMonitorCameraFovIfNeeded();
                 EasyMateVrInput.ResetEdgeState();
-                ResetSpankingsAutoMergeStateForScene();
+                EasyMateSpankingsHandNearAutoLoad.ResetForScene();
                 EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
 
                 if (headProximityHide != null)
@@ -783,13 +668,8 @@ namespace geesp0t
                 _pathRuleEmotionMergeCo = null;
             }
 
-            if (_spankingsAutoMergeProximityCo != null)
-            {
-                StopCoroutine(_spankingsAutoMergeProximityCo);
-                _spankingsAutoMergeProximityCo = null;
-            }
-
             EasyMateGripHandVisibility.SetOnMale2HandsEnabled(null);
+            EasyMateSpankingsHandNearAutoLoad.OnDestroy();
             EasyMateMonitorModeLaserRestore.OnPluginDestroy();
             EasyMateVrEulerPossessHandHud.OnPluginDestroy();
             EasyMateFemalePassengerRuntime.OnPluginDestroy();

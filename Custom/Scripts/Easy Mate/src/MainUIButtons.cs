@@ -12,8 +12,10 @@ using SimpleJSON;
 
 namespace geesp0t
 {
-    // World-space HUD: Ctrl+Shift+S = toggle Spankings off / merge onto Persons
-    // missing it; Possess+Align+Select (F/M/P) merges Spankings onto other
+    // World-space HUD: <b>Shift+S</b> merges Spankings onto female Persons that
+    // do not already have the plugin; HUD <b>+/- Spankings Male</b> still toggles
+    // merge/remove all Persons. Possess+Align+Select (F/M/P) merges Spankings onto
+    // other
     // Persons
     // missing it when at least one possessed hand on the target; F = freeze
     // animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR,
@@ -279,9 +281,10 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Call from session plugin <c>Update</c>. <b>Ctrl+Shift+S</b>
-        /// toggles Spankings (same as HUD <b>+/- Spankings Male</b>): removes when
-        /// everyone has it; otherwise merges onto Persons that do not.
+        /// Call from session plugin <c>Update</c>. <b>Shift+S</b> (no Ctrl/Alt)
+        /// merges Spankings onto every <b>female</b> Person that does not already
+        /// have the plugin (<see cref="MergeSpankingsOnFemalePersonsOnly"/>);
+        /// updates the Spankings HUD button label.
         /// <b>Y</b> logs look camera / HMD-related poses (debounced ~0.35s).
         /// With Oculus or OpenVR active, hold <b>Shift+Y</b> so the controller
         /// Y binding does not spam logs; <c>XRSettings.enabled</c> alone is not
@@ -326,16 +329,23 @@ namespace geesp0t
                 return;
 
             if (Input.GetKeyDown(KeyCode.S) &&
-                (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) &&
-                (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+                (Input.GetKey(KeyCode.LeftShift) ||
+                    Input.GetKey(KeyCode.RightShift)) &&
+                !Input.GetKey(KeyCode.LeftControl) &&
+                !Input.GetKey(KeyCode.RightControl) &&
+                !Input.GetKey(KeyCode.LeftAlt) &&
+                !Input.GetKey(KeyCode.RightAlt))
             {
                 try
                 {
-                    ToggleSpankingsPluginOnAllPersons();
+                    MergeSpankingsOnFemalePersonsOnly();
+                    RefreshPluginToggleLabels();
                 }
                 catch (Exception e)
                 {
-                    SuperController.LogError("Ctrl+Shift+S hotkey (Spankings toggle): " + e);
+                    SuperController.LogError(
+                        "Shift+S hotkey (Spankings merge females): "
+                        + e.Message);
                 }
 
                 return;
@@ -1681,7 +1691,7 @@ namespace geesp0t
             ToggleSpankingsPluginOnAllPersons();
         }
 
-        /// <summary>Merge or remove Spankings on every Person (HUD and <b>Ctrl+Shift+S</b>). When disabling (everyone had it): full remove + cleanup scene atoms. When enabling: merge only onto Persons missing the plugin (does not strip scene-loaded Spankings first).</summary>
+        /// <summary>Merge or remove Spankings on every Person (HUD). When disabling (everyone had it): full remove + cleanup scene atoms. When enabling: merge only onto Persons missing the plugin (does not strip scene-loaded Spankings first).</summary>
         private void ToggleSpankingsPluginOnAllPersons()
         {
             try

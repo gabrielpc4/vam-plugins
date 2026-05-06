@@ -10,9 +10,7 @@ namespace geesp0t
     /// Quest squeeze / OpenVR HoldGrab: toggles Male2 vs sphere unless blocked
     /// (10s after VR euler possess, or while any Person head/hand is possessed,
     /// or female passenger mode is active/pending — then <b>None</b> hand
-    /// models). When Male2 becomes active, Easy Mate can start a lightweight
-    /// proximity watcher that auto-loads Spankings only after a hand gets very
-    /// close to any female body.
+    /// models).
     /// </summary>
     internal static class EasyMateGripHandVisibility
     {
@@ -31,11 +29,9 @@ namespace geesp0t
         /// <summary>Until the user presses a VR grip this scene, sphere proxies stay non-colliding after scene reset.</summary>
         private static bool _vrGripUsedThisScene;
 
-        private static Action _onMale2HandsEnabled;
-
         /// <summary>
-        /// After VR euler possess start: no grip toggle or Male2-enabled auto-load
-        /// arming for 10s (see <see cref="NotifyVrEulerPossessTenSecondSuppress"/>).
+        /// After VR euler possess start: no grip toggle for 10s (see
+        /// <see cref="NotifyVrEulerPossessTenSecondSuppress"/>).
         /// </summary>
         private static float _suppressGripToggleUntilUnscaled;
 
@@ -48,15 +44,6 @@ namespace geesp0t
             SuperController sc = SuperController.singleton;
             ApplyNoneBothControls(sc);
             QueueApplyHandsEndOfFrame(sc);
-        }
-
-        /// <summary>
-        /// Called from <see cref="EasyMate.Init"/>; fires when grip toggles from
-        /// non-Male2 state into any articulated Male2 hand state.
-        /// </summary>
-        public static void SetOnMale2HandsEnabled(Action onMale2HandsEnabled)
-        {
-            _onMale2HandsEnabled = onMale2HandsEnabled;
         }
 
         /// <summary>Re-apply after SuperController.Update / internal toggles (e.g. grab+trigger hand hide via <c>ToggleRightHandEnabled</c>).</summary>
@@ -113,8 +100,8 @@ namespace geesp0t
 
             _vrGripUsedThisScene = true;
 
-            // Toggle both hands in lockstep (show both Male2 when going articulated) — per-side still respects possession.
-            bool wasAnyArticulated = _leftArticulated || _rightArticulated;
+            // Toggle both hands in lockstep (show both Male2 when going articulated)
+            // — per-side still respects possession.
             bool nextBothArticulated = !(_leftArticulated && _rightArticulated);
             if (nextBothArticulated)
             {
@@ -126,9 +113,6 @@ namespace geesp0t
                 _leftArticulated = false;
                 _rightArticulated = false;
             }
-
-            if (!wasAnyArticulated && (_leftArticulated || _rightArticulated))
-                NotifyMale2HandsEnabled();
 
             ApplyBothControls(sc);
             QueueApplyHandsEndOfFrame(sc);
@@ -235,31 +219,6 @@ namespace geesp0t
             bool noGripYetNoArticulated =
                 !_vrGripUsedThisScene && !_leftArticulated && !_rightArticulated;
             h.useCollision = !noGripYetNoArticulated;
-        }
-
-        /// <summary>
-        /// True when grip-toggle currently exposes at least one articulated Male2
-        /// hand (the condition required for proximity-triggered Spankings auto-load).
-        /// </summary>
-        public static bool IsAnyPreferredHandArticulated()
-        {
-            return _leftArticulated || _rightArticulated;
-        }
-
-        private static void NotifyMale2HandsEnabled()
-        {
-            if (_onMale2HandsEnabled == null)
-                return;
-            try
-            {
-                _onMale2HandsEnabled();
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError(
-                    "EasyMateGripHandVisibility: Male2 enabled callback: " +
-                    e.Message);
-            }
         }
 
         private static void ApplyBothControls(SuperController sc)

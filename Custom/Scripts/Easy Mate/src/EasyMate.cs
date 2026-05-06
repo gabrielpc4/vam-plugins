@@ -58,13 +58,7 @@ namespace geesp0t
         /// toggles <b>both</b> sides together between articulated VR hands (<b>Male2</b>) and VaM’s sphere/kinematic hand mode
         /// (see <see cref="EasyMateGripHandVisibility"/>); while any <c>Person</c> head or hand is possessed, VR proxies use
         /// <b>None</b> (not sphere / not Male2). Collisions stay off while both
-        /// sides sphere. When grip first enables articulated <b>Male2</b> hands,
-        /// Easy Mate starts a lightweight timed proximity check (not every frame).
-        /// Once any controller hand gets very close to any female body, it merges
-        /// <b>Spankings</b> onto all female <c>Person</c> atoms missing it, then
-        /// 4 seconds later retries once if any female still lacks the plugin.
-        /// If <c>Custom/Scripts/Easy Mate/spankings_grip_merge_block_path_keywords.txt</c>
-        /// matches current load/save dirs, no automatic grip-hand Spankings logic runs.
+        /// sides sphere until the first VR grip toggles hand mode.
         /// </summary>
         public JSONStorableBool gripTogglesHandVisibility;
 
@@ -188,10 +182,6 @@ namespace geesp0t
 
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
-
-            EasyMateSpankingsHandNearAutoLoad.Initialize(this, mainUIButtons);
-            EasyMateGripHandVisibility.SetOnMale2HandsEnabled(
-                EasyMateSpankingsHandNearAutoLoad.NotifyMale2HandsEnabled);
         }
 
         private void OnHeadProximityHideChanged(bool v)
@@ -260,7 +250,6 @@ namespace geesp0t
             if (headProximityHide != null)
                 EasyMateVrHeadCylinderHide.SetHeadProximityHideEnabled(headProximityHide.val, this);
             StartCoroutine(CoRefreshHeadProximityHooksAfterStartFrames());
-            EasyMateSpankingsHandNearAutoLoad.ResetForScene();
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
             CancelDelayedMocapEndDefaultScene();
             EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
@@ -644,7 +633,6 @@ namespace geesp0t
                 ApplyRemoteHoldGrabPreference();
                 ApplyDefaultMonitorCameraFovIfNeeded();
                 EasyMateVrInput.ResetEdgeState();
-                EasyMateSpankingsHandNearAutoLoad.ResetForScene();
                 EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
 
                 if (headProximityHide != null)
@@ -702,8 +690,6 @@ namespace geesp0t
                 _pathRuleEmotionMergeCo = null;
             }
 
-            EasyMateGripHandVisibility.SetOnMale2HandsEnabled(null);
-            EasyMateSpankingsHandNearAutoLoad.OnDestroy();
             EasyMateMonitorModeLaserRestore.OnPluginDestroy();
             EasyMateVrEulerPossessHandHud.OnPluginDestroy();
             EasyMateFemalePassengerRuntime.OnPluginDestroy();

@@ -2,8 +2,6 @@ src/EasyMate.cs
 src/EasyMateKSceneCameraPatch.cs
 src/EasyMateSameFolderCameraRetain.cs
 src/EasyMateEmotionPathKeywords.cs
-src/EasyMateSpankingsGripBlockPathKeywords.cs
-src/EasyMateSpankingsHandNearAutoLoad.cs
 src/EasyMateGripHandVisibility.cs
 src/EasyMateMonitorModeLaserRestore.cs
 src/EasyMateMotionAnimationEmotionEnd.cs

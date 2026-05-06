@@ -183,7 +183,7 @@ namespace geesp0t
                     ? longMocapMinSecondsForEmotionMerge.val
                     : 45f;
                 if (EasyMateMotionAnimationEmotionEnd
-                    .CurrentSceneUsesLongNonLoopMocap(mocapMinSec))
+                    .CurrentSceneBlocksGripSpankingsMerge(mocapMinSec))
                     return;
             }
             if (_mergeSpankingsAfterGripCo != null)
@@ -210,7 +210,7 @@ namespace geesp0t
                         ? longMocapMinSecondsForEmotionMerge.val
                         : 45f;
                     if (EasyMateMotionAnimationEmotionEnd
-                        .CurrentSceneUsesLongNonLoopMocap(mocapMinSec))
+                        .CurrentSceneBlocksGripSpankingsMerge(mocapMinSec))
                         yield break;
                 }
                 mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
@@ -228,7 +228,7 @@ namespace geesp0t
                         ? longMocapMinSecondsForEmotionMerge.val
                         : 45f;
                     if (EasyMateMotionAnimationEmotionEnd
-                        .CurrentSceneUsesLongNonLoopMocap(mocapMinSec))
+                        .CurrentSceneBlocksGripSpankingsMerge(mocapMinSec))
                         yield break;
                 }
                 if (mainUIButtons.AnyFemalePersonMissingSpankings())

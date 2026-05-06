@@ -93,6 +93,30 @@ namespace geesp0t
             coroutineHost.StartDelayedMocapEndDefaultScene();
         }
 
+        private static bool TryGetLongNonLoopMocapState(
+            float minClipLengthSeconds,
+            out SuperController sc,
+            out MotionAnimationMaster mam,
+            out float maxClip)
+        {
+            sc = SuperController.singleton;
+            mam = null;
+            maxClip = 0f;
+
+            if (sc == null || sc.isLoading)
+                return false;
+
+            mam = sc.motionAnimationMaster;
+            if (mam == null)
+                return false;
+
+            maxClip = GetMaxSceneMotionClipLength(sc);
+            if (maxClip < minClipLengthSeconds || maxClip < 0.01f)
+                return false;
+
+            return !mam.loop;
+        }
+
         /// <summary>
         /// Same scene qualification used by the delayed Default.json load:
         /// current scene is not a booty-shake exception, has scene motion,
@@ -102,22 +126,42 @@ namespace geesp0t
         internal static bool CurrentSceneUsesLongNonLoopMocap(
             float minClipLengthSeconds)
         {
-            SuperController sc = SuperController.singleton;
-            if (sc == null || sc.isLoading)
+            SuperController sc;
+            MotionAnimationMaster mam;
+            float maxClip;
+            if (!TryGetLongNonLoopMocapState(
+                minClipLengthSeconds,
+                out sc,
+                out mam,
+                out maxClip))
                 return false;
 
-            if (CurrentScenePathIndicatesBootyShake(sc))
+            return !CurrentScenePathIndicatesBootyShake(sc);
+        }
+
+        /// <summary>
+        /// Used by grip-triggered Spankings merge:
+        /// non-booty-shake long non-loop scenes always block; booty-shake
+        /// scenes block only until playback reaches the end of the clip.
+        /// </summary>
+        internal static bool CurrentSceneBlocksGripSpankingsMerge(
+            float minClipLengthSeconds)
+        {
+            SuperController sc;
+            MotionAnimationMaster mam;
+            float maxClip;
+            if (!TryGetLongNonLoopMocapState(
+                minClipLengthSeconds,
+                out sc,
+                out mam,
+                out maxClip))
                 return false;
 
-            MotionAnimationMaster mam = sc.motionAnimationMaster;
-            if (mam == null)
-                return false;
+            if (!CurrentScenePathIndicatesBootyShake(sc))
+                return true;
 
-            float maxClip = GetMaxSceneMotionClipLength(sc);
-            if (maxClip < minClipLengthSeconds || maxClip < 0.01f)
-                return false;
-
-            return !mam.loop;
+            float endEps = Mathf.Max(0.12f, 0.003f * maxClip);
+            return mam.playbackCounter < maxClip - endEps;
         }
 
         /// <summary>Called from <see cref="EasyMate"/> coroutine after delay.</summary>

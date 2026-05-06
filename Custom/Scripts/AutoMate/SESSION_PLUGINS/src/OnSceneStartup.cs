@@ -9,7 +9,8 @@ namespace geesp0t
     /// and forces AudioListener.pause so motion/sound do not run ahead of loaded assets.
     /// After the first full settle for a load, ignores later loading UI / icon-only activity (so streaming assets do not force exposure to 0 again).
     /// Re-arms when SuperController.isLoading becomes true (new VaM scene load).
-    /// Worst case: if the pause flag is still held for 30s (unscaled time), forces the same finish path as a normal settle.
+    /// Worst case: 30s (unscaled) after SuperController.isLoading becomes false — not from scene load start —
+    /// forces the same finish path as a normal settle if the pause flag is still held.
     /// Tick runs from LateUpdate so CoreControl JSON usually reflects the scene before we read exposure backup.
     /// </summary>
     public class OnSceneStartup
@@ -61,6 +62,7 @@ namespace geesp0t
         {
             SuperController superController = SuperController.singleton;
             bool superControllerIsLoadingNow = superController != null && superController.isLoading;
+            bool superControllerIsLoadingFellThisTick = lastSuperControllerIsLoading && !superControllerIsLoadingNow;
 
             if (superControllerIsLoadingNow && !lastSuperControllerIsLoading)
             {
@@ -68,6 +70,12 @@ namespace geesp0t
                 ReleaseSceneSettlePlaybackHold();
                 initialSceneLoadSettleWorkflowFinished = false;
                 wasSceneStillSettling = false;
+            }
+
+            if (superControllerIsLoadingFellThisTick && sceneSettleSimulationPauseAppliedToSuperController)
+            {
+                sceneSettlePauseHoldDeadlineUnscaledTime = Time.unscaledTime + sceneSettlePauseHoldTimeoutSeconds;
+                sceneSettlePauseHoldDeadlineActive = true;
             }
 
             lastSuperControllerIsLoading = superControllerIsLoadingNow;
@@ -88,7 +96,7 @@ namespace geesp0t
             {
                 if (Time.unscaledTime >= sceneSettlePauseHoldDeadlineUnscaledTime)
                 {
-                    SuperController.LogMessage("[OnSceneStartup] Scene settle pause exceeded " + sceneSettlePauseHoldTimeoutSeconds + "s timeout; forcing finish.");
+                    SuperController.LogMessage("[OnSceneStartup] Scene settle pause exceeded " + sceneSettlePauseHoldTimeoutSeconds + "s after isLoading cleared; forcing finish.");
                     FinishSceneSettleExposureThenReleasePlaybackHold();
                     settleEndedThisTick = true;
                     initialSceneLoadSettleWorkflowFinished = true;
@@ -160,8 +168,16 @@ namespace geesp0t
             sceneSettlePauseAsyncFlag.Lower();
             superController.PauseSimulation(sceneSettlePauseAsyncFlag, true);
             sceneSettleSimulationPauseAppliedToSuperController = true;
-            sceneSettlePauseHoldDeadlineUnscaledTime = Time.unscaledTime + sceneSettlePauseHoldTimeoutSeconds;
-            sceneSettlePauseHoldDeadlineActive = true;
+
+            if (!superController.isLoading)
+            {
+                sceneSettlePauseHoldDeadlineUnscaledTime = Time.unscaledTime + sceneSettlePauseHoldTimeoutSeconds;
+                sceneSettlePauseHoldDeadlineActive = true;
+            }
+            else
+            {
+                sceneSettlePauseHoldDeadlineActive = false;
+            }
         }
 
         void MaintainSceneSettleAudioPauseDuringTick()

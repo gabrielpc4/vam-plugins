@@ -47,16 +47,6 @@ namespace geesp0t
 
         private const float sceneSettlePauseHoldTimeoutSeconds = 30f;
 
-        private const float onSceneStartupDiagLogIntervalSeconds = 1f;
-
-        private const float onSceneStartupDiagExposureChangeEpsilon = 0.00002f;
-
-        private float lastOnSceneStartupDiagPeriodicUnscaledTime;
-
-        private float lastOnSceneStartupDiagLoggedCamExposure;
-
-        private bool lastOnSceneStartupDiagLoggedCamExposureInitialized;
-
         static AsyncFlag GetSharedSceneSettlePauseAsyncFlag()
         {
             if (sharedSceneSettlePauseAsyncFlag == null)
@@ -70,8 +60,6 @@ namespace geesp0t
         /// <summary>Returns true the first tick after VaM&apos;s loading/settle UI has cleared — playback hold was released.</summary>
         public bool TickDuringSuperControllerLoad()
         {
-            bool wasWorkflowSettlingAtTickStart = wasSceneStillSettling;
-
             SuperController superController = SuperController.singleton;
             bool superControllerIsLoadingNow = superController != null && superController.isLoading;
             bool superControllerIsLoadingFellThisTick = lastSuperControllerIsLoading && !superControllerIsLoadingNow;
@@ -96,24 +84,18 @@ namespace geesp0t
 
             bool settleEndedThisTick = false;
 
-            bool diagnosticIdleSafetyReleasedThisTick = false;
-
             if (!rawSceneSettlingIndicatorsActive && !superControllerIsLoadingNow && sceneSettleSimulationPauseAppliedToSuperController)
             {
-                diagnosticIdleSafetyReleasedThisTick = true;
                 FinishSceneSettleExposureThenReleasePlaybackHold();
                 wasSceneStillSettling = false;
                 initialSceneLoadSettleWorkflowFinished = true;
                 settleEndedThisTick = true;
             }
 
-            bool diagnosticTimeoutFinishedThisTick = false;
-
             if (sceneSettleSimulationPauseAppliedToSuperController && sceneSettlePauseHoldDeadlineActive)
             {
                 if (Time.unscaledTime >= sceneSettlePauseHoldDeadlineUnscaledTime)
                 {
-                    diagnosticTimeoutFinishedThisTick = true;
                     SuperController.LogMessage("[OnSceneStartup] Scene settle pause exceeded " + sceneSettlePauseHoldTimeoutSeconds + "s after isLoading cleared; forcing finish.");
                     FinishSceneSettleExposureThenReleasePlaybackHold();
                     settleEndedThisTick = true;
@@ -152,17 +134,6 @@ namespace geesp0t
             }
 
             wasSceneStillSettling = sceneSettlingForExposureWorkflow;
-
-            MaybeLogOnSceneStartupExposureDiagnostics(
-                superController,
-                superControllerIsLoadingNow,
-                superControllerIsLoadingFellThisTick,
-                rawSceneSettlingIndicatorsActive,
-                sceneSettlingForExposureWorkflow,
-                wasWorkflowSettlingAtTickStart,
-                diagnosticIdleSafetyReleasedThisTick,
-                diagnosticTimeoutFinishedThisTick,
-                settleEndedThisTick);
 
             return settleEndedThisTick;
         }
@@ -257,168 +228,6 @@ namespace geesp0t
                 AudioListener.pause = savedAudioListenerPauseBeforeSceneSettleHold;
                 audioPauseSnapshotCapturedForSceneSettleHold = false;
             }
-        }
-
-        void MaybeLogOnSceneStartupExposureDiagnostics(
-            SuperController superController,
-            bool superControllerIsLoadingNow,
-            bool superControllerIsLoadingFellThisTick,
-            bool rawSettlingCombined,
-            bool workflowSettling,
-            bool wasWorkflowSettlingAtTickStart,
-            bool idleSafetyThisTick,
-            bool timeoutFinishThisTick,
-            bool settleEndedThisTick)
-        {
-            JSONStorable globalLightingStorable = TryGetGlobalLightingStorable();
-            bool globalLightingOk = globalLightingStorable != null;
-            float camExposureReading = float.NaN;
-
-            if (globalLightingOk)
-            {
-                camExposureReading = globalLightingStorable.GetFloatParamValue(camExposureParamName);
-            }
-
-            bool exposureReadingChanged = false;
-
-            if (globalLightingOk)
-            {
-                if (!lastOnSceneStartupDiagLoggedCamExposureInitialized)
-                {
-                    exposureReadingChanged = true;
-                    lastOnSceneStartupDiagLoggedCamExposureInitialized = true;
-                }
-                else if (Mathf.Abs(camExposureReading - lastOnSceneStartupDiagLoggedCamExposure) > onSceneStartupDiagExposureChangeEpsilon)
-                {
-                    exposureReadingChanged = true;
-                }
-            }
-
-            bool periodicLogDue = Time.unscaledTime - lastOnSceneStartupDiagPeriodicUnscaledTime >= onSceneStartupDiagLogIntervalSeconds;
-
-            if (!periodicLogDue && !exposureReadingChanged)
-            {
-                return;
-            }
-
-            if (periodicLogDue)
-            {
-                lastOnSceneStartupDiagPeriodicUnscaledTime = Time.unscaledTime;
-            }
-
-            if (globalLightingOk)
-            {
-                lastOnSceneStartupDiagLoggedCamExposure = camExposureReading;
-            }
-
-            string logKind;
-
-            if (exposureReadingChanged)
-            {
-                logKind = "CHANGE";
-            }
-            else
-            {
-                logKind = "EVERY_1S";
-            }
-
-            string rawBreakdownText = BuildRawSettlingIndicatorBreakdown(superController);
-            string forceZeroReasonText = "(none)";
-
-            if (workflowSettling)
-            {
-                forceZeroReasonText = "workflow -> Apply sets camExposure=0 (backup may update first)";
-            }
-
-            string restoreReasonText = "(none)";
-
-            if (timeoutFinishThisTick)
-            {
-                restoreReasonText = "timeout -> Finish (restore + Release)";
-            }
-            else if (idleSafetyThisTick)
-            {
-                restoreReasonText = "idle safety -> Finish (restore + Release)";
-            }
-            else if (settleEndedThisTick && !timeoutFinishThisTick && !idleSafetyThisTick)
-            {
-                restoreReasonText = "settle end -> Finish (restore + Release)";
-            }
-
-            string exposureIntentSummary;
-
-            if (workflowSettling)
-            {
-                exposureIntentSummary = "FORCE_0";
-            }
-            else if (idleSafetyThisTick || timeoutFinishThisTick || settleEndedThisTick)
-            {
-                exposureIntentSummary = "RESTORE_via_Finish";
-            }
-            else
-            {
-                exposureIntentSummary = "NO_TOUCH";
-            }
-
-            string deadlineSummaryText = "deadlineOff";
-
-            if (sceneSettlePauseHoldDeadlineActive)
-            {
-                deadlineSummaryText = string.Format(
-                    "deadlineOn now={0:F2} due={1:F2}",
-                    Time.unscaledTime,
-                    sceneSettlePauseHoldDeadlineUnscaledTime);
-            }
-
-            string camExposureReadingText;
-
-            if (globalLightingOk)
-            {
-                camExposureReadingText = camExposureReading.ToString("F6");
-            }
-            else
-            {
-                camExposureReadingText = "n/a";
-            }
-
-            string messageBody = string.Format(
-                "{0} camExposure={1} glOk={2} intent={3} forcePath:{4} restorePath:{5} | isLoading={6} loadFall={7} rawAll={8} [{9}] workflow={10} wasAtStart={11} oneShotDone={12} pauseOn={13} {14} backup={15} savedTarget={16}",
-                logKind,
-                camExposureReadingText,
-                globalLightingOk,
-                exposureIntentSummary,
-                forceZeroReasonText,
-                restoreReasonText,
-                superControllerIsLoadingNow,
-                superControllerIsLoadingFellThisTick,
-                rawSettlingCombined,
-                rawBreakdownText,
-                workflowSettling,
-                wasWorkflowSettlingAtTickStart,
-                initialSceneLoadSettleWorkflowFinished,
-                sceneSettleSimulationPauseAppliedToSuperController,
-                deadlineSummaryText,
-                camExposureBackupCaptured,
-                savedCamExposure);
-
-            string timeText = DateTime.Now.ToString("HH:mm:ss.fff");
-            SuperController.LogMessage("[OnSceneStartupDiag] " + timeText + " " + messageBody);
-        }
-
-        static string BuildRawSettlingIndicatorBreakdown(SuperController superController)
-        {
-            if (superController == null)
-            {
-                return "superController=null";
-            }
-
-            return string.Format(
-                "isLoading={0} UI={1} alt={2} geo={3} icon={4}",
-                superController.isLoading,
-                IsTransformActive(superController.loadingUI),
-                IsTransformActive(superController.loadingUIAlt),
-                IsTransformActive(superController.loadingGeometry),
-                IsTransformActive(superController.loadingIcon));
         }
 
         bool ShouldTreatSceneAsStillSettling()

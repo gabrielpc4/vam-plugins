@@ -9,6 +9,8 @@ namespace geesp0t
     /// and forces AudioListener.pause so motion/sound do not run ahead of loaded assets.
     /// After the first full settle for a load, ignores later loading UI / icon-only activity (so streaming assets do not force exposure to 0 again).
     /// Re-arms when SuperController.isLoading becomes true (new VaM scene load).
+    /// Uses one process-wide AsyncFlag so a plugin reload does not orphan a pause; flushes it on isLoading
+    /// rising edge and when VaM is idle but we still track an applied hold.
     /// Tick runs from LateUpdate so CoreControl JSON usually reflects the scene before we read exposure backup.
     /// </summary>
     public class OnSceneStartup
@@ -18,8 +20,9 @@ namespace geesp0t
         private bool camExposureBackupCaptured = false;
         private float savedCamExposure = 0f;
 
-        private AsyncFlag sceneSettleSimulationPauseFlag;
         private bool sceneSettleSimulationPauseAppliedToSuperController;
+
+        private static AsyncFlag sharedSceneSettlePauseAsyncFlag;
 
         private bool audioPauseSnapshotCapturedForSceneSettleHold;
         private bool savedAudioListenerPauseBeforeSceneSettleHold;
@@ -38,6 +41,16 @@ namespace geesp0t
 
         private const string sceneSettlePauseFlagDisplayName = "AutoMate OnSceneStartup scene settle";
 
+        static AsyncFlag GetSharedSceneSettlePauseAsyncFlag()
+        {
+            if (sharedSceneSettlePauseAsyncFlag == null)
+            {
+                sharedSceneSettlePauseAsyncFlag = new AsyncFlag(sceneSettlePauseFlagDisplayName);
+            }
+
+            return sharedSceneSettlePauseAsyncFlag;
+        }
+
         /// <summary>Returns true the first tick after VaM&apos;s loading/settle UI has cleared — playback hold was released.</summary>
         public bool TickDuringSuperControllerLoad()
         {
@@ -46,12 +59,24 @@ namespace geesp0t
 
             if (superControllerIsLoadingNow && !lastSuperControllerIsLoading)
             {
+                GetSharedSceneSettlePauseAsyncFlag().Raise();
+                ReleaseSceneSettlePlaybackHold();
                 initialSceneLoadSettleWorkflowFinished = false;
+                wasSceneStillSettling = false;
             }
 
             lastSuperControllerIsLoading = superControllerIsLoadingNow;
 
             bool rawSceneSettlingIndicatorsActive = ShouldTreatSceneAsStillSettling();
+
+            if (!rawSceneSettlingIndicatorsActive && !superControllerIsLoadingNow && sceneSettleSimulationPauseAppliedToSuperController)
+            {
+                GetSharedSceneSettlePauseAsyncFlag().Raise();
+                ReleaseSceneSettlePlaybackHold();
+                wasSceneStillSettling = false;
+                initialSceneLoadSettleWorkflowFinished = true;
+            }
+
             bool sceneSettlingForExposureWorkflow = rawSceneSettlingIndicatorsActive;
 
             if (initialSceneLoadSettleWorkflowFinished && !superControllerIsLoadingNow)
@@ -101,6 +126,7 @@ namespace geesp0t
                 SuperController.LogError("[OnSceneStartup] Restore camExposure in OnDestroy failed: " + destroyRestoreException);
             }
 
+            GetSharedSceneSettlePauseAsyncFlag().Raise();
             ReleaseSceneSettlePlaybackHold();
         }
 
@@ -112,13 +138,10 @@ namespace geesp0t
                 return;
             }
 
-            if (sceneSettleSimulationPauseFlag == null)
-            {
-                sceneSettleSimulationPauseFlag = new AsyncFlag(sceneSettlePauseFlagDisplayName);
-            }
-
-            sceneSettleSimulationPauseFlag.Lower();
-            superController.PauseSimulation(sceneSettleSimulationPauseFlag, true);
+            AsyncFlag sceneSettlePauseAsyncFlag = GetSharedSceneSettlePauseAsyncFlag();
+            sceneSettlePauseAsyncFlag.Raise();
+            sceneSettlePauseAsyncFlag.Lower();
+            superController.PauseSimulation(sceneSettlePauseAsyncFlag, true);
             sceneSettleSimulationPauseAppliedToSuperController = true;
         }
 
@@ -156,9 +179,9 @@ namespace geesp0t
 
         void ReleaseSceneSettlePlaybackHold()
         {
-            if (sceneSettleSimulationPauseAppliedToSuperController && sceneSettleSimulationPauseFlag != null)
+            if (sceneSettleSimulationPauseAppliedToSuperController)
             {
-                sceneSettleSimulationPauseFlag.Raise();
+                GetSharedSceneSettlePauseAsyncFlag().Raise();
                 sceneSettleSimulationPauseAppliedToSuperController = false;
             }
 

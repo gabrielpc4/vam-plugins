@@ -19,7 +19,6 @@ namespace geesp0t
 
         string[] sessionPlugins = new string[] {
             "Custom/Scripts/AutoMate/SESSION_PLUGINS/Auto_Load_Person_Plugins.cslist",
-            "Custom/Scripts/AutoMate/SESSION_PLUGINS/Auto_Load_Spankings_On_All_Female_Persons_Every_Scene.cslist",
             "Custom/Scripts/AutoMate/SESSION_PLUGINS/VrTriggerProximityStripClothing.cslist",
             "Custom/Scripts/LocalMp4Viewer/IntroSceneLocalMp4Bootstrap.cslist",
         };

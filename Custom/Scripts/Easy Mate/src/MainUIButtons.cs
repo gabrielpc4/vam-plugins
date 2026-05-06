@@ -12,17 +12,21 @@ using SimpleJSON;
 
 namespace geesp0t
 {
-    // World-space HUD: <b>Shift+S</b> merges Spankings onto female Persons that
-    // do not already have the plugin; HUD <b>+/- Spankings Male</b> still toggles
-    // merge/remove all Persons. F = freeze animation (VaM HUD); Y = pose log —
-    // Shift+Y when isOVR/isOpenVR, else plain Y; K = write camera/rig patch
-    // request + run Python on current scene JSON (currentLoadDir); E-Motion HUD:
-    // Lite / Original / M-F gender / Final / remove-all; swaps via
-    // TryReplaceEmotionFamilyWithExactPath; I = hide VR hands + cycle head snap;
-    // VR palm HUD (see EasyMateVrEulerPossessHandHud); P = start female Passenger
-    // on closest female by head (same as palm <b>Mulher</b>); O = unpossess all;
-    // C = cycle Female then Male Persons (uid), Edit + Selected Options + root
-    // control.
+    // World-space HUD: Ctrl+Shift+S = toggle Spankings off / merge onto Persons
+    // missing it; Possess+Align+Select (F/M/P) merges Spankings onto other
+    // Persons
+    // missing it when at least one possessed hand on the target; F = freeze
+    // animation (VaM HUD); Y = pose log — Shift+Y when isOVR/isOpenVR,
+    // else plain Y; K = write camera/rig patch request + run Python on current
+    // scene JSON
+    // (currentLoadDir); E-Motion HUD: Lite / Original / M-F gender / Final /
+    // remove-all; swaps via TryReplaceEmotionFamilyWithExactPath; I / VR gestures
+    // (see EasyMateVrGestureRuntime): over-HMD unpossess + dual-hand euler
+    // possess can be disabled there (palm HUD only when off); P =
+    // Possess+Align+Select closest Person by head;
+    // O = unpossess all; C = cycle Female then Male Persons (uid), Edit +
+    // Selected
+    // Options + root control.
     public class MainUIButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
@@ -32,6 +36,8 @@ namespace geesp0t
         public const string PluginEMotionFinal = "Custom/Scripts/E-MotionFinal/E-Motion_Final_AddThisONLY.cslist";
         public const string PluginSpankings = "Custom/Scripts/Spankings/Spankings.cslist";
 
+        /// <summary>Label passed to <see cref="StartAutoPossessRoutine"/> for the dual-hand euler VR gesture.</summary>
+        public const string VrEulerPossessLabel = "VR euler";
         public const string PluginEasyMateClothingTouchFallOff = "Custom/Scripts/Easy Mate/EasyMateClothingTouchFallOff.cslist";
 
         /// <summary>Scene atom UIDs created by <c>octopussy.Spankings</c>; removed when Spankings is toggled off (<see cref="RemoveSpankingsFromAllPersons"/>).</summary>
@@ -44,6 +50,7 @@ namespace geesp0t
 
         private static MVRScript _pluginHost;
         private static Coroutine _autoPossessCoroutine;
+        private static Coroutine _autoPossessConfirmCo;
         private static Coroutine _vrPalmHudMenuConfirmCo;
         /// <summary>Next index for <see cref="HotkeySnapNearestHeadHideHandsThenSnap"/> among <see cref="AllPersonsSortedByUidForISnapCycle"/>.</summary>
         private static int _hotkeyISnapPersonCycleNextIndex;
@@ -149,6 +156,80 @@ namespace geesp0t
             return snapPitchDegrees;
         }
 
+        private static Vector3 GetNeutralHeadFacingForward(
+            FreeControllerV3 head,
+            Vector3 upAxis,
+            out string sourceName)
+        {
+            sourceName = "none";
+            if (head == null)
+                return Vector3.zero;
+
+            Vector3 neutralForward = Vector3.zero;
+            Atom person = head.containingAtom;
+            if (person != null)
+            {
+                FreeControllerV3 chest =
+                    person.GetStorableByID("chestControl") as FreeControllerV3;
+                if (chest != null && chest.control != null)
+                {
+                    neutralForward = Vector3.ProjectOnPlane(
+                        chest.control.forward,
+                        upAxis);
+                    if (neutralForward.sqrMagnitude >= 1e-10f)
+                        sourceName = "chestControl.forward";
+                }
+
+                if (neutralForward.sqrMagnitude < 1e-10f)
+                {
+                    FreeControllerV3 pelvis =
+                        person.GetStorableByID("pelvisControl") as FreeControllerV3;
+                    if (pelvis != null && pelvis.control != null)
+                    {
+                        neutralForward = Vector3.ProjectOnPlane(
+                            pelvis.control.forward,
+                            upAxis);
+                        if (neutralForward.sqrMagnitude >= 1e-10f)
+                            sourceName = "pelvisControl.forward";
+                    }
+                }
+
+                if (neutralForward.sqrMagnitude < 1e-10f)
+                {
+                    FreeControllerV3 abdomen =
+                        person.GetStorableByID("abdomenControl") as FreeControllerV3;
+                    if (abdomen != null && abdomen.control != null)
+                    {
+                        neutralForward = Vector3.ProjectOnPlane(
+                            abdomen.control.forward,
+                            upAxis);
+                        if (neutralForward.sqrMagnitude >= 1e-10f)
+                            sourceName = "abdomenControl.forward";
+                    }
+                }
+
+                if (neutralForward.sqrMagnitude < 1e-10f)
+                {
+                    neutralForward = Vector3.ProjectOnPlane(
+                        person.transform.forward,
+                        upAxis);
+                    if (neutralForward.sqrMagnitude >= 1e-10f)
+                        sourceName = "person.transform.forward";
+                }
+            }
+
+            if (neutralForward.sqrMagnitude < 1e-10f)
+            {
+                neutralForward = Vector3.ProjectOnPlane(
+                    head.GetForwardPossessAxis(),
+                    upAxis);
+                if (neutralForward.sqrMagnitude >= 1e-10f)
+                    sourceName = "head.GetForwardPossessAxis()";
+            }
+
+            return neutralForward;
+        }
+
         MVRScript plugin;
 
         private Camera _mainCamera;
@@ -168,6 +249,8 @@ namespace geesp0t
         UIDynamicButton removeUnderwearButton = null;
         UIDynamicButton snapFemaleHeadButton = null;
         UIDynamicButton snapMaleHeadButton = null;
+        UIDynamicButton possessAlignSelectFemaleButton = null;
+        UIDynamicButton possessAlignSelectMaleButton = null;
 
         private EasyMateVrGestureBindings _vrGestureBindings;
 
@@ -191,13 +274,14 @@ namespace geesp0t
                         "Easy Mate: VR over-HMD hand — cleared possession.",
                         advanceVrPalmHudGenderCycle: true);
                 };
+            _vrGestureBindings.TriggerPossessAlignSelectClosestFemaleByHead =
+                delegate() { PossessAlignSelectClosestFemaleByHeadToCamera(); };
         }
 
         /// <summary>
-        /// Call from session plugin <c>Update</c>. <b>Shift+S</b> (no Ctrl/Alt)
-        /// merges Spankings onto every <b>female</b> Person that does not already
-        /// have the plugin (<see cref="MergeSpankingsOnFemalePersonsOnly"/>);
-        /// updates the Spankings HUD button label.
+        /// Call from session plugin <c>Update</c>. <b>Ctrl+Shift+S</b>
+        /// toggles Spankings (same as HUD <b>+/- Spankings Male</b>): removes when
+        /// everyone has it; otherwise merges onto Persons that do not.
         /// <b>Y</b> logs look camera / HMD-related poses (debounced ~0.35s).
         /// With Oculus or OpenVR active, hold <b>Shift+Y</b> so the controller
         /// Y binding does not spam logs; <c>XRSettings.enabled</c> alone is not
@@ -207,15 +291,16 @@ namespace geesp0t
         /// (everyone), <b>M</b> / <b>F</b> (<see cref="PluginEMotion"/> males
         /// or females only), <b>Final</b>, <b>Remove all</b> — replacing other
         /// family packs first.
-        /// <b>O</b> stops female Passenger mode
-        /// (<see cref="EasyMateFemalePassengerRuntime"/>).
+        /// <b>O</b> stops auto-possess and
+        /// <see cref="SuperController.ClearPossess"/>.
         /// <b>I</b> hides VR hand models then cycles rig snap across
         /// <b>Person</b> heads by uid (same rules as <b>Passenger Female</b> /
-        /// <b>Passenger Male</b> per figure). VR: optional over‑head unpossess
-        /// via <see cref="EasyMateVrGestureRuntime"/> (off unless enabled
-        /// there); palm HUD uses <see cref="EasyMateVrEulerPossessHandHud"/>.
-        /// <b>P</b> starts <see cref="EasyMateFemalePassengerRuntime"/> on the
-        /// closest female by head (same as palm <b>Mulher</b>).
+        /// <b>Passenger Male</b> per figure). VR: <see cref="EasyMateVrGestureRuntime"/> —
+        /// over-head unpossess + dual-hand euler possess can be turned off (see
+        /// that class); the right-hand palm HUD menu still handles possess flow.
+        /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD
+        /// buttons on the <b>closest Person by head</b> to the look/center
+        /// camera (not alphabetically first F/M).
         /// <b>C</b> (without Shift, Ctrl, or Alt) cycles visible Person atoms
         /// in order: all <b>female</b> then all <b>male</b> (by atom uid),
         /// switches to <b>Edit</b>, shows the main HUD, opens
@@ -228,8 +313,7 @@ namespace geesp0t
         /// <c>playerHeightAdjust</c> and runs
         /// <see cref="EasyMateKSceneCameraPatch"/> (Python patch of the main
         /// scene JSON under <see cref="SuperController.currentLoadDir"/>).
-        /// Blocked when Ctrl or Alt is held (Shift+S and hotkeys below this
-        /// gate).
+        /// Blocked when Ctrl/Alt is held (same gate as O/I/P).
         /// Skips while VaM is loading or a Unity UI text field has focus.
         /// </summary>
         public void ProcessHotkeysUpdate()
@@ -242,23 +326,16 @@ namespace geesp0t
                 return;
 
             if (Input.GetKeyDown(KeyCode.S) &&
-                (Input.GetKey(KeyCode.LeftShift) ||
-                    Input.GetKey(KeyCode.RightShift)) &&
-                !Input.GetKey(KeyCode.LeftControl) &&
-                !Input.GetKey(KeyCode.RightControl) &&
-                !Input.GetKey(KeyCode.LeftAlt) &&
-                !Input.GetKey(KeyCode.RightAlt))
+                (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) &&
+                (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
                 try
                 {
-                    MergeSpankingsOnFemalePersonsOnly();
-                    RefreshPluginToggleLabels();
+                    ToggleSpankingsPluginOnAllPersons();
                 }
                 catch (Exception e)
                 {
-                    SuperController.LogError(
-                        "Shift+S hotkey (Spankings merge females): "
-                        + e.Message);
+                    SuperController.LogError("Ctrl+Shift+S hotkey (Spankings toggle): " + e);
                 }
 
                 return;
@@ -720,55 +797,71 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// VR palm HUD: show the female possession choice whenever there is at
-        /// least one female <c>Person</c>.
+        /// VR palm HUD: show the gender possession choice whenever there is at
+        /// least one female or male <c>Person</c>.
         /// </summary>
         public static bool VrPalmHudNeedsGenderChoiceStep()
         {
             EnsurePersonGenderCaches();
-            return _cachedFemalePersonsByUid != null &&
-                _cachedFemalePersonsByUid.Count > 0;
+            int femaleCount = _cachedFemalePersonsByUid != null ?
+                _cachedFemalePersonsByUid.Count : 0;
+            int maleCount = _cachedMalePersonsByUid != null ?
+                _cachedMalePersonsByUid.Count : 0;
+            return femaleCount > 0 || maleCount > 0;
         }
 
         /// <summary>
         /// VR palm HUD: <b>Mulher</b> starts the Passenger-style female mode on
-        /// the closest female by head to the camera. Male flow is disabled.
+        /// the closest female by head to the camera. <b>Homem</b> mirrors the
+        /// same flow for the closest male.
         /// </summary>
         public static void RequestPossessVrPalmHudByGender(bool female)
         {
-            if (!female)
-            {
-                SuperController.LogMessage(
-                    "Easy Mate: VR mão — fluxo masculino desativado.");
-                return;
-            }
-
             EnsurePersonGenderCaches();
-            Atom target = FindClosestPersonInListByHeadToCamera(
-                _cachedFemalePersonsByUid);
-            if (target == null)
+
+            if (female)
             {
-                SuperController.LogMessage(
-                    "Easy Mate: VR mão — nenhuma Person feminina.");
+                Atom femaleTarget = FindClosestPersonInListByHeadToCamera(
+                    _cachedFemalePersonsByUid);
+                if (femaleTarget == null)
+                {
+                    SuperController.LogMessage(
+                        "Easy Mate: VR mão — nenhuma Person feminina.");
+                    return;
+                }
+
+                EasyMateFemalePassengerRuntime.RequestStartForFemale(
+                    femaleTarget);
                 return;
             }
 
-            EasyMateFemalePassengerRuntime.RequestStartForFemale(target);
+            Atom maleTarget = FindClosestPersonInListByHeadToCamera(
+                _cachedMalePersonsByUid);
+            if (maleTarget == null)
+            {
+                SuperController.LogMessage(
+                    "Easy Mate: VR mão — nenhuma Person masculina.");
+                return;
+            }
+
+            EasyMateFemalePassengerRuntime.RequestStartForMale(maleTarget);
         }
 
         /// <summary>
-        /// VR palm HUD: if there is at least one female Person, opens the
-        /// <b>Mulher</b> step on the hand panel (no direct possess here).
+        /// VR palm HUD: if there is at least one male or female Person, opens
+        /// the gender step on the hand panel (no direct possess here).
         /// </summary>
         public static void RequestPossessVrPalmHudAutoWithoutGenderMenu()
         {
             EnsurePersonGenderCaches();
             int femaleCount = _cachedFemalePersonsByUid != null ?
                 _cachedFemalePersonsByUid.Count : 0;
-            if (femaleCount <= 0)
+            int maleCount = _cachedMalePersonsByUid != null ?
+                _cachedMalePersonsByUid.Count : 0;
+            if (femaleCount <= 0 && maleCount <= 0)
             {
                 SuperController.LogMessage(
-                    "Easy Mate: VR mão — nenhuma Person feminina na cena.");
+                    "Easy Mate: VR mão — nenhuma Person na cena.");
                 return;
             }
 
@@ -787,8 +880,8 @@ namespace geesp0t
         /// <summary>
         /// VR palm HUD: <see cref="SuperController.GetMenuShow"/> (Quest <b>B</b> /
         /// SteamVR menu). Waits 100ms, clears <see cref="SuperController.activeUI"/>
-        /// so the menu closes, then opens the <b>Mulher</b> step
-        /// when a female Person exists.
+        /// so the menu closes, then opens the gender step
+        /// when a male or female Person exists.
         /// </summary>
         public static void RequestVrPalmHudMenuButtonPossessAfterDismissMenu()
         {
@@ -812,7 +905,7 @@ namespace geesp0t
                     EasyMateVrEulerPossessHandHud.RequestGenderChooseStep();
                 else
                     SuperController.LogMessage(
-                        "Easy Mate: menu — nenhuma Person feminina na cena.");
+                        "Easy Mate: menu — nenhuma Person na cena.");
             }
             finally
             {
@@ -1289,6 +1382,34 @@ namespace geesp0t
             }
         }
 
+        /// <summary>
+        /// True when at least one female <c>Person</c> lacks Spankings (same file
+        /// name check as <see cref="MergeSpankingsOnFemalePersonsOnly"/>).
+        /// </summary>
+        public bool AnyFemalePersonMissingSpankings()
+        {
+            try
+            {
+                string fn = GetFileName(PluginSpankings);
+                foreach (Atom at in SuperController.singleton.GetAtoms()
+                    .Where(a => a.type == "Person"))
+                {
+                    if (at == null || !IsPersonFemale(at))
+                        continue;
+                    if (!PersonHasPluginByFileName(at, fn))
+                        return true;
+                }
+
+                return false;
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "AnyFemalePersonMissingSpankings: " + e.Message);
+                return false;
+            }
+        }
+
         private void OnEmotionLiteHudClicked()
         {
             try
@@ -1477,6 +1598,10 @@ namespace geesp0t
                 snapFemaleHeadButton.gameObject.SetActive(setToActive);
             if (snapMaleHeadButton != null)
                 snapMaleHeadButton.gameObject.SetActive(setToActive);
+            if (possessAlignSelectFemaleButton != null)
+                possessAlignSelectFemaleButton.gameObject.SetActive(setToActive);
+            if (possessAlignSelectMaleButton != null)
+                possessAlignSelectMaleButton.gameObject.SetActive(setToActive);
             if (setToActive)
             {
                 RefreshPluginToggleLabels();
@@ -1600,7 +1725,7 @@ namespace geesp0t
             ToggleSpankingsPluginOnAllPersons();
         }
 
-        /// <summary>Merge or remove Spankings on every Person (HUD). When disabling (everyone had it): full remove + cleanup scene atoms. When enabling: merge only onto Persons missing the plugin (does not strip scene-loaded Spankings first).</summary>
+        /// <summary>Merge or remove Spankings on every Person (HUD and <b>Ctrl+Shift+S</b>). When disabling (everyone had it): full remove + cleanup scene atoms. When enabling: merge only onto Persons missing the plugin (does not strip scene-loaded Spankings first).</summary>
         private void ToggleSpankingsPluginOnAllPersons()
         {
             try
@@ -1942,6 +2067,201 @@ namespace geesp0t
             return left ? sc.leftHand : sc.rightHand;
         }
 
+        private static string FormatEulerForDebug(Quaternion rotation)
+        {
+            Vector3 eulerAngles = rotation.eulerAngles;
+            return string.Format(
+                "({0:F2}, {1:F2}, {2:F2})",
+                eulerAngles.x,
+                eulerAngles.y,
+                eulerAngles.z);
+        }
+
+        private static string FormatVectorForDebug(Vector3 vector)
+        {
+            return string.Format(
+                "({0:F4}, {1:F4}, {2:F4})",
+                vector.x,
+                vector.y,
+                vector.z);
+        }
+
+        private static bool TryPrepareHeadForPossessAndAlign(SuperController sc, FreeControllerV3 head, out string error)
+        {
+            error = null;
+            if (sc == null || head == null)
+            {
+                error = "missing SuperController or headControl";
+                return false;
+            }
+
+            Transform motionControllerHead = sc.centerCameraTarget != null ? sc.centerCameraTarget.transform : null;
+            Possessor possessor = motionControllerHead != null ? motionControllerHead.GetComponent<Possessor>() : null;
+            Transform navigationRig = sc.navigationRig;
+            if (motionControllerHead == null || possessor == null || possessor.autoSnapPoint == null || navigationRig == null)
+            {
+                error = "missing centerCameraTarget, Possessor, autoSnapPoint, or navigationRig";
+                return false;
+            }
+
+            try
+            {
+                Vector3 upPossessAxis = head.GetUpPossessAxis();
+                Vector3 up = navigationRig.up;
+                // Match OneShotSnapRigToPersonHead: use actual look camera forward so
+                // post-snap yaw matches what the user is looking at (not only rig root).
+                Transform headingReference = sc.lookCamera != null
+                    ? sc.lookCamera.transform
+                    : motionControllerHead;
+                Vector3 fromDirection = Vector3.ProjectOnPlane(headingReference.forward, up);
+                string desiredForwardSourceName;
+                Vector3 desiredForward = GetNeutralHeadFacingForward(
+                    head,
+                    navigationRig.up,
+                    out desiredForwardSourceName);
+                if (Vector3.Dot(upPossessAxis, up) < 0f && Vector3.Dot(headingReference.up, up) > 0f)
+                    desiredForward = -desiredForward;
+
+                Atom person = head.containingAtom;
+                FreeControllerV3 chest =
+                    person != null
+                    ? person.GetStorableByID("chestControl") as FreeControllerV3
+                    : null;
+                SuperController.LogMessage(
+                    "Easy Mate possess debug: person=" +
+                    (person != null ? person.uid : "null") +
+                    ", headControlEuler=" +
+                    (head.control != null
+                        ? FormatEulerForDebug(head.control.rotation)
+                        : "null") +
+                    ", headTransformEuler=" +
+                    FormatEulerForDebug(head.transform.rotation) +
+                    ", personEuler=" +
+                    (person != null
+                        ? FormatEulerForDebug(person.transform.rotation)
+                        : "null") +
+                    ", chestEuler=" +
+                    (chest != null && chest.control != null
+                        ? FormatEulerForDebug(chest.control.rotation)
+                        : "null") +
+                    ", headingReferenceEuler=" +
+                    FormatEulerForDebug(headingReference.rotation) +
+                    ", fromDirection=" +
+                    FormatVectorForDebug(fromDirection) +
+                    ", desiredForward=" +
+                    FormatVectorForDebug(desiredForward) +
+                    ", desiredForwardSource=" +
+                    desiredForwardSourceName +
+                    ", upPossessAxis=" +
+                    FormatVectorForDebug(upPossessAxis) +
+                    ", navigationRigUp=" +
+                    FormatVectorForDebug(up));
+
+                if (desiredForward.sqrMagnitude <= 1e-8f)
+                {
+                    SuperController.LogError(
+                        "Easy Mate possess debug: desiredForward collapsed to zero. " +
+                        "Person/head/chest forward data above should show which source failed.");
+                }
+
+                if (fromDirection.sqrMagnitude > 1e-8f && desiredForward.sqrMagnitude > 1e-8f)
+                {
+                    Quaternion q = Quaternion.FromToRotation(fromDirection, desiredForward);
+                    navigationRig.rotation = q * navigationRig.rotation;
+                }
+
+                // Same sequence as VaM ThumbstickFunction.AlignRigAndController + HeadPossess:
+                // align head rotation to the possessor snap point, shift the navigation rig using
+                // possessPoint (same as native possess), then snap control to autoSnapPoint before
+                // SelectLinkToRigidbody. Without this, ImprovedPoV camera depth/height/pitch offsets
+                // do not match native head possession.
+                if (head.canGrabRotation)
+                {
+                    head.AlignTo(possessor.autoSnapPoint, true);
+                }
+
+                Vector3 possessAnchor = head.possessPoint != null ?
+                    head.possessPoint.position :
+                    head.control.position;
+                Vector3 delta = possessAnchor - possessor.autoSnapPoint.position;
+                Vector3 targetRigPos = navigationRig.position + delta;
+                float verticalDelta = Vector3.Dot(targetRigPos - navigationRig.position, up);
+                targetRigPos += up * (0f - verticalDelta);
+                navigationRig.position = targetRigPos;
+                sc.playerHeightAdjust += verticalDelta;
+
+                if (sc.MonitorCenterCamera != null)
+                {
+                    Vector3 monitorLookForward = desiredForward;
+                    if (monitorLookForward.sqrMagnitude < 1e-10f)
+                        monitorLookForward = Vector3.ProjectOnPlane(
+                            headingReference.forward,
+                            up);
+                    sc.MonitorCenterCamera.transform.LookAt(
+                        head.transform.position + monitorLookForward);
+                    Vector3 euler = sc.MonitorCenterCamera.transform.localEulerAngles;
+                    euler.y = 0f;
+                    euler.z = 0f;
+                    sc.MonitorCenterCamera.transform.localEulerAngles = euler;
+                }
+
+                head.PossessMoveAndAlignTo(possessor.autoSnapPoint);
+
+                return TryLinkHeadToMotionControllerHead(motionControllerHead, head, out error);
+            }
+            catch (Exception e)
+            {
+                error = e.Message;
+                return false;
+            }
+        }
+
+        private static bool TryLinkHeadToMotionControllerHead(
+            Transform motionControllerHead,
+            FreeControllerV3 head,
+            out string error)
+        {
+            error = null;
+            if (motionControllerHead == null || head == null)
+            {
+                error = "missing motionControllerHead or headControl";
+                return false;
+            }
+
+            Rigidbody headRb = motionControllerHead.GetComponent<Rigidbody>();
+            if (headRb == null)
+            {
+                error = "missing motionControllerHead rigidbody";
+                return false;
+            }
+
+            try
+            {
+                head.possessed = true;
+
+                FreeControllerV3.SelectLinkState linkState =
+                    FreeControllerV3.SelectLinkState.Position;
+                if (head.canGrabPosition)
+                {
+                    if (head.canGrabRotation)
+                        linkState =
+                            FreeControllerV3.SelectLinkState.PositionAndRotation;
+                }
+                else if (head.canGrabRotation)
+                {
+                    linkState = FreeControllerV3.SelectLinkState.Rotation;
+                }
+
+                head.SelectLinkToRigidbody(headRb, linkState);
+                return true;
+            }
+            catch (Exception e)
+            {
+                error = e.Message;
+                return false;
+            }
+        }
+
         private static bool TryPrepareHandForPossess(SuperController sc, FreeControllerV3 controller, bool left, out string error)
         {
             error = null;
@@ -1981,6 +2301,12 @@ namespace geesp0t
 
         private static void StopAutoPossessRoutine()
         {
+            if (_pluginHost != null && _autoPossessConfirmCo != null)
+            {
+                _pluginHost.StopCoroutine(_autoPossessConfirmCo);
+                _autoPossessConfirmCo = null;
+            }
+
             if (_pluginHost != null && _autoPossessCoroutine != null)
             {
                 _pluginHost.StopCoroutine(_autoPossessCoroutine);
@@ -2117,6 +2443,97 @@ namespace geesp0t
             }
         }
 
+        private static void StartAutoPossessConfirmRoutine(
+            FreeControllerV3 head,
+            FreeControllerV3 leftHand,
+            FreeControllerV3 rightHand)
+        {
+            if (_pluginHost == null)
+                return;
+
+            if (_autoPossessConfirmCo != null)
+            {
+                _pluginHost.StopCoroutine(_autoPossessConfirmCo);
+                _autoPossessConfirmCo = null;
+            }
+
+            _autoPossessConfirmCo = _pluginHost.StartCoroutine(
+                AutoPossessConfirmAfterDelayCo(head, leftHand, rightHand));
+        }
+
+        private static IEnumerator AutoPossessConfirmAfterDelayCo(
+            FreeControllerV3 head,
+            FreeControllerV3 leftHand,
+            FreeControllerV3 rightHand)
+        {
+            try
+            {
+                yield return new WaitForSecondsRealtime(1f);
+
+                SuperController sc = SuperController.singleton;
+                if (sc == null)
+                    yield break;
+
+                bool anyPossessed =
+                    (head != null && head.possessed) ||
+                    (leftHand != null && leftHand.possessed) ||
+                    (rightHand != null && rightHand.possessed);
+                if (anyPossessed)
+                    sc.SelectModeOff();
+            }
+            finally
+            {
+                _autoPossessConfirmCo = null;
+            }
+        }
+
+        /// <summary>Same possess/align/select slot sequence as the HUD, for whichever Person is closest by head to the look/center camera.</summary>
+        private static void PossessAlignSelectClosestPersonByHeadToCamera()
+        {
+            Atom target;
+            bool isFemale;
+            if (!TryFindClosestPersonByHeadToCamera(out target, out isFemale))
+            {
+                SuperController.LogMessage("Easy Mate: P — no Person in scene.");
+                return;
+            }
+
+            StartAutoPossessRoutine(target, "P");
+        }
+
+        /// <summary>
+        /// Closest female <c>Person</c> by head to look/center camera
+        /// (VR dual-hand euler gesture); same routine as <b>P</b> but female-only.
+        /// </summary>
+        private static void PossessAlignSelectClosestFemaleByHeadToCamera()
+        {
+            RequestPossessVrPalmHudByGender(true);
+        }
+
+        private static void PossessAlignSelectFirstFemale()
+        {
+            List<Atom> list = FemalePersonsByUid();
+            if (list.Count == 0)
+            {
+                SuperController.LogMessage("Easy Mate HUD: Possess Female — no female Person in scene.");
+                return;
+            }
+
+            StartAutoPossessRoutine(list[0], "F");
+        }
+
+        private static void PossessAlignSelectMaleIfAny()
+        {
+            List<Atom> list = MalePersonsByUid();
+            if (list.Count == 0)
+            {
+                SuperController.LogMessage("Easy Mate HUD: Possess Male — no male Person in scene.");
+                return;
+            }
+
+            StartAutoPossessRoutine(list[0], "M");
+        }
+
         private static Vector3 GetPersonHeadWorldPosition(Atom person)
         {
             if (person == null)
@@ -2140,6 +2557,33 @@ namespace geesp0t
             return Vector3.zero;
         }
 
+        /// <summary>Closest <c>Person</c> by <see cref="GetPersonHeadWorldPosition"/> to the look/center camera (any gender).</summary>
+        private static bool TryFindClosestPersonByHeadToCamera(out Atom closest, out bool isFemale)
+        {
+            closest = null;
+            isFemale = false;
+            SuperController sc = SuperController.singleton;
+            if (sc == null)
+                return false;
+
+            Vector3 cam = GetLookOrCenterCameraWorldPosition();
+            float bestSq = float.MaxValue;
+            foreach (Atom at in sc.GetAtoms())
+            {
+                if (at == null || at.type != "Person")
+                    continue;
+                float dSq = (GetPersonHeadWorldPosition(at) - cam).sqrMagnitude;
+                if (dSq < bestSq)
+                {
+                    bestSq = dSq;
+                    closest = at;
+                    isFemale = IsPersonFemale(at);
+                }
+            }
+
+            return closest != null;
+        }
+
         private static Atom FindClosestPersonInListByHeadToCamera(IEnumerable<Atom> persons)
         {
             if (persons == null)
@@ -2160,6 +2604,153 @@ namespace geesp0t
             }
 
             return best;
+        }
+
+        /// <summary>After Possess+Align+Select, merge Spankings onto every other Person that does not already have it (runs once per trigger).</summary>
+        private static void MergeSpankingsOntoOtherPersonsMissingPluginAfterPossess(Atom possessedPerson)
+        {
+            if (possessedPerson == null || SuperController.singleton == null)
+                return;
+
+            string fn = GetFileName(PluginSpankings);
+            foreach (Atom at in SuperController.singleton.GetAtoms().Where(a => a.type == "Person"))
+            {
+                if (at == null || at.uid == possessedPerson.uid)
+                    continue;
+                if (PersonHasPluginByFileName(at, fn))
+                    continue;
+                TryMergePluginOntoPerson(at, PluginSpankings);
+            }
+        }
+
+        private static void StartAutoPossessRoutine(Atom person, string label)
+        {
+            if (_pluginHost == null)
+            {
+                SuperController.LogError("Easy Mate HUD: Possess+Align+Select " + label + " — plugin host missing.");
+                return;
+            }
+
+            if (string.Equals(label, VrEulerPossessLabel, StringComparison.Ordinal))
+                EasyMateGripHandVisibility.NotifyVrEulerPossessTenSecondSuppress();
+
+            StopAutoPossessRoutine();
+            _autoPossessCoroutine = _pluginHost.StartCoroutine(PossessAlignSelectRoutine(person, label));
+        }
+
+        private static IEnumerator PossessAlignSelectRoutine(Atom person, string label)
+        {
+            try
+            {
+                bool isVrEulerPossess = string.Equals(
+                    label,
+                    VrEulerPossessLabel,
+                    StringComparison.Ordinal);
+                EasyMateVrHeadCylinderHide.RestoreTransientHeadHideState();
+
+                SuperController sc = SuperController.singleton;
+                if (sc == null || person == null || person.type != "Person")
+                    yield break;
+
+                FreeControllerV3 head = person.GetStorableByID("headControl") as FreeControllerV3;
+                FreeControllerV3 leftHand = person.GetStorableByID("lHandControl") as FreeControllerV3;
+                FreeControllerV3 rightHand = person.GetStorableByID("rHandControl") as FreeControllerV3;
+                if (head == null)
+                {
+                    SuperController.LogError("Easy Mate HUD: Possess+Align+Select " + label + " — no headControl on " + person.name);
+                    yield break;
+                }
+
+                if (isVrEulerPossess)
+                    RemoveSpankingsFromAllPersonsStatic();
+
+                sc.ClearPossess();
+                UnlinkStrayHmdLinkedFreeControllersAndNaturalizeHeads(sc);
+                yield return null;
+
+                string headError;
+                if (!TryPrepareHeadForPossessAndAlign(sc, head, out headError))
+                {
+                    SuperController.LogError("Easy Mate HUD: Possess+Align+Select " + label + " head failed: " + headError);
+                    yield break;
+                }
+
+                sc.SelectController(head, false);
+                sc.SelectModePossess(true);
+                StartAutoPossessConfirmRoutine(head, leftHand, rightHand);
+
+                yield return null;
+                yield return null;
+
+                bool headDone = head.possessed;
+                bool leftDone = leftHand == null || leftHand.possessed;
+                bool rightDone = rightHand == null || rightHand.possessed;
+                string headPrepError = null;
+                string leftError = null;
+                string rightError = null;
+
+                for (int i = 0; i < 120 && (!headDone || !leftDone || !rightDone); i++)
+                {
+                    if (!headDone)
+                    {
+                        TryPrepareHeadForPossessAndAlign(sc, head, out headPrepError);
+                        headDone = head.possessed;
+                    }
+                    if (!leftDone)
+                    {
+                        TryDriveControllerIntoPossessOverlap(sc, leftHand, true, out leftError);
+                        leftDone = leftHand != null && leftHand.possessed;
+                    }
+                    if (!rightDone)
+                    {
+                        TryDriveControllerIntoPossessOverlap(sc, rightHand, false, out rightError);
+                        rightDone = rightHand != null && rightHand.possessed;
+                    }
+
+                    if (!headDone || !leftDone || !rightDone)
+                        yield return null;
+                }
+
+                if (!headDone || !leftDone || !rightDone)
+                    sc.SelectModeOff();
+
+                sc.SelectController(head, false);
+
+                string headState = headDone ? "ok" : "failed";
+                string leftState = leftDone ? "ok" : "failed";
+                string rightState = rightDone ? "ok" : "failed";
+                SuperController.LogMessage("Easy Mate HUD: Possess+Align+Select " + label + " — " + person.name + " (head " + headState + ", left " + leftState + ", right " + rightState + ").");
+                if (!headDone && headPrepError != null)
+                    SuperController.LogMessage("Easy Mate HUD: head possess prep detail: " + headPrepError);
+                if (!leftDone && leftError != null)
+                    SuperController.LogMessage("Easy Mate HUD: left hand auto-possess detail: " + leftError);
+                if (!rightDone && rightError != null)
+                    SuperController.LogMessage("Easy Mate HUD: right hand auto-possess detail: " + rightError);
+
+                bool anyHandPossessed =
+                    (leftHand != null && leftHand.possessed) ||
+                    (rightHand != null && rightHand.possessed);
+                if (anyHandPossessed && !isVrEulerPossess)
+                {
+                    try
+                    {
+                        MergeSpankingsOntoOtherPersonsMissingPluginAfterPossess(person);
+                        if (_refreshPluginToggleLabelsStatic != null)
+                            _refreshPluginToggleLabelsStatic();
+                    }
+                    catch (Exception ex)
+                    {
+                        SuperController.LogError("Easy Mate: Possess+Align+Select — Spankings on other Persons: " + ex.Message);
+                    }
+                }
+                else if (anyHandPossessed && isVrEulerPossess &&
+                         _refreshPluginToggleLabelsStatic != null)
+                    _refreshPluginToggleLabelsStatic();
+            }
+            finally
+            {
+                _autoPossessCoroutine = null;
+            }
         }
 
         private static void SnapRigToClosestFemaleHead()

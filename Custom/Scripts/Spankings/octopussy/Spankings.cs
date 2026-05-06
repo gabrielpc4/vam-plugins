@@ -82,13 +82,6 @@ namespace octopussy
         Atom ALCheek;
         Atom ARCheek;
         Atom AHitAudio;
-        string leftCheekAtomUid;
-        string rightCheekAtomUid;
-        string hitAudioAtomUid;
-
-        const string LegacyLeftCheekAtomUid = "CheekLeft";
-        const string LegacyRightCheekAtomUid = "CheekRight";
-        const string LegacyHitAudioAtomUid = "HitAudioSource";
 
         CycleForceOnce reaction; // shake it baby
         ForceProducerV2.AxisName[] axis = {
@@ -145,49 +138,6 @@ namespace octopussy
             a.mainController.currentPositionState = FreeControllerV3.PositionState.ParentLink;
             a.mainController.canGrabPosition = false;
             a.mainController.canGrabRotation = false;
-        }
-
-        private string BuildOwnedAtomUid(string role)
-        {
-            return "Spankings_" + her.uid + "_" + role;
-        }
-
-        private void RemoveLegacyOwnedAtomIfPresent(string atomUid)
-        {
-            try
-            {
-                Atom atom = SC.GetAtomByUid(atomUid);
-                if (atom == null)
-                    return;
-                if (atom.parentAtom != her)
-                    return;
-                SC.RemoveAtom(atom);
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError(
-                    "Spankings legacy atom cleanup \"" + atomUid + "\": "
-                    + e.Message);
-            }
-        }
-
-        private void RemoveOwnedAtomIfPresent(string atomUid)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(atomUid))
-                    return;
-                Atom atom = SC.GetAtomByUid(atomUid);
-                if (atom == null)
-                    return;
-                SC.RemoveAtom(atom);
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError(
-                    "Spankings owned atom cleanup \"" + atomUid + "\": "
-                    + e.Message);
-            }
         }
 
         public override void Init()
@@ -280,14 +230,6 @@ namespace octopussy
                 actionSelector.SetupActionCallback(this);
 
                 her = this.containingAtom;
-                leftCheekAtomUid = BuildOwnedAtomUid("CheekLeft");
-                rightCheekAtomUid = BuildOwnedAtomUid("CheekRight");
-                hitAudioAtomUid = BuildOwnedAtomUid("HitAudioSource");
-
-                RemoveLegacyOwnedAtomIfPresent(LegacyLeftCheekAtomUid);
-                RemoveLegacyOwnedAtomIfPresent(LegacyRightCheekAtomUid);
-                RemoveLegacyOwnedAtomIfPresent(LegacyHitAudioAtomUid);
-
                 headAudio = her.GetStorableByID("HeadAudioSource") as AudioSourceControl;
                 headAudio.spatialize = false;
                 headAudio.volume = 1.0f;
@@ -325,9 +267,8 @@ namespace octopussy
                 CreateSlider(pitchshift, false);
 
 
-                ALCheek = SC.GetAtomByUid(leftCheekAtomUid);
-                ARCheek = SC.GetAtomByUid(rightCheekAtomUid);
-                AHitAudio = SC.GetAtomByUid(hitAudioAtomUid);
+                ALCheek = SC.GetAtomByUid("CheekLeft");
+                ARCheek = SC.GetAtomByUid("CheekRight");
                 
                 JSONStorable rThigh = her.containingAtom.GetStorableByID("rThigh");
                 JSONStorable lThigh = her.containingAtom.GetStorableByID("lThigh");
@@ -336,7 +277,7 @@ namespace octopussy
                 
 
                 if (ARCheek == null)
-                    base.StartCoroutine(CreateAtom("CollisionTrigger", rightCheekAtomUid, newAtom =>
+                    base.StartCoroutine(CreateAtom("CollisionTrigger", "CheekRight", newAtom =>
                     {
                         
                         parentLinkAtPosition(newAtom, her.containingAtom, rThigh, "rThigh");
@@ -351,7 +292,7 @@ namespace octopussy
                 }
 
                 if (ALCheek == null)
-                    base.StartCoroutine(CreateAtom("CollisionTrigger", leftCheekAtomUid, newAtom =>
+                    base.StartCoroutine(CreateAtom("CollisionTrigger", "CheekLeft", newAtom =>
                     {
                         parentLinkAtPosition(newAtom, her.containingAtom, lThigh, "lThigh");
                         newAtom.GetStorableByID("scale").SetFloatParamValue("scale", 1.25f);
@@ -363,7 +304,7 @@ namespace octopussy
                 }
 
                 if (AHitAudio == null)
-                    base.StartCoroutine(CreateAtom("AudioSource", hitAudioAtomUid, newAtom =>
+                    base.StartCoroutine(CreateAtom("AudioSource", "HitAudioSource", newAtom =>
                     {
                         parentLinkAtPosition(newAtom, her.containingAtom, hip, "hip");
                         AHitAudio = newAtom;
@@ -730,9 +671,6 @@ namespace octopussy
             try
             {
                 UnhookObserveFromAllKnownColliders();
-                RemoveOwnedAtomIfPresent(leftCheekAtomUid);
-                RemoveOwnedAtomIfPresent(rightCheekAtomUid);
-                RemoveOwnedAtomIfPresent(hitAudioAtomUid);
             }
             catch (Exception e)
             {

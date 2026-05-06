@@ -9,8 +9,8 @@ namespace geesp0t
     /// <summary>
     /// Quest squeeze / OpenVR HoldGrab: toggles Male2 vs sphere unless blocked
     /// (10s after VR euler possess, or while any Person head/hand is possessed,
-    /// or female passenger mode is active/pending — then <b>None</b> hand
-    /// models).
+    /// or female passenger mode is active/pending — then <b>None</b> hand models,
+    /// no Spankings merge on grip).
     /// </summary>
     internal static class EasyMateGripHandVisibility
     {
@@ -29,9 +29,14 @@ namespace geesp0t
         /// <summary>Until the user presses a VR grip this scene, sphere proxies stay non-colliding after scene reset.</summary>
         private static bool _vrGripUsedThisScene;
 
+        /// <summary>After <see cref="DisableVrHandModelsForSceneStart"/>, first grip press this scene merges Spankings once onto females missing it.</summary>
+        private static bool _mergedSpankingsAfterFirstGripThisScene;
+
+        private static Action _mergeSpankingsOntoPersonsMissingOnly;
+
         /// <summary>
-        /// After VR euler possess start: no grip toggle for 10s (see
-        /// <see cref="NotifyVrEulerPossessTenSecondSuppress"/>).
+        /// After VR euler possess start: no grip toggle / first-grip Spankings for
+        /// 10s (see <see cref="NotifyVrEulerPossessTenSecondSuppress"/>).
         /// </summary>
         private static float _suppressGripToggleUntilUnscaled;
 
@@ -44,6 +49,12 @@ namespace geesp0t
             SuperController sc = SuperController.singleton;
             ApplyNoneBothControls(sc);
             QueueApplyHandsEndOfFrame(sc);
+        }
+
+        /// <summary>Called from <see cref="EasyMate.Init"/>; pass <c>null</c> on teardown.</summary>
+        public static void SetMergeSpankingsOnFirstGrip(Action mergeSpankingsOntoPersonsMissingOnly)
+        {
+            _mergeSpankingsOntoPersonsMissingOnly = mergeSpankingsOntoPersonsMissingOnly;
         }
 
         /// <summary>Re-apply after SuperController.Update / internal toggles (e.g. grab+trigger hand hide via <c>ToggleRightHandEnabled</c>).</summary>
@@ -66,6 +77,7 @@ namespace geesp0t
         {
             _leftArticulated = false;
             _rightArticulated = false;
+            _mergedSpankingsAfterFirstGripThisScene = false;
             _vrGripUsedThisScene = false;
             SuperController sc = SuperController.singleton;
             ApplyBothControls(sc);
@@ -98,10 +110,11 @@ namespace geesp0t
             if (!leftDown && !rightDown)
                 return;
 
+            TryMergeSpankingsOnFirstGripPressThisScene();
+
             _vrGripUsedThisScene = true;
 
-            // Toggle both hands in lockstep (show both Male2 when going articulated)
-            // — per-side still respects possession.
+            // Toggle both hands in lockstep (show both Male2 when going articulated) — per-side still respects possession.
             bool nextBothArticulated = !(_leftArticulated && _rightArticulated);
             if (nextBothArticulated)
             {
@@ -129,12 +142,12 @@ namespace geesp0t
 
         /// <summary>
         /// Force VaM hand proxies to <b>None</b> while possessed <em>or</em> while
-        /// female passenger is active/pending (before hands report possessed).
+        /// passenger mode is active/pending (before hands report possessed).
         /// </summary>
         private static bool ShouldForceNoneVrHandProxies()
         {
             return AnyPersonHeadOrHandPossessed() ||
-                EasyMateFemalePassengerRuntime.IsFemalePassengerModeActiveOrPending();
+                EasyMateFemalePassengerRuntime.IsPassengerModeActiveOrPending();
         }
 
         /// <summary>
@@ -219,6 +232,25 @@ namespace geesp0t
             bool noGripYetNoArticulated =
                 !_vrGripUsedThisScene && !_leftArticulated && !_rightArticulated;
             h.useCollision = !noGripYetNoArticulated;
+        }
+
+        private static void TryMergeSpankingsOnFirstGripPressThisScene()
+        {
+            if (_mergedSpankingsAfterFirstGripThisScene)
+                return;
+            if (_mergeSpankingsOntoPersonsMissingOnly == null)
+                return;
+
+            _mergedSpankingsAfterFirstGripThisScene = true;
+            try
+            {
+                _mergeSpankingsOntoPersonsMissingOnly();
+            }
+            catch (Exception e)
+            {
+                _mergedSpankingsAfterFirstGripThisScene = false;
+                SuperController.LogError("EasyMateGripHandVisibility: Spankings merge on first grip: " + e.Message);
+            }
         }
 
         private static void ApplyBothControls(SuperController sc)

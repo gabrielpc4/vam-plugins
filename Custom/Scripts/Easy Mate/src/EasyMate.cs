@@ -40,7 +40,7 @@ namespace geesp0t
 
         private Coroutine _pathRuleEmotionMergeCo;
 
-        private Coroutine _mocapEndDelayedDefaultSceneCo;
+        private Coroutine _mergeSpankingsAfterGripCo;
 
         public JSONStorableAction hideUI;
         public JSONStorableAction showUI;
@@ -58,7 +58,10 @@ namespace geesp0t
         /// toggles <b>both</b> sides together between articulated VR hands (<b>Male2</b>) and VaM’s sphere/kinematic hand mode
         /// (see <see cref="EasyMateGripHandVisibility"/>); while any <c>Person</c> head or hand is possessed, VR proxies use
         /// <b>None</b> (not sphere / not Male2). Collisions stay off while both
-        /// sides sphere until the first VR grip toggles hand mode.
+        /// sides sphere. The <b>first</b> such grip press this scene queues a merge of <b>Spankings</b> onto <b>female</b> <c>Person</c> atoms only
+        /// that do not already have the plugin (deferred; merge-only), then after <b>4</b> seconds re-checks and merges again if any female still
+        /// lacks the plugin — unless <c>Custom/Scripts/Easy Mate/spankings_grip_merge_block_path_keywords.txt</c> matches current load/save dirs (same
+        /// substring rules as <c>emotion_path_keywords.txt</c>), in which case no grip Spankings merge runs. Hands still toggle regardless.
         /// </summary>
         public JSONStorableBool gripTogglesHandVisibility;
 
@@ -81,10 +84,9 @@ namespace geesp0t
         public JSONStorableBool possessAutoUnpossessWhenFarFromFeet;
 
         /// <summary>When true (default), after a non-looping scene mocap at least
-        /// <see cref="longMocapMinSecondsForEmotionMerge"/> long finishes, waits
-        /// <see cref="EasyMateMotionAnimationEmotionEnd.MocapEndToDefaultSceneRealtimeDelaySeconds"/>
-        /// realtime seconds, then loads <c>Saves/scene/Default.json</c>
-        /// (uses <see cref="SuperController.motionAnimationMaster"/>).</summary>
+        /// <see cref="longMocapMinSecondsForEmotionMerge"/> long finishes, loads
+        /// <c>Saves/scene/Default.json</c> once (uses
+        /// <see cref="SuperController.motionAnimationMaster"/>).</summary>
         public JSONStorableBool mergeEmotionWhenLongMocapEndsNoLoop;
 
         /// <summary>Minimum longest <see cref="MotionAnimationClip.clipLength"/> in
@@ -164,7 +166,7 @@ namespace geesp0t
                 retainCameraPoseSameFolderLoads.val);
 
             mergeEmotionWhenLongMocapEndsNoLoop = new JSONStorableBool(
-                "Load Default.json 5s after long mocap ends (no loop)",
+                "Load Saves/scene/Default.json when long mocap ends (no loop)",
                 true);
             RegisterBool(mergeEmotionWhenLongMocapEndsNoLoop);
 
@@ -182,6 +184,46 @@ namespace geesp0t
 
             SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
+
+            EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(QueueMergeSpankingsAfterGripDeferred);
+        }
+
+        private void QueueMergeSpankingsAfterGripDeferred()
+        {
+            if (mainUIButtons == null)
+                return;
+            if (EasyMateSpankingsGripBlockPathKeywords.CurrentSceneBlocksGripSpankingsMerge())
+                return;
+            if (_mergeSpankingsAfterGripCo != null)
+                StopCoroutine(_mergeSpankingsAfterGripCo);
+            _mergeSpankingsAfterGripCo = StartCoroutine(CoMergeSpankingsAfterGripDeferred());
+        }
+
+        private IEnumerator CoMergeSpankingsAfterGripDeferred()
+        {
+            try
+            {
+                yield return null;
+                yield return null;
+                if (mainUIButtons == null)
+                    yield break;
+                if (EasyMateSpankingsGripBlockPathKeywords
+                    .CurrentSceneBlocksGripSpankingsMerge())
+                    yield break;
+                mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
+                yield return new WaitForSeconds(4f);
+                if (mainUIButtons == null)
+                    yield break;
+                if (EasyMateSpankingsGripBlockPathKeywords
+                    .CurrentSceneBlocksGripSpankingsMerge())
+                    yield break;
+                if (mainUIButtons.AnyFemalePersonMissingSpankings())
+                    mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
+            }
+            finally
+            {
+                _mergeSpankingsAfterGripCo = null;
+            }
         }
 
         private void OnHeadProximityHideChanged(bool v)
@@ -251,36 +293,8 @@ namespace geesp0t
                 EasyMateVrHeadCylinderHide.SetHeadProximityHideEnabled(headProximityHide.val, this);
             StartCoroutine(CoRefreshHeadProximityHooksAfterStartFrames());
             EasyMateGripHandVisibility.DisableVrHandModelsForSceneStart();
-            CancelDelayedMocapEndDefaultScene();
             EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
             ApplyDefaultMonitorCameraFovIfNeeded();
-        }
-
-        /// <summary>Called from <see cref="EasyMateMotionAnimationEmotionEnd"/>.</summary>
-        internal void StartDelayedMocapEndDefaultScene()
-        {
-            CancelDelayedMocapEndDefaultScene();
-            _mocapEndDelayedDefaultSceneCo = StartCoroutine(CoDelayedMocapEndDefaultScene());
-        }
-
-        private void CancelDelayedMocapEndDefaultScene()
-        {
-            if (_mocapEndDelayedDefaultSceneCo == null)
-                return;
-
-            StopCoroutine(_mocapEndDelayedDefaultSceneCo);
-            _mocapEndDelayedDefaultSceneCo = null;
-        }
-
-        private IEnumerator CoDelayedMocapEndDefaultScene()
-        {
-            float delaySeconds =
-                EasyMateMotionAnimationEmotionEnd.MocapEndToDefaultSceneRealtimeDelaySeconds;
-            if (delaySeconds > 0f)
-                yield return new WaitForSecondsRealtime(delaySeconds);
-
-            EasyMateMotionAnimationEmotionEnd.ExecuteDeferredDefaultSceneLoad();
-            _mocapEndDelayedDefaultSceneCo = null;
         }
 
         private IEnumerator CoRefreshHeadProximityHooksAfterStartFrames()
@@ -586,7 +600,6 @@ namespace geesp0t
 
             if (sceneChanged)
             {
-                CancelDelayedMocapEndDefaultScene();
                 EasyMateMotionAnimationEmotionEnd.ResetForNewScene();
                 sceneChanged = false;
                 Log("EasyMate Scene Changed, Load Dir: " + SuperController.singleton.currentLoadDir + ", Time Since Level Load: " + Time.timeSinceLevelLoad);
@@ -667,7 +680,7 @@ namespace geesp0t
 
             bool mocapEmotionEnd = mergeEmotionWhenLongMocapEndsNoLoop != null && mergeEmotionWhenLongMocapEndsNoLoop.val;
             float mocapMinSec = longMocapMinSecondsForEmotionMerge != null ? longMocapMinSecondsForEmotionMerge.val : 45f;
-            EasyMateMotionAnimationEmotionEnd.LateTick(mocapEmotionEnd, mocapMinSec, this);
+            EasyMateMotionAnimationEmotionEnd.LateTick(mocapEmotionEnd, mocapMinSec);
 
             bool monitorLaser = restoreMonitorModeControllerLaser != null && restoreMonitorModeControllerLaser.val;
             EasyMateMonitorModeLaserRestore.Tick(monitorLaser);
@@ -677,8 +690,6 @@ namespace geesp0t
 
         void OnDestroy()
         {
-            CancelDelayedMocapEndDefaultScene();
-
             if (SuperController.singleton != null)
             {
                 SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
@@ -690,6 +701,13 @@ namespace geesp0t
                 _pathRuleEmotionMergeCo = null;
             }
 
+            if (_mergeSpankingsAfterGripCo != null)
+            {
+                StopCoroutine(_mergeSpankingsAfterGripCo);
+                _mergeSpankingsAfterGripCo = null;
+            }
+
+            EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
             EasyMateMonitorModeLaserRestore.OnPluginDestroy();
             EasyMateVrEulerPossessHandHud.OnPluginDestroy();
             EasyMateFemalePassengerRuntime.OnPluginDestroy();

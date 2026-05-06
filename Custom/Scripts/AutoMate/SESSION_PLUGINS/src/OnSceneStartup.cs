@@ -94,18 +94,18 @@ namespace geesp0t
 
             bool rawSceneSettlingIndicatorsActive = ShouldTreatSceneAsStillSettling();
 
+            bool settleEndedThisTick = false;
+
             bool diagnosticIdleSafetyReleasedThisTick = false;
 
             if (!rawSceneSettlingIndicatorsActive && !superControllerIsLoadingNow && sceneSettleSimulationPauseAppliedToSuperController)
             {
                 diagnosticIdleSafetyReleasedThisTick = true;
-                GetSharedSceneSettlePauseAsyncFlag().Raise();
-                ReleaseSceneSettlePlaybackHold();
+                FinishSceneSettleExposureThenReleasePlaybackHold();
                 wasSceneStillSettling = false;
                 initialSceneLoadSettleWorkflowFinished = true;
+                settleEndedThisTick = true;
             }
-
-            bool settleEndedThisTick = false;
 
             bool diagnosticTimeoutFinishedThisTick = false;
 
@@ -338,7 +338,7 @@ namespace geesp0t
             }
             else if (idleSafetyThisTick)
             {
-                restoreReasonText = "idle safety -> Release ONLY (no RestoreCamExposure in that path)";
+                restoreReasonText = "idle safety -> Finish (restore + Release)";
             }
             else if (settleEndedThisTick && !timeoutFinishThisTick && !idleSafetyThisTick)
             {
@@ -351,11 +351,7 @@ namespace geesp0t
             {
                 exposureIntentSummary = "FORCE_0";
             }
-            else if (idleSafetyThisTick)
-            {
-                exposureIntentSummary = "RELEASE_NO_EXPOSURE_restore";
-            }
-            else if (timeoutFinishThisTick || settleEndedThisTick)
+            else if (idleSafetyThisTick || timeoutFinishThisTick || settleEndedThisTick)
             {
                 exposureIntentSummary = "RESTORE_via_Finish";
             }

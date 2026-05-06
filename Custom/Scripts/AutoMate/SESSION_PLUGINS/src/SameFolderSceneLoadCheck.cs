@@ -46,6 +46,16 @@ namespace geesp0t
                     StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>For debug logs: last idle folder captured by <see cref="CaptureIdleLoadDir"/>.
+        /// </summary>
+        public string DebugLastIdleLoadDirNormalized
+        {
+            get
+            {
+                return lastIdleLoadDirNorm;
+            }
+        }
+
         public static string NormalizeLoadDir(string dir)
         {
             if (string.IsNullOrEmpty(dir))

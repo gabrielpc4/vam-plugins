@@ -330,6 +330,14 @@ namespace geesp0t
                 suppressSpankingsForPendingSceneLoad =
                     sameFolderSceneLoadCheck.IsSameFolderLoad(
                         SuperController.singleton);
+                SuperController.LogMessage(
+                    "[AutoLoadDbg] loadStart sameFolder=" +
+                    suppressSpankingsForPendingSceneLoad +
+                    " idleNorm=<" +
+                    sameFolderSceneLoadCheck.DebugLastIdleLoadDirNormalized +
+                    "> nowNorm=<" +
+                    SameFolderSceneLoadCheck.NormalizeLoadDir(
+                        SuperController.singleton.currentLoadDir) + ">");
             }
             else if (!superLoadingNow)
             {

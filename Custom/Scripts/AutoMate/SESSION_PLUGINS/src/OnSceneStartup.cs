@@ -50,6 +50,18 @@ namespace geesp0t
 
         private const float sceneSettlePauseHoldTimeoutSeconds = 30f;
 
+        private const bool exposureDebugLog = true;
+
+        private int dbgLoadSerial = 0;
+
+        private int dbgSkipLogForLoadSerial = -1;
+
+        private int dbgApplyNullGlForLoadSerial = -1;
+
+        private int dbgForceZeroLogForLoadSerial = -1;
+
+        private int dbgStuckZeroLogForLoadSerial = -1;
+
         static AsyncFlag GetSharedSceneSettlePauseAsyncFlag()
         {
             if (sharedSceneSettlePauseAsyncFlag == null)
@@ -69,9 +81,22 @@ namespace geesp0t
 
             if (superControllerIsLoadingNow && !lastSuperControllerIsLoading)
             {
+                dbgLoadSerial++;
+                if (exposureDebugLog)
+                {
+                    bool rawForLog = ShouldTreatSceneAsStillSettling();
+                    LogExposureDbg(
+                        "isLoading rose serial=" + dbgLoadSerial +
+                        " skipWorkflowFlag=" + skipExposureWorkflowForCurrentLoad +
+                        " " + DiagFormatExposureState() +
+                        " " + DiagSettleBreakdown(
+                            superController,
+                            rawForLog,
+                            superControllerIsLoadingNow));
+                }
                 ClearGlobalLightingCache();
                 GetSharedSceneSettlePauseAsyncFlag().Raise();
-                FinishSceneSettleExposureThenReleasePlaybackHold();
+                FinishSceneSettleExposureThenReleasePlaybackHold("loadStart");
                 initialSceneLoadSettleWorkflowFinished = false;
                 wasSceneStillSettling = false;
             }
@@ -88,10 +113,21 @@ namespace geesp0t
 
             if (skipExposureWorkflowForCurrentLoad)
             {
+                if (exposureDebugLog && dbgSkipLogForLoadSerial != dbgLoadSerial)
+                {
+                    dbgSkipLogForLoadSerial = dbgLoadSerial;
+                    LogExposureDbg(
+                        "skipWorkflow branch serial=" + dbgLoadSerial +
+                        " rawSettle=" + rawSceneSettlingIndicatorsActive +
+                        " isLoading=" + superControllerIsLoadingNow +
+                        " oneShotDone=" + initialSceneLoadSettleWorkflowFinished +
+                        " pauseOn=" + sceneSettleSimulationPauseAppliedToSuperController +
+                        " " + DiagFormatExposureState());
+                }
                 if (sceneSettleSimulationPauseAppliedToSuperController ||
                     camExposureBackupCaptured)
                 {
-                    FinishSceneSettleExposureThenReleasePlaybackHold();
+                    FinishSceneSettleExposureThenReleasePlaybackHold("skipWorkflow");
                 }
 
                 wasSceneStillSettling = false;
@@ -102,7 +138,7 @@ namespace geesp0t
 
             if (!rawSceneSettlingIndicatorsActive && !superControllerIsLoadingNow && sceneSettleSimulationPauseAppliedToSuperController)
             {
-                FinishSceneSettleExposureThenReleasePlaybackHold();
+                FinishSceneSettleExposureThenReleasePlaybackHold("idleSafety");
                 wasSceneStillSettling = false;
                 initialSceneLoadSettleWorkflowFinished = true;
                 settleEndedThisTick = true;
@@ -113,7 +149,7 @@ namespace geesp0t
                 if (Time.unscaledTime >= sceneSettlePauseHoldDeadlineUnscaledTime)
                 {
                     SuperController.LogMessage("[OnSceneStartup] Scene settle pause exceeded " + sceneSettlePauseHoldTimeoutSeconds + "s after isLoading cleared; forcing finish.");
-                    FinishSceneSettleExposureThenReleasePlaybackHold();
+                    FinishSceneSettleExposureThenReleasePlaybackHold("timeout");
                     settleEndedThisTick = true;
                     initialSceneLoadSettleWorkflowFinished = true;
                     wasSceneStillSettling = false;
@@ -143,13 +179,24 @@ namespace geesp0t
             {
                 if (wasSceneStillSettling)
                 {
-                    FinishSceneSettleExposureThenReleasePlaybackHold();
+                    FinishSceneSettleExposureThenReleasePlaybackHold("workflowExit");
                     settleEndedThisTick = true;
                     initialSceneLoadSettleWorkflowFinished = true;
                 }
             }
 
             wasSceneStillSettling = sceneSettlingForExposureWorkflow;
+
+            if (exposureDebugLog && settleEndedThisTick)
+            {
+                LogExposureDbg(
+                    "settleEndedThisTick serial=" + dbgLoadSerial + " " +
+                    DiagFormatExposureState() + " " +
+                    DiagSettleBreakdown(
+                        superController,
+                        rawSceneSettlingIndicatorsActive,
+                        superControllerIsLoadingNow));
+            }
 
             return settleEndedThisTick;
         }
@@ -186,6 +233,14 @@ namespace geesp0t
             superController.PauseSimulation(sceneSettlePauseAsyncFlag, true);
             sceneSettleSimulationPauseAppliedToSuperController = true;
 
+            if (exposureDebugLog)
+            {
+                LogExposureDbg(
+                    "BeginPauseHold serial=" + dbgLoadSerial + " " +
+                    DiagFormatExposureState() +
+                    " scIsLoading=" + superController.isLoading);
+            }
+
             if (!superController.isLoading)
             {
                 sceneSettlePauseHoldDeadlineUnscaledTime = Time.unscaledTime + sceneSettlePauseHoldTimeoutSeconds;
@@ -208,8 +263,16 @@ namespace geesp0t
             AudioListener.pause = true;
         }
 
-        void FinishSceneSettleExposureThenReleasePlaybackHold()
+        void FinishSceneSettleExposureThenReleasePlaybackHold(string dbgReason)
         {
+            if (exposureDebugLog)
+            {
+                LogExposureDbg(
+                    "Finish(" + dbgReason + ") enter " +
+                    DiagFormatExposureState() + " pauseOn=" +
+                    sceneSettleSimulationPauseAppliedToSuperController);
+            }
+
             if (camExposureBackupCaptured)
             {
                 try
@@ -224,6 +287,13 @@ namespace geesp0t
             else
             {
                 RestoreCamExposureUsingGlobalLightingDefaultBecauseBackupWasNeverCaptured();
+            }
+
+            if (exposureDebugLog)
+            {
+                LogExposureDbg(
+                    "Finish(" + dbgReason + ") afterRestore " +
+                    DiagFormatExposureState());
             }
 
             ReleaseSceneSettlePlaybackHold();
@@ -293,6 +363,13 @@ namespace geesp0t
             JSONStorable globalLightingStorable = TryGetGlobalLightingStorable();
             if (globalLightingStorable == null)
             {
+                if (exposureDebugLog && dbgApplyNullGlForLoadSerial != dbgLoadSerial)
+                {
+                    dbgApplyNullGlForLoadSerial = dbgLoadSerial;
+                    LogExposureDbg(
+                        "Apply: GlobalLighting missing serial=" + dbgLoadSerial);
+                }
+
                 return;
             }
 
@@ -302,7 +379,24 @@ namespace geesp0t
 
             if (rawCamExposure > forcedExposureEpsilon)
             {
+                if (exposureDebugLog && dbgForceZeroLogForLoadSerial != dbgLoadSerial)
+                {
+                    dbgForceZeroLogForLoadSerial = dbgLoadSerial;
+                    LogExposureDbg(
+                        "Apply: force camExposure 0 rawWas=" +
+                        rawCamExposure.ToString("F4") + " serial=" + dbgLoadSerial);
+                }
+
                 globalLightingStorable.SetFloatParamValue(camExposureParamName, 0f);
+            }
+            else if (exposureDebugLog &&
+                dbgStuckZeroLogForLoadSerial != dbgLoadSerial)
+            {
+                dbgStuckZeroLogForLoadSerial = dbgLoadSerial;
+                LogExposureDbg(
+                    "Apply: skip force (raw ~0) raw=" +
+                    rawCamExposure.ToString("F4") + " backupCap=" +
+                    camExposureBackupCaptured + " serial=" + dbgLoadSerial);
             }
         }
 
@@ -415,6 +509,55 @@ namespace geesp0t
         {
             cachedCoreControlAtom = null;
             cachedGlobalLightingStorable = null;
+        }
+
+        void LogExposureDbg(string message)
+        {
+            if (!exposureDebugLog)
+            {
+                return;
+            }
+
+            SuperController.LogMessage(
+                "[OnSceneStartupDbg] " +
+                DateTime.Now.ToString("HH:mm:ss.fff") +
+                " " +
+                message);
+        }
+
+        string DiagFormatExposureState()
+        {
+            JSONStorable gl = TryGetGlobalLightingStorable();
+            if (gl == null)
+            {
+                return "gl=null backup=" + camExposureBackupCaptured +
+                    " savedTarget=" + savedCamExposure.ToString("F4");
+            }
+
+            float ev = gl.GetFloatParamValue(camExposureParamName);
+            return "camExp=" + ev.ToString("F4") + " backup=" +
+                camExposureBackupCaptured + " savedTarget=" +
+                savedCamExposure.ToString("F4");
+        }
+
+        static string DiagSettleBreakdown(
+            SuperController sc,
+            bool rawCombined,
+            bool isLoadingNow)
+        {
+            if (sc == null)
+            {
+                return "sc=null";
+            }
+
+            return string.Format(
+                "raw={0} load={1} ui={2} alt={3} geo={4} icon={5}",
+                rawCombined,
+                isLoadingNow,
+                IsTransformActive(sc.loadingUI),
+                IsTransformActive(sc.loadingUIAlt),
+                IsTransformActive(sc.loadingGeometry),
+                IsTransformActive(sc.loadingIcon));
         }
     }
 }

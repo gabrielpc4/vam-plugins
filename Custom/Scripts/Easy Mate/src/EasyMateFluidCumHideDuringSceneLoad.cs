@@ -14,9 +14,11 @@ namespace geesp0t
     /// </summary>
     internal static class EasyMateFluidCumHideDuringSceneLoad
     {
+        /// <summary>Renderer extends Component here, not Behaviour.</summary>
         private sealed class Entry
         {
-            public Behaviour behaviour;
+            public Renderer renderer;
+            public Canvas canvas;
             public bool wasEnabled;
         }
 
@@ -76,8 +78,10 @@ namespace geesp0t
             for (int i = 0; i < Records.Count; i++)
             {
                 Entry e = Records[i];
-                if (e.behaviour != null)
-                    e.behaviour.enabled = e.wasEnabled;
+                if (e.renderer != null)
+                    e.renderer.enabled = e.wasEnabled;
+                else if (e.canvas != null)
+                    e.canvas.enabled = e.wasEnabled;
             }
             Records.Clear();
             SeenIds.Clear();
@@ -103,20 +107,38 @@ namespace geesp0t
             return false;
         }
 
-        private static void RememberAndDisableBehaviour(Behaviour b)
+        private static void RememberAndDisableRenderer(Renderer r)
         {
-            if (b == null)
+            if (r == null)
                 return;
-            int id = b.GetInstanceID();
+            int id = r.GetInstanceID();
             if (!SeenIds.Contains(id))
             {
                 SeenIds.Add(id);
                 Entry e = new Entry();
-                e.behaviour = b;
-                e.wasEnabled = b.enabled;
+                e.renderer = r;
+                e.canvas = null;
+                e.wasEnabled = r.enabled;
                 Records.Add(e);
             }
-            b.enabled = false;
+            r.enabled = false;
+        }
+
+        private static void RememberAndDisableCanvas(Canvas c)
+        {
+            if (c == null)
+                return;
+            int id = c.GetInstanceID();
+            if (!SeenIds.Contains(id))
+            {
+                SeenIds.Add(id);
+                Entry e = new Entry();
+                e.renderer = null;
+                e.canvas = c;
+                e.wasEnabled = c.enabled;
+                Records.Add(e);
+            }
+            c.enabled = false;
         }
 
         private static void ApplyHide()
@@ -135,11 +157,11 @@ namespace geesp0t
                     Renderer[] rends =
                         atom.gameObject.GetComponentsInChildren<Renderer>(true);
                     for (int i = 0; i < rends.Length; i++)
-                        RememberAndDisableBehaviour(rends[i]);
+                        RememberAndDisableRenderer(rends[i]);
                     Canvas[] canvases =
                         atom.gameObject.GetComponentsInChildren<Canvas>(true);
                     for (int c = 0; c < canvases.Length; c++)
-                        RememberAndDisableBehaviour(canvases[c]);
+                        RememberAndDisableCanvas(canvases[c]);
                 }
             }
             catch

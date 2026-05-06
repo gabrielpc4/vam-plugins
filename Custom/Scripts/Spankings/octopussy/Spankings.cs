@@ -665,75 +665,22 @@ namespace octopussy
         /// <summary>
         /// Plays moan only when head audio can take it or high-priority clears it,
         /// and not faster than minimum interval — stops cycle-force butt bounce loops.
+        /// Also forces <see cref="AudioSource.loop"/> off in case another plugin
+        /// left the shared head audio source looping.
         /// </summary>
-        private void LogMoanDebug(string message)
+        void TryPlayHeadMoan(RandomAudio voiceRand, float volumeMultiplier)
         {
-            string personUid = her != null ? her.uid : "null-person";
-            SuperController.LogMessage(
-                "Spankings debug [" + personUid + "]: " + message);
-        }
-
-        private string DescribeCurrentHeadAudio()
-        {
-            if (headAudio == null || headAudio.audioSource == null)
-                return "headAudio=null";
-
-            AudioSource hs = headAudio.audioSource;
-            string clipName = hs.clip != null ? hs.clip.name : "none";
-            return "isPlaying=" + hs.isPlaying +
-                ", loop=" + hs.loop +
-                ", clip=" + clipName +
-                ", volume=" + hs.volume.ToString("F3") +
-                ", pitch=" + hs.pitch.ToString("F3");
-        }
-
-        void TryPlayHeadMoan(
-            RandomAudio voiceRand,
-            float volumeMultiplier,
-            string sourceTag,
-            string triggerDetail)
-        {
-            if (headAudio == null || headAudio.audioSource == null)
-            {
-                LogMoanDebug(
-                    "moan skipped: missing head audio source; source=" +
-                    sourceTag + "; trigger=" + triggerDetail);
+            if (headAudio == null || headAudio.audioSource == null || voiceRand == null)
                 return;
-            }
-            if (voiceRand == null)
-            {
-                LogMoanDebug(
-                    "moan skipped: voice randomizer is null; source=" +
-                    sourceTag + "; trigger=" + triggerDetail);
-                return;
-            }
-
             float now = Time.timeSinceLevelLoad;
-            float sinceLastMoan = now - lastQueuedHeadMoanTime;
-            if (sinceLastMoan < minSecondsBetweenMoans.val)
-            {
-                LogMoanDebug(
-                    "moan skipped: cooldown active; source=" + sourceTag +
-                    "; trigger=" + triggerDetail +
-                    "; sinceLast=" + sinceLastMoan.ToString("F3") +
-                    "; min=" + minSecondsBetweenMoans.val.ToString("F3") +
-                    "; headAudio=" + DescribeCurrentHeadAudio());
+            if (now - lastQueuedHeadMoanTime < minSecondsBetweenMoans.val)
                 return;
-            }
 
             AudioSource hs = headAudio.audioSource;
-            if (hs.loop)
-            {
-                LogMoanDebug(
-                    "headAudio.loop was true before moan attempt; forcing false; "
-                    + "source=" + sourceTag +
-                    "; trigger=" + triggerDetail +
-                    "; headAudio(before)=" + DescribeCurrentHeadAudio());
+            if (hs != null && hs.loop)
                 hs.loop = false;
-            }
+
             voiceRand.playNow = playMoansHighPriority.val;
-            bool wasPlayingBeforeAttempt = hs.isPlaying;
-            string clipBeforeAttempt = hs.clip != null ? hs.clip.name : "none";
             bool queued = voiceRand.playRandomDelayedIfClear(
                 hs,
                 volumeMultiplier,
@@ -742,40 +689,13 @@ namespace octopussy
             if (queued)
             {
                 lastQueuedHeadMoanTime = now;
-                string clipAfterQueue = hs.clip != null ? hs.clip.name : "none";
-                LogMoanDebug(
-                    "moan queued; source=" + sourceTag +
-                    "; trigger=" + triggerDetail +
-                    "; volume=" + volumeMultiplier.ToString("F3") +
-                    "; highPriority=" + playMoansHighPriority.val +
-                    "; wasPlayingBeforeAttempt=" + wasPlayingBeforeAttempt +
-                    "; clipBefore=" + clipBeforeAttempt +
-                    "; clipAfter=" + clipAfterQueue +
-                    "; headAudio=" + DescribeCurrentHeadAudio());
                 return;
             }
 
             if (hs.isPlaying && !playMoansHighPriority.val)
             {
                 lastQueuedHeadMoanTime = now;
-                LogMoanDebug(
-                    "moan skipped: head audio already playing and high priority "
-                    + "is off; source=" + sourceTag +
-                    "; trigger=" + triggerDetail +
-                    "; clipBefore=" + clipBeforeAttempt +
-                    "; headAudio=" + DescribeCurrentHeadAudio());
-                return;
             }
-
-            LogMoanDebug(
-                "moan skipped: RandomAudio refused queue for unknown reason; "
-                + "source=" + sourceTag +
-                "; trigger=" + triggerDetail +
-                "; volume=" + volumeMultiplier.ToString("F3") +
-                "; highPriority=" + playMoansHighPriority.val +
-                "; wasPlayingBeforeAttempt=" + wasPlayingBeforeAttempt +
-                "; clipBefore=" + clipBeforeAttempt +
-                "; headAudio=" + DescribeCurrentHeadAudio());
         }
 
         void spankTrigger()
@@ -803,15 +723,7 @@ namespace octopussy
 
             if (useExpressions.val) expressionBank.PlayRandomAction(true); // << needs a quick lerp here
 
-            LogMoanDebug(
-                "manual HardSpank qualified for loud moan; level=" +
-                level.ToString("F3") +
-                "; threshold=" + collisionThreshold.val.ToString("F3"));
-            TryPlayHeadMoan(
-                randLoudVoiceAudio,
-                level * collisionSoundVolume.val,
-                "manual-hard",
-                "manual button hard spank");
+            TryPlayHeadMoan(randLoudVoiceAudio, level * collisionSoundVolume.val);
             reaction.SetForceAxis(axis[(++crntAxis + 1) % axis.Length]);
             reaction.restart();
             arousal += 0.5f;
@@ -828,15 +740,7 @@ namespace octopussy
 
             if (useExpressions.val) expressionBank.PlayRandomAction(true); // << needs a quick lerp here
 
-            LogMoanDebug(
-                "manual SoftSpank qualified for soft moan; level=" +
-                level.ToString("F3") +
-                "; threshold=" + collisionThreshold.val.ToString("F3"));
-            TryPlayHeadMoan(
-                randSoftVoiceAudio,
-                level * collisionSoundVolume.val,
-                "manual-soft",
-                "manual button soft spank");
+            TryPlayHeadMoan(randSoftVoiceAudio, level * collisionSoundVolume.val);
             arousal += 0.25f;
 
             reaction.restart();
@@ -865,41 +769,16 @@ namespace octopussy
 
                         if (useExpressions.val) expressionBank.PlayRandomAction(true); // << needs a quick lerp here
 
-                        string colliderName = e.collider != null
-                            ? e.collider.name
-                            : "null";
-                        string triggerDetail = "insideTrigger=true"
-                            + ", collider=" + colliderName
-                            + ", level=" + level.ToString("F3")
-                            + ", threshold="
-                            + collisionThreshold.val.ToString("F3")
-                            + ", relVel="
-                            + e.collision.relativeVelocity.magnitude
-                                .ToString("F3");
                         if (level > 1.0f)
                         {
-                            LogMoanDebug(
-                                "collision qualified for loud moan; " +
-                                triggerDetail);
-                            TryPlayHeadMoan(
-                                randLoudVoiceAudio,
-                                level * collisionSoundVolume.val,
-                                "collision-loud-trigger",
-                                triggerDetail);
+                            TryPlayHeadMoan(randLoudVoiceAudio, level * collisionSoundVolume.val);
                             reaction.SetForceAxis(axis[(++crntAxis + 1) % axis.Length]);
                             reaction.restart();
                             arousal += 0.5f;
                         }
                         else
                         {
-                            LogMoanDebug(
-                                "collision qualified for soft moan; " +
-                                triggerDetail);
-                            TryPlayHeadMoan(
-                                randSoftVoiceAudio,
-                                level * collisionSoundVolume.val,
-                                "collision-soft-trigger",
-                                triggerDetail);
+                            TryPlayHeadMoan(randSoftVoiceAudio, level * collisionSoundVolume.val);
                             arousal += 0.25f;
                         }
 
@@ -913,40 +792,14 @@ namespace octopussy
                         {
                             randAudio.playRandom(hitAudioSourceControl.audioSource, level * collisionSoundVolume.val);
                             if (useExpressions.val) expressionBank.PlayRandomAction(true);
-                            string colliderName = e.collider != null
-                                ? e.collider.name
-                                : "null";
-                            string triggerDetail = "insideTrigger=false"
-                                + ", collideOnlyWithTriggers=false"
-                                + ", collider=" + colliderName
-                                + ", level=" + level.ToString("F3")
-                                + ", threshold="
-                                + collisionThreshold.val.ToString("F3")
-                                + ", relVel="
-                                + e.collision.relativeVelocity.magnitude
-                                    .ToString("F3");
                             if (level > 1.0f)
                             {
-                                LogMoanDebug(
-                                    "collision qualified for loud moan; " +
-                                    triggerDetail);
-                                TryPlayHeadMoan(
-                                    randLoudVoiceAudio,
-                                    level * collisionSoundVolume.val,
-                                    "collision-loud-nontrigger",
-                                    triggerDetail);
+                                TryPlayHeadMoan(randLoudVoiceAudio, level * collisionSoundVolume.val);
                                 arousal += 0.5f;
                             }
                             else
                             {
-                                LogMoanDebug(
-                                    "collision qualified for soft moan; " +
-                                    triggerDetail);
-                                TryPlayHeadMoan(
-                                    randSoftVoiceAudio,
-                                    level * collisionSoundVolume.val,
-                                    "collision-soft-nontrigger",
-                                    triggerDetail);
+                                TryPlayHeadMoan(randSoftVoiceAudio, level * collisionSoundVolume.val);
                                 arousal += 0.25f;
                             }
                         }

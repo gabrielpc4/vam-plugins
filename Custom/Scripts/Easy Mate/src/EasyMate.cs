@@ -42,6 +42,8 @@ namespace geesp0t
 
         private Coroutine _mergeSpankingsAfterGripCo;
 
+        private Coroutine _mergeClothingTouchFallOffAfterGripCo;
+
         private Coroutine _mocapEndDefaultSceneCo;
 
         public JSONStorableAction hideUI;
@@ -179,6 +181,8 @@ namespace geesp0t
             SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
 
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(QueueMergeSpankingsAfterGripDeferred);
+            EasyMateGripHandVisibility.SetMergeClothingTouchFallOffOnFirstMale2Grip(
+                QueueMergeClothingTouchFallOffAfterGripDeferred);
         }
 
         private void QueueMergeSpankingsAfterGripDeferred()
@@ -249,6 +253,33 @@ namespace geesp0t
             finally
             {
                 _mergeSpankingsAfterGripCo = null;
+            }
+        }
+
+        private void QueueMergeClothingTouchFallOffAfterGripDeferred()
+        {
+            if (mainUIButtons == null)
+                return;
+            if (_mergeClothingTouchFallOffAfterGripCo != null)
+                StopCoroutine(_mergeClothingTouchFallOffAfterGripCo);
+            _mergeClothingTouchFallOffAfterGripCo =
+                StartCoroutine(CoMergeClothingTouchFallOffAfterGripDeferred());
+        }
+
+        private IEnumerator CoMergeClothingTouchFallOffAfterGripDeferred()
+        {
+            try
+            {
+                yield return null;
+                yield return null;
+                if (mainUIButtons == null)
+                    yield break;
+                mainUIButtons.MergeClothingTouchFallOffOnAllPersonsOnly();
+                mainUIButtons.RefreshPluginToggleLabels();
+            }
+            finally
+            {
+                _mergeClothingTouchFallOffAfterGripCo = null;
             }
         }
 
@@ -369,7 +400,7 @@ namespace geesp0t
 
         /// <summary>
         /// Person plugin lists can restore over several frames; merge E-MotionLite when load/save paths match keywords in
-        /// <see cref="EasyMateEmotionPathKeywords.KeywordsFileRelative"/> (see <see cref="EasyMateEmotionPathKeywords"/>); clothing touch fall-off on everyone; refresh HUD.
+        /// <see cref="EasyMateEmotionPathKeywords.KeywordsFileRelative"/> (see <see cref="EasyMateEmotionPathKeywords"/>); refresh HUD.
         /// </summary>
         private IEnumerator CoApplyEmotionAfterSceneSettles()
         {
@@ -386,7 +417,6 @@ namespace geesp0t
 
                 if (pathRuleMerge)
                     mainUIButtons.MergeEmotionLiteForPathRuleOnAllPersonsOnly();
-                mainUIButtons.MergeClothingTouchFallOffOnAllPersonsOnly();
                 mainUIButtons.RefreshPluginToggleLabels();
             }
             finally
@@ -772,6 +802,12 @@ namespace geesp0t
                 _mergeSpankingsAfterGripCo = null;
             }
 
+            if (_mergeClothingTouchFallOffAfterGripCo != null)
+            {
+                StopCoroutine(_mergeClothingTouchFallOffAfterGripCo);
+                _mergeClothingTouchFallOffAfterGripCo = null;
+            }
+
             if (_mocapEndDefaultSceneCo != null)
             {
                 StopCoroutine(_mocapEndDefaultSceneCo);
@@ -779,6 +815,7 @@ namespace geesp0t
             }
 
             EasyMateGripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
+            EasyMateGripHandVisibility.SetMergeClothingTouchFallOffOnFirstMale2Grip(null);
             EasyMateMonitorModeLaserRestore.OnPluginDestroy();
             EasyMateVrEulerPossessHandHud.OnPluginDestroy();
             EasyMatePassengerRuntime.OnPluginDestroy();

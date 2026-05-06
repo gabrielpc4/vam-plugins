@@ -34,6 +34,11 @@ namespace geesp0t
 
         private static Action _mergeSpankingsOntoPersonsMissingOnly;
 
+        /// <summary>After <see cref="DisableVrHandModelsForSceneStart"/>, first grip press that turns on Male2 hands merges clothing touch fall-off once.</summary>
+        private static bool _mergedClothingTouchFallOffAfterFirstMale2ThisScene;
+
+        private static Action _mergeClothingTouchFallOffOnAllPersons;
+
         /// <summary>
         /// After VR euler possess start: no grip toggle / first-grip Spankings for
         /// 10s (see <see cref="NotifyVrEulerPossessTenSecondSuppress"/>).
@@ -55,6 +60,14 @@ namespace geesp0t
         public static void SetMergeSpankingsOnFirstGrip(Action mergeSpankingsOntoPersonsMissingOnly)
         {
             _mergeSpankingsOntoPersonsMissingOnly = mergeSpankingsOntoPersonsMissingOnly;
+        }
+
+        /// <summary>Called from <see cref="EasyMate.Init"/>; pass <c>null</c> on teardown.</summary>
+        public static void SetMergeClothingTouchFallOffOnFirstMale2Grip(
+            Action mergeClothingTouchFallOffOnAllPersons)
+        {
+            _mergeClothingTouchFallOffOnAllPersons =
+                mergeClothingTouchFallOffOnAllPersons;
         }
 
         /// <summary>Re-apply after SuperController.Update / internal toggles (e.g. grab+trigger hand hide via <c>ToggleRightHandEnabled</c>).</summary>
@@ -85,6 +98,7 @@ namespace geesp0t
             _rightArticulated = false;
             _mergedSpankingsAfterFirstGripThisScene =
                 suppressFirstGripSpankingsMergeThisScene;
+            _mergedClothingTouchFallOffAfterFirstMale2ThisScene = false;
             _vrGripUsedThisScene = false;
             SuperController sc = SuperController.singleton;
             ApplyBothControls(sc);
@@ -127,6 +141,7 @@ namespace geesp0t
             {
                 _leftArticulated = !AnyPersonLeftHandPossessed();
                 _rightArticulated = !AnyPersonRightHandPossessed();
+                TryMergeClothingTouchFallOffOnFirstMale2GripThisScene();
             }
             else
             {
@@ -257,6 +272,27 @@ namespace geesp0t
             {
                 _mergedSpankingsAfterFirstGripThisScene = false;
                 SuperController.LogError("EasyMateGripHandVisibility: Spankings merge on first grip: " + e.Message);
+            }
+        }
+
+        private static void TryMergeClothingTouchFallOffOnFirstMale2GripThisScene()
+        {
+            if (_mergedClothingTouchFallOffAfterFirstMale2ThisScene)
+                return;
+            if (_mergeClothingTouchFallOffOnAllPersons == null)
+                return;
+
+            _mergedClothingTouchFallOffAfterFirstMale2ThisScene = true;
+            try
+            {
+                _mergeClothingTouchFallOffOnAllPersons();
+            }
+            catch (Exception e)
+            {
+                _mergedClothingTouchFallOffAfterFirstMale2ThisScene = false;
+                SuperController.LogError(
+                    "EasyMateGripHandVisibility: clothing touch fall-off merge on first Male2 grip: " +
+                    e.Message);
             }
         }
 

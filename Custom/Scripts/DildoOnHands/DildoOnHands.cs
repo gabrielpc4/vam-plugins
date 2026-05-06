@@ -37,7 +37,7 @@ namespace geesp0t
             "ToyAH",
             "ToyBP",
             "Paddle",
-            "ISSphere",
+            "Sphere",
         };
 
         private SuperController _sc;
@@ -764,6 +764,15 @@ namespace geesp0t
 
         private SceneToyTemplate PickMandatoryDildoOrNull()
         {
+            if (_catalogByTypeSorted != null)
+            {
+                List<SceneToyTemplate> dildos;
+                if (_catalogByTypeSorted.TryGetValue("Dildo", out dildos) &&
+                    dildos != null &&
+                    dildos.Count > 0)
+                    return dildos[0];
+            }
+
             if (_mandatoryDildoCatalogEntry != null)
                 return _mandatoryDildoCatalogEntry;
 
@@ -1145,7 +1154,9 @@ namespace geesp0t
 
         private static void TryApplyPingPongSphereScale(Atom spawned, float sphereScale)
         {
-            if (spawned == null || spawned.type != "ISSphere")
+            if (spawned == null ||
+                (spawned.type != "ISSphere" &&
+                    spawned.type != "Sphere"))
                 return;
             if (sphereScale <= 0f)
                 sphereScale = BuildPingPongSphereScale();
@@ -1528,7 +1539,7 @@ namespace geesp0t
                 }
                 else if (forceLegacySphere)
                 {
-                    atomLegacy = "ISSphere";
+                    atomLegacy = "Sphere";
                 }
                 else
                 {
@@ -1570,7 +1581,7 @@ namespace geesp0t
                 }
 
                 string plannedLegacySize;
-                if (atomLegacy == "ISSphere")
+                if (atomLegacy == "Sphere")
                     plannedLegacySize =
                         plannedSphereScale.ToString(
                             "0.###",

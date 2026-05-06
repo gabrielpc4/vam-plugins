@@ -61,7 +61,7 @@ namespace geesp0t
         }
 
         /// <summary>Returns true the first tick after VaM&apos;s loading/settle UI has cleared — playback hold was released.</summary>
-        public bool TickDuringSuperControllerLoad()
+        public bool TickDuringSuperControllerLoad(bool skipExposureWorkflowForCurrentLoad)
         {
             SuperController superController = SuperController.singleton;
             bool superControllerIsLoadingNow = superController != null && superController.isLoading;
@@ -71,7 +71,7 @@ namespace geesp0t
             {
                 ClearGlobalLightingCache();
                 GetSharedSceneSettlePauseAsyncFlag().Raise();
-                ReleaseSceneSettlePlaybackHold();
+                FinishSceneSettleExposureThenReleasePlaybackHold();
                 initialSceneLoadSettleWorkflowFinished = false;
                 wasSceneStillSettling = false;
             }
@@ -85,6 +85,18 @@ namespace geesp0t
             lastSuperControllerIsLoading = superControllerIsLoadingNow;
 
             bool rawSceneSettlingIndicatorsActive = ShouldTreatSceneAsStillSettling();
+
+            if (skipExposureWorkflowForCurrentLoad)
+            {
+                if (sceneSettleSimulationPauseAppliedToSuperController ||
+                    camExposureBackupCaptured)
+                {
+                    FinishSceneSettleExposureThenReleasePlaybackHold();
+                }
+
+                wasSceneStillSettling = false;
+                return false;
+            }
 
             bool settleEndedThisTick = false;
 

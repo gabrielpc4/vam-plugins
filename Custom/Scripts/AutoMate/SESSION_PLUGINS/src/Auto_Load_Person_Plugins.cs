@@ -30,15 +30,7 @@ namespace geesp0t
 
         private bool personPluginReloadPending = false;
 
-        private bool loadedSettings = false;
-
         public static bool logMessages = false;
-
-        private bool isSavingFemale = false;
-
-        private bool isSavingMale = false;
-
-        private bool isSavingSoloFemale = false;
 
         protected JSONStorableString explanationString;
 
@@ -46,17 +38,6 @@ namespace geesp0t
         public JSONStorableAction showUI;
 
         protected KeyboardShortcuts keyboardShortcuts = null;
-
-        protected UIDynamicButton enableAutoLoadButton;
-
-        private const int AUTO_LOAD_DISABLED = 0;
-        private const int AUTO_LOAD_SOLO = 1;
-        private const int AUTO_LOAD_ALL = 2;
-        private const int AUTO_LOAD_CUSTOM_SETTINGS = 3;
-        private const int AUTO_LOAD_COUNT = 4;
-        private int autoLoadType = AUTO_LOAD_DISABLED;
-
-        private int showAutoLoadButton = 0;
 
         private bool sceneChanged = false;
         private string lastSceneName = "";
@@ -67,26 +48,6 @@ namespace geesp0t
         private bool suppressSpankingsForPendingSceneLoad = false;
 
         private OnSceneStartup onSceneStartup = new OnSceneStartup();
-
-        public class PluginSet
-        {
-            public string buttonName;
-            public List<string> femalePlugins = new List<string>();
-            public List<string> femaleSoloPlugins = new List<string>();
-            public List<string> malePlugins = new List<string>();
-        }
-
-        private List<PluginSet> pluginSets = new List<PluginSet>();
-        private List<PluginSet> pluginSets2 = new List<PluginSet>();
-
-        private List<string> pluginSetsPluginListFemale = new List<string>();
-        private List<string> pluginSets2PluginListFemale = new List<string>();
-
-        private List<string> pluginSetsPluginListMale = new List<string>();
-        private List<string> pluginSets2PluginListMale = new List<string>();
-
-        private int currentPluginSet = 0;
-        private int currentPluginSet2 = 0;
 
         //to place a male atom in a scene (if starting with a female look scene)
         protected Atom createdMaleAtom = null;
@@ -110,8 +71,17 @@ namespace geesp0t
         private const string PLUGIN_EASY_MATE_CLOTHING_TOUCH_FALLOFF = "Custom/Scripts/Easy Mate/EasyMateClothingTouchFallOff.cslist";
         private const string PLUGIN_POSSESS_SEX = "Custom/Scripts/Possess Sex/PossessSex.cs";
 
-        private List<string> pluginsThatNeedReset = new List<string>() { PLUGIN_DOLLMASTER, PLUGIN_E_MOTION, PLUGIN_EASY_MOAN };
-        private List<string> pluginsThatShouldBeAddedOnlyOnce = new List<string>() { PLUGIN_EASY_BACKGROUND_SOUNDS };
+        private List<string> pluginsThatShouldBeAddedOnlyOnce = new List<string>();
+        private List<string> managedFemalePluginPaths = new List<string>()
+        {
+            PLUGIN_EXPLOSION_LIMITER,
+        };
+        private List<string> managedMalePluginPaths = new List<string>()
+        {
+            PLUGIN_EXPLOSION_LIMITER,
+            PLUGIN_IMPROVED_POV,
+            PLUGIN_IMPROVED_POV_TONGUE
+        };
 
         private const string PLUGIN_VAM_LAUNCH_CLASS_NAME = "VAMLaunchPlugin.VAMLaunch";
         private const string PLUGIN_VAM_LAUNCH_ATOM_NAME = "VAM Launch";
@@ -119,30 +89,21 @@ namespace geesp0t
 
         void SetDefaultSettings()
         {
-            autoLoadType = AUTO_LOAD_DISABLED;
-            showAutoLoadButton = 0;
-            currentPluginSet = 0;
-            currentPluginSet2 = 0;
-
             femalePlugins.Clear();
             femaleSoloPlugins.Clear();
             malePlugins.Clear();
 
-            femalePlugins.Add(PLUGIN_EXPLOSION_LIMITER);
-            femalePlugins.Add(PLUGIN_SPANKINGS);
+            // For now, I don't want to load any plugins by default.
+            // femalePlugins.Add(PLUGIN_EXPLOSION_LIMITER);
+            // femalePlugins.Add(PLUGIN_SPANKINGS);
 
-            femaleSoloPlugins.Add(PLUGIN_EASY_MOAN);
-            femaleSoloPlugins.Add(PLUGIN_EASY_BACKGROUND_SOUNDS);
+            // femaleSoloPlugins.Add(PLUGIN_EASY_MOAN);
+            // femaleSoloPlugins.Add(PLUGIN_EASY_BACKGROUND_SOUNDS);
 
-            malePlugins.Add(PLUGIN_EXPLOSION_LIMITER);
-            malePlugins.Add(PLUGIN_IMPROVED_POV);
+            // malePlugins.Add(PLUGIN_EXPLOSION_LIMITER);
+            // malePlugins.Add(PLUGIN_IMPROVED_POV);
 
             appliedPersonPlugins = false;
-        }
-
-        public List<string> GetMaleStandardPlugins()
-        {
-            return new List<string>() { PLUGIN_EXPLOSION_LIMITER, PLUGIN_IMPROVED_POV };
         }
 
         public override void Init()
@@ -151,210 +112,20 @@ namespace geesp0t
             RegisterAction(hideUI);
             showUI = new JSONStorableAction("Show UI", () => ShowUI());
             RegisterAction(showUI);
-
-            //build plugin sets
-
-            //PLUGIN SETS 1 
-            //no female person plugins
-            PluginSet pluginSet = new PluginSet();
-            pluginSet.buttonName = "No Plugin";
-            pluginSet.malePlugins = GetMaleStandardPlugins();
-            pluginSets.Add(pluginSet);
-
-            //spankings
-            pluginSet = new PluginSet();
-            pluginSet.buttonName = "Spankings & E-Motion";
-            pluginSet.femalePlugins = new List<string>() { PLUGIN_SPANKINGS, PLUGIN_E_MOTION, PLUGIN_EXPLOSION_LIMITER };
-            pluginSetsPluginListFemale.AddRange(pluginSet.femalePlugins);
-            pluginSet.malePlugins = GetMaleStandardPlugins();
-            pluginSets.Add(pluginSet);
-
-            //E-Motion
-            pluginSet = new PluginSet();
-            pluginSet.buttonName = "E-Motion";
-            pluginSet.femalePlugins = new List<string>() { PLUGIN_E_MOTION, PLUGIN_EXPLOSION_LIMITER };
-            pluginSetsPluginListFemale.AddRange(pluginSet.femalePlugins);
-            pluginSet.malePlugins = GetMaleStandardPlugins();
-            pluginSets.Add(pluginSet);
-
-            //spankings
-            pluginSet = new PluginSet();
-            pluginSet.buttonName = "Spankings";
-            pluginSet.femalePlugins = new List<string>() { PLUGIN_SPANKINGS, PLUGIN_EXPLOSION_LIMITER, PLUGIN_KISS };
-            pluginSetsPluginListFemale.AddRange(pluginSet.femalePlugins);
-            pluginSet.malePlugins = GetMaleStandardPlugins();
-            pluginSets.Add(pluginSet);
-
-            //E-Motion
-            pluginSet = new PluginSet();
-            pluginSet.buttonName = "Spankings & Life";
-            pluginSet.femalePlugins = new List<string>() { PLUGIN_SPANKINGS, PLUGIN_LIFE, PLUGIN_EXPLOSION_LIMITER, PLUGIN_KISS };
-            pluginSetsPluginListFemale.AddRange(pluginSet.femalePlugins);
-            pluginSet.malePlugins = GetMaleStandardPlugins();
-            pluginSets.Add(pluginSet);
-
-            //Life
-            pluginSet = new PluginSet();
-            pluginSet.buttonName = "Life";
-            pluginSet.femalePlugins = new List<string>() { PLUGIN_LIFE, PLUGIN_EXPLOSION_LIMITER, PLUGIN_KISS };
-            pluginSetsPluginListFemale.AddRange(pluginSet.femalePlugins);
-            pluginSet.malePlugins = GetMaleStandardPlugins();
-            pluginSets.Add(pluginSet);
-
-
-
-            //PLUGIN SETS 2 (to combine)
-            //default
-            pluginSet = new PluginSet();
-            pluginSet.buttonName = "No Sex Plugin";
-            pluginSets2.Add(pluginSet);
-
-            //Easy Moan
-            pluginSet = new PluginSet();
-            pluginSet.buttonName = "Easy Moan with Music";
-            pluginSet.femalePlugins = new List<string>() { PLUGIN_EASY_MOAN, PLUGIN_EASY_BACKGROUND_SOUNDS, PLUGIN_KISS };
-            pluginSets2PluginListFemale.AddRange(pluginSet.femalePlugins);
-            pluginSets2.Add(pluginSet);
-
-            //Easy Moan
-            pluginSet = new PluginSet();
-            pluginSet.buttonName = "Easy Moan";
-            pluginSet.femalePlugins = new List<string>() { PLUGIN_EASY_MOAN, PLUGIN_KISS };
-            pluginSets2PluginListFemale.AddRange(pluginSet.femalePlugins);
-            pluginSets2.Add(pluginSet);
-
-            //DollMaster
-            pluginSet = new PluginSet();
-            pluginSet.buttonName = "DollMaster";
-            pluginSet.femalePlugins = new List<string>() { PLUGIN_DOLLMASTER };
-            pluginSets2PluginListFemale.AddRange(pluginSet.femalePlugins);
-            pluginSets2.Add(pluginSet);
-
-            //Possess Sex
-            pluginSet = new PluginSet();
-            pluginSet.buttonName = "Possess Sex";
-            pluginSet.femalePlugins = new List<string>() { PLUGIN_POSSESS_SEX };
-            pluginSets2PluginListFemale.AddRange(pluginSet.femalePlugins);
-            pluginSets2.Add(pluginSet);
-
-            //VAM Launch
-            pluginSet = new PluginSet();
-            pluginSet.buttonName = "Add VAM Launch";
-            pluginSet.femalePlugins = new List<string>() { PLUGIN_VAM_LAUNCH };
-            pluginSets2PluginListFemale.AddRange(pluginSet.femalePlugins);
-            pluginSets2.Add(pluginSet);
-
-            pluginSetsPluginListFemale = pluginSetsPluginListFemale.Distinct().ToList();
-            pluginSets2PluginListFemale = pluginSets2PluginListFemale.Distinct().ToList();
-            pluginSetsPluginListMale = pluginSetsPluginListMale.Distinct().ToList();
-            pluginSets2PluginListMale = pluginSets2PluginListMale.Distinct().ToList();
-
-
-            explanationString = new JSONStorableString("", "Each time a scene is loaded, or a Person atom is added, standard plugins are added to all Person atoms.\n\n" +
-                "Use this plugin panel to choose plugin sets and save settings.\n\n" +
-                "The settings you create here are only loaded when Auto Load mode is set to Custom SETTINGS (see plugin controls).\n\n" +
-                "There are 3 sets of standard plugins. Female plugins apply to all female atoms, male plugins apply to all male atoms, and female solo plugins apply to female atoms if they are the only Person in the scene.\n\n" +
-                "You can modify the female solo plugins, for example, by changing what plugins the female person in your current scene has, then pressing Scan Current Fem Solo Settings & Save.\n\n" +
-                "Press Clear Settings if you want to remove all Male, Female and Female Solo Plugins from the main " + SETTINGS_FILE_NAME + " file.\n\n" +
-                "Press Load Settings From " + SETTINGS_FILE_NAME + " to load the current saved settings.\n\n" +
-                "Press Load Default Settings to load the built-in default plugin set.\n\n" +
-                "Press Reset All & Save " + SETTINGS_FILE_NAME + " to restore the default settings and save them into the " + SETTINGS_FILE_NAME + " file."
-                //"The settings in " + SETTINGS_FILE_NAME + " load when loading or reloading this plugin.\n\n"+
-                //"Press Load Settings From Custom File to load a custom set of plugins.\n\n" +
-                // + You can save to the default file or a custom file."
-
+            explanationString = new JSONStorableString("", "Each time a scene is loaded, or a Person atom is added, plugins from SETTINGS.json are added to Person atoms.\n\n" +
+                "AutoMate now only manages ExplosionLimiter and ImprovedPoV entries from Custom/Scripts/AutoMate/SETTINGS.json.\n\n" +
+                "Female plugins apply to all female atoms, male plugins apply to all male atoms, and female solo plugins apply only when there is one Person in the scene.\n\n" +
+                "Press Remove All Plugins on Person Atoms if you want to clear every Person atom plugin manager and reset expression morphs."
                 );
             UIDynamicTextField dtext = CreateTextField(explanationString);
-            dtext.height = 1200;
-
-
-            CreateButton("Scan Current Female Settings & Save", true).button.onClick.AddListener(() =>
-            {
-                SaveFemaleSettingsToFile();
-                autoLoadType = AUTO_LOAD_CUSTOM_SETTINGS;
-                showAutoLoadButton = 1;
-                SavePrefs();
-            });
-
-            CreateButton("Scan Current Fem Solo Settings & Save", true).button.onClick.AddListener(() =>
-            {
-                SaveFemaleSoloSettingsToFile();
-                autoLoadType = AUTO_LOAD_CUSTOM_SETTINGS;
-                showAutoLoadButton = 1;
-                SavePrefs();
-            });
-
-            CreateButton("Scan Current Male Settings & Save", true).button.onClick.AddListener(() =>
-            {
-                SaveMaleSettingsToFile();
-                autoLoadType = AUTO_LOAD_CUSTOM_SETTINGS;
-                showAutoLoadButton = 1;
-                SavePrefs();
-            });
-
-
-            CreateSpacer(true);
+            dtext.height = 650;
 
 
             CreateButton("Remove All Plugins on Person Atoms", true).button.onClick.AddListener(() =>
             {
-                currentPluginSet = 0;
-                currentPluginSet2 = 0;
                 RemoveAllPersonPlugins();
                 ResetMorphs();
             });
-
-            CreateButton("Clear Settings (Create Empty Default)", true).button.onClick.AddListener(() =>
-            {
-                SetEmptySettings();
-            });
-
-            CreateSpacer(true);
-
-            CreateButton("Load Settings From " + SETTINGS_FILE_NAME, true).button.onClick.AddListener(() =>
-            {
-                LoadSettingsFromDefaultFile();
-                currentPluginSet = 0;
-                currentPluginSet2 = 0;
-                autoLoadType = AUTO_LOAD_CUSTOM_SETTINGS;
-                showAutoLoadButton = 1;
-                SavePrefs(true);
-            });
-
-            CreateButton("Load Default Settings", true).button.onClick.AddListener(() =>
-            {
-                SetDefaultSettings();
-                SetCurrentPluginSet();
-                autoLoadType = AUTO_LOAD_DISABLED;
-                showAutoLoadButton = 0;
-                SavePrefs(true);
-            });
-
-            CreateButton("Reset All & Save " + SETTINGS_FILE_NAME, true).button.onClick.AddListener(() =>
-            {
-                RemoveAllPersonPlugins();
-                SetDefaultSettings();
-                SaveAllSettingsToFile();
-                SetCurrentPluginSet();
-                autoLoadType = AUTO_LOAD_DISABLED;
-                showAutoLoadButton = 0;
-                SavePrefs(true);
-            });
-
-            CreateSpacer(true);
-
-            //CreateSpacer(true);
-            //DISABLING CUSTOM SAVES FOR NOW, NOT YET FULLY WORKING AND PROBABLY MORE COMPLICATED THAN USEFUL
-            //CreateButton("Load Settings From Custom File", true).button.onClick.AddListener(() =>
-            //{
-            //    LoadSettingsFromFile();
-            //});
-
-            //CreateButton("Save Last Loaded Settings To File", true).button.onClick.AddListener(() =>
-            //{
-            //    SaveAllSettingsToCustomFile();
-            //});
-
 
             SuperController.singleton.onAtomUIDsChangedHandlers += new SuperController.OnAtomUIDsChanged(this.AtomUIDChange);
 
@@ -371,127 +142,6 @@ namespace geesp0t
         }
         public void HideUI()
         {
-        }
-
-        public void SavePrefs(bool resetMorphs = false)
-        {
-            isSavingFemale = false;
-            isSavingMale = false;
-            isSavingSoloFemale = false;
-            SaveSettings(SETTINGS_FILE_PATH + "/" + "SETTINGS.json");
-
-            if (resetMorphs)
-            {
-                if (autoLoadType != AUTO_LOAD_DISABLED) ResetMorphs();
-            }
-        }
-
-        public void SetCurrentPluginSet(bool loadNow = false)
-        {
-            if (autoLoadType == AUTO_LOAD_DISABLED)
-            {
-                if (loadNow)
-                {
-                    ResetMorphs();
-
-                    femalePlugins.Clear();
-                    malePlugins.Clear();
-                    femaleSoloPlugins.Clear();
-
-                    malePlugins.AddRange(pluginSets[currentPluginSet].malePlugins);
-                    malePlugins.AddRange(pluginSets2[currentPluginSet2].malePlugins);
-
-                    femalePlugins.AddRange(pluginSets[currentPluginSet].femalePlugins);
-
-                    femalePlugins.AddRange(pluginSets2[currentPluginSet2].femalePlugins);
-
-                    foreach (string femPlug in femalePlugins)
-                    {
-                        Log("New Desired Female Plugin: " + femPlug);
-                    }
-
-                    LoadPersonPlugins();
-                }
-            }
-            else if (autoLoadType == AUTO_LOAD_CUSTOM_SETTINGS)
-            {
-                LoadSettingsFromDefaultFile();
-
-                LoadPersonPlugins();
-            }
-            else
-            {
-                femalePlugins.Clear();
-                malePlugins.Clear();
-                femaleSoloPlugins.Clear();
-
-                malePlugins.AddRange(pluginSets[currentPluginSet].malePlugins);
-                malePlugins.AddRange(pluginSets2[currentPluginSet2].malePlugins);
-
-                if (autoLoadType == AUTO_LOAD_SOLO)
-                {
-                    femaleSoloPlugins.AddRange(pluginSets[currentPluginSet].femalePlugins);
-
-                    femaleSoloPlugins.AddRange(pluginSets2[currentPluginSet2].femalePlugins);
-
-                    foreach (string femPlug in femalePlugins)
-                    {
-                        Log("New Desired Female Solo Plugin: " + femPlug);
-                    }
-                } else if (autoLoadType == AUTO_LOAD_ALL)
-                {
-                    femalePlugins.AddRange(pluginSets[currentPluginSet].femalePlugins);
-
-                    femalePlugins.AddRange(pluginSets2[currentPluginSet2].femalePlugins);
-
-                    foreach (string femPlug in femalePlugins)
-                    {
-                        Log("New Desired Female Plugin: " + femPlug);
-                    }
-                }
-
-                LoadPersonPlugins();
-            }
-        }
-
-        public bool NeedToResetMorphs(List<string> oldPluginSet, List<string> newPluginSet)
-        {
-            List<string> difference = oldPluginSet.Except(newPluginSet).ToList();
-            foreach (string needReset in pluginsThatNeedReset)
-            {
-                if (difference.Contains(needReset)) return true;
-            }
-            return false;
-        }
-
-        public void NextPluginSet()
-        {
-            int priorPluginSet = currentPluginSet;
-            currentPluginSet++;
-            if (currentPluginSet >= pluginSets.Count()) currentPluginSet = 0;
-
-            //do we need to reset the morphs?
-            if (currentPluginSet == 0 || NeedToResetMorphs(pluginSets[priorPluginSet].femalePlugins, pluginSets[currentPluginSet].femalePlugins))
-            {
-                if (autoLoadType != AUTO_LOAD_DISABLED) ResetMorphs();
-            }
-            SetCurrentPluginSet();
-            SavePrefs(false);
-        }
-
-        public void NextPluginSet2()
-        {
-            int priorPluginSet = currentPluginSet2;
-            currentPluginSet2++;
-            if (currentPluginSet2 >= pluginSets2.Count()) currentPluginSet2 = 0;
-
-            //do we need to reset the morphs?
-            if (currentPluginSet2 == 0 || NeedToResetMorphs(pluginSets2[priorPluginSet].femalePlugins, pluginSets2[currentPluginSet2].femalePlugins))
-            {
-                if (autoLoadType != AUTO_LOAD_DISABLED) ResetMorphs();
-            }
-            SetCurrentPluginSet();
-            SavePrefs(false);
         }
 
 
@@ -532,244 +182,79 @@ namespace geesp0t
         {
         }*/
 
-
-        void SaveAllSettingsToCustomFile()
+        private bool IsAllowedConfiguredPluginPath(string pluginPath, bool isMale)
         {
-            ShowSaveDialog(SaveAllSettings);
+            if (string.IsNullOrEmpty(pluginPath))
+                return false;
+
+            if (pluginPath == PLUGIN_EXPLOSION_LIMITER)
+                return true;
+
+            if (isMale &&
+                (pluginPath == PLUGIN_IMPROVED_POV ||
+                 pluginPath == PLUGIN_IMPROVED_POV_TONGUE))
+            {
+                return true;
+            }
+
+            return false;
         }
 
-        void SaveAllSettingsToFile()
+        private void LoadConfiguredPluginArray(
+            JSONClass savedSettings,
+            string key,
+            List<string> target,
+            bool isMale)
         {
-            SaveAllSettings(SETTINGS_FILE_PATH + "/" + SETTINGS_FILE_NAME);
-            //ShowSaveDialog(SaveAllSettings);
-        }
+            JSONArray pluginsArray;
+            int i;
+            string pluginPath;
 
-        void SaveFemaleSettingsToFile()
-        {
-            isSavingFemale = true;
-            isSavingMale = false;
-            isSavingSoloFemale = false;
-            //ShowSaveDialog(SaveSettings);
-            SaveSettings(SETTINGS_FILE_PATH + "/" + "SETTINGS.json");
-            LoadSettingsFromDefaultFile();
-        }
+            target.Clear();
+            if (savedSettings == null || savedSettings[key] == null)
+                return;
 
-        void SaveFemaleSoloSettingsToFile()
-        {
-            isSavingFemale = false;
-            isSavingMale = false;
-            isSavingSoloFemale = true;
-            //ShowSaveDialog(SaveSettings);
-            SaveSettings(SETTINGS_FILE_PATH + "/" + "SETTINGS.json");
-            LoadSettingsFromDefaultFile();
-        }
+            pluginsArray = savedSettings[key].AsArray;
+            if (pluginsArray == null)
+                return;
 
-        void SaveMaleSettingsToFile()
-        {
-            isSavingFemale = false;
-            isSavingMale = true;
-            isSavingSoloFemale = false;
-            //ShowSaveDialog(SaveSettings);
-            SaveSettings(SETTINGS_FILE_PATH + "/" + "SETTINGS.json");
-            LoadSettingsFromDefaultFile();
-        }
-
-        void ShowSaveDialog(uFileBrowser.FileBrowserCallback callback)
-        {
-            SuperController.singleton.fileBrowserUI.defaultPath = SETTINGS_FILE_PATH;
-            SuperController.singleton.fileBrowserUI.SetTextEntry(true);
-            SuperController.singleton.fileBrowserUI.Show(callback);
-
-            if (SuperController.singleton.fileBrowserUI.fileEntryField != null)
+            for (i = 0; i < pluginsArray.Count; i++)
             {
-                SuperController.singleton.fileBrowserUI.fileEntryField.text = SETTINGS_FILE_NAME;
-                SuperController.singleton.fileBrowserUI.ActivateFileNameField();
+                pluginPath = pluginsArray[i];
+                if (!IsAllowedConfiguredPluginPath(pluginPath, isMale))
+                    continue;
+                if (!target.Contains(pluginPath))
+                    target.Add(pluginPath);
             }
-        }
-        void SetEmptySettings()
-        {
-            currentPluginSet = 0;
-            currentPluginSet2 = 0;
-            femalePlugins.Clear();
-            femaleSoloPlugins.Clear();
-            malePlugins.Clear();
-            RemoveAllPersonPlugins();
-            SaveAllSettingsToFile();
-        }
-
-        void SaveSettings(string path)
-        {
-            if (!path.EndsWith(".json"))
-            {
-                path += ".json";
-            }
-
-            JSONArray pluginsArray = new JSONArray();
-
-            IEnumerable<Atom> personAtoms = SuperController.singleton.GetAtoms().Where(a => a.type == "Person");
-
-            foreach (Atom at in personAtoms)
-            {
-                MVRPluginManager manager = at.GetStorableByID("PluginManager") as MVRPluginManager;
-                JSONClass current = manager.GetJSON(true, true, true);
-                if (current["plugins"] != null && current["plugins"]["plugin#0"] != null &&
-                    current["plugins"]["plugin#0"].Value != "")
-                {
-
-                    if (at.GetComponentInChildren<DAZCharacter>().isMale == isSavingMale)
-                    {
-                        foreach (JSONNode pluginNode in current["plugins"].Childs)
-                        {
-                            string pluginPath = pluginNode.Value;
-                            if (pluginPath.StartsWith("./"))
-                            {
-                                //make relative to saves dir
-                                pluginPath = SuperController.singleton.currentSaveDir + "/" + pluginPath.Substring(2);
-                                Log("Fixing Relative Plugin Path: " + pluginPath);
-                            } else if (pluginPath.LastIndexOfAny(new char[] { '/', '\\' }) < 0)
-                            {
-                                //no path, just a file name, add the current directory
-                                pluginPath = SuperController.singleton.currentSaveDir + "/" + pluginPath;
-                                Log("Including Full Plugin Path: " + pluginPath);
-                            }
-                            pluginsArray.Add(pluginPath);
-                            Log("Saving Plugin: " + pluginPath);
-                        }
-                    }
-                }
-            }
-
-            //load current data
-            JSONClass savedSettings = SuperController.singleton.LoadJSON(path).AsObject;
-            if (savedSettings == null) savedSettings = new JSONClass();
-
-            //save our data
-            if (isSavingMale)
-            {
-                savedSettings["malePlugins"] = pluginsArray;
-            } else if (isSavingSoloFemale)
-            {
-                savedSettings["femaleSoloPlugins"] = pluginsArray;
-            }
-            else if (isSavingFemale)
-            {
-                savedSettings["femalePlugins"] = pluginsArray;
-            }
-
-            if (path.EndsWith(SETTINGS_FILE_NAME))
-            {
-                savedSettings["autoLoadType"] = autoLoadType.ToString();
-                savedSettings["showAutoLoadButton"] = showAutoLoadButton.ToString();
-                savedSettings["currentPluginSet"] = currentPluginSet.ToString();
-                savedSettings["currentPluginSet2"] = currentPluginSet2.ToString();
-            }
-
-            Log("Save Path: " + path);
-            SuperController.singleton.SaveJSON(savedSettings, path);
-        }
-
-        void SaveAllSettings(string path)
-        {
-            if (!path.EndsWith(".json"))
-            {
-                path += ".json";
-            }
-
-            JSONClass savedSettings = new JSONClass();
-
-            JSONArray femalePluginsArray = new JSONArray();
-            JSONArray femaleSoloPluginsArray = new JSONArray();
-            JSONArray malePluginsArray = new JSONArray();
-
-            foreach (string plugin in femalePlugins)
-            {
-                femalePluginsArray.Add(plugin);
-            }
-
-            foreach (string plugin in femaleSoloPlugins)
-            {
-                femaleSoloPluginsArray.Add(plugin);
-            }
-
-            foreach (string plugin in malePlugins)
-            {
-                malePluginsArray.Add(plugin);
-            }
-
-            savedSettings["femalePlugins"] = femalePluginsArray;
-
-            savedSettings["femaleSoloPlugins"] = femaleSoloPluginsArray;
-
-            savedSettings["malePlugins"] = malePluginsArray;
-
-            if (path.EndsWith(SETTINGS_FILE_NAME))
-            {
-                savedSettings["autoLoadType"] = autoLoadType.ToString();
-                savedSettings["showAutoLoadButton"] = showAutoLoadButton.ToString();
-                savedSettings["currentPluginSet"] = currentPluginSet.ToString();
-                savedSettings["currentPluginSet2"] = currentPluginSet2.ToString();
-            }
-
-            Log("Save Path: " + path);
-            SuperController.singleton.SaveJSON(savedSettings, path);
-        }
-
-        void LoadSettingsFromFile()
-        {
-            SuperController.singleton.fileBrowserUI.defaultPath = SETTINGS_FILE_PATH;
-            SuperController.singleton.fileBrowserUI.SetTextEntry(false);
-            SuperController.singleton.fileBrowserUI.Show((path) =>
-            {
-                LoadSettingsFrom(path);
-            });
         }
 
         void LoadSettingsFrom(string path)
         {
-            //Log("Load Settings From: " + path);
-            JSONClass savedSettings = new JSONClass();
+            JSONClass savedSettings;
+
             savedSettings = SuperController.singleton.LoadJSON(path).AsObject;
-            if (savedSettings != null)
-            {
-                femalePlugins.Clear();
-                JSONArray femalePluginsArray = savedSettings["femalePlugins"].AsArray;
-                for (int i = 0; i < femalePluginsArray.Count; i++)
-                {
-                    //Log("Desired FEMALE plugin: " + femalePluginsArray[i]);
-                    femalePlugins.Add(femalePluginsArray[i]);
-                }
-
-                femaleSoloPlugins.Clear();
-                JSONArray femaleSoloPluginsArray = savedSettings["femaleSoloPlugins"].AsArray;
-                for (int i = 0; i < femaleSoloPluginsArray.Count; i++)
-                {
-                    //Log("Desired FEMALE SOLO plugin: " + femaleSoloPluginsArray[i]);
-                    femaleSoloPlugins.Add(femaleSoloPluginsArray[i]);
-                }
-
-                malePlugins.Clear();
-                JSONArray malePluginsArray = savedSettings["malePlugins"].AsArray;
-                for (int i = 0; i < malePluginsArray.Count; i++)
-                {
-                    //Log("Desired MALE plugin: " + malePluginsArray[i]);
-                    malePlugins.Add(malePluginsArray[i]);
-                }
-
-                    if (savedSettings["autoLoadType"] != null)
-                    {
-                        currentPluginSet = savedSettings["currentPluginSet"].AsInt;
-                        currentPluginSet2 = savedSettings["currentPluginSet2"].AsInt;
-                        autoLoadType = savedSettings["autoLoadType"].AsInt;
-                        showAutoLoadButton = savedSettings["showAutoLoadButton"].AsInt;
-                        Log("currentPluginSet: " + pluginSets[currentPluginSet].buttonName);
-                        if (autoLoadType != AUTO_LOAD_DISABLED) showAutoLoadButton = 1;
-                    }
-            }
-            else
+            if (savedSettings == null)
             {
                 Log("Saved Settings not found");
                 SetDefaultSettings();
+                return;
             }
+
+            LoadConfiguredPluginArray(
+                savedSettings,
+                "femalePlugins",
+                femalePlugins,
+                false);
+            LoadConfiguredPluginArray(
+                savedSettings,
+                "femaleSoloPlugins",
+                femaleSoloPlugins,
+                false);
+            LoadConfiguredPluginArray(
+                savedSettings,
+                "malePlugins",
+                malePlugins,
+                true);
 
             appliedPersonPlugins = false;
         }
@@ -938,7 +423,9 @@ namespace geesp0t
 
         void LateUpdate()
         {
-            bool sceneSettleJustEnded = onSceneStartup.TickDuringSuperControllerLoad();
+            bool sceneSettleJustEnded =
+                onSceneStartup.TickDuringSuperControllerLoad(
+                    suppressSpankingsForPendingSceneLoad);
             if (sceneSettleJustEnded)
             {
                 EasyMateVrHeadCylinderHide.AfterSuperControllerFinishedSceneSettle(this);
@@ -1027,8 +514,8 @@ namespace geesp0t
         {
             isLoading = true;
             loadingTimeCounter = Time.timeSinceLevelLoad;
+            SetDefaultSettings();
             LoadSettingsFromDefaultFile();
-            SetCurrentPluginSet();
         }
 
         void RemoveAllPersonPlugins()
@@ -1109,6 +596,18 @@ namespace geesp0t
         {
             string fileName = relativePath.Substring(relativePath.LastIndexOfAny(new char[] { '/', '\\' }) + 1);
             return fileName;
+        }
+
+        private bool IsManagedPluginPath(string pluginPath, bool isMale)
+        {
+            if (isMale)
+            {
+                return managedMalePluginPaths.Contains(pluginPath);
+            }
+
+            return managedFemalePluginPaths.Contains(pluginPath) ||
+                femalePlugins.Contains(pluginPath) ||
+                femaleSoloPlugins.Contains(pluginPath);
         }
 
         /// <summary>
@@ -1314,17 +813,14 @@ namespace geesp0t
                     {
                         string path = pluginNode.Value;
 
-                        //is this a plugin that is part of our cycling set?
-                        if (isMale)
+                        if (isMale &&
+                            (path == PLUGIN_IMPROVED_POV || path == PLUGIN_IMPROVED_POV_TONGUE))
                         {
-                            if (path == PLUGIN_IMPROVED_POV || path == PLUGIN_IMPROVED_POV_TONGUE) continue; //dynamically chosen
-                            if (pluginSetsPluginListMale.Contains(path)) continue;
-                            if (pluginSets2PluginListMale.Contains(path)) continue;
+                            continue;
                         }
-                        else
+                        if (IsManagedPluginPath(path, isMale))
                         {
-                            if (pluginSetsPluginListFemale.Contains(path)) continue;
-                            if (pluginSets2PluginListFemale.Contains(path)) continue;
+                            continue;
                         }
 
                         //if we start with a plugin that is relative like ./ this can be a wrong path for some reason, fix the path

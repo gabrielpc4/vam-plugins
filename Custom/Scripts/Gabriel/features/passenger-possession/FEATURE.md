@@ -24,9 +24,9 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 - Raycast along the **right** UI-aim beam and map hits to a person for laser+A start.
 
 ## Dependencies And Coupling
-- Depends on `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs` and cooperates with `HeadProximityHide`.
-- Cooperates with `scene-camera`, `GabrielHudNextSceneButton`, `palm-hud`,
-  `ui-hud`, and ImprovedPoV/head-hide.
+- Depends on `improved-pov/ImprovedPoV.cs` and cooperates with `HeadProximityHide`.
+- Cooperates with `scene-camera` (`MonitorModeLaserRestore`), `GabrielHudNextSceneButton`
+  (palm next-scene row), `palm-hud`, and `GabrielHudButtons` / `PassengerRuntime`.
 
 ## References
 - `Reference/EasyMate-Hand-Menu-Passenger-Possession.md`

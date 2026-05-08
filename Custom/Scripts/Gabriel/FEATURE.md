@@ -29,7 +29,9 @@ Single plugin URL; one compile that typically includes:
   `SceneSettleRuntime` partials (`SceneSettle`, `PlaybackHold`,
   `InitialExposureChange`), `SameFolderSceneLoadCheck`, `SceneLoadDirNormalize`
 - **`features/ui-hud/*`** — `GabrielHud`, `GabrielHotkeys`, `NextSceneUiButton`
-- **`features/dildo-on-hands/DildoOnHands.cs`** — toy spawn `MVRScript`
+- **Temporary isolation:** `features/dildo-on-hands/DildoOnHands.cs` is
+  currently **excluded** from the shared session compile while isolating a VaM
+  compiler crash. Its standalone `DildoOnHands.cslist` remains available.
 - **`features/clothing-interactions/*`** — `ClothingClassifier`,
   `TriggerClothingRemover`, `ClothingTouchFallOffDeferredMerge`
   (`ClothingTouchFallOffPluginPath`; **not** the person `MVRScript` on CoreControl)

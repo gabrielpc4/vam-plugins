@@ -6,12 +6,13 @@ Session bundle loaded from `GabrielSessionPlugins.cslist`. The host
 pulses, full scene-settle workflow, late feature ticks, HUD binding, and the
 scene-settle release action for the shared hotkey dispatcher.
 
-The same compile unit includes **DildoOnHands**, **`ClothingClassifier`** +
-**TriggerClothingRemover**, **ClothingTouchFallOffDeferredMerge**, and
-**`GabrielSessionOrchestrator`** merge helpers. Bootstrap injects only
-`VaMLogClipboardHud.cslist` plus **`GabrielSessionPlugins.cslist`** (VaM does not
-nest `.cslist` files; multiple scripts share one compile by listing their `.cs`
-paths in this list).
+The same compile unit includes **`ClothingClassifier`** +
+**`TriggerClothingRemover`**, **ClothingTouchFallOffDeferredMerge**, and
+**`GabrielSessionOrchestrator`** merge helpers. `DildoOnHands.cs` is
+temporarily removed from this shared compile while isolating a VaM compiler
+crash. Bootstrap injects only `VaMLogClipboardHud.cslist` plus
+**`GabrielSessionPlugins.cslist`** (VaM does not nest `.cslist` files;
+multiple scripts share one compile by listing their `.cs` paths in this list).
 
 ## Live Files
 - `GabrielSessionPlugins.cslist`
@@ -22,7 +23,6 @@ paths in this list).
 - `src/SameFolderSceneLoadCheck.cs`
 - `src/SceneLoadDirNormalize.cs` *(also compiled into `GabrielHud.cslist`; path
   normalization helpers for HUD same-folder cues)*
-- `../features/dildo-on-hands/DildoOnHands.cs`
 - `../features/clothing-interactions/ClothingClassifier.cs`
 - `../features/clothing-interactions/TriggerClothingRemover.cs`
 - `../features/clothing-interactions/ClothingTouchFallOffDeferredMerge.cs`
@@ -30,6 +30,9 @@ paths in this list).
 
 ## Load Path
 - Loaded as a session plugin by `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cs`.
+- `DildoOnHands.cs` is temporarily excluded from this compile for compiler-crash
+  isolation; use `Custom/Scripts/Gabriel/features/dildo-on-hands/DildoOnHands.cslist`
+  if toy-only testing is needed during the isolation pass.
 - `GabrielSessionOrchestrator` runs in `Update` / `LateUpdate` and detects
   same-folder load pulses before delegating scene-settle control to the
   `SceneSettleRuntime` partial set in `src/SceneSettle.cs`,

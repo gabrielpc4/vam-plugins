@@ -1,3 +1,9 @@
+../session-plugins/src/SceneSettle.cs
+../session-plugins/src/PlaybackHold.cs
+../session-plugins/src/InitialExposureChange.cs
+../session-plugins/src/SameFolderSceneLoadCheck.cs
+../session-plugins/src/SceneLoadDirNormalize.cs
+../session-plugins/src/GabrielSessionOrchestrator.cs
 ../../util/FileManager.cs
 ../../util/PersonAtomCache.cs
 ../../util/PluginManager.cs
@@ -6,7 +12,6 @@ GabrielHud.cs
 NextSceneUiButton.cs
 GabrielHotkeys.cs
 ../animation-no-loop-detection/AnimationNoLoopDetection.cs
-../session-plugins/src/SceneLoadDirNormalize.cs
 ../palm-hud/VrInput.cs
 ../palm-hud/VrEulerPossessPoseCheck.cs
 ../palm-hud/VrEulerPossessHandHud.cs
@@ -28,3 +33,4 @@ GabrielHotkeys.cs
 ../e-motion/EmotionPathRuleMerge.cs
 ../spankings/SpankingsGripBlockPathKeywords.cs
 ../spankings/SpankingsAtomsRemoval.cs
+../clothing-interactions/ClothingTouchFallOffDeferredMerge.cs

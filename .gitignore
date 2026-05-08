@@ -8,14 +8,16 @@
 !.gitignore
 !**/*.md
 !**/*.py
-!/Saves/
-!/Saves/scene/
-!Saves/scene/**/*.jpg
+/Saves/
+Assets/
 !**/*.vac
 !**/*.json
 !**/*.cs
 !**/*.cslist
 !**/*.txt
+Reference/Assembly-CSharp-decompiled/
+menu_tools/
+Custom/Scripts/VAMDeluxe/Dollmaster/
 
 # Custom/: only those extensions under Scripts/ (not e.g. .wav); **/ traverses nested folders.
 Custom/**
@@ -62,3 +64,4 @@ Custom/**
 /Saves/scene/CG-STUDIO/SnD - The Lamb/SnD - The Lamb Ver.2.vac
 /Saves/scene/CG-STUDIO/S&D/SnD - The Lamb/SnD - The Lamb Ver.2.vac
 /Saves/scene/_My Scenes/Downloaded/CG-STUDIO/SnD - The Lamb/SnD - The Lamb Ver.2.vac
+

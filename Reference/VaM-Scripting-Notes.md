@@ -29,7 +29,24 @@ Examples to **avoid** in VaM-loaded scripts:
 
 The decompiled `Assembly-CSharp` reference and many community plugins assume Unity/VaM-era constraints; when adding new code under `Custom/Scripts`, match that conservative style.
 
+### Gabriel cutover note
+
+- Live Gabriel-owned runtime now lives under `Custom/Scripts/Gabriel`.
+- Historical mentions below that still reference `Custom/Scripts/Easy Mate/...`
+  or `Custom/Scripts/AutoMate/...` often map like this:
+  - bootstrap -> `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cs`
+  - main HUD -> `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cs`
+    and `GabrielHudButtons.cs`
+  - palm HUD / VR gestures -> `Custom/Scripts/Gabriel/features/palm-hud/**`
+  - passenger possession -> `Custom/Scripts/Gabriel/features/passenger-possession/**`
+  - scene startup / person plugin stack ->
+    `Custom/Scripts/Gabriel/session-stack/**`
+- Removed during the Gabriel cutover:
+  - `Custom/Scripts/ImprovedPoV_TongueLicking.cs`
+  - `Custom/Scripts/LocalMp4Viewer/**`
+
 - The main custom areas to keep in mind in this workspace are:
+  - `Custom/Scripts/Gabriel`
   - `Custom/Scripts/AutoMate`
   - `Custom/Scripts/Easy Mate`
   - `Custom/Scripts/LFE` — **`KeyboardShortcuts`** (session-style rebinding UI; see below)
@@ -43,13 +60,13 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
   - Menu/bootstrap plugin.
   - Injects session plugins into the `CoreControl` `PluginManager`.
   - **Session load order** (first missing entries are prepended when merging):
-    1. `Custom/Scripts/Easy Mate/VaMLogClipboardHud.cslist` — log clipboard HUD (**separate compile** from `EasyMate.cslist`).
-    2. `Custom/Scripts/Easy Mate/EasyMate.cslist` — main Easy Mate stack (includes `MainUIButtons`).
-    3. `Custom/Scripts/AutoMate/SESSION_PLUGINS/Auto_Load_Person_Plugins.cslist`.
+    1. `Custom/Scripts/Gabriel/features/ui-hud/VaMLogClipboardHud.cslist` — log clipboard HUD (**separate compile** from `EasyMate.cslist`).
+    2. `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist` — main Easy Mate stack (includes `MainUIButtons`).
+    3. `Custom/Scripts/Gabriel/session-stack/GabrielSessionStack.cslist`.
   - In desktop mode, also adds `Custom/Scripts/prestigitis_DesktopClothGrab.cs`.
   - Directly sets `SuperController.singleton.navigationRig.position` during init, so it already affects initial camera placement.
 
-- **`Custom/Scripts/Easy Mate/VaMLogClipboardHud.cslist`**
+- **`Custom/Scripts/Gabriel/features/ui-hud/VaMLogClipboardHud.cslist`**
   - Single source: `src/VaMLogClipboardHud.cs`.
   - **Why it exists:** The three VaM log buttons (**Copy Errors**, **Copy Console**, **Clear logs**) must still load if `EasyMate.cslist` fails to compile or `MainUIButtons` fails at runtime. They use the same `mainHUD` placement math as Easy Mate column **0** so the combined grid lines up.
   - **Behavior:** Reads `SuperController.allErrorsText` / `allErrorsText2` and `allMessagesText` / `allMessagesText2`; copy uses `GUIUtility.systemCopyBuffer`; clear calls `ClearErrors()` and `ClearMessages()` (see decompiled `SuperController`). To **show/hide** those panels from the keyboard, **`LFE/KeyboardShortcuts`** exposes **`Error Log > Toggle`** and **`Message Log > Toggle`** (see **LFE / KeyboardShortcuts**).
@@ -119,7 +136,7 @@ Primitive atoms (e.g. **`Cube`**) expose a **`materials`** storable (**`Material
 
 Example: **`Custom/Scripts/DildoOnHands/DildoOnHands.cs`** — **`ApplySpawnToyMaterialLook`** (**`SetColor1`** on spawned atoms).
 
-- `Custom/Scripts/AutoMate/SESSION_PLUGINS/src/EasyMate_VR_Head_Cylinder_Hide.cs`
+- `Custom/Scripts/Gabriel/features/head-hide/HeadProximityHide.cs`
   - Static helper: **`Camera.onPreRender` / `onPostRender`** when Easy Mate **VR head proximity hide** is on: if the HMD eye is inside a **finite cylinder** (moderate radial radius along possess **up** through **`headControl`**), temporarily hides face-related skin materials (shader/alpha), hats/glasses; **male** figures also use backup/restore hair unequip while in zone — **only** on VR eye cameras (`CenterEyeAnchor`, `Camera (eye)`), not **`MonitorRig`** or mirror/reflection cameras. Chooses the **closest** Person whose cylinder contains the camera. **Load order:** inactive while **`SuperController.singleton.isLoading`** **or** while **`OnSceneStartup`** scene settle is active (same gate as load UI / icon); after settle, **`AfterSuperControllerFinishedSceneSettle`** resets transient hide state so possession-from-save can configure cleanly. **`SnapSkinHandler.Configure`** preflights **`Shader.Find`** before swapping materials. **C# 6**: no inline `out` variable declarations (see **C# language level** above). Possession clear may call **`RestoreTransientHeadHideState()`** without toggling this feature.
 
 ### `AutoMate`
@@ -137,10 +154,9 @@ Example: **`Custom/Scripts/DildoOnHands/DildoOnHands.cs`** — **`ApplySpawnToyM
     - preserving existing plugins while merging desired plugins
     - creating/removing a male Person atom
     - finding loaded plugins by storable ID suffix
-    - resetting expression/tongue morphs
+    - resetting expression morphs
   - Already contains canonical plugin path constants for:
     - `ImprovedPoV`
-    - `ImprovedPoV_TongueLicking`
     - `E-Motion`
     - `Spankings`
     - `Possess Sex`
@@ -176,7 +192,7 @@ Notes:
 
 ### `ImprovedPoV`
 
-- `Custom/Scripts/ImprovedPoV.cs`
+- `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs`
   - Best reference for:
     - head/face/hair invisibility
     - camera depth/height/pitch offsets
@@ -184,9 +200,9 @@ Notes:
     - optional world scaling
   - Hides face/hair with shader/material tricks during camera render.
 
-- `Custom/Scripts/ImprovedPoV_TongueLicking.cs`
-  - Same core pattern plus tongue morph animation.
-  - Good reference for morph access through `morphsControlUI`.
+- `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs`
+  - Current Gabriel-owned first-person possession plugin.
+  - The old TongueLicking fork was removed during the Gabriel cutover, so use git history only if you need that legacy morph example.
 
 ### `Possess Sex`
 
@@ -214,14 +230,14 @@ Notes:
 
 Examples:
 
-- `Custom/Scripts/Easy Mate/EasyMate.cslist`
+- `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`
   - `src/EasyMate.cs`
   - `../AutoMate/SESSION_PLUGINS/src/EasyMate_VR_Head_Cylinder_Hide.cs`
   - `src/MainUIButtons.cs`
   - (full list in the file — does **not** include `VaMLogClipboardHud.cs`)
-- `Custom/Scripts/Easy Mate/VaMLogClipboardHud.cslist`
+- `Custom/Scripts/Gabriel/features/ui-hud/VaMLogClipboardHud.cslist`
   - `src/VaMLogClipboardHud.cs` only — **separate** plugin for log copy/clear buttons (see **Easy Mate** notes above).
-- `Custom/Scripts/Easy Mate/AutoLoadEasyMate.cslist`
+- `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cslist`
   - `src/AutoLoadEasyMate.cs`
 - `Custom/Scripts/LFE/KeyboardShortcuts/src/KeyboardShortcuts.cslist`
   - multi-file bundle under `Commands/`, `Extensions/`, `Models/`, `Utils/`, `Main/` (see **LFE / KeyboardShortcuts** above).
@@ -514,8 +530,8 @@ Useful operations:
 
 Existing references:
 
-- `Custom/Scripts/ImprovedPoV_TongueLicking.cs`
-- `Custom/Scripts/AutoMate/SESSION_PLUGINS/src/Auto_Load_Person_Plugins.cs`
+- `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs`
+- `Custom/Scripts/Gabriel/session-stack/src/GabrielSessionStack.cs`
 - `Custom/Scripts/Easy Moan/src/EasyMoan.cs`
 
 ## Camera / Rig / Possession Notes
@@ -643,7 +659,7 @@ This is the biggest unknown for the future feature set.
 
 ### Why this is our best reference
 
-`Custom/Scripts/ImprovedPoV.cs` already solves:
+`Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs` already solves:
 
 - face invisibility
 - head invisibility
@@ -750,8 +766,7 @@ Then:
 From `Auto_Load_Person_Plugins.cs`:
 
 - `Custom/Scripts/Spankings/Spankings.cslist`
-- `Custom/Scripts/ImprovedPoV.cs`
-- `Custom/Scripts/ImprovedPoV_TongueLicking.cs`
+- `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs`
 - `Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist`
 - `Custom/Scripts/Possess Sex/PossessSex.cs`
 - `Custom/Scripts/VAMLaunch/ADD_ME.cslist`
@@ -816,7 +831,7 @@ Likely touch points for polish:
 
 - `Easy Mate/src/MainUIButtons.cs`
 - `Easy Mate/src/EasyMateVrEulerPossessHandHud.cs`
-- `Custom/Scripts/AutoMate/SESSION_PLUGINS/src/EasyMate_VR_Head_Cylinder_Hide.cs`
+- `Custom/Scripts/Gabriel/features/head-hide/HeadProximityHide.cs`
 - `ImprovedPoV` material hiding logic (still separate if desired)
 
 ### 5. Universal head hide when camera enters any person's head
@@ -1186,7 +1201,7 @@ When implementing later, revisit these first:
   - person scanning
   - adding/removing male atom
 
-- `Custom/Scripts/ImprovedPoV.cs`
+- `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs`
   - face/hair hide
   - per-camera render hooks
   - camera offset handling

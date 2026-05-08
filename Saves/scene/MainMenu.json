@@ -256,7 +256,7 @@
          "storables": []
       },
       {
-         "id": "_EasyMate",
+         "id": "_Gabriel",
          "on": "true",
          "type": "Empty",
          "position": {
@@ -291,7 +291,7 @@
             {
                "id": "PluginManager",
                "plugins": {
-                  "plugin#0": "Custom/Scripts/Easy Mate/AutoLoadEasyMate.cslist"
+                  "plugin#0": "Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cslist"
                }
             },
             {

@@ -1,6 +1,6 @@
-# Easy Mate: “next scene” UIButton + VR palm HUD — handoff for crash diagnosis
+# Gabriel: “next scene” UIButton + VR palm HUD — handoff for crash diagnosis
 
-This note summarizes work done in chat (another agent) on this repo’s **Easy Mate** plugin. Use it to judge whether a **VaM crash soon after scene load** could be related, and what to toggle or read next.
+This note summarizes work done in chat (another agent) on this repo’s Gabriel HUD stack. Use it to judge whether a **VaM crash soon after scene load** could be related, and what to toggle or read next.
 
 ---
 
@@ -18,7 +18,7 @@ This note summarizes work done in chat (another agent) on this repo’s **Easy M
 
 ## Files changed (only these in this workstream)
 
-### `Custom/Scripts/Easy Mate/src/MainUIButtons.cs`
+### `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudButtons.cs`
 
 - **`TryResolveNextSceneUIButtonTrigger(SuperController sc)`** (private): prefers atom UID `nxtUIButton` if valid; else scans **`sc.GetAtoms()`** for `type == "UIButton"`, `activeInHierarchy`, matches label on child **`UnityEngine.UI.Text`** or **`Text` storable** param `"text"`, returns first `UIButtonTrigger` on storable id **`Trigger`** with non-null `trigger`.
 - **`NextSceneUIButtonLabelMatches`** (private): substring checks for `next`, `proxima`, `próxima` (\u00F3).
@@ -27,7 +27,7 @@ This note summarizes work done in chat (another agent) on this repo’s **Easy M
 
 **Compile fix:** Do **not** cast `GetStorableByID("Text")` to `JSONStorableString` — use **`GetStringJSONParam("text")`** on the `JSONStorable` (`TextStorable`).
 
-### `Custom/Scripts/Easy Mate/src/EasyMateVrEulerPossessHandHud.cs`
+### `Custom/Scripts/Gabriel/features/palm-hud/VrEulerPossessHandHud.cs`
 
 - **Possessed branch:** **B** → `RequestFireNextSceneUiButton()`; **A** → unpossess / possess row action (no longer maps B to unpossess-only).
 - **Conditional UI (when scan enabled):** `RefreshGenderVersusMainRows` shows **Próxima cena** only when cached `HasNextSceneUiButtonInScene()` is true (and not on gender-choose panel). **Stretching** the lower row when hiding Próxima was **reverted** — empty top half preserved.
@@ -61,7 +61,7 @@ Approximate messages (newest diagnostic commit last):
 | Crash only with flag **false** | Suspect **`HasNextSceneUiButtonInScene` / `TryResolveNextSceneUIButtonTrigger`** during palm HUD ticks (VR + pose + hand HUD active). |
 | No VR / palm pose never active | Palm HUD code path (including scan) may **never** run; crash likely **elsewhere**. |
 
-**Re-enable presence detection:** set `TempDisableNextSceneUiButtonPresenceScan` to **`false`** in `EasyMateVrEulerPossessHandHud.cs`.
+**Re-enable presence detection:** set `TempDisableNextSceneUiButtonPresenceScan` to **`false`** in `VrEulerPossessHandHud.cs`.
 
 **Full disable of “smart” next resolution** (if you need a stronger A/B test): would require also short-circuiting or gating `RequestFireNextSceneUiButton` / `TryResolveNextSceneUIButtonTrigger` — not done in current diagnostic flag.
 

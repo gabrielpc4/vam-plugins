@@ -1,10 +1,10 @@
-# VaM scene startup and “settle” (core engine + AutoMate `OnSceneStartup`)
+# VaM scene startup and “settle” (core engine + Gabriel `OnSceneStartup`)
 
-This note ties together **what VaM does while a scene loads** (from decompiled `Assembly-CSharp`) and **what this workspace adds** in AutoMate so exposure, simulation, and audio stay coherent until assets are ready.
+This note ties together **what VaM does while a scene loads** (from decompiled `Assembly-CSharp`) and **what this workspace adds** in Gabriel's session stack so exposure, simulation, and audio stay coherent until assets are ready.
 
 **Decompile location:** `Reference/Assembly-CSharp-decompiled` (read-only; do not edit).
 
-**Live plugin:** `Custom/Scripts/AutoMate/SESSION_PLUGINS/src/OnSceneStartup.cs`, ticked from `Auto_Load_Person_Plugins.LateUpdate()` (see `Auto_Load_Person_Plugins.cs`).
+**Live plugin:** `Custom/Scripts/Gabriel/session-stack/src/OnSceneStartup.cs`, ticked from `GabrielSessionStack.Update()` (see `Custom/Scripts/Gabriel/session-stack/src/GabrielSessionStack.cs`).
 
 ---
 
@@ -63,7 +63,7 @@ For UX (dimmed exposure, no motion/audio ahead of textures), **waiting only unti
 1. **`_isLoading`** clears **before** **`loadingUI`** is disabled (see §1).
 2. **Textures / URL audio** may still run through **`loadingIcon`** after **`isLoading`** is false.
 
-AutoMate therefore defines **“scene still settling”** as the OR of:
+Gabriel therefore defines **“scene still settling”** as the OR of:
 
 - `SuperController.singleton.isLoading`
 - `loadingUI` / `loadingUIAlt` / `loadingGeometry` **`activeSelf`**
@@ -123,7 +123,7 @@ So:
 - **`PauseSimulation`** raises **`_pauseSimulation`**, which makes **`freezeAnimation`** true for **code that reads the property**, but it does **not** flip **`Animator.enabled`** the same way the **Freeze Animation** menu does.
 - **`SetFreezeAnimation`** would affect **animators and UI**, but it’s the **user preference** channel; temporarily forcing it from a plugin requires **careful snapshot/restore** of **`_freezeAnimation`** (not directly exposed as a clean “user value only” API while **`isLoading`** is true).
 
-AutoMate **`OnSceneStartup`** uses **`PauseSimulation(AsyncFlag)`** so the hold is **stacked like other engine pauses** and does **not** rewrite the Freeze Animation toggles. **`AudioListener.pause`** is used separately to mute game audio during the same window.
+Gabriel **`OnSceneStartup`** uses **`PauseSimulation(AsyncFlag)`** so the hold is **stacked like other engine pauses** and does **not** rewrite the Freeze Animation toggles. **`AudioListener.pause`** is used separately to mute game audio during the same window.
 
 ---
 
@@ -150,11 +150,11 @@ Public entry point:
 
 Each **`Atom`** forwards to its physics/simulator components (`Atom.PauseSimulation` in `Reference/Assembly-CSharp-decompiled/Atom.cs`). **`CheckResumeSimulation`** (called from **`Update`**) clears entries whose **`AsyncFlag.Raised`** is true and drops **`pauseSimulation`** when the wait list is empty.
 
-AutoMate creates a dedicated **`AsyncFlag`**, calls **`PauseSimulation(flag, hidden: true)`** when settle **starts**, and **`Raise()`** on that flag **after** **`camExposure`** has been restored when settle **ends**. **`hidden: true`** avoids treating this like a user-visible “wait” reason in the normal wait UI where applicable.
+Gabriel creates a dedicated **`AsyncFlag`**, calls **`PauseSimulation(flag, hidden: true)`** when settle **starts**, and **`Raise()`** on that flag **after** **`camExposure`** has been restored when settle **ends**. **`hidden: true`** avoids treating this like a user-visible “wait” reason in the normal wait UI where applicable.
 
 ---
 
-## 5. AutoMate `OnSceneStartup`: behavior summary
+## 5. Gabriel `OnSceneStartup`: behavior summary
 
 ### When settle **starts** (false → true)
 
@@ -189,7 +189,7 @@ Order is intentional:
 
 ## 6. Related docs
 
-- **`Reference/VaM-Scripting-Notes.md`** — C# 6 constraints, file APIs, Easy Mate / AutoMate overview.
+- **`Reference/VaM-Scripting-Notes.md`** — C# 6 constraints, file APIs, and Gabriel cutover mapping notes.
 - **`Reference/VaM-Camera-Initial-Scene-Pose.md`** — camera pose separate from load/settle timing.
 
 ---
@@ -202,5 +202,5 @@ Order is intentional:
 | `freezeAnimation`, `SetFreezeAnimation`, `PauseSimulation` | same |
 | `Atom.PauseSimulation` | `Reference/Assembly-CSharp-decompiled/Atom.cs` |
 | `AsyncFlag` | `Reference/Assembly-CSharp-decompiled/AsyncFlag.cs` |
-| AutoMate settle + exposure + pause + audio | `Custom/Scripts/AutoMate/SESSION_PLUGINS/src/OnSceneStartup.cs` |
-| LateUpdate hook | `Custom/Scripts/AutoMate/SESSION_PLUGINS/src/Auto_Load_Person_Plugins.cs` |
+| Gabriel settle + exposure + pause + audio | `Custom/Scripts/Gabriel/session-stack/src/OnSceneStartup.cs` |
+| Runtime caller | `Custom/Scripts/Gabriel/session-stack/src/GabrielSessionStack.cs` |

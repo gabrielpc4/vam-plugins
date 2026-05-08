@@ -1,0 +1,81 @@
+# Gabriel Retain/Remove Matrix
+
+## Purpose
+
+Current-state cutover summary for the Gabriel tree. This file is no longer a
+planning scratchpad; it records what is canonical now, what is intentionally
+kept outside Gabriel, and which legacy paths still remain for compatibility
+with existing scenes or other scripts.
+
+## Canonical Gabriel Areas
+
+These are the only Gabriel-owned implementation paths that should be extended:
+
+- `Custom/Scripts/Gabriel/bootstrap/**`
+- `Custom/Scripts/Gabriel/session-stack/**`
+- `Custom/Scripts/Gabriel/features/ui-hud/**`
+- `Custom/Scripts/Gabriel/features/palm-hud/**`
+- `Custom/Scripts/Gabriel/features/passenger-possession/**`
+- `Custom/Scripts/Gabriel/features/scene-camera/**`
+- `Custom/Scripts/Gabriel/features/clothing-interactions/**`
+- `Custom/Scripts/Gabriel/features/head-hide/**`
+- `Custom/Scripts/Gabriel/features/e-motion/**`
+- `Custom/Scripts/Gabriel/features/spankings/**`
+- `Custom/Scripts/Gabriel/features/dildo-on-hands/**`
+- `Custom/Scripts/Gabriel/features/improved-pov/**`
+- `Custom/Scripts/Gabriel/tools/scene-camera/**`
+- `Custom/Scripts/Gabriel/tools/scene-menu/**`
+- `Custom/Scripts/Gabriel/docs/FEATURE-INDEX.md`
+
+## External Dependencies Still In Use
+
+These are not Gabriel-owned rewrites and can remain where they already live:
+
+- `Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/**`
+- `Custom/Scripts/AutoMate/SESSION_PLUGINS/ClockSessionPlugin.cs`
+- `Custom/Scripts/E-MotionLite/**`
+- `Custom/Scripts/E-MotionFinal/**`
+- `Custom/Scripts/Spankings/**`
+- `Custom/Scripts/SexHelper/**`
+- `Custom/Scripts/LFE/**`
+- `Custom/Scripts/prestigitis_DesktopClothGrab.cs`
+- `Custom/Scripts/Easy Background Sounds/**`
+- `Custom/Scripts/VAMLaunch/**`
+- `Custom/Scripts/Possess Sex/**`
+- `Custom/Scripts/Kiss5.cs`
+- `Custom/Scripts/ExplosionLimiter-ns.cs`
+- `Custom/Scripts/MacGruber/**`
+- `Custom/Scripts/VAMDeluxe/**`
+
+## Intentionally Retained Legacy Paths
+
+These old paths still exist because something outside the Gabriel tree still
+depends on them:
+
+- `Custom/Scripts/Easy Mate/src/RemoveThisObject.cs`
+  Current `Default.json` and `MainMenu.json` still reference it.
+- `Custom/Scripts/AutoMate/SESSION_PLUGINS/ClockSessionPlugin.cs`
+  `PossessionWalker` still references this file directly.
+
+## Removed In This Cutover
+
+These old Gabriel-owned paths were deleted and should stay deleted unless a new
+real feature replaces them:
+
+- Old Easy Mate custom bootstrap, HUD, palm-hud, passenger, camera, clothing,
+  head-hide, e-motion, spankings, and helper source copies.
+- Old AutoMate custom loader/session source copies and obsolete settings files.
+- `Custom/Scripts/LocalMp4Viewer/**`
+- `Custom/Scripts/ImprovedPoV_TongueLicking.cs`
+- `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV_TongueLicking.cs`
+- Old `scene_menu_tools/**` root copies after migration into
+  `Custom/Scripts/Gabriel/tools/scene-menu/**`
+- Old build folders, plugin-builder projects, sample defaults, logs, and other
+  one-shot sidecars under Easy Mate / AutoMate.
+
+## Current Follow-Up Rules
+
+- Do not expand scene JSON rewrites beyond the current Gabriel bootstrap/menu
+  cutover unless the user explicitly asks for more scene edits.
+- If `RemoveThisObject.cs` or `ClockSessionPlugin.cs` are retired later, update
+  the dependent scenes/scripts first, then remove the legacy path.

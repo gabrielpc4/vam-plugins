@@ -1,13 +1,13 @@
-# Easy Mate hand-menu passenger possession
+# Gabriel hand-menu passenger possession
 
-Reference for the current hand-menu passenger possession flow used by Easy Mate.
+Reference for the current hand-menu passenger possession flow used by Gabriel.
 
 This documents the path that starts from the VR hand menu and ends in the Passenger-style female possession runtime. It reflects the latest behavior in:
 
-- `Custom/Scripts/Easy Mate/src/MainUIButtons.cs`
-- `Custom/Scripts/Easy Mate/src/EasyMatePassengerRuntime.cs`
-- `Custom/Scripts/Easy Mate/src/EasyMatePassengerHandPrePossessSnapshot.cs`
-- `Custom/Scripts/ImprovedPoV.cs`
+- `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudButtons.cs`
+- `Custom/Scripts/Gabriel/features/passenger-possession/PassengerRuntime.cs`
+- `Custom/Scripts/Gabriel/features/passenger-possession/PassengerHandPrePossessSnapshot.cs`
+- `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs`
 
 ---
 
@@ -18,7 +18,7 @@ The active entry point is the VR palm / hand menu flow.
 - The hand HUD opens the female choice step.
 - Choosing `Mulher` does not use the old world-button flow.
 - It finds the closest female `Person` by head-to-camera distance.
-- It then starts `EasyMatePassengerRuntime.RequestStartForFemale(target)` for female targets, or `EasyMatePassengerRuntime.RequestStartForMale(target)` for male targets.
+- It then starts `PassengerRuntime.RequestStartForFemale(target)` for female targets, or `PassengerRuntime.RequestStartForMale(target)` for male targets.
 
 The old scene-world passenger button flow is no longer the path to reason about here.
 
@@ -31,7 +31,7 @@ This possession mode is not "possess the head and keep following the model head 
 Instead, it works like this:
 
 1. Prepare `ImprovedPoV` on the target person.
-2. Snapshot the person head state before Easy Mate starts overriding it.
+2. Snapshot the person head state before Gabriel starts overriding it.
 3. Freeze scene animation temporarily.
 4. Force the target `headControl` to a neutral rotation once.
 5. Wait a short fixed delay (`100 ms`) so the mesh catches up.
@@ -48,9 +48,9 @@ So the initial head neutralization is only a startup step. It is not a continuou
 
 ## ImprovedPoV behavior
 
-If the target person does not already have `ImprovedPoV`, Easy Mate merges it first and waits until it is available before continuing.
+If the target person does not already have `ImprovedPoV`, Gabriel merges it first and waits until it is available before continuing.
 
-When passenger mode starts, Easy Mate prepares `ImprovedPoV` like this:
+When passenger mode starts, Gabriel prepares `ImprovedPoV` like this:
 
 - `Hide face = true`
 - `Hide hair = true`
@@ -61,20 +61,20 @@ Current `ImprovedPoV` defaults in this repo are:
 - `Camera depth = 0.17`
 - `Camera height = 0.06`
 
-Easy Mate no longer zeroes those offsets during this flow, so the possession uses the same configured `ImprovedPoV` offset system instead of its own old offset path.
+Gabriel no longer zeroes those offsets during this flow, so the possession uses the same configured `ImprovedPoV` offset system instead of its own old offset path.
 
 ---
 
 ## What gets captured before possession
 
-Before the runtime starts overriding anything, Easy Mate stores:
+Before the runtime starts overriding anything, Gabriel stores:
 
 - the current navigation rig rotation
 - the current navigation rig position
 - the current `playerHeightAdjust`
 - the target person's `headControl` rotation and rotation state
 
-Later, when passenger mode stops and `ClearPossess()` runs, Easy Mate restores the saved head state and the saved navigation rig state.
+Later, when passenger mode stops and `ClearPossess()` runs, Gabriel restores the saved head state and the saved navigation rig state.
 
 This matters because passenger mode is intentionally invasive while active, but it should leave the scene in a sane state after it stops.
 
@@ -82,7 +82,7 @@ This matters because passenger mode is intentionally invasive while active, but 
 
 ## Head neutralization before first teleport
 
-At startup, Easy Mate captures the target head's current downward pitch and preserves it if it is:
+At startup, Gabriel captures the target head's current downward pitch and preserves it if it is:
 
 - greater than `0`
 - less than or equal to `90`
@@ -101,7 +101,7 @@ That means the startup alignment is based on the person's torso / atom forward, 
 
 After computing that neutral target:
 
-- Easy Mate turns on `freezeAnimation` if it was not already on
+- Gabriel turns on `freezeAnimation` if it was not already on
 - writes the neutral rotation to `headControl`
 - waits `100 ms`
 - teleports anyway after the delay
@@ -122,7 +122,7 @@ On the first teleport, Easy Mate computes a desired head-facing rotation from:
 
 Important details:
 
-- If there is a preserved downward pitch, Easy Mate keeps that downward tilt during the first teleport.
+- If there is a preserved downward pitch, Gabriel keeps that downward tilt during the first teleport.
 - If there is no preserved downward pitch, the runtime can fall back to the current HMD pitch.
 - Roll is zeroed on the navigation rig during the first snap.
 - The first snap also recenters laterally against the torso midline so the HMD lands on the person's center plane.
@@ -191,7 +191,7 @@ These are intentional properties of the current implementation:
 
 ## Practical summary
 
-If you want to reason about current Easy Mate passenger possession, the mental model is:
+If you want to reason about current Gabriel passenger possession, the mental model is:
 
 - Start from the hand menu.
 - Choose the nearest female person.

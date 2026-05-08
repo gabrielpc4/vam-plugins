@@ -15,9 +15,11 @@ namespace geesp0t
         private string[] sessionPlugins = new string[]
         {
             "Custom/Scripts/Gabriel/features/ui-hud/VaMLogClipboardHud.cslist",
-            // Optional mono compile bisect: swap the next line for a probe under
-            // session-plugins-compile-probe/ (see README.txt there).
-            "Custom/Scripts/Gabriel/session-plugins/GabrielSessionPlugins.cslist",
+            // Mono bisect Path A (probe README.txt). Current stage: A01 (+ cache).
+            // A00 stub | A01 +PersonAtom | A02 +Classifier | A03 +VrInput |
+            // A04 +Trigger | A05 +SceneSettle partials
+            // Prod: Custom/Scripts/Gabriel/session-plugins/GabrielSessionPlugins.cslist
+            "Custom/Scripts/Gabriel/session-plugins-compile-probe/stageA01_stub_PersonAtomCache.cslist",
         };
 
         private static readonly string[] DesktopSessionPlugins = new string[]

@@ -22,11 +22,14 @@ HOW TO RUN A PROBE INSTEAD OF THE NORMAL SESSION BUNDLE
      Custom/Scripts/Gabriel/session-plugins/GabrielSessionPlugins.cslist
 
    To one probe path below, for example:
-     Custom/Scripts/Gabriel/session-plugins-compile-probe/stageA00_stub_only.cslist
+     Custom/Scripts/Gabriel/session-plugins-compile-probe/stageA01_stub_PersonAtomCache.cslist
 
    Keep VaMLogClipboardHud.cslist as-is unless you are isolating clipboard too.
 
-2. Prefer a CLEAN CoreControl preset (empty plugin slots) once so Bootstrap can
+2. Repo may wire bootstrap to a probe stage — check GabrielBootstrap.cs
+   sessionPlugins. Advance A00 -> A01 -> … -> A05 or restore production when done.
+
+3. Prefer a CLEAN CoreControl preset (empty plugin slots) once so Bootstrap can
    LateRestoreFromJSON probe URLs reliably; stale compiled assemblies can hide
    the real trigger.
 

@@ -116,17 +116,33 @@ namespace geesp0t
 
         private void OnDestroy()
         {
-            if (_orchestrator != null)
+            try
             {
-                _orchestrator.BindGabrielHud(null);
-                _orchestrator = null;
+                if (_orchestrator != null)
+                {
+                    _orchestrator.BindGabrielHud(null);
+                    _orchestrator = null;
+                }
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "GabrielHud.OnDestroy orchestrator bind: " + e.Message);
             }
 
-            NextSceneUiButton.ReleaseHost();
-            PassengerRuntime.StopVrPassengerHandsRoutine();
-            PersonAtomCache.UnregisterPersonGenderCacheInvalidation();
-            PersonAtomCache.InvalidatePersonGenderCaches();
-            DestroyHudCanvas();
+            try
+            {
+                NextSceneUiButton.ReleaseHost();
+                PassengerRuntime.StopVrPassengerHandsRoutine();
+                PersonAtomCache.UnregisterPersonGenderCacheInvalidation();
+                PersonAtomCache.InvalidatePersonGenderCaches();
+                DestroyHudCanvas();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "GabrielHud.OnDestroy teardown: " + e.Message);
+            }
         }
 
         private void TryBindSessionOrchestrator()

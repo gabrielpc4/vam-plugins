@@ -1756,6 +1756,32 @@ namespace geesp0t
                 _spawnCoroutineRunning = false;
             }
         }
+
+        /// <summary>
+        /// Reload removes all session plugins from the compile in arbitrary order;
+        /// tear down listeners and coroutines so a mid-spawn coroutine cannot outlive
+        /// this behaviour.
+        /// </summary>
+        private void OnDestroy()
+        {
+            try
+            {
+                if (_vrToySpawnToggleButton != null &&
+                    _vrToySpawnToggleButton.button != null)
+                {
+                    _vrToySpawnToggleButton.button.onClick.RemoveListener(
+                        OnVrToySpawnToggleButtonClicked);
+                }
+
+                StopAllCoroutines();
+                _spawnCoroutineRunning = false;
+            }
+            catch (Exception ex)
+            {
+                SuperController.LogError(
+                    PluginName + ": OnDestroy: " + ex.Message);
+            }
+        }
     }
 }
 

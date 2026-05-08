@@ -720,50 +720,42 @@ namespace geesp0t
 
         void OnDestroy()
         {
-            FluidCumHideDuringSceneLoad.OnPluginDestroy();
+            SuperController atomEventsSc;
 
-            if (SuperController.singleton != null)
+            // CoreControl plugin reload runs multiple session MVRScripts; destroy order
+            // is undefined — unhook globals and stop all coroutines before static
+            // teardown to avoid dangling delegates or LateUpdate overlap.
+            try
             {
-                SuperController.singleton.onAtomUIDsChangedHandlers -=
-                    OnAtomUIDsChangedHandlers;
-            }
+                FluidCumHideDuringSceneLoad.OnPluginDestroy();
 
-            if (_applyEmotionAfterSceneCo != null)
-            {
-                StopCoroutine(_applyEmotionAfterSceneCo);
+                atomEventsSc = SuperController.singleton;
+                if (atomEventsSc != null)
+                {
+                    atomEventsSc.onAtomUIDsChangedHandlers -=
+                        OnAtomUIDsChangedHandlers;
+                }
+
+                StopAllCoroutines();
                 _applyEmotionAfterSceneCo = null;
-            }
-
-            if (_pathRuleEmotionMergeCo != null)
-            {
-                StopCoroutine(_pathRuleEmotionMergeCo);
                 _pathRuleEmotionMergeCo = null;
-            }
-
-            if (_mergeSpankingsAfterGripCo != null)
-            {
-                StopCoroutine(_mergeSpankingsAfterGripCo);
                 _mergeSpankingsAfterGripCo = null;
-            }
-
-            if (_mergeClothingTouchFallOffAfterGripCo != null)
-            {
-                StopCoroutine(_mergeClothingTouchFallOffAfterGripCo);
                 _mergeClothingTouchFallOffAfterGripCo = null;
-            }
-
-            if (_animationNoLoopDetectionDeferredDefaultCo != null)
-            {
-                StopCoroutine(_animationNoLoopDetectionDeferredDefaultCo);
                 _animationNoLoopDetectionDeferredDefaultCo = null;
-            }
 
-            BindGabrielHud(null);
-            sceneSettle.OnPluginDestroy();
-            MonitorModeLaserRestore.OnPluginDestroy();
-            VrEulerPossessHandHud.OnPluginDestroy();
-            PassengerRuntime.OnPluginDestroy();
-            HeadProximityHide.End();
+                BindGabrielHud(null);
+                sceneSettle.OnPluginDestroy();
+                MonitorModeLaserRestore.OnPluginDestroy();
+                VrEulerPossessHandHud.OnPluginDestroy();
+                PassengerRuntime.OnPluginDestroy();
+                HeadProximityHide.End();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "GabrielSessionOrchestrator.OnDestroy (reload teardown): " +
+                    e.Message);
+            }
         }
 
         private void ForceReleaseSceneSettleHoldFromAction()

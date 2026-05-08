@@ -167,19 +167,28 @@ namespace geesp0t
         internal void BindGabrielHud(GabrielHud hud)
         {
             _gabrielHud = hud;
-            if (_gabrielHud != null)
-            {
-                GripHandVisibility.SetMergeSpankingsOnFirstGrip(
-                    QueueMergeSpankingsAfterGripDeferred);
-                GripHandVisibility.SetMergeClothingTouchFallOffOnFirstMale2Grip(
-                    TryMergeClothingTouchFallOffOnFirstMale2Grip);
-            }
-            else
-            {
-                GripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
-                GripHandVisibility.SetMergeClothingTouchFallOffOnFirstMale2Grip(
-                    null);
-            }
+        }
+
+        /// <summary>
+        /// Registers static <see cref="GripHandVisibility"/> delegates on this
+        /// orchestrator; cleared in <see cref="OnDestroy"/>.
+        /// </summary>
+        private void WireGripHandVisibilityMergeCallbacks()
+        {
+            GripHandVisibility.SetMergeSpankingsOnFirstGrip(
+                QueueMergeSpankingsAfterGripDeferred);
+            GripHandVisibility.SetMergeClothingTouchFallOffOnFirstMale2Grip(
+                TryMergeClothingTouchFallOffOnFirstMale2Grip);
+        }
+
+        /// <summary>
+        /// Drops <see cref="GripHandVisibility"/> delegates so reload does not
+        /// call a destroyed orchestrator.
+        /// </summary>
+        private void UnwireGripHandVisibilityMergeCallbacks()
+        {
+            GripHandVisibility.SetMergeSpankingsOnFirstGrip(null);
+            GripHandVisibility.SetMergeClothingTouchFallOffOnFirstMale2Grip(null);
         }
 
         public override void Init()
@@ -265,6 +274,7 @@ namespace geesp0t
             }
 
             PassengerRuntime.SetSessionPluginHost(this);
+            WireGripHandVisibilityMergeCallbacks();
             ResolveGabrielHud();
         }
 
@@ -770,7 +780,8 @@ namespace geesp0t
                 _mergeSpankingsAfterGripCo = null;
                 _animationNoLoopDetectionDeferredDefaultCo = null;
 
-                BindGabrielHud(null);
+                UnwireGripHandVisibilityMergeCallbacks();
+                _gabrielHud = null;
                 sceneSettle.OnPluginDestroy();
                 MonitorModeLaserRestore.OnPluginDestroy();
                 VrEulerPossessHandHud.OnPluginDestroy();

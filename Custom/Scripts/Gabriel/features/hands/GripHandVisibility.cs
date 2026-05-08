@@ -44,13 +44,19 @@ namespace geesp0t
         /// </summary>
         private static Func<bool> _tryMergeClothingTouchFallOffOnFirstMale2Grip;
 
-        /// <summary>Called from <see cref="GabrielSessionOrchestrator.BindGabrielHud"/>; pass <c>null</c> on teardown.</summary>
+        /// <summary>
+        /// Wired from <see cref="GabrielSessionOrchestrator.WireGripHandVisibilityMergeCallbacks"/>.
+        /// Pass <c>null</c> from
+        /// <see cref="GabrielSessionOrchestrator.UnwireGripHandVisibilityMergeCallbacks"/>.
+        /// </summary>
         public static void SetMergeSpankingsOnFirstGrip(Action mergeSpankingsOntoPersonsMissingOnly)
         {
             _mergeSpankingsOntoPersonsMissingOnly = mergeSpankingsOntoPersonsMissingOnly;
         }
 
-        /// <summary>Called from <see cref="GabrielSessionOrchestrator.BindGabrielHud"/>; pass <c>null</c> on teardown.</summary>
+        /// <summary>
+        /// Same pairing as <see cref="SetMergeSpankingsOnFirstGrip"/>.
+        /// </summary>
         public static void SetMergeClothingTouchFallOffOnFirstMale2Grip(
             Func<bool> tryMergeClothingTouchFallOffOnFirstMale2Grip)
         {

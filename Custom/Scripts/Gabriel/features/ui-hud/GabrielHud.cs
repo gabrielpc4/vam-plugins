@@ -554,8 +554,8 @@ namespace geesp0t
             _canvas.transform.localPosition = new Vector3(-0.45f, -0.72f, 0.35f);
             LookAtCamera();
 
-            // Columns 1-3 only; column 0 is VaMLogClipboardHud (separate plugin).
-            // Column 1: vertical stack — load/remove toggle, pack, gender.
+            // Columns 1-2 only; column 0 is VaMLogClipboardHud (separate plugin).
+            // Column 1: E-Motion stack. Column 2: Spankings.
             emotionLoadHudButton = AddButton(
                 EmotionPrimaryButtonLabelText(),
                 OnEmotionPrimaryHudButtonClicked,
@@ -580,14 +580,14 @@ namespace geesp0t
             spankingsButton = AddButton(
                 "+ Spankings Male",
                 ToggleSpankingsPluginOnAllPersons,
-                3,
+                2,
                 0,
                 rightColButtonWidth);
 
             removeSpankingsButton = AddButton(
                 "Remove Spankings",
                 RemoveSpankingsFromAllPersons,
-                3,
+                2,
                 1,
                 rightColButtonWidth);
 

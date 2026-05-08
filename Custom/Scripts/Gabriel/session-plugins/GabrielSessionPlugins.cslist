@@ -25,7 +25,6 @@ src/GabrielSessionOrchestrator.cs
 ../features/scene-camera/MonitorModeLaserRestore.cs
 ../features/scene-camera/DefaultMonitorCameraFov.cs
 ../features/hands/OverlapFullGrabRelease.cs
-../features/hands/FirstGripDetection.cs
 ../features/hands/GripHandVisibility.cs
 ../features/hands/SpankingsGripDeferredMerge.cs
 ../features/head-hide/HeadProximityHide.cs

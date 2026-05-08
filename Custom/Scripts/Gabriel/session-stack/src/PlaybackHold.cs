@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace geesp0t
 {
-    public partial class OnSceneStartup
+    public partial class SceneSettleRuntime
     {
         private bool sceneSettleSimulationPauseAppliedToSuperController;
 
@@ -33,7 +33,7 @@ namespace geesp0t
             return sharedSceneSettlePauseAsyncFlag;
         }
 
-        public void OnOwningPluginDestroy()
+        public void OnPluginDestroy()
         {
             try
             {
@@ -45,7 +45,7 @@ namespace geesp0t
             catch (Exception destroyRestoreException)
             {
                 SuperController.LogError(
-                    "[OnSceneStartup] Restore camExposure in OnDestroy " +
+                    "[SceneSettle] Restore camExposure in OnDestroy " +
                     "failed: " + destroyRestoreException);
             }
 
@@ -103,7 +103,7 @@ namespace geesp0t
                 catch (Exception restoreException)
                 {
                     SuperController.LogError(
-                        "[OnSceneStartup] Restore camExposure after settle " +
+                        "[SceneSettle] Restore camExposure after settle " +
                         "phase failed: " + restoreException);
                 }
             }

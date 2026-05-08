@@ -20,7 +20,7 @@ namespace geesp0t
     /// `LateUpdate()` so CoreControl JSON usually reflects the scene before the
     /// exposure backup is read.
     /// </summary>
-    public partial class OnSceneStartup
+    public partial class SceneSettleRuntime
     {
         private bool wasSceneStillSettling = false;
 
@@ -40,7 +40,7 @@ namespace geesp0t
         /// True if something was held or settle was incomplete; session hooks
         /// should run when true.
         /// </returns>
-        public bool ForceReleaseSceneSettleHoldUserKey()
+        public bool ForceReleaseHoldFromShortcut()
         {
             bool needFinish =
                 sceneSettleSimulationPauseAppliedToSuperController ||
@@ -65,7 +65,7 @@ namespace geesp0t
         /// Returns true the first tick after VaM's loading or settle UI has
         /// cleared and playback hold was released.
         /// </summary>
-        public bool TickDuringSuperControllerLoad(
+        public bool TickDuringLoad(
             bool skipExposureWorkflowForCurrentLoad)
         {
             SuperController superController = SuperController.singleton;
@@ -154,7 +154,7 @@ namespace geesp0t
                     sceneSettlePauseHoldDeadlineUnscaledTime)
                 {
                     SuperController.LogMessage(
-                        "[OnSceneStartup] Scene settle pause exceeded " +
+                        "[SceneSettle] Scene settle pause exceeded " +
                         sceneSettlePauseHoldTimeoutSeconds +
                         "s after isLoading cleared; forcing finish.");
                     FinishSceneSettleExposureThenReleasePlaybackHold();

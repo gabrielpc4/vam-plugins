@@ -17,12 +17,13 @@ session emergency shortcut.
 ## Load Path
 - Loaded as a session plugin by `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cs`.
 - Detects same-folder load pulses before delegating scene-settle control to
-  the `OnSceneStartup` partial set in `src/SceneSettle.cs`,
+  the `SceneSettleRuntime` partial set in `src/SceneSettle.cs`,
   `src/PlaybackHold.cs`, and `src/InitialExposureChange.cs`.
 
 ## Responsibilities
 - Track scene load edges and same-folder load pulses.
-- Hold simulation/audio/exposure during scene settle through `OnSceneStartup` and same-folder load guards.
+- Hold simulation/audio/exposure during scene settle through
+  `SceneSettleRuntime` and same-folder load guards.
 - Release transient head-hide state after scene settle completes.
 - Expose the emergency `Space` shortcut through `SessionKeyboardShortcuts`.
 
@@ -41,6 +42,6 @@ session emergency shortcut.
 Update this file in the same turn whenever any of these change:
 
 - Scene-settle timing, same-folder guards, or startup keybindings change.
-- `OnSceneStartup` responsibility boundaries or the session-stack file split
+- `SceneSettleRuntime` responsibility boundaries or the session-stack file split
   changes.
 - Plugin panel copy or the `Space` shortcut behavior changes.

@@ -1,4 +1,4 @@
-# VaM scene startup and “settle” (core engine + Gabriel `OnSceneStartup`)
+# VaM scene startup and “settle” (core engine + Gabriel `SceneSettleRuntime`)
 
 This note ties together **what VaM does while a scene loads** (from decompiled `Assembly-CSharp`) and **what this workspace adds** in Gabriel's session stack so exposure, simulation, and audio stay coherent until assets are ready.
 
@@ -127,7 +127,7 @@ So:
 - **`PauseSimulation`** raises **`_pauseSimulation`**, which makes **`freezeAnimation`** true for **code that reads the property**, but it does **not** flip **`Animator.enabled`** the same way the **Freeze Animation** menu does.
 - **`SetFreezeAnimation`** would affect **animators and UI**, but it’s the **user preference** channel; temporarily forcing it from a plugin requires **careful snapshot/restore** of **`_freezeAnimation`** (not directly exposed as a clean “user value only” API while **`isLoading`** is true).
 
-Gabriel **`OnSceneStartup`** uses **`PauseSimulation(AsyncFlag)`** so the hold is **stacked like other engine pauses** and does **not** rewrite the Freeze Animation toggles. **`AudioListener.pause`** is used separately to mute game audio during the same window.
+Gabriel **`SceneSettleRuntime`** uses **`PauseSimulation(AsyncFlag)`** so the hold is **stacked like other engine pauses** and does **not** rewrite the Freeze Animation toggles. **`AudioListener.pause`** is used separately to mute game audio during the same window.
 
 ---
 
@@ -158,7 +158,7 @@ Gabriel creates a dedicated **`AsyncFlag`**, calls **`PauseSimulation(flag, hidd
 
 ---
 
-## 5. Gabriel `OnSceneStartup`: behavior summary
+## 5. Gabriel `SceneSettleRuntime`: behavior summary
 
 ### When settle **starts** (false → true)
 
@@ -188,7 +188,8 @@ Order is intentional:
 
 ### Plugin destroy
 
-**`OnOwningPluginDestroy`** restores exposure if a backup still exists, then **always** releases simulation/audio hold so the session is not left paused.
+**`OnPluginDestroy`** restores exposure if a backup still exists, then
+**always** releases simulation/audio hold so the session is not left paused.
 
 ---
 

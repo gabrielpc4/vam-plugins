@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace geesp0t
 {
-    public partial class OnSceneStartup
+    public partial class SceneSettleRuntime
     {
         private bool camExposureBackupCaptured = false;
 
@@ -76,7 +76,7 @@ namespace geesp0t
             if (globalLightingStorable == null)
             {
                 SuperController.LogError(
-                    "[OnSceneStartup] Settle ended without camExposure " +
+                    "[SceneSettle] Settle ended without camExposure " +
                     "backup and CoreControl GlobalLighting was missing; " +
                     "exposure may stay at 0.");
                 return;
@@ -100,7 +100,7 @@ namespace geesp0t
             catch (Exception fallbackRestoreException)
             {
                 SuperController.LogError(
-                    "[OnSceneStartup] Fallback restore camExposure failed: " +
+                    "[SceneSettle] Fallback restore camExposure failed: " +
                     fallbackRestoreException);
             }
         }
@@ -111,7 +111,7 @@ namespace geesp0t
             if (globalLightingStorable == null)
             {
                 SuperController.LogError(
-                    "[OnSceneStartup] Restore: CoreControl GlobalLighting " +
+                    "[SceneSettle] Restore: CoreControl GlobalLighting " +
                     "not available.");
                 camExposureBackupCaptured = false;
                 return;

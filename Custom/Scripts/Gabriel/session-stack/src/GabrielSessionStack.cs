@@ -17,7 +17,7 @@ namespace geesp0t
         private SameFolderSceneLoadCheck sameFolderSceneLoadCheck =
             new SameFolderSceneLoadCheck();
 
-        private OnSceneStartup onSceneStartup = new OnSceneStartup();
+        private SceneSettleRuntime sceneSettle = new SceneSettleRuntime();
 
         public override void Init()
         {
@@ -31,7 +31,7 @@ namespace geesp0t
             dtext.height = 420;
 
             keyboardShortcuts = new SessionKeyboardShortcuts();
-            keyboardShortcuts.Init(this, onSceneStartup);
+            keyboardShortcuts.Init(this, sceneSettle);
         }
 
 
@@ -64,7 +64,7 @@ namespace geesp0t
             bool sceneSettleJustEnded;
 
             sceneSettleJustEnded =
-                onSceneStartup.TickDuringSuperControllerLoad(
+                sceneSettle.TickDuringLoad(
                     skipSceneSettleWorkflowForPendingLoad);
             if (sceneSettleJustEnded)
             {
@@ -74,7 +74,7 @@ namespace geesp0t
 
         public void OnDestroy()
         {
-            onSceneStartup.OnOwningPluginDestroy();
+            sceneSettle.OnPluginDestroy();
 
             if (keyboardShortcuts != null)
                 keyboardShortcuts.OnDestroy();

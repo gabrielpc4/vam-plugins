@@ -20,7 +20,8 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 - Capture camera/rig snapshots from the K hotkey and route them into the offline patch scripts.
 
 ## Dependencies And Coupling
-- Shares scene-settle assumptions with `session-stack` and `OnSceneStartup`.
+- Shares scene-settle assumptions with `session-stack` and
+  `SceneSettleRuntime`.
 - Depends on `Custom/Scripts/Gabriel/tools/scene-camera/FEATURE.md` for the offline script side.
 
 ## References

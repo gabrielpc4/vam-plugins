@@ -148,7 +148,8 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Call when VaM has finished its loading/settle phase (same moment session <see cref="OnSceneStartup"/> releases its hold).
+        /// Call when VaM has finished its loading/settle phase (same moment
+        /// session <see cref="SceneSettleRuntime"/> releases its hold).
         /// Re-attaches camera hooks if <see cref="SetHeadProximityHideEnabled"/> left them off because Easy Mate was not
         /// ready yet, or Easy Mate was destroyed on load while the static proximity flag stayed enabled.
         /// </summary>

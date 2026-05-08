@@ -10,12 +10,12 @@ namespace geesp0t
     public class SessionKeyboardShortcuts
     {
         private MVRScript pluginHost;
-        private OnSceneStartup onSceneStartup;
+        private SceneSettleRuntime sceneSettle;
 
-        public void Init(MVRScript host, OnSceneStartup onSceneStartup)
+        public void Init(MVRScript host, SceneSettleRuntime sceneSettle)
         {
             pluginHost = host;
-            this.onSceneStartup = onSceneStartup;
+            this.sceneSettle = sceneSettle;
         }
 
         public void ProcessHotkeysUpdate()
@@ -33,9 +33,9 @@ namespace geesp0t
                 !Input.GetKey(KeyCode.RightAlt);
 
             if (noTextFocus && noCtrlAlt && Input.GetKeyDown(KeyCode.Space) &&
-                onSceneStartup != null)
+                sceneSettle != null)
             {
-                if (onSceneStartup.ForceReleaseSceneSettleHoldUserKey())
+                if (sceneSettle.ForceReleaseHoldFromShortcut())
                 {
                     HeadProximityHide.AfterSuperControllerFinishedSceneSettle(
                         pluginHost);
@@ -49,7 +49,7 @@ namespace geesp0t
         public void OnDestroy()
         {
             pluginHost = null;
-            onSceneStartup = null;
+            sceneSettle = null;
         }
     }
 }

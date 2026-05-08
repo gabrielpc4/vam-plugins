@@ -49,7 +49,8 @@ namespace geesp0t
             if (string.IsNullOrEmpty(sc.currentLoadDir))
                 return;
 
-            lastIdleLoadDirNorm = NormalizeLoadDir(sc.currentLoadDir);
+            lastIdleLoadDirNorm = SameFolderLoadDirNormalize.Normalize(
+                sc.currentLoadDir);
 
             capturedNavWorldPos = sc.navigationRig.position;
             capturedNavWorldRot = sc.navigationRig.rotation;
@@ -72,7 +73,8 @@ namespace geesp0t
                 return;
             if (!hasCapturedPose || string.IsNullOrEmpty(lastIdleLoadDirNorm))
                 return;
-            string newNorm = NormalizeLoadDir(sc.currentLoadDir);
+            string newNorm = SameFolderLoadDirNormalize.Normalize(
+                sc.currentLoadDir);
             if (newNorm.Length == 0 || newNorm != lastIdleLoadDirNorm)
                 return;
             pendingRestoreAfterCurrentLoad = true;
@@ -101,16 +103,6 @@ namespace geesp0t
                 return;
 
             host.StartCoroutine(CoRestoreAfterSceneLoadEnds(host));
-        }
-
-        private static string NormalizeLoadDir(string dir)
-        {
-            if (dir == null)
-                return "";
-            string d = dir.Replace('\\', '/').Trim();
-            while (d.Length > 1 && d.EndsWith("/"))
-                d = d.Substring(0, d.Length - 1);
-            return d;
         }
 
         private static void ApplyCapturedPose(SuperController sc)

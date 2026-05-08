@@ -17,10 +17,9 @@ full-grab auto-release without reflection.
 
 ## Dependencies And Coupling
 - Invoked from `GabrielHud` / `GabrielHotkeys`; clothing touch-fall deferral
-  routes to **`GabrielSessionOrchestrator`** via `GripHandVisibility` and
-  `ClothingTouchFallOffGripMerge` in
-  **`clothing-interactions/ClothingTouchFallOffDeferredMerge.cs`** (session
-  bundle).
+  routes to **`GabrielSessionOrchestrator`** (`TryMerge…` /
+  `GripHandVisibility.SetMerge…`) with same-folder suppression so grip merge runs
+  at most once per load-folder navigation chain.
 - Uses the shared per-frame possession snapshot from `util/PersonAtomCache` so
   hand visibility and palm-HUD gating share one Person scan.
 - Uses palm-hud input, passenger runtime,

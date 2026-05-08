@@ -1,3 +1,4 @@
+../../util/SameFolderLoadDirNormalize.cs
 ../session-plugins/src/SceneSettle.cs
 ../session-plugins/src/PlaybackHold.cs
 ../session-plugins/src/InitialExposureChange.cs

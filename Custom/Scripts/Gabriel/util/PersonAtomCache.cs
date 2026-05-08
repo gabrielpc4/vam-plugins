@@ -136,6 +136,37 @@ namespace geesp0t
             return geometry as DAZCharacterSelector;
         }
 
+        /// <summary>
+        /// Female Person with at least one active garment on the geometry
+        /// selector (used for touch fall-off eligibility).
+        /// </summary>
+        public static bool PersonFemaleHasAnyActiveClothing(Atom atom)
+        {
+            int i;
+            DAZCharacterSelector selector;
+            DAZClothingItem[] items;
+
+            if (!IsPersonFemale(atom))
+                return false;
+
+            selector = TryGetCharacterSelector(atom);
+            if (selector == null)
+                return false;
+
+            items = selector.clothingItems;
+            if (items == null)
+                return false;
+
+            for (i = 0; i < items.Length; i++)
+            {
+                DAZClothingItem item = items[i];
+                if (item != null && item.active)
+                    return true;
+            }
+
+            return false;
+        }
+
         public static void PrimeFramePersonPossessionSnapshot(
             SuperController sc)
         {

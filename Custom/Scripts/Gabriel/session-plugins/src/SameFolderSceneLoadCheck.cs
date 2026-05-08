@@ -58,18 +58,7 @@ namespace geesp0t
 
         public static string NormalizeLoadDir(string dir)
         {
-            if (string.IsNullOrEmpty(dir))
-            {
-                return "";
-            }
-
-            string normalized = dir.Replace('\\', '/').Trim();
-            while (normalized.Length > 1 && normalized.EndsWith("/"))
-            {
-                normalized = normalized.Substring(0, normalized.Length - 1);
-            }
-
-            return normalized;
+            return SameFolderLoadDirNormalize.Normalize(dir);
         }
     }
 }

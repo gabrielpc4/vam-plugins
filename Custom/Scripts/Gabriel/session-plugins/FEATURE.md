@@ -7,8 +7,9 @@ pulses, full scene-settle workflow, late feature ticks, HUD binding, and the
 scene-settle release action for the shared hotkey dispatcher.
 
 The same compile unit includes **DildoOnHands**, **`ClothingClassifier`** +
-**`TriggerClothingRemover`**, **ClothingTouchFallOffDeferredMerge**, and
-**`GabrielSessionOrchestrator`** merge helpers. Bootstrap injects only
+**`TriggerClothingRemover`**, **`SameFolderLoadDirNormalize.cs`** (`util/`) for shared VaM load-folder
+normalization (with **`SameFolderSceneLoadCheck`**, **`SceneLoadDirNormalize`**, **`SameFolderCameraRetain`**,
+and clothing touch-fall same-folder suppression). Bootstrap injects only
 `VaMLogClipboardHud.cslist` plus **`GabrielSessionPlugins.cslist`** (VaM does not
 nest `.cslist` files; multiple scripts share one compile by listing their `.cs`
 paths in this list).
@@ -25,8 +26,9 @@ paths in this list).
 - `../features/dildo-on-hands/DildoOnHands.cs`
 - `../features/clothing-interactions/ClothingClassifier.cs`
 - `../features/clothing-interactions/TriggerClothingRemover.cs`
+- `../util/SameFolderLoadDirNormalize.cs` *(shared normalization for same-folder loads)*
 - `../features/clothing-interactions/ClothingTouchFallOffDeferredMerge.cs`
-  *(grip-deferred touch-fall merge; `ClothingTouchFallOffGripMerge`)*
+  *(optional standalone; touch-fall merge is implemented inline on **`GabrielSessionOrchestrator`**)*
 
 ## Load Path
 - Loaded as a session plugin by `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cs`.
@@ -48,7 +50,8 @@ paths in this list).
 ## Dependencies And Coupling
 - Depends on `src/SceneSettle.cs`, `src/PlaybackHold.cs`,
   `src/InitialExposureChange.cs`, `src/SameFolderSceneLoadCheck.cs`,
-  and `src/SceneLoadDirNormalize.cs` (Hud shares the latter helpers).
+  `src/SceneLoadDirNormalize.cs`, `../util/SameFolderLoadDirNormalize.cs` (Hud
+  shares the latter helpers).
 - Calls `Custom/Scripts/Gabriel/features/head-hide/HeadProximityHide.cs` after
   the settle hold ends.
 - Exposes a `JSONStorableAction` on `CoreControl` so the HUD plugin can

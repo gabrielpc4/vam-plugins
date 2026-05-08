@@ -1,3 +1,4 @@
+../util/SameFolderLoadDirNormalize.cs
 src/SceneSettle.cs
 src/PlaybackHold.cs
 src/InitialExposureChange.cs

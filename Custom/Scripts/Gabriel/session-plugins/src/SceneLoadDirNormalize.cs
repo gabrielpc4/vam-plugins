@@ -7,14 +7,7 @@ namespace geesp0t
     {
         internal static string Normalize(string dir)
         {
-            if (string.IsNullOrEmpty(dir))
-                return "";
-
-            string normalized = dir.Replace('\\', '/').Trim();
-            while (normalized.Length > 1 && normalized.EndsWith("/"))
-                normalized = normalized.Substring(0, normalized.Length - 1);
-
-            return normalized;
+            return SameFolderLoadDirNormalize.Normalize(dir);
         }
 
         internal static bool SameFolderLoads(

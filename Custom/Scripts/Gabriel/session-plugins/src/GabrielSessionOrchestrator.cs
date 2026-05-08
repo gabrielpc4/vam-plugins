@@ -99,6 +99,13 @@ namespace geesp0t
 
         private SceneSettleRuntime sceneSettle = new SceneSettleRuntime();
 
+        /// <summary>
+        /// After a grip-triggered ClothingTouchFallOff merge for the current VaM
+        /// load-folder chain, suppress repeating on same-folder scene loads until
+        /// the user navigates to a different folder.
+        /// </summary>
+        private bool clothingTouchFallOffGripMergeCommittedForFolderBatch;
+
         internal bool IsLoadDefaultOnLongNonLoopAnimationEndEnabled()
         {
             return loadDefaultWhenLongNonLoopAnimationEnds != null &&
@@ -134,7 +141,8 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Merges the ClothingTouchFallOff person plugin onto every Person atom.
+        /// Merges <c>ClothingTouchFallOff</c> onto each female Person atom that
+        /// currently has active clothing items.
         /// </summary>
         public void MergeClothingTouchFallOffOnAllPersonsOnly()
         {
@@ -142,6 +150,9 @@ namespace geesp0t
             {
                 foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                 {
+                    if (!PersonAtomCache.PersonFemaleHasAnyActiveClothing(at))
+                        continue;
+
                     PluginManager.TryMergePluginOntoPerson(
                         at,
                         ClothingTouchFallOffPersonPluginPath);
@@ -150,7 +161,7 @@ namespace geesp0t
             catch (Exception e)
             {
                 SuperController.LogError(
-                    "Gabriel clothing touch fall-off merge on all Persons: " + e);
+                    "Gabriel clothing touch fall-off merge on Persons: " + e);
             }
         }
 
@@ -312,12 +323,23 @@ namespace geesp0t
             }
         }
 
-        private void TryMergeClothingTouchFallOffOnFirstMale2Grip()
+        private bool TryMergeClothingTouchFallOffOnFirstMale2Grip()
         {
-            if (AnimationNoLoopDetection.CurrentSceneUsesLongNonLoopAnimation(
-                GetMinNonLoopAnimationSecondsForDefaultScene()))
+            if (clothingTouchFallOffGripMergeCommittedForFolderBatch)
             {
-                return;
+                return true;
+            }
+
+            if (AnimationNoLoopDetection.CurrentSceneUsesLongNonLoopAnimation(
+                    GetMinNonLoopAnimationSecondsForDefaultScene()))
+            {
+                return false;
+            }
+
+            if (!SceneHasFemaleWithActiveClothing())
+            {
+                clothingTouchFallOffGripMergeCommittedForFolderBatch = true;
+                return true;
             }
 
             try
@@ -329,7 +351,26 @@ namespace geesp0t
             {
                 SuperController.LogError(
                     "Gabriel clothing touch fall-off first Male2 grip: " + e);
+                throw;
             }
+
+            clothingTouchFallOffGripMergeCommittedForFolderBatch = true;
+            return true;
+        }
+
+        private static bool SceneHasFemaleWithActiveClothing()
+        {
+            int i;
+            List<Atom> persons;
+
+            persons = PersonAtomCache.GetPersonAtoms();
+            for (i = 0; i < persons.Count; i++)
+            {
+                if (PersonAtomCache.PersonFemaleHasAnyActiveClothing(persons[i]))
+                    return true;
+            }
+
+            return false;
         }
 
         private void OnHeadProximityHideChanged(bool v)
@@ -601,6 +642,7 @@ namespace geesp0t
 
                 if (!sameFolderLoad)
                 {
+                    clothingTouchFallOffGripMergeCommittedForFolderBatch = false;
                     Log(
                         "Load Dir Changed from " + lastLoadDir + " to " +
                         scFsm.currentLoadDir);
@@ -615,7 +657,9 @@ namespace geesp0t
                 DefaultMonitorCameraFov.ApplyGabrielPreferenceIfStillStock(scFsm);
                 VrInput.ResetEdgeState();
                 GripHandVisibility.DisableVrHandModelsForSceneStart(
-                    sameFolderLoad);
+                    sameFolderLoad,
+                    sameFolderLoad &&
+                        clothingTouchFallOffGripMergeCommittedForFolderBatch);
 
                 if (headProximityHide != null)
                 {

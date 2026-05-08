@@ -37,7 +37,12 @@ namespace geesp0t
         /// <summary>After <see cref="DisableVrHandModelsForSceneStart"/>, first grip press that turns on Male2 hands merges clothing touch fall-off once.</summary>
         private static bool _mergedClothingTouchFallOffAfterFirstMale2ThisScene;
 
-        private static Action _mergeClothingTouchFallOffOnAllPersons;
+        /// <summary>
+        /// Orchestrator: true once this folder-batch pass is settled (merged,
+        /// ineligible, or already consumed); false to retry a later Male2
+        /// toggle while the same scene stays up (e.g. long non-loop deferral).
+        /// </summary>
+        private static Func<bool> _tryMergeClothingTouchFallOffOnFirstMale2Grip;
 
         /// <summary>Called from <see cref="GabrielSessionOrchestrator.BindGabrielHud"/>; pass <c>null</c> on teardown.</summary>
         public static void SetMergeSpankingsOnFirstGrip(Action mergeSpankingsOntoPersonsMissingOnly)
@@ -47,10 +52,10 @@ namespace geesp0t
 
         /// <summary>Called from <see cref="GabrielSessionOrchestrator.BindGabrielHud"/>; pass <c>null</c> on teardown.</summary>
         public static void SetMergeClothingTouchFallOffOnFirstMale2Grip(
-            Action mergeClothingTouchFallOffOnAllPersons)
+            Func<bool> tryMergeClothingTouchFallOffOnFirstMale2Grip)
         {
-            _mergeClothingTouchFallOffOnAllPersons =
-                mergeClothingTouchFallOffOnAllPersons;
+            _tryMergeClothingTouchFallOffOnFirstMale2Grip =
+                tryMergeClothingTouchFallOffOnFirstMale2Grip;
         }
 
         /// <summary>Re-apply after SuperController.Update / internal toggles (e.g. grab+trigger hand hide via <c>ToggleRightHandEnabled</c>).</summary>
@@ -72,16 +77,21 @@ namespace geesp0t
         /// Scene load: both sides sphere (or legacy-off if slot missing);
         /// collisions off until first VR grip. Optionally marks the
         /// first-grip Spankings merge as already consumed, used for
-        /// same-folder continuation loads.
+        /// same-folder continuation loads. When
+        /// <paramref name="suppressClothingTouchFallOffGripMergeThisScene"/>
+        /// is true, the first Male2 grip will not run the clothing touch
+        /// fall-off merge (used after it already ran for this folder batch).
         /// </summary>
         public static void DisableVrHandModelsForSceneStart(
-            bool suppressFirstGripSpankingsMergeThisScene = false)
+            bool suppressFirstGripSpankingsMergeThisScene = false,
+            bool suppressClothingTouchFallOffGripMergeThisScene = false)
         {
             _leftArticulated = false;
             _rightArticulated = false;
             _mergedSpankingsAfterFirstGripThisScene =
                 suppressFirstGripSpankingsMergeThisScene;
-            _mergedClothingTouchFallOffAfterFirstMale2ThisScene = false;
+            _mergedClothingTouchFallOffAfterFirstMale2ThisScene =
+                suppressClothingTouchFallOffGripMergeThisScene;
             _vrGripUsedThisScene = false;
             SuperController sc = SuperController.singleton;
             ApplyBothControls(sc);
@@ -183,22 +193,28 @@ namespace geesp0t
 
         private static void TryMergeClothingTouchFallOffOnFirstMale2GripThisScene()
         {
+            bool consumed;
             if (_mergedClothingTouchFallOffAfterFirstMale2ThisScene)
                 return;
-            if (_mergeClothingTouchFallOffOnAllPersons == null)
+            if (_tryMergeClothingTouchFallOffOnFirstMale2Grip == null)
                 return;
 
-            _mergedClothingTouchFallOffAfterFirstMale2ThisScene = true;
             try
             {
-                _mergeClothingTouchFallOffOnAllPersons();
+                consumed =
+                    _tryMergeClothingTouchFallOffOnFirstMale2Grip();
             }
             catch (Exception e)
             {
-                _mergedClothingTouchFallOffAfterFirstMale2ThisScene = false;
                 SuperController.LogError(
                     "GripHandVisibility: clothing touch fall-off merge on first Male2 grip: " +
                     e.Message);
+                return;
+            }
+
+            if (consumed)
+            {
+                _mergedClothingTouchFallOffAfterFirstMale2ThisScene = true;
             }
         }
 

@@ -1,0 +1,76 @@
+{ 
+   "audio" : "", 
+   "duration" : "2.669", 
+   "keyframes" : [ 
+      { 
+         "time" : "0", 
+         "Tongue Bend Tip" : "0", 
+         "Mouth Open" : "0", 
+         "M" : "0", 
+         "Eyes Squint Right" : "0", 
+         "Eyes Squint Left" : "0", 
+         "Concentrate" : "0", 
+         "Brow Up Left" : "0"
+      }, 
+      { 
+         "time" : "0.06942151", 
+         "Tongue Bend Tip" : "0", 
+         "Mouth Open" : "2", 
+         "M" : "1", 
+         "Eyes Squint Right" : "0.6350701", 
+         "Eyes Squint Left" : "0.4970667", 
+         "Concentrate" : "0", 
+         "Brow Up Left" : "0.138296"
+      }, 
+      { 
+         "time" : "0.4545662", 
+         "Tongue Bend Tip" : "-0.3642805", 
+         "Mouth Open" : "1.736269", 
+         "M" : "0", 
+         "Eyes Squint Right" : "0", 
+         "Eyes Squint Left" : "0", 
+         "Concentrate" : "0.8392932", 
+         "Brow Up Left" : "0"
+      }, 
+      { 
+         "time" : "0.5233402", 
+         "Tongue Bend Tip" : "0", 
+         "Mouth Open" : "-0.5", 
+         "M" : "0.9607357", 
+         "Eyes Squint Right" : "0.767547", 
+         "Eyes Squint Left" : "0.9496989", 
+         "Concentrate" : "1", 
+         "Brow Up Left" : "0"
+      }, 
+      { 
+         "time" : "0.690229", 
+         "Tongue Bend Tip" : "0", 
+         "Mouth Open" : "-0.5", 
+         "M" : "0.9607357", 
+         "Eyes Squint Right" : "1", 
+         "Eyes Squint Left" : "1", 
+         "Concentrate" : "1", 
+         "Brow Up Left" : "0"
+      }, 
+      { 
+         "time" : "0.7727692", 
+         "Tongue Bend Tip" : "0", 
+         "Mouth Open" : "0.9634773", 
+         "M" : "0", 
+         "Eyes Squint Right" : "0.59091", 
+         "Eyes Squint Left" : "0.6295376", 
+         "Concentrate" : "0.2210784", 
+         "Brow Up Left" : "0"
+      }, 
+      { 
+         "time" : "1", 
+         "Tongue Bend Tip" : "0", 
+         "Mouth Open" : "0", 
+         "M" : "0", 
+         "Eyes Squint Right" : "0", 
+         "Eyes Squint Left" : "0", 
+         "Concentrate" : "0", 
+         "Brow Up Left" : "0"
+      }
+   ]
+}

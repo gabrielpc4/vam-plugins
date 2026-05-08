@@ -1,0 +1,22 @@
+AutoLabia.cs - VeeRifter
+BJHelper - physis123
+BJSFX - JayJayWon
+Bulger.cs - VRAdultFun
+Compliance.cs - Almadiel
+Dollmaster - VAMDeluxe
+Easy Sounds - geesp0t
+E-Motion - VRAdultFun
+E-Motion - Already Having Sex - VRAdultFun, Tiny Mod by geesp0t, just changing starting variables for scenes that start with sex
+ExplosionLimiter-ns - Extraltodeus
+ExpressionRandomizer - Extraltodeus
+Hand Animator - From VRAdultFun E-Motion
+ImprovedPoV.cs - acidbubbles
+Kiss This 1.4 - Driftdawg
+Kiss5 - TimelordToby, Mod by geesp0t
+Light Point - From VRAdultFun E-Motion
+MovePoseWithoutRoot - MaFaVaM
+Possess Sex - geesp0t
+Reset VR Orientation - geesp0t
+RealEyes - VariousScientists42
+RealGaze - Almadiel
+SexHelper - physis123, Mod by geesp0t to fix issues with 1.18, now required to be put on a female atom and can autostart

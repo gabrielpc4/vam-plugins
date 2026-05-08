@@ -1,0 +1,21 @@
+﻿Auto Cock by vamtaco
+---------------------------------------
+Allows the user to setup a flaccid state and an erect state for a male person. The user can then change the value of Arousal to transition from flaccid to erect.
+
+## Use
+Set a flaccid state and an erect state or leave them as default.  You can use triggers in your scene to activate the various functions (Arousal Up, Arousal Down, Flaccid and Erect).  You can also set the Arousal directly to any value between 0 and 1.
+
+## Properties
+Arousal: A value between 0 (flaccid) and 1 (erect).  Anything in between is a semi I guess.
+
+Arousal Up Down Rate: The amount of change to arousal on each call to ArousalUp or ArousalDown
+
+Flaccid Physics Enabled: Uses physics settings by nihilisticdrone when the penis is flaccid.
+
+Flaccid Button: This will set the flaccid state to match the current state of the charater.
+
+Erect Button: This will set the erect state to match the current state of the charater.
+
+The settings under each resepctive button allow you to directly modify the flaccid and erect states.  These states are comprised of morphs and penis controller values.  The morphs control size and shape of the penis whereas the controller values define the erectness and lean of the penis.
+
+You can define the morphs that the plugin will use by modifying the AutoCock.Morphs.json file in the plugin folder.

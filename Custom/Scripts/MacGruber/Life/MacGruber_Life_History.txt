@@ -1,0 +1,35 @@
+
+-------------------------------------------------------------------------------
+Life plugin series v0.4 by MacGruber
+-------------------------------------------------------------------------------
+
+Version 0.4 2020-03-01
+	Improved breathing-sync of Thrust plugin.
+	Implemented SoundFX for Thrust plugin with Lube, FleshySlap and BedSqueak sounds.
+	Implemented UpDown-Balance option for Thrust plugin in preparation for VaMConnect interface.
+	Fixed audio compression for breathing audio.
+	Forcing Pitch to 1.0 for breathing audio to prevent potential desyncs.
+	Removed Volume seperation for Desktop/VR, use AudioDistanceAttenuation plugin instead.
+	Added Life04 demo scene to show SFX.
+
+Version 0.3.1 2020-02-16
+	Fixed nose breathing-in offset.
+	Fixed lips morph animating parts of nose.
+
+Version 0.3 2020-02-15
+	Implemented custom morphs for chest, stomach, nose (by DDQuidam)
+	Implemented custom morph for lips (by TimelordToby)
+	Fixed MacGruber_Life.cslist
+
+Version 0.2 2020-01-20
+	Implemented RhythmDamping to allow you control how regular you want your breathing.
+	Implemented "DriverThrust", drives AnimationPatterns and/or VariableTriggers so you can have synchronized 'action'.
+	Implemented separate volume for VR and Desktop.	Also rebalanced audio volume between recordings.
+	Implemented audio-interrupt feature which allows faster transition between IO/OI modes.
+	Implemented PostMagic-style info text to explain all the sliders.
+	Fixed potential silent crash during scene load.
+	Fixed issue with Breathing settings not surviving changing Person look.
+	Tweaked some default values.
+
+Version 0.1 2019-12-18
+	Initial release.

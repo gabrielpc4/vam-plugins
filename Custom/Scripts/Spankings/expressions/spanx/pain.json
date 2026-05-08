@@ -1,0 +1,24 @@
+{ 
+   "audio" : "", 
+   "duration" : "1", 
+   "keyframes" : [ 
+      { 
+         "time" : "0", 
+         "Pain" : "0", 
+         "Glare" : "0", 
+         "Mouth Open" : "0"
+      }, 
+      { 
+         "time" : "0.1697527", 
+         "Pain" : "0.5777062", 
+         "Glare" : "0", 
+         "Mouth Open" : "0.9245777"
+      }, 
+      { 
+         "time" : "1", 
+         "Pain" : "0", 
+         "Glare" : "0", 
+         "Mouth Open" : "0"
+      }
+   ]
+}

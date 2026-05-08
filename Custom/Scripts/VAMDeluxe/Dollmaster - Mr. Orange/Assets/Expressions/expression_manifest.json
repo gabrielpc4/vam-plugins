@@ -1,0 +1,59 @@
+{
+  "eyes": {
+    "eyes closed brows down.json": {
+    },
+    "eyes closed brows up.json": {
+    },
+    "eyes open wide.json": {
+    },
+    "eyes closed brows up.json": {
+    },
+    "eyes squint brows down.json": {
+    },
+    "eyes wide open brows down.json": {
+    },
+    "eyes wide open brows slanted.json": {
+    },
+    "eyes wide open brows up.json": {
+    },
+    "Disbelief 1": 1.0,
+    "Enjoying It": 0.7,
+    "Certainly": 1.0,
+    "Deserving It": 0.7,
+    "It's Aight": 0.5,
+    "Taking It": 1.0,
+    "Webcam": 0.2
+  },
+  "mouth open": {
+    "mouth open top lip up.json": {
+    },
+    "Mouth Open": 2.0,
+    "Mouth Open Wide": 0.6
+  },
+  "mouth closed": {
+    "mouth show teeth.json": {
+    },
+    "mouth bottom lip bite.json": {
+      "stay": 5
+    }
+  },
+  "idle": {
+    "Lip Bite": 1.0,
+    "Mouth Resting": 1.0,
+    "Disbelief 1": 0.6,
+    "Deserving It": 0.6,
+    "Exaggerating": 0.8
+  },
+  "kiss": {
+    "kiss tongue out.json": {},
+    "kiss pucker.json": {}
+  },
+  "climax": {
+    "Exaggerating": 0.9,
+    "Disbelief 1": 0.8,
+      "eyes open wide.json": {
+    },
+    "eyes closed brows down.json": {
+    },
+  }
+}

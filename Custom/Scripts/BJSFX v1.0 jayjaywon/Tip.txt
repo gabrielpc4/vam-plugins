@@ -1,0 +1,6 @@
+JayJayWon (author)
+Its intended as Blowjob (F on M) sound effect generator. So it plays different sounds based on combinations of Lip, Mouth and Throat collision triggers.
+
+izyman69 (user)
+Works great, ty very much. I have tried to do something similar in the past, but this is next level. So easy to use to!
+A little tip to you guys downloading this. Once the plugin is loaded, go to the misc physics tab, and check the box drive jaw from head audio source, then move the sliders to your liking, default is a bit exaggerated. This adds so much life to the female person when she comes up for air :)

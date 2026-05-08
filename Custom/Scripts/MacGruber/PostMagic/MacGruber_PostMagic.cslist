@@ -1,0 +1,10 @@
+Internal/MacGruber_Manager.cs
+Internal/MacGruber_Utils.cs
+Internal/MacGruber_UserLUT.cs
+Internal/MacGruber_Vignette.cs
+Internal/MacGruber_ChromaticAberration.cs
+Internal/MacGruber_Bloom.cs
+Internal/MacGruber_DepthOfField.cs
+Internal/MacGruber_MotionBlur.cs
+Internal/MacGruber_Grain.cs
+Internal/MacGruber_AntiAliasing.cs

@@ -1,0 +1,19 @@
+{ 
+   "audio" : "", 
+   "duration" : "1", 
+   "keyframes" : [ 
+      { 
+         "time" : "0", 
+         "Scream" : "0"
+      }, 
+      { 
+         "time" : "0.1697527", 
+         "Scream" : "0.5563475"
+      }, 
+      { 
+         "time" : "1", 
+         "Glare" : "0", 
+         "Scream" : "0"
+      }
+   ]
+}

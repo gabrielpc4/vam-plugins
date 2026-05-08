@@ -1,0 +1,82 @@
+{
+   "audio" : "",
+   "duration" : "2",
+   "keyframes" : [
+      {
+         "time" : "0",
+         "Snarl Left" : "0",
+         "Sad" : "0",
+         "Brow Outer Down" : "0",
+         "Eyes Closed" : "0",
+         "Eyes Squint" : "0",
+         "Mouth Open" : "0",
+         "Excitement" : "0",
+         "Pain" : "0",
+         "Tongue In-Out" : "0",
+         "Tongue Length" : "0",
+         "Tongue Curl" : "0",
+         "Tongue Raise-Lower" : "0"
+      },
+      {
+         "time" : "0.2",
+         "Snarl Left" : "0.4841262",
+         "Sad" : "0.1600808",
+         "Brow Outer Down" : "1",
+         "Eyes Closed" : "0.1931925",
+         "Eyes Squint" : "0.4872342",
+         "Mouth Open" : "2",
+         "Excitement" : "0",
+         "Pain" : "0",
+         "Tongue In-Out" : "0",
+         "Tongue Length" : "0",
+         "Tongue Curl" : "0",
+         "Tongue Raise-Lower" : "0"
+      },
+      {
+         "time" : "0.4",
+         "Snarl Left" : "0.4841262",
+         "Sad" : "0.1600808",
+         "Brow Outer Down" : "1",
+         "Eyes Closed" : "0.1931925",
+         "Eyes Squint" : "0.4872342",
+         "Mouth Open" : "2",
+         "Excitement" : "0",
+         "Pain" : "0",
+         "Tongue In-Out" : "-1",
+         "Tongue Length" : "0.09108085",
+         "Tongue Bend Tip" : "0",
+         "Tongue Curl" : "-0.4746794",
+         "Tongue Raise-Lower" : "-0.3311813"
+      },
+      {
+         "time" : "0.6",
+         "Snarl Left" : "0.4841262",
+         "Sad" : "0.1600808",
+         "Brow Outer Down" : "1",
+         "Eyes Closed" : "0.1931925",
+         "Eyes Squint" : "0.4872342",
+         "Mouth Open" : "2",
+         "Excitement" : "0",
+         "Pain" : "0",
+         "Tongue In-Out" : "-1",
+         "Tongue Length" : "0.09108085",
+         "Tongue Curl" : "-0.4746794",
+         "Tongue Raise-Lower" : "-0.3311813"
+      },
+      {
+         "time" : "1",
+         "Snarl Left" : "0",
+         "Sad" : "0",
+         "Brow Outer Down" : "0",
+         "Eyes Closed" : "0",
+         "Eyes Squint" : "0",
+         "Mouth Open" : "0",
+         "Excitement" : "0",
+         "Pain" : "0",
+         "Tongue In-Out" : "0",
+         "Tongue Length" : "0",
+         "Tongue Curl" : "0",
+         "Tongue Raise-Lower" : "0"
+      }
+   ]
+}

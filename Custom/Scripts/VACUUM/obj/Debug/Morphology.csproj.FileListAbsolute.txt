@@ -1,0 +1,5 @@
+C:\Users\Ryan\AppData\LocalLow\VM\_INTEGRATE\morphology-0.3\Morphology\obj\Debug\Morphology.csprojAssemblyReference.cache
+C:\Users\Ryan\AppData\LocalLow\VM\_INTEGRATE\morphology-0.3\Morphology\obj\Debug\MainWindow.g.cs
+C:\Users\Ryan\AppData\LocalLow\VM\_INTEGRATE\morphology-0.3\Morphology\obj\Debug\App.g.cs
+C:\Users\Ryan\AppData\LocalLow\VM\_INTEGRATE\morphology-0.3\Morphology\obj\Debug\Morphology_MarkupCompile.cache
+C:\Users\Ryan\AppData\LocalLow\VM\_INTEGRATE\morphology-0.3\Morphology\obj\Debug\Morphology_MarkupCompile.lref

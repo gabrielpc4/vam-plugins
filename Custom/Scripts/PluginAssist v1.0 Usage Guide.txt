@@ -1,0 +1,24 @@
+Plugin Assist v1.0 Usage Guide
+==============================
+
+Plugin Assist is a plugin that allows you to manage the setup of other plugins in a scene. Plugin Profiles (PIPs) can be defined that consist of multiple PIP Entries. Each PIP Entry is a plugin and optionally the initial data for that plugin. Each PIP Entry can be limited to only apply to certain Atom types. A Plugin Profile (PIP) can then be applied to single or groups of Atoms - each plugin from each PIP Entry in the PIP will then be added to each Atom. PIPs can be automatically applied when new Atoms of specified types are created.
+
+- Load Plugin Profile (PIP): Loads a previously saved plugin profile from file system
+- Save Plugin Profile (PIP): Saves the current plugin proflile to file system
+- Set current PIP as Default: Set the current plugin profile to be the default that is automatically loaded when PluginAssist is added to a scene
+
+- Atom Selector: Select which atoms to apply the current PIP to. Individual atoms can be selected or groups of atom types.
+- Apply PIP to Selection: this applies each plugin defined in the PIP to every Atom chosen in Atom Selector (unless prevented by the atom type Limits - see below)
+- Replace existing Plugins: when active, any existing plugins are removed from Atoms that the PIP is being applied to
+
+- Auto Apply: New <Atom Type> : When atoms of the selected type are created in the scene, the plugins defined in each PIP Entry in the PIP will be automatically added to the new Atom
+
+- Plugin Profile (PIP) Entry: Select the PIP Entry to be viewed or edited below. Select ADD NEW PIP ENTRY to create a new PIP Entry
+- Select Plugin file: Select a plugin for the current PIP Entry
+
+- Select Plugin Data source Scene: Select a scene file from which to obtain the inital settings of the selected plugin
+- Plugin Data Source: Choose from each plugin (of the type selected in 'Select Plugin File') that is within the scene selected under 'Select Plugin Data source Scene'. Select the plugin to obtain initial setup data from.
+- Import Plugin Data for Plugin Entry: The inital plugin settings will be obtained from the selected scene and plugin.
+
+- Limit to <Atom Type>: The plugin for this PIP Entry will only be applied to Atoms of this type. 
+If no Atom Type Limits are selected, that PIP Entry will be applied to all Atom types.

@@ -30,7 +30,7 @@ Usage (run from VaM folder or pass absolute paths)::
 
     python Custom/Scripts/DildoOnHands/extract_toy_catalog.py ^
         --scene "Saves/scene/Mofme/Mofme CamGirlToys/1100_camgirltoys.json" ^
-        --out "Custom/Scripts/DildoOnHands/handspawn_toy_atoms.json"
+        --out "Custom/Scripts/Gabriel/features/dildo-on-hands/handspawn_toy_atoms.json"
 
 Python 3.6+ compatible (stdlib ``json`` only).
 """

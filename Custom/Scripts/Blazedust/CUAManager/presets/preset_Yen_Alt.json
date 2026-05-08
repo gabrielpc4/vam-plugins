@@ -1,0 +1,458 @@
+{ 
+   "id" : "Yen_Succubus", 
+   "items" : [ 
+      { 
+         "cua" : "CUA_Tendrils", 
+         "atoms" : [ 
+            { 
+               "type" : "CustomUnityAsset", 
+               "setUnlistedParamsToDefault" : "true", 
+               "collisionEnabled" : "true", 
+               "storables" : [ 
+                  { 
+                     "id" : "animation", 
+                     "armedForRecord" : "false", 
+                     "playbackEnabled" : "true", 
+                     "drawPath" : "false"
+                  }, 
+                  { 
+                     "id" : "asset", 
+                     "importLightmaps" : "true", 
+                     "importLightProbes" : "true", 
+                     "registerCanvases" : "true", 
+                     "showCanvases" : "true", 
+                     "loadDll" : "true", 
+                     "assetName" : "Assets/Scenes/Tends_02_d.unity", 
+                     "assetUrl" : "Custom/Assets/Blazedust/blazedust_tends_01_v2.assetbundle", 
+                     "assetDllUrl" : ""
+                  }, 
+                  { 
+                     "id" : "AtomControl", 
+                     "hidden" : "false"
+                  }, 
+                  { 
+                     "id" : "CollisionTrigger", 
+                     "triggerEnabled" : "false", 
+                     "invertAtomFilter" : "false", 
+                     "trigger" : { 
+                        "startActions" : [ 
+                        ], 
+                        "transitionActions" : [ 
+                        ], 
+                        "endActions" : [ 
+                        ]
+                     }
+                  }, 
+                  { 
+                     "id" : "control", 
+                     "interactableInPlayMode" : "true", 
+                     "possessable" : "false", 
+                     "canGrabPosition" : "false", 
+                     "canGrabRotation" : "false", 
+                     "xPositionLock" : "false", 
+                     "yPositionLock" : "false", 
+                     "zPositionLock" : "false", 
+                     "xPositionLocalLock" : "false", 
+                     "yPositionLocalLock" : "false", 
+                     "zPositionLocalLock" : "false", 
+                     "xRotationLock" : "false", 
+                     "yRotationLock" : "false", 
+                     "zRotationLock" : "false", 
+                     "physicsEnabled" : "false", 
+                     "useGravity" : "false", 
+                     "complyPositionThreshold" : "0.001", 
+                     "complyRotationThreshold" : "5", 
+                     "complySpeed" : "10", 
+                     "positionGrid" : "0.1", 
+                     "rotationGrid" : "15", 
+                     "mass" : "1", 
+                     "drag" : "0.1", 
+                     "angularDrag" : "0.05", 
+                     "holdPositionSpring" : "5000", 
+                     "holdPositionDamper" : "50", 
+                     "holdPositionMaxForce" : "10000", 
+                     "holdRotationSpring" : "100", 
+                     "holdRotationDamper" : "5", 
+                     "holdRotationMaxForce" : "1000", 
+                     "complyPositionSpring" : "1500", 
+                     "complyPositionDamper" : "100", 
+                     "complyRotationSpring" : "150", 
+                     "complyRotationDamper" : "10", 
+                     "linkPositionSpring" : "250000", 
+                     "linkPositionDamper" : "250", 
+                     "linkPositionMaxForce" : "1E+08", 
+                     "linkRotationSpring" : "250000", 
+                     "linkRotationDamper" : "250", 
+                     "linkRotationMaxForce" : "1E+08", 
+                     "complyJointDriveSpring" : "20", 
+                     "jointDriveSpring" : "0", 
+                     "jointDriveDamper" : "0", 
+                     "jointDriveMaxForce" : "0", 
+                     "jointDriveXTarget" : "0", 
+                     "jointDriveYTarget" : "0", 
+                     "jointDriveZTarget" : "0", 
+                     "positionState" : "Hold", 
+                     "rotationState" : "Hold", 
+                     "positionGridMode" : "None", 
+                     "rotationGridMode" : "None", 
+                     "position" : { 
+                        "x" : "0.09818997", 
+                        "y" : "1.614088", 
+                        "z" : "-0.269295"
+                     }, 
+                     "rotation" : { 
+                        "x" : "349.9622", 
+                        "y" : "337.4406", 
+                        "z" : "356.9484"
+                     }, 
+                     "linkTo" : "PersonYenAlt:head"
+                  }, 
+                  { 
+                     "id" : "materials"
+                  }, 
+                  { 
+                     "id" : "PhysicsMaterialControl", 
+                     "dynamicFriction" : "0.6", 
+                     "staticFriction" : "0.6", 
+                     "bounciness" : "0", 
+                     "frictionCombine" : "Average", 
+                     "bounceCombine" : "Average"
+                  }, 
+                  { 
+                     "id" : "plugin#0_Blazedust.ParentHoldLink", 
+                     "enabled" : "true", 
+                     "Active" : "true", 
+                     "pluginLabel" : ""
+                  }, 
+                  { 
+                     "id" : "PluginManager", 
+                     "plugins" : { 
+                        "plugin#0" : "Custom/Scripts/Blazedust/ParentHoldLink.cs"
+                     }
+                  }, 
+                  { 
+                     "id" : "Preset", 
+                     "presetName" : ""
+                  }, 
+                  { 
+                     "id" : "scale", 
+                     "scale" : "1"
+                  }, 
+                  { 
+                     "id" : "cuabLinkTo", 
+                     "linkTo" : "head", 
+                     "posx" : "0.000002", 
+                     "posy" : "0.041904", 
+                     "posz" : "-0.022003", 
+                     "rotx" : "19.97783", 
+                     "roty" : "0.00050", 
+                     "rotz" : "-0.00013"
+                  }
+               ]
+            }
+         ]
+      }, 
+      { 
+         "cua" : "CUA_Horns", 
+         "atoms" : [ 
+            { 
+               "type" : "CustomUnityAsset", 
+               "setUnlistedParamsToDefault" : "true", 
+               "collisionEnabled" : "false", 
+               "storables" : [ 
+                  { 
+                     "id" : "animation", 
+                     "armedForRecord" : "false", 
+                     "playbackEnabled" : "true", 
+                     "drawPath" : "false"
+                  }, 
+                  { 
+                     "id" : "asset", 
+                     "importLightmaps" : "true", 
+                     "importLightProbes" : "true", 
+                     "registerCanvases" : "true", 
+                     "showCanvases" : "true", 
+                     "loadDll" : "true", 
+                     "assetName" : "Assets/Scenes/horn_01_d.unity", 
+                     "assetUrl" : "Custom/Assets/Blazedust/blazedust_horns_01_v2.assetbundle", 
+                     "assetDllUrl" : ""
+                  }, 
+                  { 
+                     "id" : "AtomControl", 
+                     "hidden" : "false"
+                  }, 
+                  { 
+                     "id" : "CollisionTrigger", 
+                     "triggerEnabled" : "false", 
+                     "invertAtomFilter" : "false", 
+                     "trigger" : { 
+                        "startActions" : [ 
+                        ], 
+                        "transitionActions" : [ 
+                        ], 
+                        "endActions" : [ 
+                        ]
+                     }
+                  }, 
+                  { 
+                     "id" : "control", 
+                     "interactableInPlayMode" : "true", 
+                     "possessable" : "false", 
+                     "canGrabPosition" : "false", 
+                     "canGrabRotation" : "false", 
+                     "xPositionLock" : "false", 
+                     "yPositionLock" : "false", 
+                     "zPositionLock" : "false", 
+                     "xPositionLocalLock" : "false", 
+                     "yPositionLocalLock" : "false", 
+                     "zPositionLocalLock" : "false", 
+                     "xRotationLock" : "false", 
+                     "yRotationLock" : "false", 
+                     "zRotationLock" : "false", 
+                     "physicsEnabled" : "false", 
+                     "useGravity" : "false", 
+                     "complyPositionThreshold" : "0.001", 
+                     "complyRotationThreshold" : "5", 
+                     "complySpeed" : "10", 
+                     "positionGrid" : "0.1", 
+                     "rotationGrid" : "15", 
+                     "mass" : "1", 
+                     "drag" : "0.1", 
+                     "angularDrag" : "0.05", 
+                     "holdPositionSpring" : "5000", 
+                     "holdPositionDamper" : "50", 
+                     "holdPositionMaxForce" : "10000", 
+                     "holdRotationSpring" : "100", 
+                     "holdRotationDamper" : "5", 
+                     "holdRotationMaxForce" : "1000", 
+                     "complyPositionSpring" : "1500", 
+                     "complyPositionDamper" : "100", 
+                     "complyRotationSpring" : "150", 
+                     "complyRotationDamper" : "10", 
+                     "linkPositionSpring" : "250000", 
+                     "linkPositionDamper" : "250", 
+                     "linkPositionMaxForce" : "1E+08", 
+                     "linkRotationSpring" : "250000", 
+                     "linkRotationDamper" : "250", 
+                     "linkRotationMaxForce" : "1E+08", 
+                     "complyJointDriveSpring" : "20", 
+                     "jointDriveSpring" : "0", 
+                     "jointDriveDamper" : "0", 
+                     "jointDriveMaxForce" : "0", 
+                     "jointDriveXTarget" : "0", 
+                     "jointDriveYTarget" : "0", 
+                     "jointDriveZTarget" : "0", 
+                     "positionState" : "Hold", 
+                     "rotationState" : "Hold", 
+                     "positionGridMode" : "None", 
+                     "rotationGridMode" : "None", 
+                     "position" : { 
+                        "x" : "0.07663813", 
+                        "y" : "1.6554", 
+                        "z" : "-0.2132217"
+                     }, 
+                     "rotation" : { 
+                        "x" : "9.91258", 
+                        "y" : "336.3832", 
+                        "z" : "356.9492"
+                     }, 
+                     "linkTo" : "PersonYenAlt:head"
+                  }, 
+                  { 
+                     "id" : "materials"
+                  }, 
+                  { 
+                     "id" : "PhysicsMaterialControl", 
+                     "dynamicFriction" : "0.6", 
+                     "staticFriction" : "0.6", 
+                     "bounciness" : "0", 
+                     "frictionCombine" : "Average", 
+                     "bounceCombine" : "Average"
+                  }, 
+                  { 
+                     "id" : "plugin#0_Blazedust.ParentHoldLink", 
+                     "enabled" : "true", 
+                     "Active" : "true", 
+                     "pluginLabel" : ""
+                  }, 
+                  { 
+                     "id" : "PluginManager", 
+                     "plugins" : { 
+                        "plugin#0" : "Custom/Scripts/Blazedust/ParentHoldLink.cs"
+                     }
+                  }, 
+                  { 
+                     "id" : "Preset", 
+                     "presetName" : ""
+                  }, 
+                  { 
+                     "id" : "scale", 
+                     "scale" : "1"
+                  }, 
+                  { 
+                     "id" : "cuabLinkTo", 
+                     "linkTo" : "head", 
+                     "posx" : "0.000000", 
+                     "posy" : "0.093001", 
+                     "posz" : "0.030001", 
+                     "rotx" : "-0.00030", 
+                     "roty" : "-0.00009", 
+                     "rotz" : "0.00014"
+                  }
+               ]
+            }
+         ]
+      }, 
+      { 
+         "cua" : "CUA_Tail", 
+         "atoms" : [ 
+            { 
+               "type" : "CustomUnityAsset", 
+               "setUnlistedParamsToDefault" : "true", 
+               "collisionEnabled" : "true", 
+               "storables" : [ 
+                  { 
+                     "id" : "animation", 
+                     "armedForRecord" : "false", 
+                     "playbackEnabled" : "true", 
+                     "drawPath" : "false"
+                  }, 
+                  { 
+                     "id" : "asset", 
+                     "importLightmaps" : "true", 
+                     "importLightProbes" : "true", 
+                     "registerCanvases" : "true", 
+                     "showCanvases" : "true", 
+                     "loadDll" : "true", 
+                     "assetName" : "Assets/Scenes/Tail_02_d.unity", 
+                     "assetUrl" : "Custom/Assets/Blazedust/blazedust_tail_01_v2.assetbundle", 
+                     "assetDllUrl" : ""
+                  }, 
+                  { 
+                     "id" : "AtomControl", 
+                     "hidden" : "false"
+                  }, 
+                  { 
+                     "id" : "CollisionTrigger", 
+                     "triggerEnabled" : "false", 
+                     "invertAtomFilter" : "false", 
+                     "trigger" : { 
+                        "startActions" : [ 
+                        ], 
+                        "transitionActions" : [ 
+                        ], 
+                        "endActions" : [ 
+                        ]
+                     }
+                  }, 
+                  { 
+                     "id" : "control", 
+                     "interactableInPlayMode" : "true", 
+                     "possessable" : "false", 
+                     "canGrabPosition" : "false", 
+                     "canGrabRotation" : "false", 
+                     "xPositionLock" : "false", 
+                     "yPositionLock" : "false", 
+                     "zPositionLock" : "false", 
+                     "xPositionLocalLock" : "false", 
+                     "yPositionLocalLock" : "false", 
+                     "zPositionLocalLock" : "false", 
+                     "xRotationLock" : "false", 
+                     "yRotationLock" : "false", 
+                     "zRotationLock" : "false", 
+                     "physicsEnabled" : "false", 
+                     "useGravity" : "false", 
+                     "complyPositionThreshold" : "0.001", 
+                     "complyRotationThreshold" : "5", 
+                     "complySpeed" : "10", 
+                     "positionGrid" : "0.1", 
+                     "rotationGrid" : "15", 
+                     "mass" : "1", 
+                     "drag" : "0.1", 
+                     "angularDrag" : "0.05", 
+                     "holdPositionSpring" : "5000", 
+                     "holdPositionDamper" : "50", 
+                     "holdPositionMaxForce" : "10000", 
+                     "holdRotationSpring" : "100", 
+                     "holdRotationDamper" : "5", 
+                     "holdRotationMaxForce" : "1000", 
+                     "complyPositionSpring" : "1500", 
+                     "complyPositionDamper" : "100", 
+                     "complyRotationSpring" : "150", 
+                     "complyRotationDamper" : "10", 
+                     "linkPositionSpring" : "250000", 
+                     "linkPositionDamper" : "250", 
+                     "linkPositionMaxForce" : "1E+08", 
+                     "linkRotationSpring" : "250000", 
+                     "linkRotationDamper" : "250", 
+                     "linkRotationMaxForce" : "1E+08", 
+                     "complyJointDriveSpring" : "20", 
+                     "jointDriveSpring" : "0", 
+                     "jointDriveDamper" : "0", 
+                     "jointDriveMaxForce" : "0", 
+                     "jointDriveXTarget" : "0", 
+                     "jointDriveYTarget" : "0", 
+                     "jointDriveZTarget" : "0", 
+                     "positionState" : "Hold", 
+                     "rotationState" : "Hold", 
+                     "positionGridMode" : "None", 
+                     "rotationGridMode" : "None", 
+                     "position" : { 
+                        "x" : "0.1145874", 
+                        "y" : "1.002547", 
+                        "z" : "-0.3429141"
+                     }, 
+                     "rotation" : { 
+                        "x" : "1.341936", 
+                        "y" : "257.3346", 
+                        "z" : "341.8597"
+                     }, 
+                     "linkTo" : "PersonYenAlt:abdomen"
+                  }, 
+                  { 
+                     "id" : "materials"
+                  }, 
+                  { 
+                     "id" : "PhysicsMaterialControl", 
+                     "dynamicFriction" : "0.6", 
+                     "staticFriction" : "0.6", 
+                     "bounciness" : "0", 
+                     "frictionCombine" : "Average", 
+                     "bounceCombine" : "Average"
+                  }, 
+                  { 
+                     "id" : "plugin#0_Blazedust.ParentHoldLink", 
+                     "enabled" : "true", 
+                     "Active" : "true", 
+                     "pluginLabel" : ""
+                  }, 
+                  { 
+                     "id" : "PluginManager", 
+                     "plugins" : { 
+                        "plugin#0" : "Custom/Scripts/Blazedust/ParentHoldLink.cs"
+                     }
+                  }, 
+                  { 
+                     "id" : "Preset", 
+                     "presetName" : ""
+                  }, 
+                  { 
+                     "id" : "scale", 
+                     "scale" : "1"
+                  }, 
+                  { 
+                     "id" : "cuabLinkTo", 
+                     "linkTo" : "abdomen", 
+                     "posx" : "0.000384", 
+                     "posy" : "0.006103", 
+                     "posz" : "-0.054857", 
+                     "rotx" : "342.88370", 
+                     "roty" : "73.54803", 
+                     "rotz" : "3.22172"
+                  }
+               ]
+            }
+         ]
+      }
+   ]
+}

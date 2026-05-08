@@ -1,0 +1,9 @@
+{ 
+   "autoMorphLoaders" : [ 
+      { 
+         "id" : "Draenei01Y", 
+		 "personUid" : "",
+         "preset" : "Yen"
+      }
+   ]
+}

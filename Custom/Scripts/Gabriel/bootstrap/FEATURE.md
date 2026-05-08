@@ -9,9 +9,10 @@ Single session entry plugin merged on menu/default scenes. It seeds the Gabriel 
 
 ## Load Path
 - Scenes point plugin slot 0 at `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cslist`.
-- `GabrielBootstrap.cs` injects `VaMLogClipboardHud.cslist` and
+- `GabrielBootstrap.cs` injects `VaMLogClipboardHud.cslist`,
   `GabrielSessionPlugins.cslist` (orchestrator, HUD, hands, passenger, camera,
-  **DildoOnHands**, **VR proximity strip clothing**, and shared helpers).
+  **DildoOnHands**, shared helpers), and `Clothing.cslist` (strip keywords +
+  **TriggerClothingRemover**).
 - Desktop mode appends `Custom/Scripts/prestigitis_DesktopClothGrab.cs`.
 
 ## Responsibilities

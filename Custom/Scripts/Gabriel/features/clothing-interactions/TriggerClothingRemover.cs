@@ -16,15 +16,6 @@ namespace geesp0t
     {
         private const float MaxHandToTorsoMeters = 0.62f;
 
-        /// <summary>0 = unknown, 1 = upper, 2 = lower, 3 = full body / both.</summary>
-        private enum ClothingBand
-        {
-            Unknown = 0,
-            Upper = 1,
-            Lower = 2,
-            FullBody = 3
-        }
-
         public override void Init()
         {
         }
@@ -194,7 +185,10 @@ namespace geesp0t
             }
 
             DAZClothingItem toRemove;
-            if (!TryPickClothingItemToRemove(selector, preferUpper, out toRemove))
+            if (!ClothingTorsoBandPicker.TryPickClothingItemToRemove(
+                    selector,
+                    preferUpper,
+                    out toRemove))
             {
                 return;
             }
@@ -335,201 +329,6 @@ namespace geesp0t
             }
 
             return false;
-        }
-
-        private static bool TryPickClothingItemToRemove(
-            DAZCharacterSelector selector,
-            bool preferUpper,
-            out DAZClothingItem picked)
-        {
-            picked = null;
-            DAZClothingItem[] items = selector.clothingItems;
-            if (items == null)
-            {
-                return false;
-            }
-
-            List<DAZClothingItem> active = new List<DAZClothingItem>();
-            for (int i = 0; i < items.Length; i++)
-            {
-                DAZClothingItem item = items[i];
-                if (item != null && item.active)
-                {
-                    active.Add(item);
-                }
-            }
-
-            if (active.Count == 0)
-            {
-                return false;
-            }
-
-            if (preferUpper)
-            {
-                if (TryFirstMatchingBand(active, ClothingBand.Upper, out picked))
-                {
-                    return true;
-                }
-
-                if (TryFirstMatchingBand(active, ClothingBand.FullBody, out picked))
-                {
-                    return true;
-                }
-
-                if (TryFirstMatchingBand(active, ClothingBand.Lower, out picked))
-                {
-                    return true;
-                }
-            }
-            else
-            {
-                if (TryFirstMatchingBand(active, ClothingBand.Lower, out picked))
-                {
-                    return true;
-                }
-
-                if (TryFirstMatchingBand(active, ClothingBand.FullBody, out picked))
-                {
-                    return true;
-                }
-
-                if (TryFirstMatchingBand(active, ClothingBand.Upper, out picked))
-                {
-                    return true;
-                }
-            }
-
-            if (TryFirstMatchingBand(active, ClothingBand.Unknown, out picked))
-            {
-                return true;
-            }
-
-            picked = active[0];
-            return true;
-        }
-
-        private static bool TryFirstMatchingBand(
-            List<DAZClothingItem> items,
-            ClothingBand band,
-            out DAZClothingItem found)
-        {
-            found = null;
-            for (int i = 0; i < items.Count; i++)
-            {
-                DAZClothingItem item = items[i];
-                if (ClassifyClothingBand(item) == band)
-                {
-                    found = item;
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool BlobContainsAny(string blob, string[] keys)
-        {
-            for (int i = 0; i < keys.Length; i++)
-            {
-                if (blob.Contains(keys[i]))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static ClothingBand ClassifyClothingBand(DAZClothingItem item)
-        {
-            DAZClothingItem.ExclusiveRegion region = item.exclusiveRegion;
-            string blob = ClothingTextHeuristics.ClothingSearchBlob(item);
-
-            string[] fullBodyKeys =
-            {
-                "dress", "gown", "jumpsuit", "catsuit", "bodysuit", "romper",
-                "overall"
-            };
-
-            if (BlobContainsAny(blob, fullBodyKeys))
-            {
-                return ClothingBand.FullBody;
-            }
-
-            bool upperFromRegion =
-                region == DAZClothingItem.ExclusiveRegion.Chest ||
-                region == DAZClothingItem.ExclusiveRegion.UnderChest ||
-                region == DAZClothingItem.ExclusiveRegion.Hat ||
-                region == DAZClothingItem.ExclusiveRegion.Glasses ||
-                region == DAZClothingItem.ExclusiveRegion.Gloves;
-
-            bool lowerFromRegion =
-                region == DAZClothingItem.ExclusiveRegion.Hip ||
-                region == DAZClothingItem.ExclusiveRegion.UnderHip ||
-                region == DAZClothingItem.ExclusiveRegion.Legs ||
-                region == DAZClothingItem.ExclusiveRegion.Shoes;
-
-            if (upperFromRegion && lowerFromRegion)
-            {
-                return ClothingBand.FullBody;
-            }
-
-            if (upperFromRegion)
-            {
-                return ClothingBand.Upper;
-            }
-
-            if (lowerFromRegion)
-            {
-                return ClothingBand.Lower;
-            }
-
-            string[] upperKeys =
-            {
-                "top", "shirt", "bra", "blouse", "jacket", "coat", "sweater",
-                "hoodie", "vest", "cardigan",
-                "tank", "corset", "bustier", "halter", "tube top", "tubetop",
-                "crop ", "tie", "scarf", "glass"
-            };
-
-            string[] lowerKeys =
-            {
-                "panties", "underwear", "pant", "jeans", "shorts", "skirt",
-                "thong", "brief", "boxer",
-                "legging", "stocking", "hose", "garter", "sock", "shoe", "boot",
-                "heel", "belt", "bikini bottom",
-                "mini skirt", "miniskirt", "cargo", "trouser", "kilt"
-            };
-
-            bool upperFromText = BlobContainsAny(blob, upperKeys);
-            bool lowerFromText = BlobContainsAny(blob, lowerKeys);
-
-            if (upperFromText && lowerFromText)
-            {
-                return ClothingBand.FullBody;
-            }
-
-            if (upperFromText)
-            {
-                return ClothingBand.Upper;
-            }
-
-            if (lowerFromText)
-            {
-                return ClothingBand.Lower;
-            }
-
-            if (blob.Contains("bikini"))
-            {
-                return ClothingBand.FullBody;
-            }
-
-            if (blob.Contains("lingerie"))
-            {
-                return ClothingBand.FullBody;
-            }
-
-            return ClothingBand.Unknown;
         }
     }
 }

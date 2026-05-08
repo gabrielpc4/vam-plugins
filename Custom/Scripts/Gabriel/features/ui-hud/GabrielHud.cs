@@ -42,7 +42,7 @@ namespace geesp0t
             "Custom/Scripts/Spankings/Spankings.cslist";
 
         public const string PluginClothingTouchFallOff =
-            "Custom/Scripts/Gabriel/features/clothing-interactions/ClothingTouchFallOff.cslist";
+            "Custom/Scripts/Gabriel/features/clothing-interactions/ClothingTouchFallOff.cs";
 
         /// <summary>
         /// Scene atom UIDs created by <c>octopussy.Spankings</c>; removed when

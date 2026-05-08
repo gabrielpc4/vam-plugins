@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using MeshVR;
 
 namespace geesp0t
@@ -71,6 +72,198 @@ namespace geesp0t
             "trouser",
             "kilt",
         };
+    }
+
+    /// <summary>
+    /// Torso strip band for <see cref="ClothingTorsoBandPicker"/> classification.
+    /// </summary>
+    public enum ClothingTorsoBand
+    {
+        Unknown = 0,
+        Upper = 1,
+        Lower = 2,
+        FullBody = 3
+    }
+
+    /// <summary>
+    /// Band classification and pick-one-active-garment rules for proximity strip.
+    /// </summary>
+    public static class ClothingTorsoBandPicker
+    {
+        public static bool TryPickClothingItemToRemove(
+            DAZCharacterSelector selector,
+            bool preferUpper,
+            out DAZClothingItem picked)
+        {
+            picked = null;
+            DAZClothingItem[] items = selector.clothingItems;
+            if (items == null)
+            {
+                return false;
+            }
+
+            List<DAZClothingItem> active = new List<DAZClothingItem>();
+            int i;
+            for (i = 0; i < items.Length; i++)
+            {
+                DAZClothingItem item = items[i];
+                if (item != null && item.active)
+                {
+                    active.Add(item);
+                }
+            }
+
+            if (active.Count == 0)
+            {
+                return false;
+            }
+
+            if (preferUpper)
+            {
+                if (TryFirstMatchingBand(active, ClothingTorsoBand.Upper, out picked))
+                {
+                    return true;
+                }
+
+                if (TryFirstMatchingBand(active, ClothingTorsoBand.FullBody, out picked))
+                {
+                    return true;
+                }
+
+                if (TryFirstMatchingBand(active, ClothingTorsoBand.Lower, out picked))
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                if (TryFirstMatchingBand(active, ClothingTorsoBand.Lower, out picked))
+                {
+                    return true;
+                }
+
+                if (TryFirstMatchingBand(active, ClothingTorsoBand.FullBody, out picked))
+                {
+                    return true;
+                }
+
+                if (TryFirstMatchingBand(active, ClothingTorsoBand.Upper, out picked))
+                {
+                    return true;
+                }
+            }
+
+            if (TryFirstMatchingBand(active, ClothingTorsoBand.Unknown, out picked))
+            {
+                return true;
+            }
+
+            picked = active[0];
+            return true;
+        }
+
+        public static ClothingTorsoBand ClassifyClothingBand(DAZClothingItem item)
+        {
+            DAZClothingItem.ExclusiveRegion region = item.exclusiveRegion;
+            string blob = ClothingTextHeuristics.ClothingSearchBlob(item);
+
+            if (BlobContainsAny(blob, ClothingKeywords.FullBody))
+            {
+                return ClothingTorsoBand.FullBody;
+            }
+
+            bool upperFromRegion =
+                region == DAZClothingItem.ExclusiveRegion.Chest ||
+                region == DAZClothingItem.ExclusiveRegion.UnderChest ||
+                region == DAZClothingItem.ExclusiveRegion.Hat ||
+                region == DAZClothingItem.ExclusiveRegion.Glasses ||
+                region == DAZClothingItem.ExclusiveRegion.Gloves;
+
+            bool lowerFromRegion =
+                region == DAZClothingItem.ExclusiveRegion.Hip ||
+                region == DAZClothingItem.ExclusiveRegion.UnderHip ||
+                region == DAZClothingItem.ExclusiveRegion.Legs ||
+                region == DAZClothingItem.ExclusiveRegion.Shoes;
+
+            if (upperFromRegion && lowerFromRegion)
+            {
+                return ClothingTorsoBand.FullBody;
+            }
+
+            if (upperFromRegion)
+            {
+                return ClothingTorsoBand.Upper;
+            }
+
+            if (lowerFromRegion)
+            {
+                return ClothingTorsoBand.Lower;
+            }
+
+            bool upperFromText = BlobContainsAny(blob, ClothingKeywords.Upper);
+            bool lowerFromText = BlobContainsAny(blob, ClothingKeywords.Lower);
+
+            if (upperFromText && lowerFromText)
+            {
+                return ClothingTorsoBand.FullBody;
+            }
+
+            if (upperFromText)
+            {
+                return ClothingTorsoBand.Upper;
+            }
+
+            if (lowerFromText)
+            {
+                return ClothingTorsoBand.Lower;
+            }
+
+            if (blob.Contains("bikini"))
+            {
+                return ClothingTorsoBand.FullBody;
+            }
+
+            if (blob.Contains("lingerie"))
+            {
+                return ClothingTorsoBand.FullBody;
+            }
+
+            return ClothingTorsoBand.Unknown;
+        }
+
+        private static bool TryFirstMatchingBand(
+            List<DAZClothingItem> items,
+            ClothingTorsoBand band,
+            out DAZClothingItem found)
+        {
+            found = null;
+            int i;
+            for (i = 0; i < items.Count; i++)
+            {
+                DAZClothingItem item = items[i];
+                if (ClassifyClothingBand(item) == band)
+                {
+                    found = item;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool BlobContainsAny(string blob, string[] keys)
+        {
+            int i;
+            for (i = 0; i < keys.Length; i++)
+            {
+                if (blob.Contains(keys[i]))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 
     /// <summary>

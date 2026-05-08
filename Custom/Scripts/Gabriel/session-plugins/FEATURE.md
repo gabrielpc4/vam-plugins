@@ -6,9 +6,10 @@ Session bundle loaded from `GabrielSessionPlugins.cslist`. The host
 pulses, full scene-settle workflow, late feature ticks, HUD binding, and the
 scene-settle release action for the shared hotkey dispatcher.
 
-The same compile unit also includes **DildoOnHands** (VR hand toy spawn) and
-**TriggerClothingRemover** (VR trigger clothing removal), so bootstrap only merges
-`GabrielSessionPlugins.cslist` plus the separate log clipboard bundle.
+The same compile unit includes **DildoOnHands** (VR hand toy spawn).
+**TriggerClothingRemover** compiles from `features/clothing-interactions/Clothing.cslist`
+(own session plugin slot). Bootstrap merges the log clipboard bundle,
+`GabrielSessionPlugins.cslist`, and that **Clothing.cslist** in order.
 
 ## Live Files
 - `GabrielSessionPlugins.cslist`

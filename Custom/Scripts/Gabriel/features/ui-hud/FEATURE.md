@@ -15,9 +15,11 @@ scene-advance UIButton resolution (`NextSceneUiButton`), keyboard routing in
 - `VaMLogClipboardHud.cslist`
 
 ## Load Path
-- `GabrielBootstrap` loads `VaMLogClipboardHud.cslist` and
-  `GabrielSessionPlugins.cslist` (includes `GabrielHud`, `GabrielSessionOrchestrator`,
-  **DildoOnHands**, **TriggerClothingRemover**, passenger/camera/hands helpers).
+- `GabrielBootstrap` loads `VaMLogClipboardHud.cslist`,
+  `GabrielSessionPlugins.cslist` (`GabrielHud`, `GabrielSessionOrchestrator`,
+  **DildoOnHands**, passenger/camera/hands helpers), and
+  `features/clothing-interactions/Clothing.cslist` (**TriggerClothingRemover** +
+  `ClothingKeywords`).
 - `GabrielHud.cslist` still lists the same compile graph when building the HUD
   bundle offline or duplicating the plugin list.
 - `VaMLogClipboardHud.cslist` stays isolated so log copy buttons can still load

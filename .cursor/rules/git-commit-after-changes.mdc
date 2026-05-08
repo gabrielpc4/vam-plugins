@@ -26,4 +26,7 @@ Whenever you **modify, create, or delete** a project file you intend to keep und
 4. **Scope**  
    This repo may have **thousands of untracked or dirty files** (e.g. game content). Do **not** stage unrelated paths (`Saves/`, assets, logs, or bulk trees) unless the user explicitly asked to include them. Before committing, run `git status` and ensure only your edited paths are staged (`git diff --cached --stat`).
 
+5. **`Custom/Scripts/Gabriel/` subtree**  
+   When the user asks to **commit everything under Gabriel** or when you **touch any file** under `Custom/Scripts/Gabriel/`: at the **end** of that assistant turn, commit all pending changes whose paths are under `Custom/Scripts/Gabriel/` (fix `.gitignore` `!` rules first if needed). Use `git add -- <each-touched-path>` for normal edits; if the user explicitly wants the **whole Gabriel tree** staged, use `git add -- Custom/Scripts/Gabriel/` and confirm with `git diff --cached --stat` that nothing outside Gabriel is included. Never leave deliberate Gabriel edits uncommitted at turn end unless the user said not to commit.
+
 Applies to this VaM workspace and follow-up edits in the same conversation.

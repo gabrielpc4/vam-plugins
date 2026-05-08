@@ -1,4 +1,3 @@
-../util/SameFolderLoadCheck.cs
 src/SceneSettle.cs
 src/PlaybackHold.cs
 src/InitialExposureChange.cs
@@ -6,6 +5,7 @@ src/GabrielSessionOrchestrator.cs
 ../util/FileManager.cs
 ../util/PersonAtomCache.cs
 ../util/PluginManager.cs
+../util/SameFolderLoadCheck.cs
 ../features/passenger-possession/PassengerHmdFreeControllerCleanup.cs
 ../features/ui-hud/GabrielHud.cs
 ../features/ui-hud/NextSceneUiButton.cs
@@ -25,6 +25,7 @@ src/GabrielSessionOrchestrator.cs
 ../features/scene-camera/MonitorModeLaserRestore.cs
 ../features/scene-camera/DefaultMonitorCameraFov.cs
 ../features/hands/OverlapFullGrabRelease.cs
+../features/hands/FirstGripDetection.cs
 ../features/hands/GripHandVisibility.cs
 ../features/hands/SpankingsGripDeferredMerge.cs
 ../features/head-hide/HeadProximityHide.cs

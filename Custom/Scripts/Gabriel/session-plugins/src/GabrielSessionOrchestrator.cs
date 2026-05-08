@@ -140,16 +140,17 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Merges <c>ClothingTouchFallOff</c> onto each female Person atom that
-        /// currently has active clothing items.
+        /// Merges <c>ClothingTouchFallOff</c> onto each female Person (from
+        /// <see cref="PersonAtomCache.FemalePersonsByUid"/>)
+        /// that has active clothing geometry.
         /// </summary>
         public void MergeClothingTouchFallOffOnAllPersonsOnly()
         {
             try
             {
-                foreach (Atom at in PersonAtomCache.GetPersonAtoms())
+                foreach (Atom at in PersonAtomCache.FemalePersonsByUid())
                 {
-                    if (!PersonAtomCache.PersonFemaleHasAnyActiveClothing(at))
+                    if (!PersonAtomCache.PersonHasAnyActiveClothingOnGeometry(at))
                         continue;
 
                     PluginManager.TryMergePluginOntoPerson(
@@ -370,12 +371,12 @@ namespace geesp0t
         private static bool SceneHasFemaleWithActiveClothing()
         {
             int i;
-            List<Atom> persons;
+            List<Atom> females;
 
-            persons = PersonAtomCache.GetPersonAtoms();
-            for (i = 0; i < persons.Count; i++)
+            females = PersonAtomCache.FemalePersonsByUid();
+            for (i = 0; i < females.Count; i++)
             {
-                if (PersonAtomCache.PersonFemaleHasAnyActiveClothing(persons[i]))
+                if (PersonAtomCache.PersonHasAnyActiveClothingOnGeometry(females[i]))
                     return true;
             }
 

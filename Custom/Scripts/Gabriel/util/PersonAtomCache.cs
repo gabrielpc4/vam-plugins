@@ -137,16 +137,16 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Female Person with at least one active garment on the geometry
-        /// selector (used for touch fall-off eligibility).
+        /// True when geometry has any active garment (no gender filter; caller uses
+        /// e.g. <see cref="FemalePersonsByUid"/> when merging female-only helpers).
         /// </summary>
-        public static bool PersonFemaleHasAnyActiveClothing(Atom atom)
+        public static bool PersonHasAnyActiveClothingOnGeometry(Atom atom)
         {
             int i;
             DAZCharacterSelector selector;
             DAZClothingItem[] items;
 
-            if (!IsPersonFemale(atom))
+            if (atom == null || atom.type != "Person")
                 return false;
 
             selector = TryGetCharacterSelector(atom);
@@ -165,6 +165,18 @@ namespace geesp0t
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Female Person with at least one active garment on the geometry
+        /// selector (used for touch fall-off eligibility).
+        /// </summary>
+        public static bool PersonFemaleHasAnyActiveClothing(Atom atom)
+        {
+            if (!IsPersonFemale(atom))
+                return false;
+
+            return PersonHasAnyActiveClothingOnGeometry(atom);
         }
 
         public static void PrimeFramePersonPossessionSnapshot(

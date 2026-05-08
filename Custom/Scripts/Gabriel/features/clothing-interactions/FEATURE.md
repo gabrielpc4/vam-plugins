@@ -14,9 +14,8 @@ when the scene qualifies.
 - `ClothingClassifier.cs` *(unified `Keywords`, `TorsoBand`, `Text`, strip
   pick and `ClassifyTorsoBand`; also listed in `GabrielSessionPlugins.cslist` with
   `TriggerClothingRemover`)*
-- `TriggerClothingRemover.cs` *(VR grab trigger removes nearest torso-band
-  garment when Male2 hands are active; session bundle via
-  `GabrielSessionPlugins.cslist`)*
+- `TriggerClothingRemover.cs` *(static VR trigger strip ticked from
+  **`GabrielSessionOrchestrator.LateUpdate`**; session/HUD `*.cslist`)*
 
 HUD grip/orbit/overlap companions live under parallel `features/hands/` —
 see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.

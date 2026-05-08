@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using MeshVR;
 using UnityEngine;
+using UnityEngine.XR;
 
 namespace geesp0t
 {
@@ -11,16 +12,16 @@ namespace geesp0t
     /// removes one active clothing item on the nearest Person when the hand is
     /// within reach of torso anchors. Only when Male2 VR hand model is active.
     /// Upper vs lower follows chest vs pelvis distance; falls back across bands.
+    ///
+    /// Runs from <see cref="GabrielSessionOrchestrator.LateUpdate"/> (not a
+    /// separate CoreControl <c>MVRScript</c>) so the session bundle avoids an
+    /// extra plugin instance / <c>Update</c> shim that destabilizes some loads.
     /// </summary>
-    public class TriggerClothingRemover : MVRScript
+    internal static class TriggerClothingRemover
     {
         private const float MaxHandToTorsoMeters = 0.62f;
 
-        public override void Init()
-        {
-        }
-
-        public void Update()
+        internal static void LateTickStrip()
         {
             TickStrip();
         }
@@ -36,7 +37,7 @@ namespace geesp0t
                 return;
             }
 
-            if (!sc.isOVR && !sc.isOpenVR)
+            if (!sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
             {
                 return;
             }

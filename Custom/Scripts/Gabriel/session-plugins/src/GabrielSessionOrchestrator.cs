@@ -734,6 +734,8 @@ namespace geesp0t
                 gripTogglesHandVisibility.val;
             GripHandVisibility.LateTick(gripHands);
 
+            TriggerClothingRemover.LateTickStrip();
+
             if (retainCameraPoseSameFolderLoads != null &&
                 retainCameraPoseSameFolderLoads.val)
             {

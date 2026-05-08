@@ -25,7 +25,8 @@ paths in this list).
   shared with `GabrielHud.cslist`)*
 - `../features/dildo-on-hands/DildoOnHands.cs`
 - `../features/clothing-interactions/ClothingClassifier.cs`
-- `../features/clothing-interactions/TriggerClothingRemover.cs`
+- `../features/clothing-interactions/TriggerClothingRemover.cs` *(VR trigger
+  strip; static tick from orchestrator `LateUpdate`)*
 - `../features/clothing-interactions/ClothingTouchFallOffDeferredMerge.cs`
   *(optional standalone; touch-fall merge is implemented inline on **`GabrielSessionOrchestrator`**)*
 

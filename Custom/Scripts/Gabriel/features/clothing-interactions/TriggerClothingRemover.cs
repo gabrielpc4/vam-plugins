@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using MeshVR;
 using UnityEngine;
-using UnityEngine.XR;
 
 namespace geesp0t
 {
@@ -18,6 +17,9 @@ namespace geesp0t
     /// extra plugin instance / <c>Update</c> shim that destabilizes some loads.
     /// When every active Person atom has zero active garments, skips all work until
     /// the next orchestrator scene change or atom UID list change wakes checks.
+    /// Oculus / OpenVR gate only (<see cref="SuperController.isOVR"/> /
+    /// <see cref="SuperController.isOpenVR"/>): avoids XR module access that can
+    /// hard-crash some VaM builds.
     /// </summary>
     internal static class TriggerClothingRemover
     {
@@ -44,13 +46,14 @@ namespace geesp0t
             SuperController sc = SuperController.singleton;
             bool leftTriggerDown;
             bool rightTriggerDown;
+            bool anyClothes;
 
             if (sc == null || sc.isLoading)
             {
                 return;
             }
 
-            if (!sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
+            if (!sc.isOVR && !sc.isOpenVR)
             {
                 return;
             }
@@ -60,7 +63,18 @@ namespace geesp0t
                 return;
             }
 
-            if (!SceneHasPersonWithAnyActiveClothing())
+            try
+            {
+                anyClothes = SceneHasPersonWithAnyActiveClothing();
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "TriggerClothingRemover clothing presence scan: " + e.Message);
+                return;
+            }
+
+            if (!anyClothes)
             {
                 _idleNoStripBecauseNoGarments = true;
                 return;
@@ -154,11 +168,27 @@ namespace geesp0t
             bool preferUpper;
             Vector3 handPos = handTransform.position;
 
-            if (!TryFindNearestPersonForStrip(handPos, out bestPerson, out preferUpper))
+            try
             {
-                return;
-            }
+                if (!TryFindNearestPersonForStrip(handPos, out bestPerson, out preferUpper))
+                {
+                    return;
+                }
 
+                StripOneGarment(bestPerson, preferUpper, whichHandLabel);
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "TriggerClothingRemover strip proximity: " + e.Message);
+            }
+        }
+
+        private static void StripOneGarment(
+            Atom bestPerson,
+            bool preferUpper,
+            string whichHandLabel)
+        {
             DAZCharacterSelector selector =
                 bestPerson.GetStorableByID("geometry") as DAZCharacterSelector;
             if (selector == null)
@@ -214,6 +244,11 @@ namespace geesp0t
             {
                 Atom atom = persons[personIndex];
                 if (atom == null || atom.type != "Person")
+                {
+                    continue;
+                }
+
+                if (atom.gameObject == null || !atom.gameObject.activeInHierarchy)
                 {
                     continue;
                 }
@@ -300,8 +335,20 @@ namespace geesp0t
                     continue;
                 }
 
-                if (PersonAtomCache.PersonHasAnyActiveClothingOnGeometry(atom))
-                    return true;
+                if (atom.gameObject == null || !atom.gameObject.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    if (PersonAtomCache.PersonHasAnyActiveClothingOnGeometry(atom))
+                        return true;
+                }
+                catch
+                {
+                    // Geometry / garment state during teardown; skip atom.
+                }
             }
 
             return false;

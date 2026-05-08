@@ -6,13 +6,13 @@ TouchFallOff **person plugin** (`ClothingTouchFallOffGripMerge` lives in that
 same file).
 
 ## Live Files
-- `Clothing.cslist` *(session compile: `ClothingKeywords.cs` +
+- `Clothing.cslist` *(session compile: `ClothingClassifier.cs` +
   `TriggerClothingRemover.cs`; loaded by bootstrap — not merged into
   `GabrielSessionPlugins.cslist` because VaM does not nest cslists)*
 - `ClothingTouchFallOff.cs` *(person-only plugin; includes
   `ClothingTouchFallOffGripMerge`; loaded from this `.cs` path, not a cslist)*
-- `ClothingKeywords.cs` *(keywords, torso band `ClothingTorsoBand` /
-  `ClothingTorsoBandPicker`, and garment text heuristics — shared)*
+- `ClothingClassifier.cs` *(unified `Keywords`, `TorsoBand`, `Text`, strip
+  pick and `ClassifyTorsoBand` — shared)*
 - `TriggerClothingRemover.cs` *(VR grab trigger removes nearest torso-band
   garment when Male2 hands are active)*
 

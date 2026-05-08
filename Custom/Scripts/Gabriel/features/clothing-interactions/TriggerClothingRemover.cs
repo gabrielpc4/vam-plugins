@@ -185,7 +185,7 @@ namespace geesp0t
             }
 
             DAZClothingItem toRemove;
-            if (!ClothingTorsoBandPicker.TryPickClothingItemToRemove(
+            if (!ClothingClassifier.TryPickClothingItemToRemove(
                     selector,
                     preferUpper,
                     out toRemove))

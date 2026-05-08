@@ -55,10 +55,8 @@ namespace geesp0t
 
         private UIDynamicButton emotionGenderCycleHudButton;
 
-        private UIDynamicButton emotionRemoveAllHudButton;
-
         /// <summary>
-        /// 0 = Lite, 1 = Original, 2 = Final (see cycle button label).
+        /// 0 = Lite, 1 = Original, 2 = Final, 3 = None (see cycle button label).
         /// </summary>
         private int _emotionPackIndex;
 
@@ -323,10 +321,16 @@ namespace geesp0t
 
         /// <summary>
         /// Merges the E-Motion pack and gender scope chosen on the HUD (cycle
-        /// buttons).
+        /// buttons). Index 3 (None) removes all E-Motion variants instead.
         /// </summary>
         public void LoadEmotionFromHudConfiguration()
         {
+            if (_emotionPackIndex == 3)
+            {
+                RemoveEmotionFromAllPersons();
+                return;
+            }
+
             string path;
             string packName;
             Func<Atom, bool> filter;
@@ -374,12 +378,16 @@ namespace geesp0t
             try
             {
                 string fnPack = FileManager.GetFileName(PluginEMotion);
+                string fnLite = FileManager.GetFileName(PluginEMotionLite);
                 string fnFinal = FileManager.GetFileName(PluginEMotionFinal);
                 foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                 {
                     PluginManager.TryRemovePluginFromPerson(
                         at,
                         fnPack);
+                    PluginManager.TryRemovePluginFromPerson(
+                        at,
+                        fnLite);
                     PluginManager.TryRemovePluginFromPerson(
                         at,
                         fnFinal);
@@ -547,10 +555,10 @@ namespace geesp0t
             LookAtCamera();
 
             // Columns 1-3 only; column 0 is VaMLogClipboardHud (separate plugin).
-            // Column 1: vertical stack — load, pack cycle, gender cycle, remove.
+            // Column 1: vertical stack — load/remove toggle, pack, gender.
             emotionLoadHudButton = AddButton(
-                "Load Emotion",
-                LoadEmotionFromHudConfiguration,
+                EmotionPrimaryButtonLabelText(),
+                OnEmotionPrimaryHudButtonClicked,
                 1,
                 0,
                 emotionColButtonWidth);
@@ -576,12 +584,6 @@ namespace geesp0t
                 0,
                 rightColButtonWidth);
 
-            emotionRemoveAllHudButton = AddButton(
-                "Remove E-Motion",
-                RemoveEmotionFromAllPersons,
-                1,
-                3,
-                emotionColButtonWidth);
             removeSpankingsButton = AddButton(
                 "Remove Spankings",
                 RemoveSpankingsFromAllPersons,
@@ -627,8 +629,6 @@ namespace geesp0t
                 emotionPackCycleHudButton.gameObject.SetActive(setToActive);
             if (emotionGenderCycleHudButton != null)
                 emotionGenderCycleHudButton.gameObject.SetActive(setToActive);
-            if (emotionRemoveAllHudButton != null)
-                emotionRemoveAllHudButton.gameObject.SetActive(setToActive);
             if (spankingsButton != null)
                 spankingsButton.gameObject.SetActive(setToActive);
             if (removeSpankingsButton != null)
@@ -649,8 +649,11 @@ namespace geesp0t
             case 1:
                 s = "Original E-Motion";
                 break;
-            default:
+            case 2:
                 s = "Final E-Motion";
+                break;
+            default:
+                s = "None";
                 break;
             }
 
@@ -665,12 +668,65 @@ namespace geesp0t
 
         private void CycleEmotionPackButton()
         {
-            _emotionPackIndex = (_emotionPackIndex + 1) % 3;
+            _emotionPackIndex = (_emotionPackIndex + 1) % 4;
             if (emotionPackCycleHudButton != null)
             {
                 emotionPackCycleHudButton.label =
                     EmotionPackLabelForIndex(_emotionPackIndex);
             }
+        }
+
+        /// <summary>
+        /// True if any Person has Original, Lite, or Final E-Motion installed.
+        /// </summary>
+        private static bool AnyPersonHasEmotionFamilyPlugin()
+        {
+            string fnOrig;
+            string fnLite;
+            string fnFinal;
+
+            fnOrig = FileManager.GetFileName(PluginEMotion);
+            fnLite = FileManager.GetFileName(PluginEMotionLite);
+            fnFinal = FileManager.GetFileName(PluginEMotionFinal);
+
+            foreach (Atom at in PersonAtomCache.GetPersonAtoms())
+            {
+                if (PluginManager.PersonHasPluginByFileName(at, fnOrig))
+                    return true;
+                if (PluginManager.PersonHasPluginByFileName(at, fnLite))
+                    return true;
+                if (PluginManager.PersonHasPluginByFileName(at, fnFinal))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static string EmotionPrimaryButtonLabelText()
+        {
+            if (AnyPersonHasEmotionFamilyPlugin())
+                return "Remove E-Motion";
+
+            return "Load E-Motion";
+        }
+
+        private void RefreshEmotionPrimaryButtonLabel()
+        {
+            if (emotionLoadHudButton == null)
+                return;
+
+            emotionLoadHudButton.label = EmotionPrimaryButtonLabelText();
+        }
+
+        private void OnEmotionPrimaryHudButtonClicked()
+        {
+            if (AnyPersonHasEmotionFamilyPlugin())
+            {
+                RemoveEmotionFromAllPersons();
+                return;
+            }
+
+            LoadEmotionFromHudConfiguration();
         }
 
         private void CycleEmotionGenderButton()
@@ -818,6 +874,7 @@ namespace geesp0t
                 spankingsButton,
                 PluginSpankings,
                 "Spankings Male");
+            RefreshEmotionPrimaryButtonLabel();
         }
 
         private static void SetPluginToggleLabel(

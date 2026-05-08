@@ -1,51 +1,61 @@
 using System;
+using System.Collections.Generic;
 using MeshVR;
 using UnityEngine;
 
 namespace geesp0t
 {
-    public class VrProximityStripClothingPlugin : MVRScript
+    /// <summary>
+    /// VR: trigger press (<see cref="SuperController.GetLeftGrab"/> /
+    /// <see cref="SuperController.GetRightGrab"/> are one-frame edges in VaM)
+    /// strips one active clothing item on the nearest Person when the hand is within
+    /// reach of torso anchors. Only when Male2 VR hand model is active. Upper vs
+    /// lower follows chest vs pelvis distance; falls back across bands.
+    /// </summary>
+    public static class VrProximityStripClothing
     {
         private const float MaxHandToTorsoMeters = 0.62f;
 
-        private const int BandUnknown = 0;
-        private const int BandUpper = 1;
-        private const int BandLower = 2;
-        private const int BandFull = 3;
-
-        public override void Init()
+        /// <summary>0 = unknown, 1 = upper, 2 = lower, 3 = full body / both.</summary>
+        private enum ClothingBand
         {
+            Unknown = 0,
+            Upper = 1,
+            Lower = 2,
+            FullBody = 3
         }
 
-        public void Update()
+        /// <summary>Called from <see cref="VrProximityStripClothingPlugin"/> each frame.</summary>
+        public static void Tick()
         {
-            SuperController superController = SuperController.singleton;
+            SuperController sc = SuperController.singleton;
             bool leftTriggerDown;
             bool rightTriggerDown;
 
-            if (superController == null || superController.isLoading)
+            if (sc == null || sc.isLoading)
             {
                 return;
             }
 
-            if (!superController.isOVR && !superController.isOpenVR)
+            if (!sc.isOVR && !sc.isOpenVR)
             {
                 return;
             }
 
-            if (!AnyScenePersonHasActiveClothing(superController))
+            if (!AnyScenePersonHasActiveClothing(sc))
             {
                 return;
             }
 
             try
             {
-                leftTriggerDown = superController.GetLeftGrab();
-                rightTriggerDown = superController.GetRightGrab();
+                leftTriggerDown = sc.GetLeftGrab();
+                rightTriggerDown = sc.GetRightGrab();
             }
             catch (Exception e)
             {
-                SuperController.LogError("VrProximityStripClothingPlugin input failed: " + e.Message);
+                SuperController.LogError(
+                    "VrProximityStripClothing input failed: " + e.Message);
                 return;
             }
 
@@ -54,20 +64,14 @@ namespace geesp0t
                 return;
             }
 
-            if (leftTriggerDown)
+            if (leftTriggerDown && IsMale2VrHandActive(sc, true))
             {
-                if (IsMale2VrHandActive(superController, true))
-                {
-                    TryStripClothingWithHand(superController.leftHand, "left");
-                }
+                TryStripWithHand(sc.leftHand, "left");
             }
 
-            if (rightTriggerDown)
+            if (rightTriggerDown && IsMale2VrHandActive(sc, false))
             {
-                if (IsMale2VrHandActive(superController, false))
-                {
-                    TryStripClothingWithHand(superController.rightHand, "right");
-                }
+                TryStripWithHand(sc.rightHand, "right");
             }
         }
 
@@ -120,46 +124,82 @@ namespace geesp0t
                 string.Equals(selectedHandModel, "Male 2", StringComparison.Ordinal);
         }
 
-        private static void TryStripClothingWithHand(Transform handTransform, string handLabel)
+        private static bool AnyScenePersonHasActiveClothing(SuperController sc)
         {
-            Atom bestPerson;
-            bool preferUpper;
-            Vector3 handPosition;
-            DAZCharacterSelector selector;
-            DAZClothingItem clothingItem;
+            List<Atom> atoms;
+            int i;
 
+            if (sc == null)
+            {
+                return false;
+            }
+
+            atoms = sc.GetAtoms();
+            if (atoms == null)
+            {
+                return false;
+            }
+
+            for (i = 0; i < atoms.Count; i++)
+            {
+                Atom atom = atoms[i];
+                DAZCharacterSelector selector;
+
+                if (atom == null || atom.type != "Person")
+                {
+                    continue;
+                }
+
+                selector = atom.GetStorableByID("geometry") as DAZCharacterSelector;
+                if (selector != null && HasAnyActiveClothing(selector))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static void TryStripWithHand(Transform handTransform, string whichHandLabel)
+        {
             if (handTransform == null || !handTransform.gameObject.activeInHierarchy)
             {
                 return;
             }
 
-            handPosition = handTransform.position;
+            Atom bestPerson;
+            bool preferUpper;
+            Vector3 handPos = handTransform.position;
 
-            if (!TryFindNearestPerson(handPosition, out bestPerson, out preferUpper))
+            if (!TryFindNearestPersonForStrip(handPos, out bestPerson, out preferUpper))
             {
                 return;
             }
 
-            selector = bestPerson.GetStorableByID("geometry") as DAZCharacterSelector;
+            DAZCharacterSelector selector =
+                bestPerson.GetStorableByID("geometry") as DAZCharacterSelector;
             if (selector == null)
             {
+                SuperController.LogError(
+                    "VrProximityStripClothing: no geometry on Person " + bestPerson.uid);
                 return;
             }
 
-            if (!TryPickClothingItem(selector, preferUpper, out clothingItem))
+            DAZClothingItem toRemove;
+            if (!TryPickClothingItemToRemove(selector, preferUpper, out toRemove))
             {
                 return;
             }
 
             try
             {
-                selector.SetActiveClothingItem(clothingItem, false);
+                selector.SetActiveClothingItem(toRemove, false);
             }
             catch (Exception e)
             {
                 SuperController.LogError(
-                    "VrProximityStripClothingPlugin strip failed (" +
-                    handLabel +
+                    "VrProximityStripClothing: SetActiveClothingItem failed (" +
+                    whichHandLabel +
                     " hand, " +
                     bestPerson.uid +
                     "): " +
@@ -167,139 +207,120 @@ namespace geesp0t
             }
         }
 
-        private static bool TryFindNearestPerson(Vector3 handPosition, out Atom bestPerson, out bool preferUpper)
+        private static bool TryFindNearestPersonForStrip(
+            Vector3 handWorld,
+            out Atom bestPerson,
+            out bool preferUpper)
         {
-            float bestDistance;
-            System.Collections.Generic.List<Atom> atoms;
-            int atomIndex;
-
             bestPerson = null;
             preferUpper = true;
-            bestDistance = float.MaxValue;
 
-            atoms = SuperController.singleton.GetAtoms();
-            if (atoms == null)
+            float bestScore = float.MaxValue;
+            bool bestPreferUpper = true;
+
+            foreach (Atom atom in SuperController.singleton.GetAtoms())
             {
-                return false;
-            }
-
-            for (atomIndex = 0; atomIndex < atoms.Count; atomIndex++)
-            {
-                Atom atom;
-                FreeControllerV3 chestControl;
-                FreeControllerV3 pelvisControl;
-                Vector3 chestPosition;
-                Vector3 pelvisPosition;
-                float chestDistance;
-                float pelvisDistance;
-                float nearestDistance;
-                DAZCharacterSelector selector;
-
-                atom = atoms[atomIndex];
                 if (atom == null || atom.type != "Person")
                 {
                     continue;
                 }
 
-                chestControl = atom.GetStorableByID("chestControl") as FreeControllerV3;
-                pelvisControl = atom.GetStorableByID("pelvisControl") as FreeControllerV3;
+                FreeControllerV3 chest =
+                    atom.GetStorableByID("chestControl") as FreeControllerV3;
+                FreeControllerV3 pelvis =
+                    atom.GetStorableByID("pelvisControl") as FreeControllerV3;
 
-                if (!TryGetControllerPosition(chestControl, out chestPosition))
+                Vector3 chestPos;
+                Vector3 pelvisPos;
+                if (!TryFreeControllerWorldPosition(chest, out chestPos))
                 {
                     continue;
                 }
 
-                if (!TryGetControllerPosition(pelvisControl, out pelvisPosition))
+                if (!TryFreeControllerWorldPosition(pelvis, out pelvisPos))
                 {
-                    pelvisPosition = chestPosition;
+                    pelvisPos = chestPos;
                 }
 
-                chestDistance = Vector3.Distance(handPosition, chestPosition);
-                pelvisDistance = Vector3.Distance(handPosition, pelvisPosition);
-                nearestDistance = Mathf.Min(chestDistance, pelvisDistance);
+                float distanceChest = Vector3.Distance(handWorld, chestPos);
+                float distancePelvis = Vector3.Distance(handWorld, pelvisPos);
+                float nearestTorso = Mathf.Min(distanceChest, distancePelvis);
 
-                if (nearestDistance > MaxHandToTorsoMeters)
+                if (nearestTorso > MaxHandToTorsoMeters)
                 {
                     continue;
                 }
 
-                selector = atom.GetStorableByID("geometry") as DAZCharacterSelector;
-                if (selector == null || !HasActiveClothing(selector))
+                DAZCharacterSelector selector =
+                    atom.GetStorableByID("geometry") as DAZCharacterSelector;
+                if (selector == null || !HasAnyActiveClothing(selector))
                 {
                     continue;
                 }
 
-                if (nearestDistance < bestDistance)
+                float score = nearestTorso;
+                if (score < bestScore)
                 {
-                    bestDistance = nearestDistance;
+                    bestScore = score;
                     bestPerson = atom;
-                    preferUpper = chestDistance <= pelvisDistance;
+                    bestPreferUpper = distanceChest <= distancePelvis;
                 }
             }
 
-            return bestPerson != null;
-        }
-
-        private static bool TryGetControllerPosition(FreeControllerV3 freeController, out Vector3 worldPosition)
-        {
-            worldPosition = Vector3.zero;
-
-            if (freeController == null)
+            if (bestPerson == null)
             {
                 return false;
             }
 
-            if (freeController.followWhenOff != null)
+            preferUpper = bestPreferUpper;
+            return true;
+        }
+
+        private static bool TryFreeControllerWorldPosition(
+            FreeControllerV3 fc,
+            out Vector3 world)
+        {
+            world = Vector3.zero;
+            if (fc == null)
             {
-                worldPosition = freeController.followWhenOff.position;
+                return false;
+            }
+
+            if (fc.followWhenOff != null)
+            {
+                world = fc.followWhenOff.position;
                 return true;
             }
 
-            if (freeController.follow != null)
+            // VaM session compile crashed when this fallback used fc.control
+            // (see 814214a); follow + transform still valid on FreeControllerV3.
+            if (fc.follow != null)
             {
-                worldPosition = freeController.follow.position;
+                world = fc.follow.position;
                 return true;
             }
 
-            if (freeController.transform != null)
+            if (fc.transform != null)
             {
-                worldPosition = freeController.transform.position;
+                world = fc.transform.position;
                 return true;
             }
 
             return false;
         }
 
-        private static bool AnyScenePersonHasActiveClothing(
-            SuperController superController)
+        private static bool HasAnyActiveClothing(DAZCharacterSelector selector)
         {
-            System.Collections.Generic.List<Atom> atoms;
-            int atomIndex;
-
-            if (superController == null)
+            DAZClothingItem[] items = selector.clothingItems;
+            if (items == null)
             {
                 return false;
             }
 
-            atoms = superController.GetAtoms();
-            if (atoms == null)
+            for (int i = 0; i < items.Length; i++)
             {
-                return false;
-            }
-
-            for (atomIndex = 0; atomIndex < atoms.Count; atomIndex++)
-            {
-                Atom atom;
-                DAZCharacterSelector selector;
-
-                atom = atoms[atomIndex];
-                if (atom == null || atom.type != "Person")
-                {
-                    continue;
-                }
-
-                selector = atom.GetStorableByID("geometry") as DAZCharacterSelector;
-                if (selector != null && HasActiveClothing(selector))
+                DAZClothingItem item = items[i];
+                if (item != null && item.active)
                 {
                     return true;
                 }
@@ -308,101 +329,89 @@ namespace geesp0t
             return false;
         }
 
-        private static bool HasActiveClothing(DAZCharacterSelector selector)
+        private static bool TryPickClothingItemToRemove(
+            DAZCharacterSelector selector,
+            bool preferUpper,
+            out DAZClothingItem picked)
         {
-            DAZClothingItem[] clothingItems;
-            int itemIndex;
-
-            clothingItems = selector.clothingItems;
-            if (clothingItems == null)
+            picked = null;
+            DAZClothingItem[] items = selector.clothingItems;
+            if (items == null)
             {
                 return false;
             }
 
-            for (itemIndex = 0; itemIndex < clothingItems.Length; itemIndex++)
+            List<DAZClothingItem> active = new List<DAZClothingItem>();
+            for (int i = 0; i < items.Length; i++)
             {
-                DAZClothingItem clothingItem = clothingItems[itemIndex];
-                if (clothingItem != null && clothingItem.active)
+                DAZClothingItem item = items[i];
+                if (item != null && item.active)
                 {
-                    return true;
+                    active.Add(item);
                 }
             }
 
-            return false;
-        }
-
-        private static bool TryPickClothingItem(DAZCharacterSelector selector, bool preferUpper, out DAZClothingItem pickedItem)
-        {
-            DAZClothingItem[] clothingItems;
-
-            clothingItems = selector.clothingItems;
-            pickedItem = null;
-
-            if (clothingItems == null || clothingItems.Length == 0)
+            if (active.Count == 0)
             {
                 return false;
             }
 
             if (preferUpper)
             {
-                if (TryPickFirstMatchingBand(clothingItems, BandUpper, out pickedItem))
+                if (TryFirstMatchingBand(active, ClothingBand.Upper, out picked))
                 {
                     return true;
                 }
 
-                if (TryPickFirstMatchingBand(clothingItems, BandFull, out pickedItem))
+                if (TryFirstMatchingBand(active, ClothingBand.FullBody, out picked))
                 {
                     return true;
                 }
 
-                if (TryPickFirstMatchingBand(clothingItems, BandLower, out pickedItem))
+                if (TryFirstMatchingBand(active, ClothingBand.Lower, out picked))
                 {
                     return true;
                 }
             }
             else
             {
-                if (TryPickFirstMatchingBand(clothingItems, BandLower, out pickedItem))
+                if (TryFirstMatchingBand(active, ClothingBand.Lower, out picked))
                 {
                     return true;
                 }
 
-                if (TryPickFirstMatchingBand(clothingItems, BandFull, out pickedItem))
+                if (TryFirstMatchingBand(active, ClothingBand.FullBody, out picked))
                 {
                     return true;
                 }
 
-                if (TryPickFirstMatchingBand(clothingItems, BandUpper, out pickedItem))
+                if (TryFirstMatchingBand(active, ClothingBand.Upper, out picked))
                 {
                     return true;
                 }
             }
 
-            if (TryPickFirstMatchingBand(clothingItems, BandUnknown, out pickedItem))
+            if (TryFirstMatchingBand(active, ClothingBand.Unknown, out picked))
             {
                 return true;
             }
 
-            return TryPickFirstActive(clothingItems, out pickedItem);
+            picked = active[0];
+            return true;
         }
 
-        private static bool TryPickFirstMatchingBand(DAZClothingItem[] clothingItems, int desiredBand, out DAZClothingItem pickedItem)
+        private static bool TryFirstMatchingBand(
+            List<DAZClothingItem> items,
+            ClothingBand band,
+            out DAZClothingItem found)
         {
-            int itemIndex;
-
-            pickedItem = null;
-
-            for (itemIndex = 0; itemIndex < clothingItems.Length; itemIndex++)
+            found = null;
+            for (int i = 0; i < items.Count; i++)
             {
-                DAZClothingItem clothingItem = clothingItems[itemIndex];
-                if (clothingItem == null || !clothingItem.active)
+                DAZClothingItem item = items[i];
+                if (ClassifyClothingBand(item) == band)
                 {
-                    continue;
-                }
-
-                if (ClassifyBand(clothingItem) == desiredBand)
-                {
-                    pickedItem = clothingItem;
+                    found = item;
                     return true;
                 }
             }
@@ -410,18 +419,12 @@ namespace geesp0t
             return false;
         }
 
-        private static bool TryPickFirstActive(DAZClothingItem[] clothingItems, out DAZClothingItem pickedItem)
+        private static bool BlobContainsAny(string blob, string[] keys)
         {
-            int itemIndex;
-
-            pickedItem = null;
-
-            for (itemIndex = 0; itemIndex < clothingItems.Length; itemIndex++)
+            for (int i = 0; i < keys.Length; i++)
             {
-                DAZClothingItem clothingItem = clothingItems[itemIndex];
-                if (clothingItem != null && clothingItem.active)
+                if (blob.Contains(keys[i]))
                 {
-                    pickedItem = clothingItem;
                     return true;
                 }
             }
@@ -429,111 +432,111 @@ namespace geesp0t
             return false;
         }
 
-        private static int ClassifyBand(DAZClothingItem clothingItem)
+        private static ClothingBand ClassifyClothingBand(DAZClothingItem item)
         {
-            DAZClothingItem.ExclusiveRegion region;
-            string searchText;
-            bool upperByRegion;
-            bool lowerByRegion;
-            bool upperByText;
-            bool lowerByText;
+            DAZClothingItem.ExclusiveRegion region = item.exclusiveRegion;
+            string blob = ClothingTextHeuristics.ClothingSearchBlob(item);
 
-            region = clothingItem.exclusiveRegion;
-            searchText = BuildSearchText(clothingItem);
-
-            if (ContainsAny(searchText, ClothingKeywords.FullBody))
+            string[] fullBodyKeys =
             {
-                return BandFull;
+                "dress", "gown", "jumpsuit", "catsuit", "bodysuit", "romper",
+                "overall"
+            };
+
+            if (BlobContainsAny(blob, fullBodyKeys))
+            {
+                return ClothingBand.FullBody;
             }
 
-            upperByRegion =
+            bool upperFromRegion =
                 region == DAZClothingItem.ExclusiveRegion.Chest ||
                 region == DAZClothingItem.ExclusiveRegion.UnderChest ||
                 region == DAZClothingItem.ExclusiveRegion.Hat ||
                 region == DAZClothingItem.ExclusiveRegion.Glasses ||
                 region == DAZClothingItem.ExclusiveRegion.Gloves;
 
-            lowerByRegion =
+            bool lowerFromRegion =
                 region == DAZClothingItem.ExclusiveRegion.Hip ||
                 region == DAZClothingItem.ExclusiveRegion.UnderHip ||
                 region == DAZClothingItem.ExclusiveRegion.Legs ||
                 region == DAZClothingItem.ExclusiveRegion.Shoes;
 
-            if (upperByRegion)
+            if (upperFromRegion && lowerFromRegion)
             {
-                return BandUpper;
+                return ClothingBand.FullBody;
             }
 
-            if (lowerByRegion)
+            if (upperFromRegion)
             {
-                return BandLower;
+                return ClothingBand.Upper;
             }
 
-            upperByText = ContainsAny(searchText, ClothingKeywords.Upper);
-            lowerByText = ContainsAny(searchText, ClothingKeywords.Lower);
-
-            if (upperByText && lowerByText)
+            if (lowerFromRegion)
             {
-                return BandFull;
+                return ClothingBand.Lower;
             }
 
-            if (upperByText)
+            string[] upperKeys =
             {
-                return BandUpper;
+                "top", "shirt", "bra", "blouse", "jacket", "coat", "sweater",
+                "hoodie", "vest", "cardigan",
+                "tank", "corset", "bustier", "halter", "tube top", "tubetop",
+                "crop ", "tie", "scarf", "glass"
+            };
+
+            string[] lowerKeys =
+            {
+                "panties", "underwear", "pant", "jeans", "shorts", "skirt",
+                "thong", "brief", "boxer",
+                "legging", "stocking", "hose", "garter", "sock", "shoe", "boot",
+                "heel", "belt", "bikini bottom",
+                "mini skirt", "miniskirt", "cargo", "trouser", "kilt"
+            };
+
+            bool upperFromText = BlobContainsAny(blob, upperKeys);
+            bool lowerFromText = BlobContainsAny(blob, lowerKeys);
+
+            if (upperFromText && lowerFromText)
+            {
+                return ClothingBand.FullBody;
             }
 
-            if (lowerByText)
+            if (upperFromText)
             {
-                return BandLower;
+                return ClothingBand.Upper;
             }
 
-            if (searchText.Contains("bikini") || searchText.Contains("lingerie"))
+            if (lowerFromText)
             {
-                return BandFull;
+                return ClothingBand.Lower;
             }
 
-            return BandUnknown;
+            if (blob.Contains("bikini"))
+            {
+                return ClothingBand.FullBody;
+            }
+
+            if (blob.Contains("lingerie"))
+            {
+                return ClothingBand.FullBody;
+            }
+
+            return ClothingBand.Unknown;
+        }
+    }
+
+    /// <summary>
+    /// Session plugin shell: all logic lives in <see cref="VrProximityStripClothing"/>.
+    /// </summary>
+    public class VrProximityStripClothingPlugin : MVRScript
+    {
+        public override void Init()
+        {
         }
 
-        private static string BuildSearchText(DAZClothingItem clothingItem)
+        public void Update()
         {
-            string searchText;
-            string[] tagsArray;
-            int tagIndex;
-
-            searchText = " " + (clothingItem.displayName ?? "") + " " + (clothingItem.tags ?? "") + " ";
-            tagsArray = clothingItem.tagsArray;
-
-            if (tagsArray == null)
-            {
-                return searchText.ToLowerInvariant();
-            }
-
-            for (tagIndex = 0; tagIndex < tagsArray.Length; tagIndex++)
-            {
-                string tag = tagsArray[tagIndex];
-                if (!string.IsNullOrEmpty(tag))
-                {
-                    searchText += tag + " ";
-                }
-            }
-
-            return searchText.ToLowerInvariant();
-        }
-
-        private static bool ContainsAny(string sourceText, string[] values)
-        {
-            int valueIndex;
-
-            for (valueIndex = 0; valueIndex < values.Length; valueIndex++)
-            {
-                if (sourceText.Contains(values[valueIndex]))
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            VrProximityStripClothing.Tick();
         }
     }
 }

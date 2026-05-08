@@ -9,8 +9,8 @@ same file).
 - `ClothingTouchFallOff.cs` *(person plugin; includes `ClothingTouchFallOffGripMerge`)*
 - `ClothingTouchFallOff.cslist`
 - `ClothingKeywords.cs` *(strip band keywords and garment text heuristics — shared)*
-- `VrProximityStripClothing.cs`
-- `VrProximityStripClothingPlugin.cs`
+- `VrProximityStripClothingPlugin.cs` *(session plugin; static strip logic in
+  `VrProximityStripClothing` in the same file)*
 - `VrProximityStripClothing.cslist` *(optional standalone compile — same sources
   are in `GabrielSessionPlugins.cslist` for normal sessions).*
 

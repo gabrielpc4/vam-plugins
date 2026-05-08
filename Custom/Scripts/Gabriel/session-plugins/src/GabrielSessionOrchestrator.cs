@@ -17,6 +17,8 @@ namespace geesp0t
         private const string GabrielHudClassSuffix = ".GabrielHud";
         private const string ForceReleaseSceneSettleHoldActionName =
             "ForceReleaseSceneSettleHold";
+        private const string ClothingTouchFallOffPersonPluginPath =
+            "Custom/Scripts/Gabriel/features/clothing-interactions/ClothingTouchFallOff.cs";
         private const int HudBindRetryFrames = 120;
 
         private static bool logMessages;
@@ -36,8 +38,6 @@ namespace geesp0t
         private Coroutine _pathRuleEmotionMergeCo;
 
         private Coroutine _mergeSpankingsAfterGripCo;
-
-        private Coroutine _mergeClothingTouchFallOffAfterGripCo;
 
         private Coroutine _animationNoLoopDetectionDeferredDefaultCo;
 
@@ -134,9 +134,7 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Merges
-        /// <see cref="ClothingTouchFallOffPluginPath.PersonPlugin"/> onto every
-        /// Person atom.
+        /// Merges the ClothingTouchFallOff person plugin onto every Person atom.
         /// </summary>
         public void MergeClothingTouchFallOffOnAllPersonsOnly()
         {
@@ -146,7 +144,7 @@ namespace geesp0t
                 {
                     PluginManager.TryMergePluginOntoPerson(
                         at,
-                        ClothingTouchFallOffPluginPath.PersonPlugin);
+                        ClothingTouchFallOffPersonPluginPath);
                 }
             }
             catch (Exception e)
@@ -164,7 +162,7 @@ namespace geesp0t
                 GripHandVisibility.SetMergeSpankingsOnFirstGrip(
                     QueueMergeSpankingsAfterGripDeferred);
                 GripHandVisibility.SetMergeClothingTouchFallOffOnFirstMale2Grip(
-                    QueueMergeClothingTouchFallOffAfterGripDeferred);
+                    TryMergeClothingTouchFallOffOnFirstMale2Grip);
             }
             else
             {
@@ -314,7 +312,7 @@ namespace geesp0t
             }
         }
 
-        private void QueueMergeClothingTouchFallOffAfterGripDeferred()
+        private void TryMergeClothingTouchFallOffOnFirstMale2Grip()
         {
             if (AnimationNoLoopDetection.CurrentSceneUsesLongNonLoopAnimation(
                 GetMinNonLoopAnimationSecondsForDefaultScene()))
@@ -322,27 +320,15 @@ namespace geesp0t
                 return;
             }
 
-            if (_mergeClothingTouchFallOffAfterGripCo != null)
-            {
-                StopCoroutine(_mergeClothingTouchFallOffAfterGripCo);
-            }
-
-            _mergeClothingTouchFallOffAfterGripCo =
-                StartCoroutine(WrapTrackClothingGripDeferred());
-        }
-
-        private IEnumerator WrapTrackClothingGripDeferred()
-        {
             try
             {
-                yield return StartCoroutine(
-                    ClothingTouchFallOffGripMerge.CoMergeAfterGripDeferred(
-                        GetMinNonLoopAnimationSecondsForDefaultScene(),
-                        this));
+                MergeClothingTouchFallOffOnAllPersonsOnly();
+                RefreshHudPluginToggleLabels();
             }
-            finally
+            catch (Exception e)
             {
-                _mergeClothingTouchFallOffAfterGripCo = null;
+                SuperController.LogError(
+                    "Gabriel clothing touch fall-off first Male2 grip: " + e);
             }
         }
 
@@ -739,7 +725,6 @@ namespace geesp0t
                 _applyEmotionAfterSceneCo = null;
                 _pathRuleEmotionMergeCo = null;
                 _mergeSpankingsAfterGripCo = null;
-                _mergeClothingTouchFallOffAfterGripCo = null;
                 _animationNoLoopDetectionDeferredDefaultCo = null;
 
                 BindGabrielHud(null);

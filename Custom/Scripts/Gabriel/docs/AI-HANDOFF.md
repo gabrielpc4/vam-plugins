@@ -244,6 +244,7 @@ Read these before changing anything:
 
 - `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudButtonsHotkeys.cs`
 - `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudButtons.cs`
+- `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudNextSceneButton.cs`
 - `Custom/Scripts/Gabriel/features/palm-hud/VrEulerPossessHandHud.cs`
 - `Custom/Scripts/Gabriel/features/palm-hud/VrEulerPossessPoseCheck.cs`
 - `Custom/Scripts/Gabriel/features/passenger-possession/PassengerLaserPossess.cs`

@@ -320,7 +320,7 @@ namespace geesp0t
         private static ClothingBand ClassifyClothingBand(DAZClothingItem item)
         {
             DAZClothingItem.ExclusiveRegion region = item.exclusiveRegion;
-            string blob = VrProximityClothingTextHeuristics.ClothingSearchBlob(item);
+            string blob = ClothingTextHeuristics.ClothingSearchBlob(item);
 
             string[] fullBodyKeys =
             {

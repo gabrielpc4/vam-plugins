@@ -516,7 +516,7 @@ namespace geesp0t
 
             if (improvedPoVStorable == null)
             {
-                GabrielPluginManagerMerge.TryMergePluginOntoPerson(
+                PluginManager.TryMergePluginOntoPerson(
                     passengerPerson,
                     ImprovedPoVPluginPath);
                 QueuePassengerModeUntilImprovedPoVReady(passengerPerson.uid);

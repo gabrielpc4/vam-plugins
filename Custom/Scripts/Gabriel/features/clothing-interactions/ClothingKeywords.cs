@@ -7,7 +7,7 @@ namespace geesp0t
     /// full-body) when stripping by VR hand proximity.
     /// Shared so other Gabriel features can reuse the same heuristic.
     /// </summary>
-    public static class VrProximityStripClothingBandKeywords
+    public static class ClothingKeywords
     {
         public static readonly string[] FullBody = new string[]
         {
@@ -77,7 +77,7 @@ namespace geesp0t
     /// Tag/name heuristics for strip and garment text search (shared with proximity
     /// strip and tooling that score items without a full band classify).
     /// </summary>
-    public static class VrProximityClothingTextHeuristics
+    public static class ClothingTextHeuristics
     {
         public static string ClothingSearchBlob(DAZClothingItem item)
         {

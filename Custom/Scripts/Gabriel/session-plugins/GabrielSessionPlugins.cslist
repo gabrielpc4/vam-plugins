@@ -4,9 +4,9 @@ src/InitialExposureChange.cs
 src/SameFolderSceneLoadCheck.cs
 src/SceneLoadDirNormalize.cs
 src/GabrielSessionOrchestrator.cs
-../util/VaMFilePathUtil.cs
+../util/FileManager.cs
 ../util/PersonAtomCache.cs
-../util/GabrielPluginManagerMerge.cs
+../util/PluginManager.cs
 ../features/passenger-possession/PassengerHmdFreeControllerCleanup.cs
 ../features/ui-hud/GabrielHud.cs
 ../features/ui-hud/NextSceneUiButton.cs

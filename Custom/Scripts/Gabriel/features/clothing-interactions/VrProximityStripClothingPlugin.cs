@@ -441,7 +441,7 @@ namespace geesp0t
             region = clothingItem.exclusiveRegion;
             searchText = BuildSearchText(clothingItem);
 
-            if (ContainsAny(searchText, VrProximityStripClothingBandKeywords.FullBody))
+            if (ContainsAny(searchText, ClothingKeywords.FullBody))
             {
                 return BandFull;
             }
@@ -469,8 +469,8 @@ namespace geesp0t
                 return BandLower;
             }
 
-            upperByText = ContainsAny(searchText, VrProximityStripClothingBandKeywords.Upper);
-            lowerByText = ContainsAny(searchText, VrProximityStripClothingBandKeywords.Lower);
+            upperByText = ContainsAny(searchText, ClothingKeywords.Upper);
+            lowerByText = ContainsAny(searchText, ClothingKeywords.Lower);
 
             if (upperByText && lowerByText)
             {

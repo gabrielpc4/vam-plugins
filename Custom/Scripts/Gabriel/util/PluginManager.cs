@@ -8,7 +8,7 @@ namespace geesp0t
     /// Read/write <see cref="MVRPluginManager"/> plugin path lists with VaM save-dir
     /// and <c>Custom/Scripts</c> fallbacks when serialized paths are stale.
     /// </summary>
-    public static class GabrielPluginManagerMerge
+    public static class PluginManager
     {
         /// <summary>
         /// When <paramref name="path"/> does not exist on disk under its stored
@@ -22,11 +22,11 @@ namespace geesp0t
             if (folderSeparatorIndex <= 0 || folderSeparatorIndex >= path.Length - 1)
                 return true;
 
-            if (!VaMFilePathUtil.FileExists(path))
+            if (!FileManager.FileExists(path))
             {
                 string scriptInStandardFolder =
-                    "Custom/Scripts/" + VaMFilePathUtil.GetFileName(path);
-                if (VaMFilePathUtil.FileExists(scriptInStandardFolder))
+                    "Custom/Scripts/" + FileManager.GetFileName(path);
+                if (FileManager.FileExists(scriptInStandardFolder))
                 {
                     path = scriptInStandardFolder;
                     return true;
@@ -125,7 +125,7 @@ namespace geesp0t
 
             foreach (string path in CollectNormalizedPluginPaths(pluginManager))
             {
-                if (VaMFilePathUtil.GetFileName(path) == desiredFileName)
+                if (FileManager.GetFileName(path) == desiredFileName)
                     return true;
             }
 
@@ -142,13 +142,13 @@ namespace geesp0t
                 return;
 
             string desiredFileName =
-                VaMFilePathUtil.GetFileName(desiredPluginPath);
+                FileManager.GetFileName(desiredPluginPath);
             List<string> paths = CollectNormalizedPluginPaths(pluginManager);
             bool has = false;
 
             foreach (string path in paths)
             {
-                if (VaMFilePathUtil.GetFileName(path) == desiredFileName)
+                if (FileManager.GetFileName(path) == desiredFileName)
                 {
                     has = true;
                     break;
@@ -172,7 +172,7 @@ namespace geesp0t
 
             List<string> paths = CollectNormalizedPluginPaths(pluginManager);
             paths.RemoveAll(
-                path => VaMFilePathUtil.GetFileName(path) == desiredFileName);
+                path => FileManager.GetFileName(path) == desiredFileName);
             ApplyPluginPathsToManager(pluginManager, paths);
         }
     }

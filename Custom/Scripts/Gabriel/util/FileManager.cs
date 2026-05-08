@@ -3,7 +3,7 @@ namespace geesp0t
     /// <summary>
     /// VaM-install relative paths via <see cref="SuperController"/> file listings.
     /// </summary>
-    public static class VaMFilePathUtil
+    public static class FileManager
     {
         public static string GetFileName(string relativePath)
         {

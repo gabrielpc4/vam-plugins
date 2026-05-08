@@ -320,7 +320,7 @@ namespace geesp0t
             {
                 foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                 {
-                    GabrielPluginManagerMerge.TryMergePluginOntoPerson(
+                    PluginManager.TryMergePluginOntoPerson(
                         at,
                         PluginClothingTouchFallOff);
                 }
@@ -341,14 +341,14 @@ namespace geesp0t
         {
             try
             {
-                string fnPack = VaMFilePathUtil.GetFileName(PluginEMotion);
-                string fnFinal = VaMFilePathUtil.GetFileName(PluginEMotionFinal);
+                string fnPack = FileManager.GetFileName(PluginEMotion);
+                string fnFinal = FileManager.GetFileName(PluginEMotionFinal);
                 foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                 {
-                    GabrielPluginManagerMerge.TryRemovePluginFromPerson(
+                    PluginManager.TryRemovePluginFromPerson(
                         at,
                         fnPack);
-                    GabrielPluginManagerMerge.TryRemovePluginFromPerson(
+                    PluginManager.TryRemovePluginFromPerson(
                         at,
                         fnFinal);
                 }
@@ -370,10 +370,10 @@ namespace geesp0t
         {
             try
             {
-                string fn = VaMFilePathUtil.GetFileName(PluginSpankings);
+                string fn = FileManager.GetFileName(PluginSpankings);
                 foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                 {
-                    GabrielPluginManagerMerge.TryRemovePluginFromPerson(at, fn);
+                    PluginManager.TryRemovePluginFromPerson(at, fn);
                 }
 
                 TryRemoveSpankingsOwnedSceneAtoms();
@@ -437,12 +437,12 @@ namespace geesp0t
         {
             try
             {
-                string fn = VaMFilePathUtil.GetFileName(PluginSpankings);
+                string fn = FileManager.GetFileName(PluginSpankings);
                 foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                 {
                     if (!PersonAtomCache.IsPersonFemale(at))
                         continue;
-                    if (!GabrielPluginManagerMerge.PersonHasPluginByFileName(
+                    if (!PluginManager.PersonHasPluginByFileName(
                         at,
                         fn))
                         return true;
@@ -489,15 +489,15 @@ namespace geesp0t
         {
             try
             {
-                string fn = VaMFilePathUtil.GetFileName(PluginSpankings);
+                string fn = FileManager.GetFileName(PluginSpankings);
                 foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                 {
                     if (includePerson != null && !includePerson(at))
                         continue;
-                    if (!GabrielPluginManagerMerge.PersonHasPluginByFileName(
+                    if (!PluginManager.PersonHasPluginByFileName(
                         at,
                         fn))
-                        GabrielPluginManagerMerge.TryMergePluginOntoPerson(
+                        PluginManager.TryMergePluginOntoPerson(
                             at,
                             PluginSpankings);
                 }
@@ -747,7 +747,7 @@ namespace geesp0t
             try
             {
                 string desiredFileName =
-                    VaMFilePathUtil.GetFileName(PluginSpankings);
+                    FileManager.GetFileName(PluginSpankings);
                 bool turningOff =
                     AllPersonAtomsHavePluginByFileName(desiredFileName);
 
@@ -759,10 +759,10 @@ namespace geesp0t
                 {
                     foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                     {
-                        if (!GabrielPluginManagerMerge.PersonHasPluginByFileName(
+                        if (!PluginManager.PersonHasPluginByFileName(
                             at,
                             desiredFileName))
-                            GabrielPluginManagerMerge.TryMergePluginOntoPerson(
+                            PluginManager.TryMergePluginOntoPerson(
                                 at,
                                 PluginSpankings);
                     }
@@ -792,7 +792,7 @@ namespace geesp0t
             if (button == null || SuperController.singleton == null)
                 return;
 
-            string fileName = VaMFilePathUtil.GetFileName(pluginPath);
+            string fileName = FileManager.GetFileName(pluginPath);
             bool allHave = AllPersonAtomsHavePluginByFileName(fileName);
             button.label = (allHave ? "- " : "+ ") + labelBase;
         }
@@ -803,7 +803,7 @@ namespace geesp0t
             foreach (Atom at in PersonAtomCache.GetPersonAtoms())
             {
                 any = true;
-                if (!GabrielPluginManagerMerge.PersonHasPluginByFileName(
+                if (!PluginManager.PersonHasPluginByFileName(
                     at,
                     desiredFileName))
                     return false;
@@ -830,20 +830,20 @@ namespace geesp0t
             if (pluginManager == null)
                 return;
 
-            fnOrig = VaMFilePathUtil.GetFileName(PluginEMotion);
-            fnLite = VaMFilePathUtil.GetFileName(PluginEMotionLite);
-            fnFinal = VaMFilePathUtil.GetFileName(PluginEMotionFinal);
-            paths = GabrielPluginManagerMerge.CollectNormalizedPluginPaths(
+            fnOrig = FileManager.GetFileName(PluginEMotion);
+            fnLite = FileManager.GetFileName(PluginEMotionLite);
+            fnFinal = FileManager.GetFileName(PluginEMotionFinal);
+            paths = PluginManager.CollectNormalizedPluginPaths(
                 pluginManager);
             paths.RemoveAll(path =>
             {
-                string fileName = VaMFilePathUtil.GetFileName(path);
+                string fileName = FileManager.GetFileName(path);
                 return fileName == fnOrig ||
                     fileName == fnLite ||
                     fileName == fnFinal;
             });
             paths.Add(desiredPluginPath);
-            GabrielPluginManagerMerge.ApplyPluginPathsToManager(
+            PluginManager.ApplyPluginPathsToManager(
                 pluginManager,
                 paths);
         }

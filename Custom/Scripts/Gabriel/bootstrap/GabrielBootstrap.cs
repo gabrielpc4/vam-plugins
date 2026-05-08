@@ -16,6 +16,9 @@ namespace geesp0t
         {
             "Custom/Scripts/Gabriel/features/ui-hud/VaMLogClipboardHud.cslist",
             "Custom/Scripts/Gabriel/session-plugins/GabrielSessionPlugins.cslist",
+            // Mono can AV during CompileFiles on oversized batches; isolate
+            // DildoOnHands (heavy MVRScript) into its own plugin compile slot.
+            "Custom/Scripts/Gabriel/features/dildo-on-hands/DildoOnHands.cslist",
         };
 
         private static readonly string[] DesktopSessionPlugins = new string[]

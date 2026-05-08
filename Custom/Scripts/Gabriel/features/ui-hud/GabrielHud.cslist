@@ -25,7 +25,6 @@ GabrielHotkeys.cs
 ../scene-camera/MonitorModeLaserRestore.cs
 ../scene-camera/DefaultMonitorCameraFov.cs
 ../hands/OverlapFullGrabRelease.cs
-../hands/FirstGripDetection.cs
 ../hands/GripHandVisibility.cs
 ../hands/SpankingsGripDeferredMerge.cs
 ../head-hide/HeadProximityHide.cs
@@ -33,6 +32,5 @@ GabrielHotkeys.cs
 ../e-motion/EmotionPathRuleMerge.cs
 ../spankings/SpankingsGripBlockPathKeywords.cs
 ../spankings/SpankingsAtomsRemoval.cs
-../dildo-on-hands/DildoOnHands.cs
 ../clothing-interactions/ClothingClassifier.cs
 ../clothing-interactions/TriggerClothingRemover.cs

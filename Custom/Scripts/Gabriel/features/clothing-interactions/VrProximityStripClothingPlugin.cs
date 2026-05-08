@@ -13,24 +13,6 @@ namespace geesp0t
         private const int BandLower = 2;
         private const int BandFull = 3;
 
-        private static readonly string[] FullBodyKeywords = new string[]
-        {
-            "dress", "gown", "jumpsuit", "catsuit", "bodysuit", "romper", "overall"
-        };
-
-        private static readonly string[] UpperKeywords = new string[]
-        {
-            "top", "shirt", "bra", "blouse", "jacket", "coat", "sweater", "hoodie", "vest", "cardigan",
-            "tank", "corset", "bustier", "halter", "tube top", "tubetop", "crop ", "tie", "scarf", "glass"
-        };
-
-        private static readonly string[] LowerKeywords = new string[]
-        {
-            "panties", "underwear", "pant", "jeans", "shorts", "skirt", "thong", "brief", "boxer",
-            "legging", "stocking", "hose", "garter", "sock", "shoe", "boot", "heel", "belt", "bikini bottom",
-            "mini skirt", "miniskirt", "cargo", "trouser", "kilt"
-        };
-
         public override void Init()
         {
         }
@@ -459,7 +441,7 @@ namespace geesp0t
             region = clothingItem.exclusiveRegion;
             searchText = BuildSearchText(clothingItem);
 
-            if (ContainsAny(searchText, FullBodyKeywords))
+            if (ContainsAny(searchText, VrProximityStripClothingBandKeywords.FullBody))
             {
                 return BandFull;
             }
@@ -487,8 +469,8 @@ namespace geesp0t
                 return BandLower;
             }
 
-            upperByText = ContainsAny(searchText, UpperKeywords);
-            lowerByText = ContainsAny(searchText, LowerKeywords);
+            upperByText = ContainsAny(searchText, VrProximityStripClothingBandKeywords.Upper);
+            lowerByText = ContainsAny(searchText, VrProximityStripClothingBandKeywords.Lower);
 
             if (upperByText && lowerByText)
             {

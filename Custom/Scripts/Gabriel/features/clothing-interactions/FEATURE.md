@@ -8,6 +8,7 @@ same file).
 ## Live Files
 - `ClothingTouchFallOff.cs` *(person plugin; includes `ClothingTouchFallOffGripMerge`)*
 - `ClothingTouchFallOff.cslist`
+- `VrProximityStripClothingBandKeywords.cs` *(strip band name heuristics — shared)*
 - `VrProximityStripClothing.cs`
 - `VrProximityStripClothingPlugin.cs`
 - `VrProximityStripClothing.cslist`

@@ -7,7 +7,7 @@ Main session HUD and hotkey hub. This area owns the world-space menu, log copy H
 - `GabrielHud.cs`
 - `GabrielHud.cslist`
 - `GabrielHudButtons.cs`
-- `GabrielHudButtons.Hotkeys.cs`
+- `GabrielHudButtonsHotkeys.cs`
 - `VaMLogClipboardHud.cs`
 - `VaMLogClipboardHud.cslist`
 
@@ -18,8 +18,9 @@ Main session HUD and hotkey hub. This area owns the world-space menu, log copy H
 
 ## Responsibilities
 - Build and refresh the world-space Gabriel menu on `mainHUD`.
-- Own the keyboard hotkey polling surface, next-scene UIButton resolution,
-  plugin-family toggles, and most scene-change callbacks.
+- Own the keyboard hotkey polling surface (`Space`, `Ctrl+Shift+S`, `K`,
+  `O`, `F`), next-scene UIButton resolution, plugin-family toggles, and
+  most scene-change callbacks.
 - Expose user toggles for remote grip link blocking, head hide, mocap-end default loads, same-folder camera retain, monitor lasers, and fluid-cum visibility.
 
 ## Dependencies And Coupling

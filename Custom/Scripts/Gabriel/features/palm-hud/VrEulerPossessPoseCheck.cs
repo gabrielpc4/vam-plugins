@@ -3,34 +3,20 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// HMD-relative euler windows for VR euler possess and the angle test HUD.
+    /// HMD-relative euler checks for the right-hand back-of-hand HUD pose.
     /// </summary>
     public static class VrEulerPossessPoseCheck
     {
-        /// <summary>Left: euler X &gt; this (degrees, 0–360).</summary>
-        public const float LeftMinEulerX = 300f;
-
-        /// <summary>Left: Z strictly between these (degrees).</summary>
-        public const float LeftMinEulerZ = 30f;
-        public const float LeftMaxEulerZ = 90f;
-
-        /// <summary>Right: euler X &gt; this (degrees, 0–360).</summary>
-        public const float RightMinEulerX = 300f;
-
-        /// <summary>Right: Z strictly between these (degrees).</summary>
-        public const float RightMinEulerZ = 290f;
-        public const float RightMaxEulerZ = 330f;
+        /// <summary>Right-hand HUD: euler X must exceed this (degrees, 0-360).</summary>
+        public const float RightPalmHudMinEulerX = 300f;
 
         /// <summary>
         /// Right palm HUD only: Z window for back-of-hand (“look at watch”);
-        /// same width as <see cref="RightMinEulerZ"/>–<see cref="RightMaxEulerZ"/>, +180° on the circle.
+        /// this is the only surviving hand-pose window.
         /// </summary>
         public const float RightPalmHudMinEulerZ = 110f;
         public const float RightPalmHudMaxEulerZ = 150f;
 
-        /// <summary>
-        /// Same HMD reference as <see cref="VrGestureRuntime"/>.
-        /// </summary>
         public static Transform ResolveHmdTransform(SuperController sc)
         {
             if (sc == null)
@@ -42,46 +28,6 @@ namespace geesp0t
             return null;
         }
 
-        public static string FormatEuler(Vector3 e)
-        {
-            return "(" +
-                e.x.ToString("F1") + "," +
-                e.y.ToString("F1") + "," +
-                e.z.ToString("F1") + ")";
-        }
-
-        /// <summary>
-        /// <paramref name="e"/> from <see cref="TryHmdRelativeEuler360"/>.
-        /// </summary>
-        public static bool LeftMatches(Vector3 e)
-        {
-            float x = e.x;
-            float z = e.z;
-            if (x <= LeftMinEulerX)
-                return false;
-            if (z <= LeftMinEulerZ)
-                return false;
-            if (z >= LeftMaxEulerZ)
-                return false;
-            return true;
-        }
-
-        /// <summary>
-        /// <paramref name="e"/> from <see cref="TryHmdRelativeEuler360"/>.
-        /// </summary>
-        public static bool RightMatches(Vector3 e)
-        {
-            float x = e.x;
-            float z = e.z;
-            if (x <= RightMinEulerX)
-                return false;
-            if (z <= RightMinEulerZ)
-                return false;
-            if (z >= RightMaxEulerZ)
-                return false;
-            return true;
-        }
-
         /// <summary>
         /// Right hand, palm HUD only (back of hand toward HMD).
         /// </summary>
@@ -89,7 +35,7 @@ namespace geesp0t
         {
             float x = e.x;
             float z = e.z;
-            if (x <= RightMinEulerX)
+            if (x <= RightPalmHudMinEulerX)
                 return false;
             if (z <= RightPalmHudMinEulerZ)
                 return false;
@@ -125,36 +71,6 @@ namespace geesp0t
             if (d < 0f)
                 d += 360f;
             return d;
-        }
-
-        /// <summary>
-        /// Both gesture euler checks pass (ignores dwell/cooldown). Writes
-        /// euler even when that side fails the window.
-        /// </summary>
-        public static bool BothHandsMatchTriggerWindow(
-            SuperController sc,
-            out Vector3 leftEuler,
-            out Vector3 rightEuler,
-            out bool leftOk,
-            out bool rightOk)
-        {
-            leftEuler = Vector3.zero;
-            rightEuler = Vector3.zero;
-            leftOk = false;
-            rightOk = false;
-
-            Transform hmd = ResolveHmdTransform(sc);
-            if (sc == null || hmd == null)
-                return false;
-
-            Transform lh = sc.leftHand;
-            Transform rh = sc.rightHand;
-
-            bool haveL = lh != null && TryHmdRelativeEuler360(lh, hmd, out leftEuler);
-            bool haveR = rh != null && TryHmdRelativeEuler360(rh, hmd, out rightEuler);
-            leftOk = haveL && LeftMatches(leftEuler);
-            rightOk = haveR && RightMatches(rightEuler);
-            return leftOk && rightOk;
         }
 
         public static bool RightHandOnlyMatchTriggerWindow(SuperController sc)

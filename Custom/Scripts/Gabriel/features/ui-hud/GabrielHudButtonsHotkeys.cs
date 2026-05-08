@@ -5,25 +5,26 @@ using UnityEngine.EventSystems;
 
 namespace geesp0t
 {
-    public partial class GabrielHudButtons
+    internal sealed class GabrielHudButtonsHotkeys
     {
         private const string CoreControlAtomUid = "CoreControl";
         private const string GabrielSessionStackSuffix = ".GabrielSessionStack";
         private const string ForceReleaseSceneSettleHoldActionName =
             "ForceReleaseSceneSettleHold";
 
-        /// <summary>
-        /// Owns the first-party keyboard polling surface.
-        /// <b>Space</b> proxies to the session-stack settle release action even
-        /// while loading; the remaining HUD hotkeys keep their existing
-        /// non-loading guards and behavior.
-        /// </summary>
-        public void ProcessHotkeysUpdate()
+        private readonly GabrielHudButtons owner;
+
+        internal GabrielHudButtonsHotkeys(GabrielHudButtons owner)
+        {
+            this.owner = owner;
+        }
+
+        internal void ProcessUpdate()
         {
             bool noTextFocus;
             bool noCtrlAlt;
 
-            if (plugin == null || SuperController.singleton == null)
+            if (owner == null || SuperController.singleton == null)
             {
                 return;
             }
@@ -56,7 +57,7 @@ namespace geesp0t
             {
                 try
                 {
-                    ToggleSpankingsPluginOnAllPersons();
+                    owner.ToggleSpankingsPluginOnAllPersons();
                 }
                 catch (Exception e)
                 {
@@ -108,95 +109,13 @@ namespace geesp0t
             {
                 try
                 {
-                    ToggleFreezeAnimationHotkey();
+                    GabrielHudButtons.ToggleFreezeAnimationHotkey();
                 }
                 catch (Exception e)
                 {
                     SuperController.LogError(
                         "F hotkey (freeze animation toggle): " + e);
                 }
-
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.I))
-            {
-                HotkeySnapNearestHeadHideHandsThenSnap();
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.P))
-            {
-                try
-                {
-                    RequestPossessVrPalmHudByGender(true);
-                }
-                catch (Exception e)
-                {
-                    SuperController.LogError(
-                        "P hotkey (start female Passenger): " + e);
-                }
-
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.C) &&
-                !Input.GetKey(KeyCode.LeftShift) &&
-                !Input.GetKey(KeyCode.RightShift))
-            {
-                try
-                {
-                    CycleFemaleThenMalePersonRootEditMenuOnHotkey();
-                }
-                catch (Exception e)
-                {
-                    SuperController.LogError(
-                        "C hotkey (cycle Person edit root): " + e);
-                }
-
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.Y))
-            {
-                SuperController scY = SuperController.singleton;
-                bool yNeedsShiftForControllerConflict =
-                    scY != null && (scY.isOVR || scY.isOpenVR);
-                if (yNeedsShiftForControllerConflict &&
-                    !Input.GetKey(KeyCode.LeftShift) &&
-                    !Input.GetKey(KeyCode.RightShift))
-                {
-                    return;
-                }
-
-                float now = Time.unscaledTime;
-                if (now - _lastYDebugLogUnscaledTime <
-                    YDebugLogMinIntervalSeconds)
-                {
-                    return;
-                }
-
-                _lastYDebugLogUnscaledTime = now;
-
-                try
-                {
-                    LogYKeyHmdPoseDebug();
-                }
-                catch (Exception e)
-                {
-                    SuperController.LogError("Y debug (HMD pose): " + e);
-                }
-
-                return;
-            }
-
-            try
-            {
-                VrGestureRuntime.ProcessUpdate(_vrGestureBindings);
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError("Easy Mate VR gestures: " + e);
             }
         }
 

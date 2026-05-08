@@ -6,7 +6,6 @@ VR-only hand HUD layer. It decides when the right-hand palm UI appears, how A/B/
 ## Live Files
 - `VrEulerPossessHandHud.cs`
 - `VrEulerPossessPoseCheck.cs`
-- `VrGestureRuntime.cs`
 - `VrInput.cs`
 - `LEGACY-NOTES.md`
 
@@ -18,7 +17,7 @@ VR-only hand HUD layer. It decides when the right-hand palm UI appears, how A/B/
 - Show/hide the right-hand palm HUD from HMD-relative euler windows.
 - Map Quest/OpenVR face buttons, menu, select, and grip-trigger abstractions through `VrInput`.
 - Drive the gender-choice step and the next-scene row while possession is active or pending.
-- Keep optional over-head and dual-hand gestures disabled unless explicitly re-enabled in `VrGestureRuntime`.
+- Keep the right-hand back-of-hand pose window aligned with the current palm HUD behavior.
 
 ## Dependencies And Coupling
 - Calls into `GabrielHudButtons` for actual actions and `PassengerRuntime` for possession flow.
@@ -34,5 +33,5 @@ VR-only hand HUD layer. It decides when the right-hand palm UI appears, how A/B/
 Update this file in the same turn whenever any of these change:
 
 - Palm HUD pose windows or button mappings change.
-- Gender-step behavior or gesture enablement changes.
+- Gender-step behavior or hand-pose visibility rules change.
 - `LEGACY-NOTES.md` becomes inconsistent with current runtime behavior.

@@ -1,7 +1,8 @@
-# Easy Mate: VR possession, palm HUD, snapping, and related triggers
+# Gabriel palm HUD and passenger handoff notes
 
 Hand-off doc for another LLM or developer. All paths live under
-`Custom/Scripts/Easy Mate/`, namespace **`geesp0t`**, VaM plugin C# **6.0**.
+`Custom/Scripts/Gabriel/features/`, namespace **`geesp0t`**, VaM plugin
+C# **6.0**.
 
 ---
 
@@ -9,9 +10,8 @@ Hand-off doc for another LLM or developer. All paths live under
 
 - **`GabrielHud.cs`** (session plugin) calls **`VrEulerPossessHandHud.Tick()`**
   from its main **`Update`** path (same block as other VR helpers).
-- **`GabrielHudButtons.ProcessHotkeysUpdate()`** calls
-  **`VrGestureRuntime.ProcessUpdate(_vrGestureBindings)`** after
-  keyboard handling.
+- **`GabrielHudButtons.ProcessHotkeysUpdate()`** only handles the remaining
+  desktop hotkeys; there is no separate VR gesture runtime anymore.
 
 ---
 
@@ -63,24 +63,8 @@ the overlay up when Mulher used `GetMenuShow`.
 | X | `> 300°` |
 | Z | strictly between `110°` and `150°` (back of hand toward HMD; palm-facing window +180° on Z) |
 
-**Right-hand window (dual-hand gesture, when enabled)** — `RightMatches(e)`:
-
-| Axis | Condition |
-|------|-----------|
-| X | `> 300°` |
-| Z | strictly between `290°` and `330°` |
-
-**Left-hand window (dual-hand gesture module, when enabled)** —
-`LeftMatches(e)`:
-
-| Axis | Condition |
-|------|-----------|
-| X | `> 300°` |
-| Z | strictly between `30°` and `90°` |
-
-`RightHandOnlyMatchTriggerWindow` = right hand only + `RightPalmHudMatches`.  
-`BothHandsMatchTriggerWindow` = left `LeftMatches` **and** right
-`RightMatches`.
+`RightHandOnlyMatchTriggerWindow` = right hand only +
+`RightPalmHudMatches`.
 
 ---
 
@@ -150,47 +134,23 @@ On clear:
 |--------|--------------------------------|
 | Palm **Despossuir** | `true` |
 | **O** hotkey | `true` |
-| Over-head unpossess gesture (when enabled) | `true` |
 | Scene load cleanup in **`GabrielHud.cs`** | **`false`** |
 
 ---
 
-## 7. VR gestures (over-head unpossess, dual-hand possess)
+## 7. Removed gesture runtime
 
-**File:** `src/VrGestureRuntime.cs`
-
-Bindings are set in **`GabrielHudButtons.Init`**:
-
-- **`TriggerVrOverHeadHandUnpossessAll`** →
-  `RequestClearAllPossession(..., advanceVrPalmHudGenderCycle: true)`.
-- **`TriggerPossessAlignSelectClosestFemaleByHead`** →
-  **`PossessAlignSelectClosestFemaleByHeadToCamera()`** (closest female by
-  head, **`VrEulerPossessLabel`**, not the palm Mulher menu).
-
-**Master switch (currently off):**
-
-```csharp
-private const bool EnableOverHeadUnpossessAndDualHandPossessGestures = false;
-```
-
-When **`false`**, **`ProcessUpdate` returns immediately** — no over-head zone
-evaluation, no dual-hand dwell. Saves CPU; palm HUD remains the only VR
-auto path for those flows. Set to **`true`** to restore old behavior.
-
-**When enabled (reference only):**
-
-- **OverHeadRightHandGesture:** Right hand in a vertical “cap” above HMD
- along headset **up** (~1 Hz eval, 4 s cooldown, latched per visit).
-- **DualHandHmdRelativeEulerPossessClosestFemale:** Both hands in euler
- windows ~**3 s** dwell, **10 s** cooldown, skipped while anyone possessed.
+The old over-head unpossess gesture and dual-hand auto-possess detection were
+removed. Current VR behavior depends only on the right-hand back-of-hand pose
+window used by `VrEulerPossessHandHud`.
 
 ---
 
 ## 8. Other related pieces
 
-- **Desktop / HUD:** Hotkeys (**P**, **O**, etc.) and any remaining world-space
-  buttons live in **`GabrielHudButtons`** (not duplicated here). Palm **Mulher** and
-  **Homem** use the shared passenger runtime path (`PassengerRuntime`).
+- **Desktop / HUD:** Remaining keyboard handling lives in
+  `GabrielHudButtonsHotkeys.cs`. Palm **Mulher** and **Homem** use the shared
+  passenger runtime path (`PassengerRuntime`).
 
 ---
 
@@ -200,9 +160,9 @@ auto path for those flows. Set to **`true`** to restore old behavior.
 |-------|------|
 | Palm HUD UI + tick | `src/VrEulerPossessHandHud.cs` |
 | Euler windows | `src/VrEulerPossessPoseCheck.cs` |
-| Possess / snap / palm API / clear | `src/GabrielHudButtons.cs` |
+| Palm HUD actions / clear | `src/GabrielHudButtons.cs` |
+| Desktop hotkeys | `src/GabrielHudButtonsHotkeys.cs` |
 | VR face/menu/select polling | `src/VrInput.cs` |
-| Over-head + dual-hand modules | `src/VrGestureRuntime.cs` |
 | Calls `HandHud.Tick` | `src/GabrielHud.cs` |
 | Plugin file list | `GabrielHud.cslist` |
 
@@ -213,5 +173,6 @@ auto path for those flows. Set to **`true`** to restore old behavior.
 - Prefer **SuperController** public API over reflection (project rule).
 - Keep **C# 6** (no inline `out var`, etc.); see
   `Reference/VaM-Scripting-Notes.md` and `.cursor` rules.
-- Palm **Mulher** is **VR euler** possess+align+select with label
-  **`VrEulerPossessLabel`**.
+- Palm **Mulher** / **Homem** now route directly into
+  `PassengerRuntime.RequestStartForFemale` /
+  `PassengerRuntime.RequestStartForMale`.

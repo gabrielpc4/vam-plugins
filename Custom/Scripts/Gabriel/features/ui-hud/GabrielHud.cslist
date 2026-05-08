@@ -1,8 +1,7 @@
 GabrielHud.cs
 GabrielHudButtons.cs
-GabrielHudButtons.Hotkeys.cs
+GabrielHudButtonsHotkeys.cs
 ../palm-hud/VrInput.cs
-../palm-hud/VrGestureRuntime.cs
 ../palm-hud/VrEulerPossessPoseCheck.cs
 ../palm-hud/VrEulerPossessHandHud.cs
 ../passenger-possession/PassengerRuntime.cs

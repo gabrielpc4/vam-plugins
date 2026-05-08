@@ -8,9 +8,9 @@ namespace geesp0t
 {
     /// <summary>
     /// Quest squeeze / OpenVR HoldGrab: toggles Male2 vs sphere unless blocked
-    /// (10s after VR euler possess, or while any Person head/hand is possessed,
-    /// or passenger mode is active/pending — then <b>None</b> hand models,
-    /// no Spankings merge on grip).
+    /// while any Person head/hand is possessed or passenger mode is
+    /// active/pending; then <b>None</b> hand models are forced and no
+    /// Spankings merge runs on grip.
     /// </summary>
     internal static class GripHandVisibility
     {
@@ -38,23 +38,6 @@ namespace geesp0t
         private static bool _mergedClothingTouchFallOffAfterFirstMale2ThisScene;
 
         private static Action _mergeClothingTouchFallOffOnAllPersons;
-
-        /// <summary>
-        /// After VR euler possess start: no grip toggle / first-grip Spankings for
-        /// 10s (see <see cref="NotifyVrEulerPossessTenSecondSuppress"/>).
-        /// </summary>
-        private static float _suppressGripToggleUntilUnscaled;
-
-        /// <summary>Called when VR dual-hand euler possess starts.</summary>
-        public static void NotifyVrEulerPossessTenSecondSuppress()
-        {
-            _suppressGripToggleUntilUnscaled = Time.unscaledTime + 10f;
-            _leftArticulated = false;
-            _rightArticulated = false;
-            SuperController sc = SuperController.singleton;
-            ApplyNoneBothControls(sc);
-            QueueApplyHandsEndOfFrame(sc);
-        }
 
         /// <summary>Called from <see cref="GabrielHud.Init"/>; pass <c>null</c> on teardown.</summary>
         public static void SetMergeSpankingsOnFirstGrip(Action mergeSpankingsOntoPersonsMissingOnly)
@@ -121,9 +104,6 @@ namespace geesp0t
                 ApplyNoneBothHandsWhilePossessed(sc);
                 return;
             }
-
-            if (Time.unscaledTime < _suppressGripToggleUntilUnscaled)
-                return;
 
             bool leftDown = VrInput.PollLeftGripClickDown(sc);
             bool rightDown = VrInput.PollRightGripClickDown(sc);

@@ -1388,9 +1388,7 @@ namespace geesp0t
                 _spawnCoroutineRunning)
                 return;
 
-            bool xrOn = UnityEngine.XR.XRSettings.enabled ||
-                _sc.isOVR ||
-                _sc.isOpenVR;
+            bool xrOn = _sc.isOVR || _sc.isOpenVR;
             if (!xrOn)
                 return;
 

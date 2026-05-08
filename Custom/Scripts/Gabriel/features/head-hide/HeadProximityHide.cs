@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.XR;
 
 namespace geesp0t
 {
@@ -129,7 +128,7 @@ namespace geesp0t
                 _coroutineHost = host;
 
             SuperController sc = SuperController.singleton;
-            if (enabled && sc != null && (sc.isOVR || sc.isOpenVR || XRSettings.enabled))
+            if (enabled && sc != null && (sc.isOVR || sc.isOpenVR))
             {
                 RegisterHooks();
             }
@@ -190,7 +189,7 @@ namespace geesp0t
                 return;
             }
 
-            if (!sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
+            if (!sc.isOVR && !sc.isOpenVR)
             {
                 return;
             }
@@ -552,7 +551,7 @@ namespace geesp0t
                 return false;
             if (!_headProximityHide)
                 return false;
-            if (!sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
+            if (!sc.isOVR && !sc.isOpenVR)
                 return false;
             if (cam.name == "MonitorRig")
                 return false;

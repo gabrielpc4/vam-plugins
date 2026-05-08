@@ -5,7 +5,6 @@ using SimpleJSON;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
-using UnityEngine.XR;
 
 namespace geesp0t
 {
@@ -687,9 +686,16 @@ namespace geesp0t
                 return;
             }
 
-            if (!XRSettings.enabled)
+            SuperController sc = SuperController.singleton;
+            if (sc != null && (sc.isOVR || sc.isOpenVR))
             {
-                Transform cameraTransform = SuperController.singleton.lookCamera.transform;
+                _canvas.transform.localEulerAngles = new Vector3(28f, 180f, 0f);
+                return;
+            }
+
+            if (sc != null && sc.lookCamera != null)
+            {
+                Transform cameraTransform = sc.lookCamera.transform;
                 Vector3 endPos = cameraTransform.position +
                     cameraTransform.forward * 10000000f;
                 _canvas.transform.LookAt(endPos, cameraTransform.up);

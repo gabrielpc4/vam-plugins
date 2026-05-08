@@ -2,7 +2,6 @@ using System;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
-using UnityEngine.XR;
 
 namespace geesp0t
 {
@@ -141,19 +140,22 @@ namespace geesp0t
                 return;
             }
 
-            if (XRSettings.enabled == false)
+            if (sc.isOVR || sc.isOpenVR)
             {
-                if (sc.lookCamera != null)
-                {
-                    Transform cameraT = sc.lookCamera.transform;
-                    Vector3 endPos = cameraT.position + cameraT.forward * 10000000.0f;
-                    _canvas.transform.LookAt(endPos, cameraT.up);
-                }
-                else
-                    _canvas.transform.localEulerAngles = new Vector3(28, 180, 0);
+                _canvas.transform.localEulerAngles = new Vector3(28, 180, 0);
+                return;
+            }
+
+            if (sc.lookCamera != null)
+            {
+                Transform cameraT = sc.lookCamera.transform;
+                Vector3 endPos = cameraT.position + cameraT.forward * 10000000.0f;
+                _canvas.transform.LookAt(endPos, cameraT.up);
             }
             else
+            {
                 _canvas.transform.localEulerAngles = new Vector3(28, 180, 0);
+            }
         }
 
         private void AddHudButton(string name, UnityAction callback, int column, int row, float width)

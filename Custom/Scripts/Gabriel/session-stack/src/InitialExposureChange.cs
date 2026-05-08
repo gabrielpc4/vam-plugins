@@ -28,15 +28,6 @@ namespace geesp0t
             JSONStorable globalLightingStorable = TryGetGlobalLightingStorable();
             if (globalLightingStorable == null)
             {
-                if (exposureDebugLog &&
-                    dbgApplyNullGlForLoadSerial != dbgLoadSerial)
-                {
-                    dbgApplyNullGlForLoadSerial = dbgLoadSerial;
-                    LogExposureDbg(
-                        "Apply: GlobalLighting missing serial=" +
-                        dbgLoadSerial);
-                }
-
                 return;
             }
 
@@ -47,28 +38,9 @@ namespace geesp0t
 
             if (rawCamExposure > forcedExposureEpsilon)
             {
-                if (exposureDebugLog &&
-                    dbgForceZeroLogForLoadSerial != dbgLoadSerial)
-                {
-                    dbgForceZeroLogForLoadSerial = dbgLoadSerial;
-                    LogExposureDbg(
-                        "Apply: force camExposure 0 rawWas=" +
-                        rawCamExposure.ToString("F4") + " serial=" +
-                        dbgLoadSerial);
-                }
-
                 globalLightingStorable.SetFloatParamValue(
                     camExposureParamName,
                     0f);
-            }
-            else if (exposureDebugLog &&
-                dbgStuckZeroLogForLoadSerial != dbgLoadSerial)
-            {
-                dbgStuckZeroLogForLoadSerial = dbgLoadSerial;
-                LogExposureDbg(
-                    "Apply: skip force (raw ~0) raw=" +
-                    rawCamExposure.ToString("F4") + " backupCap=" +
-                    camExposureBackupCaptured + " serial=" + dbgLoadSerial);
             }
         }
 

@@ -28,6 +28,8 @@ namespace geesp0t
 
         private bool initialSceneLoadSettleWorkflowFinished;
 
+        private bool hasObservedLoadStart;
+
         private string exposureWorkflowLastIdleLoadDirNorm = "";
 
         /// <summary>
@@ -45,14 +47,14 @@ namespace geesp0t
                 camExposureBackupCaptured ||
                 wasSceneStillSettling ||
                 (!initialSceneLoadSettleWorkflowFinished &&
-                    dbgLoadSerial > 0);
+                    hasObservedLoadStart);
 
             if (!needFinish)
             {
                 return false;
             }
 
-            FinishSceneSettleExposureThenReleasePlaybackHold("userKeySpace");
+            FinishSceneSettleExposureThenReleasePlaybackHold();
             initialSceneLoadSettleWorkflowFinished = true;
             wasSceneStillSettling = false;
             sceneSettlePauseHoldDeadlineActive = false;
@@ -89,37 +91,12 @@ namespace geesp0t
 
                 if (!transientSameDirLoadPulse)
                 {
-                    dbgLoadSerial++;
-                    if (exposureDebugLog)
-                    {
-                        bool rawForLog = ShouldTreatSceneAsStillSettling();
-                        LogExposureDbg(
-                            "isLoading rose serial=" + dbgLoadSerial +
-                            " skipWorkflowFlag=" +
-                            skipExposureWorkflowForCurrentLoad +
-                            " " + DiagFormatExposureState() +
-                            " " + DiagSettleBreakdown(
-                                superController,
-                                rawForLog,
-                                superControllerIsLoadingNow));
-                    }
+                    hasObservedLoadStart = true;
                     ClearGlobalLightingCache();
                     GetSharedSceneSettlePauseAsyncFlag().Raise();
-                    FinishSceneSettleExposureThenReleasePlaybackHold(
-                        "loadStart");
+                    FinishSceneSettleExposureThenReleasePlaybackHold();
                     initialSceneLoadSettleWorkflowFinished = false;
                     wasSceneStillSettling = false;
-                }
-                else if (exposureDebugLog)
-                {
-                    LogExposureDbg(
-                        "isLoading rose: skip re-arm (same idle load dir; " +
-                        "atom/toy/stream pulse) idle=<" +
-                        exposureWorkflowLastIdleLoadDirNorm + "> now=<" +
-                        SameFolderSceneLoadCheck.NormalizeLoadDir(
-                            superController != null
-                                ? superController.currentLoadDir
-                                : null) + ">");
                 }
             }
 
@@ -140,25 +117,10 @@ namespace geesp0t
             {
                 bool settleJustEndedFromSkipIdle = false;
 
-                if (exposureDebugLog &&
-                    dbgSkipLogForLoadSerial != dbgLoadSerial)
-                {
-                    dbgSkipLogForLoadSerial = dbgLoadSerial;
-                    LogExposureDbg(
-                        "skipWorkflow branch serial=" + dbgLoadSerial +
-                        " rawSettle=" + rawSceneSettlingIndicatorsActive +
-                        " isLoading=" + superControllerIsLoadingNow +
-                        " oneShotDone=" +
-                        initialSceneLoadSettleWorkflowFinished +
-                        " pauseOn=" +
-                        sceneSettleSimulationPauseAppliedToSuperController +
-                        " " + DiagFormatExposureState());
-                }
                 if (sceneSettleSimulationPauseAppliedToSuperController ||
                     camExposureBackupCaptured)
                 {
-                    FinishSceneSettleExposureThenReleasePlaybackHold(
-                        "skipWorkflow");
+                    FinishSceneSettleExposureThenReleasePlaybackHold();
                 }
 
                 if (!initialSceneLoadSettleWorkflowFinished &&
@@ -167,12 +129,6 @@ namespace geesp0t
                 {
                     initialSceneLoadSettleWorkflowFinished = true;
                     settleJustEndedFromSkipIdle = true;
-                    if (exposureDebugLog)
-                    {
-                        LogExposureDbg(
-                            "skipWorkflow: settle idle (no UI/isLoading); " +
-                            "mark one-shot done serial=" + dbgLoadSerial);
-                    }
                 }
 
                 wasSceneStillSettling = false;
@@ -185,8 +141,7 @@ namespace geesp0t
                 !superControllerIsLoadingNow &&
                 sceneSettleSimulationPauseAppliedToSuperController)
             {
-                FinishSceneSettleExposureThenReleasePlaybackHold(
-                    "idleSafety");
+                FinishSceneSettleExposureThenReleasePlaybackHold();
                 wasSceneStillSettling = false;
                 initialSceneLoadSettleWorkflowFinished = true;
                 settleEndedThisTick = true;
@@ -202,8 +157,7 @@ namespace geesp0t
                         "[OnSceneStartup] Scene settle pause exceeded " +
                         sceneSettlePauseHoldTimeoutSeconds +
                         "s after isLoading cleared; forcing finish.");
-                    FinishSceneSettleExposureThenReleasePlaybackHold(
-                        "timeout");
+                    FinishSceneSettleExposureThenReleasePlaybackHold();
                     settleEndedThisTick = true;
                     initialSceneLoadSettleWorkflowFinished = true;
                     wasSceneStillSettling = false;
@@ -240,8 +194,7 @@ namespace geesp0t
             {
                 if (wasSceneStillSettling)
                 {
-                    FinishSceneSettleExposureThenReleasePlaybackHold(
-                        "workflowExit");
+                    FinishSceneSettleExposureThenReleasePlaybackHold();
                     settleEndedThisTick = true;
                     initialSceneLoadSettleWorkflowFinished = true;
                 }
@@ -250,31 +203,13 @@ namespace geesp0t
             wasSceneStillSettling = sceneSettlingForExposureWorkflow;
 
             if (!initialSceneLoadSettleWorkflowFinished &&
-                dbgLoadSerial > 0 &&
+                hasObservedLoadStart &&
                 !rawSceneSettlingIndicatorsActive &&
                 !superControllerIsLoadingNow &&
                 !sceneSettleSimulationPauseAppliedToSuperController)
             {
                 initialSceneLoadSettleWorkflowFinished = true;
                 settleEndedThisTick = true;
-                if (exposureDebugLog)
-                {
-                    LogExposureDbg(
-                        "settle idle without pause hold serial=" +
-                        dbgLoadSerial + " (e.g. fast load); mark one-shot " +
-                        "done");
-                }
-            }
-
-            if (exposureDebugLog && settleEndedThisTick)
-            {
-                LogExposureDbg(
-                    "settleEndedThisTick serial=" + dbgLoadSerial + " " +
-                    DiagFormatExposureState() + " " +
-                    DiagSettleBreakdown(
-                        superController,
-                        rawSceneSettlingIndicatorsActive,
-                        superControllerIsLoadingNow));
             }
 
             return settleEndedThisTick;

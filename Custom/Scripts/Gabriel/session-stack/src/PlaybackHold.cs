@@ -18,7 +18,7 @@ namespace geesp0t
         private float sceneSettlePauseHoldDeadlineUnscaledTime;
 
         private const string sceneSettlePauseFlagDisplayName =
-            "Gabriel OnSceneStartup scene settle";
+            "Gabriel scene settle";
 
         private const float sceneSettlePauseHoldTimeoutSeconds = 30f;
 
@@ -68,14 +68,6 @@ namespace geesp0t
             superController.PauseSimulation(sceneSettlePauseAsyncFlag, true);
             sceneSettleSimulationPauseAppliedToSuperController = true;
 
-            if (exposureDebugLog)
-            {
-                LogExposureDbg(
-                    "BeginPauseHold serial=" + dbgLoadSerial + " " +
-                    DiagFormatExposureState() +
-                    " scIsLoading=" + superController.isLoading);
-            }
-
             if (!superController.isLoading)
             {
                 sceneSettlePauseHoldDeadlineUnscaledTime =
@@ -100,16 +92,8 @@ namespace geesp0t
             AudioListener.pause = true;
         }
 
-        void FinishSceneSettleExposureThenReleasePlaybackHold(string dbgReason)
+        void FinishSceneSettleExposureThenReleasePlaybackHold()
         {
-            if (exposureDebugLog)
-            {
-                LogExposureDbg(
-                    "Finish(" + dbgReason + ") enter " +
-                    DiagFormatExposureState() + " pauseOn=" +
-                    sceneSettleSimulationPauseAppliedToSuperController);
-            }
-
             if (camExposureBackupCaptured)
             {
                 try
@@ -126,13 +110,6 @@ namespace geesp0t
             else
             {
                 RestoreCamExposureUsingGlobalLightingDefaultBecauseBackupWasNeverCaptured();
-            }
-
-            if (exposureDebugLog)
-            {
-                LogExposureDbg(
-                    "Finish(" + dbgReason + ") afterRestore " +
-                    DiagFormatExposureState());
             }
 
             ReleaseSceneSettlePlaybackHold();

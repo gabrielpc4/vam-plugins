@@ -1,0 +1,12 @@
+---
+description: Keep Gabriel UI HUD FEATURE.md synchronized
+globs: Custom/Scripts/Gabriel/features/ui-hud/**
+alwaysApply: false
+---
+
+# Gabriel UI HUD Doc Sync
+
+- Read `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md` and
+  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
+- Update `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- If the change crosses into another Gabriel area, update both adjacent docs.

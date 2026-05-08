@@ -1,0 +1,12 @@
+---
+description: Keep Gabriel Scene Camera Tools FEATURE.md synchronized
+globs: Custom/Scripts/Gabriel/tools/scene-camera/**
+alwaysApply: false
+---
+
+# Gabriel Scene Camera Tools Doc Sync
+
+- Read `Custom/Scripts/Gabriel/tools/scene-camera/FEATURE.md` and
+  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
+- Update `Custom/Scripts/Gabriel/tools/scene-camera/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- If the change crosses into another Gabriel area, update both adjacent docs.

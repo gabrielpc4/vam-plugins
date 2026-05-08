@@ -14,7 +14,8 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 - `SceneLoadPossessionCleanup.cs`
 
 ## Load Path
-- Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
+- Compiled in **`GabrielSessionPlugins.cslist`** (mirrored by
+  `GabrielHud.cslist`).
 - Start: `PassengerLaserPossess` → `PassengerRuntime.RequestPassengerForSpecificPerson`.
 - Stop: palm HUD via `GabrielHud` / `PassengerRuntime`.
 
@@ -31,6 +32,7 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
   (palm next-scene row), `palm-hud`, and `GabrielHud` / `PassengerRuntime`.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md`
 - `Reference/EasyMate-Hand-Menu-Passenger-Possession.md`
 - `Custom/Scripts/Gabriel/features/palm-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/improved-pov/FEATURE.md`

@@ -1,0 +1,14 @@
+---
+description: Keep Gabriel Bootstrap FEATURE.md synchronized
+globs: Custom/Scripts/Gabriel/bootstrap/**
+alwaysApply: false
+---
+
+# Gabriel Bootstrap Doc Sync
+
+- Read `Custom/Scripts/Gabriel/bootstrap/FEATURE.md` and
+  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
+- Update `Custom/Scripts/Gabriel/bootstrap/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- When `sessionPlugins` URL list or order changes, update
+  `Custom/Scripts/Gabriel/FEATURE.md` if the overview must reflect it.
+- If the change crosses into another Gabriel area, update both adjacent docs.

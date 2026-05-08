@@ -33,6 +33,11 @@ Custom/**
 !Custom/Scripts/**/*.txt
 !Custom/Scripts/ceq3/MorphMAS/MorphMAS.csproj
 
+# Cursor: Gabriel agent rules (`.mdc` is not in the global extension list above).
+!.cursor/
+!.cursor/rules/
+!.cursor/rules/gabriel-*.mdc
+
 # After whitelist: hide paths whose components contain these substrings (case variants).
 # Later rules win; * does not cross '/' so each path segment is checked.
 *pose*

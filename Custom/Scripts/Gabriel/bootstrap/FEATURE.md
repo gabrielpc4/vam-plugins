@@ -25,6 +25,7 @@ Single session entry plugin merged on menu/default scenes. It seeds the Gabriel 
 - If plugin order or bootstrap storables change, `ui-hud` and menu scenes usually need matching doc updates.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md` (bootstrap + session bundle overview)
 - `Custom/Scripts/Gabriel/docs/RETAIN-REMOVE-MATRIX.md` (tree ownership; no separate
   feature index)
 - `Custom/Scripts/Gabriel/session-plugins/FEATURE.md`

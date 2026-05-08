@@ -1,0 +1,14 @@
+---
+description: Keep Gabriel Session Plugins FEATURE.md synchronized
+globs: Custom/Scripts/Gabriel/session-plugins/**
+alwaysApply: false
+---
+
+# Gabriel Session Plugins Doc Sync
+
+- Read `Custom/Scripts/Gabriel/session-plugins/FEATURE.md` and
+  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
+- Update `Custom/Scripts/Gabriel/session-plugins/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- When `GabrielSessionPlugins.cslist` sources change in ways users discover from the
+  tree overview, update `Custom/Scripts/Gabriel/FEATURE.md`.
+- If the change crosses into another Gabriel area, update both adjacent docs.

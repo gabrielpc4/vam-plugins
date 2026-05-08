@@ -8,9 +8,8 @@ Vendored AcidBubbles Improved PoV plugin with repo-specific defaults and integra
 
 ## Load Path
 - Merged onto the target person by `PassengerRuntime` when passenger mode
-  starts (uses `PluginManager.TryMergePluginOntoPerson` in the same compile as
-  `GabrielSessionPlugins.cslist`, which also hosts `GabrielSessionOrchestrator`
-  and `GabrielHud`).
+  starts (`PluginManager.TryMergePluginOntoPerson`). Session **host** compile is
+  **`GabrielSessionPlugins.cslist`** (orchestrator + HUD + shared utils).
 
 ## Responsibilities
 - Handle first-person camera positioning, face/hair hiding, and render-time material swaps for possession.
@@ -23,6 +22,7 @@ Vendored AcidBubbles Improved PoV plugin with repo-specific defaults and integra
 - `head-hide` intentionally borrows and mirrors some of its material/hair handling strategies.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md`
 - `Custom/Scripts/Gabriel/session-plugins/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/head-hide/FEATURE.md`

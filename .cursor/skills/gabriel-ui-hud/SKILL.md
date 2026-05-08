@@ -5,6 +5,10 @@ description: Specialize on the Gabriel HUD, world-space buttons, hotkeys, next-s
 
 # Gabriel UI HUD
 
+## Session layout
+- See `Custom/Scripts/Gabriel/FEATURE.md` for how the HUD/orchestrator bundle is
+  compiled and bootstrapped.
+
 ## Instructions
 1. Read `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md` before changing this area.
 2. Read linked feature docs from that file when the change crosses feature boundaries.

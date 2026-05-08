@@ -5,6 +5,9 @@ description: Specialize on Gabriel E-Motion path-keyword logic and deferred path
 
 # Gabriel E-Motion Hooks
 
+## Session layout
+- See `Custom/Scripts/Gabriel/FEATURE.md` for session bundle / bootstrap context.
+
 ## Instructions
 1. Read `Custom/Scripts/Gabriel/features/e-motion/FEATURE.md` before changing this area.
 2. Read linked feature docs from that file when the change crosses feature boundaries.

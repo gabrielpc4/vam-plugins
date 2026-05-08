@@ -24,6 +24,7 @@ VR toy spawn utility loaded as a session plugin. It spawns or clones a toy at th
 - This feature is mostly self-contained, but bootstrap load order and scene-load cleanup assumptions matter.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md`
 - `Custom/Scripts/Gabriel/bootstrap/FEATURE.md`
 - `Reference/VaM-Scripting-Notes.md`
 

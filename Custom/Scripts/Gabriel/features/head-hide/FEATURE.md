@@ -7,8 +7,11 @@ VR-only transient head hide that hides face, hair, hats, and glasses when the HM
 - `HeadProximityHide.cs`
 
 ## Load Path
-- Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
-- Enabled/disabled from the `GabrielHud` `VR head proximity hide` storable.
+- Compiled in **`GabrielSessionPlugins.cslist`** (mirrored by
+  `GabrielHud.cslist`).
+- **VR head proximity hide** JSON storable is registered on
+  **`GabrielSessionOrchestrator`**; hotkeys and HUD still route into
+  `HeadProximityHide` static hooks.
 
 ## Responsibilities
 - Register and unregister camera pre/post render hooks for the relevant VR eye cameras.
@@ -20,6 +23,8 @@ VR-only transient head hide that hides face, hair, hats, and glasses when the HM
 - Borrowed concepts and some behavior from `ImprovedPoV` and must stay compatible with its hair/material handling.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md`
+- `Custom/Scripts/Gabriel/session-plugins/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/improved-pov/FEATURE.md`
 - `Reference/VaM-Scripting-Notes.md`

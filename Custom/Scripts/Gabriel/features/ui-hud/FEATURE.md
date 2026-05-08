@@ -16,8 +16,9 @@ scene-advance UIButton resolution (`NextSceneUiButton`), keyboard routing in
 
 ## Load Path
 - `GabrielBootstrap` merges `VaMLogClipboardHud.cslist` and
-  `GabrielSessionPlugins.cslist` only. That bundle compiles **`DildoOnHands`** with
-  orchestrator + HUD + strip + **ClothingClassifier** sources.
+  `GabrielSessionPlugins.cslist` only. That bundle compiles **`DildoOnHands`**
+  with orchestrator + HUD + **ClothingClassifier** / trigger / deferred-merge
+  sources.
 - `GabrielHud.cslist` mirrors **the same `.cs` list** as `GabrielSessionPlugins.cslist`
   (paths relative to `features/ui-hud/`) for offline HUD bundle parity.
 - `VaMLogClipboardHud.cslist` stays isolated so log copy buttons can still load
@@ -26,7 +27,7 @@ scene-advance UIButton resolution (`NextSceneUiButton`), keyboard routing in
 ## Responsibilities
 - Build and refresh the world-space Gabriel menu on `mainHUD`.
 - Own the keyboard hotkeys in `GabrielHotkeys` (`Space`, `Ctrl+Shift+S`, `K`,
-  `O`, `F`), plugin toggles, scene-change routing, palm **Próxima cena** via
+  `O`, `F`), plugin toggles, scene-change routing, and palm HUD next-scene via
   `NextSceneUiButton`, plus thin glue into `AnimationNoLoopDetection`, path-rule
   E-Motion merges, Spankings/Clothing grip deferrals, and fluid/camera helpers.
 - `GabrielHud` owns external plugin family paths for E-Motion and Spankings.
@@ -34,19 +35,21 @@ scene-advance UIButton resolution (`NextSceneUiButton`), keyboard routing in
   **`GabrielSessionOrchestrator`**.
 - The hotkey dispatcher also invokes the session-plugins `Space` release action
   through `CoreControl`.
-- Expose user toggles for remote grip link blocking, head hide, long non-loop
-  animation-end default loads, same-folder camera retain, monitor lasers, and
-  fluid-cum visibility.
+- Expose user toggles on **`GabrielSessionOrchestrator`** (and HUD actions) for
+  remote grip link blocking, head hide, long non-loop animation-end default loads,
+  same-folder camera retain, monitor lasers, and fluid-cum visibility.
 
 ## Dependencies And Coupling
-- Calls into other feature folders compiled via `GabrielHud.cslist` — see adjacent
-  `FEATURE.md` under `palm-hud`, `animation-no-loop-detection`,
+- Calls into other feature folders compiled in **`GabrielSessionPlugins.cslist`**
+  (same sources as `GabrielHud.cslist`, paths relative to `features/ui-hud/`).
+  See adjacent `FEATURE.md` under `palm-hud`, `animation-no-loop-detection`,
   `passenger-possession`,
   `scene-camera`, `clothing-interactions`, `hands`, `head-hide`,
   `session-plugins`,
   `e-motion`, `spankings`, plus `GabrielHud`-owned plugin toggles.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md` (Gabriel overview)
 - `Custom/Scripts/Gabriel/features/palm-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/animation-no-loop-detection/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md`

@@ -5,6 +5,10 @@ description: Specialize on Gabriel's offline scene-menu and hub patch scripts, t
 
 # Gabriel Scene Menu Tools
 
+## Session layout
+- Offline Python only; `Custom/Scripts/Gabriel/FEATURE.md` places this under
+  `tools/scene-menu/`.
+
 ## Instructions
 1. Read `Custom/Scripts/Gabriel/tools/scene-menu/FEATURE.md` before changing this area.
 2. Read linked feature docs from that file when the change crosses feature boundaries.

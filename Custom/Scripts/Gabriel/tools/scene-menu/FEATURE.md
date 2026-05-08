@@ -33,6 +33,7 @@ Offline Python utilities for hub/menu scene rewires, thumbnail injection, locali
 - `LOOKS-MENU-SCENE-REWIRE.md` is a historical note that should not drift away from the current script set.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md`
 - `Custom/Scripts/Gabriel/bootstrap/FEATURE.md`
 - `Custom/Scripts/Gabriel/tools/scene-menu/LOOKS-MENU-SCENE-REWIRE.md`
 

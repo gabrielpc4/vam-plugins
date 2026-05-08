@@ -53,6 +53,7 @@ paths in this list).
   trigger the emergency release without duplicating settle logic.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md` (tree-wide bootstrap / session bundle)
 - `Reference/VaM-Scene-Startup-And-Settle.md`
 - `Reference/VaM-Scripting-Notes.md`
 

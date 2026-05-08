@@ -1,0 +1,12 @@
+---
+description: Keep Gabriel Spankings Hooks FEATURE.md synchronized
+globs: Custom/Scripts/Gabriel/features/spankings/**
+alwaysApply: false
+---
+
+# Gabriel Spankings Hooks Doc Sync
+
+- Read `Custom/Scripts/Gabriel/features/spankings/FEATURE.md` and
+  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
+- Update `Custom/Scripts/Gabriel/features/spankings/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- If the change crosses into another Gabriel area, update both adjacent docs.

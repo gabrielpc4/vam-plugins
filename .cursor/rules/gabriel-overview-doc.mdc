@@ -1,0 +1,15 @@
+---
+description: Gabriel tree overview FEATURE.md — bootstrap and session bundle index
+globs: Custom/Scripts/Gabriel/FEATURE.md
+alwaysApply: false
+---
+
+# Gabriel Overview Doc
+
+- Keep `Custom/Scripts/Gabriel/FEATURE.md` aligned with bootstrap injection
+  (`GabrielBootstrap.sessionPlugins`) and `GabrielSessionPlugins.cslist` membership
+  when those change in a user-visible way.
+- When adding a new `Custom/Scripts/Gabriel/features/*/` area, add a row to
+  `FEATURE.md` and ensure that folder has its own `FEATURE.md`.
+- If the change crosses into a specific feature, still update the adjacent
+  `features/*/FEATURE.md` for that area.

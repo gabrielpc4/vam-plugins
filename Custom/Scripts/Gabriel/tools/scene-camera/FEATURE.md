@@ -19,6 +19,7 @@ Offline Python tooling used by the K-hotkey scene-camera workflow. These scripts
 - The request payload shape is owned by `SceneCameraPatch.cs`; both sides must stay synchronized.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/scene-camera/FEATURE.md`
 - `Reference/VaM-Camera-Initial-Scene-Pose.md`
 

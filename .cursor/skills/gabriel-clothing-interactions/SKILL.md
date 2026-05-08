@@ -5,6 +5,10 @@ description: Specialize on Gabriel clothing-touch fall-off, proximity strip, and
 
 # Gabriel Clothing Interactions
 
+## Session layout
+- See `Custom/Scripts/Gabriel/FEATURE.md` for `GabrielSessionPlugins.cslist`
+  clothing rows vs person-only `ClothingTouchFallOff.cs`.
+
 ## Instructions
 1. Read `Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md` before changing this area.
 2. Read linked feature docs from that file when the change crosses feature boundaries.

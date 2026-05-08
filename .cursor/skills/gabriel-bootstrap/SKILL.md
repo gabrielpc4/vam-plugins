@@ -5,6 +5,10 @@ description: Specialize on the Gabriel bootstrap session entry plugin, session p
 
 # Gabriel Bootstrap
 
+## Session layout
+- Read `Custom/Scripts/Gabriel/FEATURE.md` when changing `GabrielBootstrap` injection
+  URLs or order.
+
 ## Instructions
 1. Read `Custom/Scripts/Gabriel/bootstrap/FEATURE.md` before changing this area.
 2. Read linked feature docs from that file when the change crosses feature boundaries.

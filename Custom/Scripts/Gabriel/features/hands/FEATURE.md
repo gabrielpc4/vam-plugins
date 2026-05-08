@@ -11,8 +11,9 @@ full-grab auto-release without reflection.
 - `SpankingsGripDeferredMerge.cs`
 
 ## Load Path
-- Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
-- Sources sit under `features/hands/`; no separate VaM `.cslist` entry.
+- Compiled in **`GabrielSessionPlugins.cslist`** (mirrored by
+  `GabrielHud.cslist`). Sources sit under `features/hands/`; no separate
+  hands-only `.cslist`.
 
 ## Dependencies And Coupling
 - Invoked from `GabrielHud` / `GabrielHotkeys`; clothing touch-fall deferral
@@ -25,6 +26,7 @@ full-grab auto-release without reflection.
   `SpankingsGripBlockPathKeywords`.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/spankings/FEATURE.md`

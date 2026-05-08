@@ -5,6 +5,10 @@ description: Specialize on Gabriel's vendored Improved PoV plugin, first-person 
 
 # Gabriel Improved PoV
 
+## Session layout
+- See `Custom/Scripts/Gabriel/FEATURE.md` for how person plugins relate to the
+  session bundle.
+
 ## Instructions
 1. Read `Custom/Scripts/Gabriel/features/improved-pov/FEATURE.md` before changing this area.
 2. Read linked feature docs from that file when the change crosses feature boundaries.

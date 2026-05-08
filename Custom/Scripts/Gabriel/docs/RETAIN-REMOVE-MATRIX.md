@@ -9,8 +9,10 @@ with existing scenes or other scripts.
 
 ## Documentation
 
-Gabriel keeps **no merged feature index**. Use this file plus each area's adjacent
-**`FEATURE.md`** (for example `bootstrap/FEATURE.md`, `session-plugins/FEATURE.md`,
+Gabriel keeps **no merged feature index** beyond this file plus **`FEATURE.md` at
+`Custom/Scripts/Gabriel/FEATURE.md`** (bootstrap + session bundle overview) and
+each area's adjacent **`FEATURE.md`**
+(for example `bootstrap/FEATURE.md`, `session-plugins/FEATURE.md`,
 `features/ui-hud/FEATURE.md`, and the same pattern under `features/*/`, `tools/*/`).
 
 ## Canonical Gabriel Areas

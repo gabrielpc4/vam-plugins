@@ -48,6 +48,7 @@ see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.
   **`GabrielSessionOrchestrator`**, not from HUD-owned plugin path constants.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/hands/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/session-plugins/FEATURE.md`

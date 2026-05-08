@@ -11,18 +11,23 @@ scene-motion policy.
 - `AnimationNoLoopDetection.cs`
 
 ## Load Path
-- Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
-- Late-ticked from `GabrielHud` with JSON toggles on that plugin; deferred load
-  coroutine runs on the same plugin host.
+- Compiled in **`GabrielSessionPlugins.cslist`** (with `GabrielHud` and
+  `GabrielSessionOrchestrator`). Long non-loop / Default.json **JSON storables**
+  live on **`GabrielSessionOrchestrator`**, not on `GabrielHud`.
+- `GabrielSessionOrchestrator.LateUpdate` calls
+  `AnimationNoLoopDetection.LateTick` and starts deferred Default.json loads when
+  enabled.
 
 ## Dependencies And Coupling
-- `GabrielHud` owns the user toggles (saved on the HUD preset) and starts the
-  delayed load coroutine after `AnimationNoLoopDetection.LateTick` observes end-of-playback.
+- `GabrielSessionOrchestrator` owns the user toggles for this policy (saved on the
+  orchestrator plugin preset).
 - Shares long non-loop scene qualification helpers with `spankings` grip-merge
   guard logic and `clothing-interactions`
   (`ClothingTouchFallOffGripMerge` in `ClothingTouchFallOffDeferredMerge.cs`).
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md`
+- `Custom/Scripts/Gabriel/session-plugins/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/spankings/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md`

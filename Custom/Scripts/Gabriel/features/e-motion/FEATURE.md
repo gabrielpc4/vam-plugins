@@ -2,7 +2,7 @@
 
 ## Purpose
 Small hook layer around the external E-Motion plugin families. It decides when
-Gabriel auto-merges E-Motion Lite from **path keywords** (<c>emotion_path_keywords.txt</c>).
+Gabriel auto-merges E-Motion Lite from **path keywords** (`emotion_path_keywords.txt`).
 
 ## Live Files
 - `EmotionPathKeywords.cs`
@@ -10,7 +10,7 @@ Gabriel auto-merges E-Motion Lite from **path keywords** (<c>emotion_path_keywor
 - `EmotionPathRuleMerge.cs`
 
 ## Load Path
-- Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
+- Compiled in **`GabrielSessionPlugins.cslist`** (same bundle as `GabrielHud`).
 - Invoked by `GabrielHud` on scene settle, atom UID churn, and HUD button
   merges.
 
@@ -26,6 +26,7 @@ Gabriel auto-merges E-Motion Lite from **path keywords** (<c>emotion_path_keywor
   through `features/animation-no-loop-detection` (`AnimationNoLoopDetection`), not via this hook.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/animation-no-loop-detection/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/spankings/FEATURE.md`

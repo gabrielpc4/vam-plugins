@@ -5,6 +5,10 @@ description: Specialize on Gabriel Dildo On Hands, right-thumbstick toy spawning
 
 # Gabriel Dildo On Hands
 
+## Session layout
+- `DildoOnHands.cs` is listed inside `GabrielSessionPlugins.cslist` (see
+  `Custom/Scripts/Gabriel/FEATURE.md`); `DildoOnHands.cslist` is optional toy-only.
+
 ## Instructions
 1. Read `Custom/Scripts/Gabriel/features/dildo-on-hands/FEATURE.md` before changing this area.
 2. Read linked feature docs from that file when the change crosses feature boundaries.

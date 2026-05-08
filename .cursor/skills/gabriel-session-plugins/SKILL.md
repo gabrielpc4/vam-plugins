@@ -5,6 +5,10 @@ description: Specialize on Gabriel session plugins (scene settle, same-folder pu
 
 # Gabriel Session Plugins
 
+## Session layout
+- Read `Custom/Scripts/Gabriel/FEATURE.md` when changing
+  `GabrielSessionPlugins.cslist` membership or orchestrator boundaries.
+
 ## Instructions
 1. Read `Custom/Scripts/Gabriel/session-plugins/FEATURE.md` before changing this area.
 2. Read linked feature docs from that file when the change crosses feature boundaries.

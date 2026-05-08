@@ -60,13 +60,13 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
   - Injects session plugins into the `CoreControl` `PluginManager`.
   - **Session load order** (first missing entries are prepended when merging):
     1. `Custom/Scripts/Gabriel/features/ui-hud/VaMLogClipboardHud.cslist` — log clipboard HUD (**separate compile** from `EasyMate.cslist`).
-    2. `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist` — main Easy Mate stack (includes `MainUIButtons`).
-    3. `Custom/Scripts/Gabriel/session-plugins/GabrielSessionPlugins.cslist`.
+    2. `Custom/Scripts/Gabriel/session-plugins/GabrielSessionPlugins.cslist` — main Gabriel session bundle (`GabrielSessionOrchestrator`, `GabrielHud`, feature helpers; see `Custom/Scripts/Gabriel/FEATURE.md`).
+  - `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist` is **not** injected by bootstrap; it mirrors the same `.cs` set as `GabrielSessionPlugins.cslist` with paths relative to `features/ui-hud/` for offline/testing parity.
   - In desktop mode, also adds `Custom/Scripts/prestigitis_DesktopClothGrab.cs`.
   - Directly sets `SuperController.singleton.navigationRig.position` during init, so it already affects initial camera placement.
 
 - **`Custom/Scripts/Gabriel/features/ui-hud/VaMLogClipboardHud.cslist`**
-  - Single source: `src/VaMLogClipboardHud.cs`.
+  - Single source: `VaMLogClipboardHud.cs` (same folder as the `.cslist`).
   - **Why it exists:** The three VaM log buttons (**Copy Errors**, **Copy Console**, **Clear logs**) must still load if `EasyMate.cslist` fails to compile or `MainUIButtons` fails at runtime. They use the same `mainHUD` placement math as Easy Mate column **0** so the combined grid lines up.
   - **Behavior:** Reads `SuperController.allErrorsText` / `allErrorsText2` and `allMessagesText` / `allMessagesText2`; copy uses `GUIUtility.systemCopyBuffer`; clear calls `ClearErrors()` and `ClearMessages()` (see decompiled `SuperController`). To **show/hide** those panels from the keyboard, **`LFE/KeyboardShortcuts`** exposes **`Error Log > Toggle`** and **`Message Log > Toggle`** (see **LFE / KeyboardShortcuts**).
   - **Not toggled** by Easy Mate `Show UI` / `Hide UI` (separate plugin); it always builds its small canvas in `Start()` if the plugin loads.
@@ -239,12 +239,13 @@ Notes:
 Examples:
 
 - `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`
-  - `src/EasyMate.cs`
-  - `../AutoMate/SESSION_PLUGINS/src/EasyMate_VR_Head_Cylinder_Hide.cs`
-  - `src/MainUIButtons.cs`
-  - (full list in the file — does **not** include `VaMLogClipboardHud.cs`)
+  - Lists Gabriel session sources (orchestrator partials, HUD, features) with paths
+    relative to `features/ui-hud/`; aligns with `GabrielSessionPlugins.cslist`
+    (see `Custom/Scripts/Gabriel/FEATURE.md`). Does **not** include
+    `VaMLogClipboardHud`.
 - `Custom/Scripts/Gabriel/features/ui-hud/VaMLogClipboardHud.cslist`
-  - `src/VaMLogClipboardHud.cs` only — **separate** plugin for log copy/clear buttons (see **Easy Mate** notes above).
+  - `VaMLogClipboardHud.cs` only — **separate** plugin for log copy/clear buttons
+    (see **Easy Mate** notes above).
 - `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cslist`
   - `src/AutoLoadEasyMate.cs`
 - `Custom/Scripts/LFE/KeyboardShortcuts/src/KeyboardShortcuts.cslist`

@@ -11,7 +11,8 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 - `DefaultMonitorCameraFov.cs`
 
 ## Load Path
-- Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
+- Compiled in **`GabrielSessionPlugins.cslist`** (mirrored by
+  `GabrielHud.cslist`).
 - `SceneCameraPatch` writes request data into `Custom/Scripts/Gabriel/tools/scene-camera/` and can auto-run the Python patcher.
 
 ## Responsibilities
@@ -30,6 +31,7 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 - Depends on `Custom/Scripts/Gabriel/tools/scene-camera/FEATURE.md` for the offline script side.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md`
 - `Custom/Scripts/Gabriel/tools/scene-camera/FEATURE.md`
 - `Reference/VaM-Camera-Initial-Scene-Pose.md`
 - `Reference/VaM-Scripting-Notes.md`

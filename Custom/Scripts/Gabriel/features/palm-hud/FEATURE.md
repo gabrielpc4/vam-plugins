@@ -13,7 +13,8 @@ rows. Passenger **start** is not from the palm (see `passenger-possession` +
 - `LEGACY-NOTES.md`
 
 ## Load Path
-- Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
+- Compiled in **`GabrielSessionPlugins.cslist`** (mirrored by
+  `GabrielHud.cslist`).
 - `GabrielHud` ticks the palm HUD. **Próxima cena** uses
   `NextSceneUiButton`; **Despossuir** uses `PassengerRuntime`.
 
@@ -29,6 +30,7 @@ rows. Passenger **start** is not from the palm (see `passenger-possession` +
 - `LEGACY-NOTES.md` contains the deeper handoff details that should stay aligned with this feature doc.
 
 ## References
+- `Custom/Scripts/Gabriel/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/palm-hud/LEGACY-NOTES.md`

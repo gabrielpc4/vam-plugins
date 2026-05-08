@@ -5,6 +5,7 @@ using SimpleJSON;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using UnityEngine.XR;
 
 namespace geesp0t
 {
@@ -48,17 +49,20 @@ namespace geesp0t
 
         private bool _isDesktopMode;
 
-        private UIDynamicButton emotionLiteHudButton;
+        private UIDynamicButton emotionLoadHudButton;
 
-        private UIDynamicButton emotionOriginalHudButton;
+        private UIDynamicButton emotionPackCycleHudButton;
 
-        private UIDynamicButton emotionMaleHudButton;
-
-        private UIDynamicButton emotionFemaleHudButton;
-
-        private UIDynamicButton emotionFinalHudButton;
+        private UIDynamicButton emotionGenderCycleHudButton;
 
         private UIDynamicButton emotionRemoveAllHudButton;
+
+        /// <summary>
+        /// 0 = Lite, 1 = Original, 2 = Final (see cycle button label).
+        /// </summary>
+        private int _emotionPackIndex;
+
+        private bool _emotionMaleOnlyGender = true;
 
         private UIDynamicButton spankingsButton;
 
@@ -313,6 +317,50 @@ namespace geesp0t
         }
 
         /// <summary>
+        /// Merges the E-Motion pack and gender scope chosen on the HUD (cycle
+        /// buttons).
+        /// </summary>
+        public void LoadEmotionFromHudConfiguration()
+        {
+            string path;
+            string packName;
+            Func<Atom, bool> filter;
+            string scopeWord;
+
+            switch (_emotionPackIndex)
+            {
+            case 0:
+                path = PluginEMotionLite;
+                packName = "Lite";
+                break;
+            case 1:
+                path = PluginEMotion;
+                packName = "Original";
+                break;
+            default:
+                path = PluginEMotionFinal;
+                packName = "Final";
+                break;
+            }
+
+            if (_emotionMaleOnlyGender)
+            {
+                filter = PersonAtomCache.IsMalePerson;
+                scopeWord = "males";
+            }
+            else
+            {
+                filter = PersonAtomCache.IsPersonFemale;
+                scopeWord = "females";
+            }
+
+            MergeEmotionFamilyOnPersons(
+                path,
+                filter,
+                "E-Motion " + packName + " HUD load on " + scopeWord);
+        }
+
+        /// <summary>
         /// Removes AutoMate E-Motion, E-MotionLite, and E-Motion Final from every
         /// Person.
         /// </summary>
@@ -471,8 +519,7 @@ namespace geesp0t
             GameObject canvasObject;
             CanvasScaler scaler;
             const float scale = 0.001f;
-            const float emotionColButtonWidth = 132f;
-            const float midColButtonWidth = 118f;
+            const float emotionColButtonWidth = 168f;
             const float rightColButtonWidth = 132f;
 
             DestroyHudCanvas();
@@ -495,23 +542,24 @@ namespace geesp0t
             LookAtCamera();
 
             // Columns 1-3 only; column 0 is VaMLogClipboardHud (separate plugin).
-            emotionLiteHudButton = AddButton(
-                "E-Motion Lite",
-                MergeEmotionLiteOnAllPersonsOnly,
+            // Column 1: vertical stack — load, pack cycle, gender cycle, remove.
+            emotionLoadHudButton = AddButton(
+                "Load Emotion",
+                LoadEmotionFromHudConfiguration,
                 1,
                 0,
                 emotionColButtonWidth);
 
-            emotionOriginalHudButton = AddButton(
-                "E-Motion Original",
-                MergeEmotionOnAllPersonsOnly,
+            emotionPackCycleHudButton = AddButton(
+                EmotionPackLabelForIndex(_emotionPackIndex),
+                CycleEmotionPackButton,
                 1,
                 1,
                 emotionColButtonWidth);
 
-            emotionFinalHudButton = AddButton(
-                "E-Motion Final",
-                MergeEmotionFinalOnAllPersonsOnly,
+            emotionGenderCycleHudButton = AddButton(
+                _emotionMaleOnlyGender ? "Male Only" : "Female Only",
+                CycleEmotionGenderButton,
                 1,
                 2,
                 emotionColButtonWidth);
@@ -536,23 +584,9 @@ namespace geesp0t
                 1,
                 rightColButtonWidth);
 
-            emotionMaleHudButton = AddButton(
-                "E-Motion M",
-                MergeEmotionOriginalOnMalePersonsOnly,
-                1,
-                4,
-                emotionColButtonWidth);
-            emotionFemaleHudButton = AddButton(
-                "E-Motion F",
-                MergeEmotionOriginalOnFemalePersonsOnly,
-                2,
-                4,
-                midColButtonWidth);
-
             RefreshPluginToggleLabels();
             _canvas.transform.Translate(0f, 0.2f, 0f);
-            // Start collapsed until Show UI / Hide UI toggles visibility.
-            ShowUI(false);
+
         }
 
         private void DestroyHudCanvas()
@@ -582,18 +616,14 @@ namespace geesp0t
 
         public void ShowUI(bool setToActive)
         {
-            if (emotionLiteHudButton != null)
-                emotionLiteHudButton.gameObject.SetActive(setToActive);
-            if (emotionOriginalHudButton != null)
-                emotionOriginalHudButton.gameObject.SetActive(setToActive);
-            if (emotionFinalHudButton != null)
-                emotionFinalHudButton.gameObject.SetActive(setToActive);
+            if (emotionLoadHudButton != null)
+                emotionLoadHudButton.gameObject.SetActive(setToActive);
+            if (emotionPackCycleHudButton != null)
+                emotionPackCycleHudButton.gameObject.SetActive(setToActive);
+            if (emotionGenderCycleHudButton != null)
+                emotionGenderCycleHudButton.gameObject.SetActive(setToActive);
             if (emotionRemoveAllHudButton != null)
                 emotionRemoveAllHudButton.gameObject.SetActive(setToActive);
-            if (emotionMaleHudButton != null)
-                emotionMaleHudButton.gameObject.SetActive(setToActive);
-            if (emotionFemaleHudButton != null)
-                emotionFemaleHudButton.gameObject.SetActive(setToActive);
             if (spankingsButton != null)
                 spankingsButton.gameObject.SetActive(setToActive);
             if (removeSpankingsButton != null)
@@ -601,6 +631,40 @@ namespace geesp0t
 
             if (setToActive)
                 RefreshPluginToggleLabels();
+        }
+
+        private static string EmotionPackLabelForIndex(int index)
+        {
+            switch (index)
+            {
+            case 0:
+                return "Lite E-Motion";
+            case 1:
+                return "Original E-Motion";
+            default:
+                return "Final E-Motion";
+            }
+        }
+
+        private void CycleEmotionPackButton()
+        {
+            _emotionPackIndex = (_emotionPackIndex + 1) % 3;
+            if (emotionPackCycleHudButton != null)
+            {
+                emotionPackCycleHudButton.label =
+                    EmotionPackLabelForIndex(_emotionPackIndex);
+            }
+        }
+
+        private void CycleEmotionGenderButton()
+        {
+            _emotionMaleOnlyGender = !_emotionMaleOnlyGender;
+            if (emotionGenderCycleHudButton != null)
+            {
+                emotionGenderCycleHudButton.label = _emotionMaleOnlyGender
+                    ? "Male Only"
+                    : "Female Only";
+            }
         }
 
         internal void ClothingResetCycle()
@@ -686,16 +750,9 @@ namespace geesp0t
                 return;
             }
 
-            SuperController sc = SuperController.singleton;
-            if (sc != null && (sc.isOVR || sc.isOpenVR))
+            if (!XRSettings.enabled)
             {
-                _canvas.transform.localEulerAngles = new Vector3(28f, 180f, 0f);
-                return;
-            }
-
-            if (sc != null && sc.lookCamera != null)
-            {
-                Transform cameraTransform = sc.lookCamera.transform;
+                Transform cameraTransform = SuperController.singleton.lookCamera.transform;
                 Vector3 endPos = cameraTransform.position +
                     cameraTransform.forward * 10000000f;
                 _canvas.transform.LookAt(endPos, cameraTransform.up);

@@ -1,4 +1,4 @@
-# Gabriel Session Stack
+# Gabriel Session Plugins
 
 ## Purpose
 Runtime helper for scene loads. It decides when the full scene-settle workflow
@@ -6,8 +6,8 @@ should run, skips that workflow for same-folder load pulses, and exposes a
 scene-settle release action for the shared HUD hotkey dispatcher.
 
 ## Live Files
-- `GabrielSessionStack.cslist`
-- `src/GabrielSessionStack.cs`
+- `GabrielSessionPlugins.cslist`
+- `src/GabrielSessionPlugins.cs`
 - `src/SceneSettle.cs`
 - `src/PlaybackHold.cs`
 - `src/InitialExposureChange.cs`
@@ -46,6 +46,6 @@ scene-settle release action for the shared HUD hotkey dispatcher.
 Update this file in the same turn whenever any of these change:
 
 - Scene-settle timing, same-folder guards, or startup keybindings change.
-- `SceneSettleRuntime` responsibility boundaries or the session-stack file split
+- `SceneSettleRuntime` responsibility boundaries or the session-plugins file split
   changes.
 - Action wiring or the `Space` shortcut behavior changes.

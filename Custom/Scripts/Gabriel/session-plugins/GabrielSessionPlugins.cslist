@@ -2,5 +2,5 @@ src/SceneSettle.cs
 src/PlaybackHold.cs
 src/InitialExposureChange.cs
 src/SameFolderSceneLoadCheck.cs
-src/GabrielSessionStack.cs
+src/GabrielSessionPlugins.cs
 ../features/head-hide/HeadProximityHide.cs

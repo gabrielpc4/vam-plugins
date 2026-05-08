@@ -9,7 +9,7 @@ Single session entry plugin merged on menu/default scenes. It seeds the Gabriel 
 
 ## Load Path
 - Scenes point plugin slot 0 at `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cslist`.
-- `GabrielBootstrap.cs` injects `VaMLogClipboardHud`, `GabrielHud`, `DildoOnHands`, `GabrielSessionStack`, and `VrProximityStripClothing`.
+- `GabrielBootstrap.cs` injects `VaMLogClipboardHud`, `GabrielHud`, `DildoOnHands`, `GabrielSessionPlugins`, and `VrProximityStripClothing`.
 - Desktop mode appends `Custom/Scripts/prestigitis_DesktopClothGrab.cs`.
 
 ## Responsibilities
@@ -24,7 +24,7 @@ Single session entry plugin merged on menu/default scenes. It seeds the Gabriel 
 ## References
 - `Custom/Scripts/Gabriel/docs/RETAIN-REMOVE-MATRIX.md` (tree ownership; no separate
   feature index)
-- `Custom/Scripts/Gabriel/session-stack/FEATURE.md`
+- `Custom/Scripts/Gabriel/session-plugins/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 - `Reference/VaM-Scripting-Notes.md`
 

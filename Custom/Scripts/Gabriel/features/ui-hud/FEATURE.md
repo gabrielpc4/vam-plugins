@@ -23,24 +23,24 @@ cross-feature runtime orchestration.
 - Build and refresh the world-space Gabriel menu on `mainHUD`.
 - Own the keyboard hotkeys in `GabrielHotkeys` (`Space`, `Ctrl+Shift+S`, `K`,
   `O`, `F`), plugin toggles, scene-change routing, palm **Próxima cena** via
-  `NextSceneUiButton`, plus thin glue into `NonLoopMocapMainEnd`, path-rule
+  `NextSceneUiButton`, plus thin glue into `AnimationNoLoopMainEnd`, path-rule
   E-Motion merges, Spankings/Clothing grip deferrals, and fluid/camera helpers.
 - `GabrielHudButtons` owns external plugin family paths for E-Motion, Spankings, and ClothingTouchFallOff.
-- The hotkey dispatcher also invokes the session-stack `Space` release action
+- The hotkey dispatcher also invokes the session-plugins `Space` release action
   through `CoreControl`.
 - Expose user toggles for remote grip link blocking, head hide, long non-loop
-  mocap-end default loads, same-folder camera retain, monitor lasers, and
+  animation-end default loads, same-folder camera retain, monitor lasers, and
   fluid-cum visibility.
 
 ## Dependencies And Coupling
 - Calls into other feature folders compiled via `GabrielHud.cslist` — see adjacent
-  `FEATURE.md` under `palm-hud`, `mocap-end-default-scene`, `passenger-possession`,
-  `scene-camera`, `clothing-interactions`, `head-hide`, `session-stack`,
+  `FEATURE.md` under `palm-hud`, `animation-no-loop`, `passenger-possession`,
+  `scene-camera`, `clothing-interactions`, `head-hide`, `session-plugins`,
   `e-motion`, `spankings`, plus `GabrielHudButtons`-owned plugin toggles.
 
 ## References
 - `Custom/Scripts/Gabriel/features/palm-hud/FEATURE.md`
-- `Custom/Scripts/Gabriel/features/mocap-end-default-scene/FEATURE.md`
+- `Custom/Scripts/Gabriel/features/animation-no-loop/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/scene-camera/FEATURE.md`
 - `Reference/EasyMate-next-scene-hand-hud-handoff.md`

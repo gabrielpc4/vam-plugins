@@ -18,7 +18,7 @@ helpers (overlap release, hand visibility, Spankings deferral).
 
 ## Load Path
 - `GabrielBootstrap` loads `VrProximityStripClothing.cslist` as a session plugin.
-- `GabrielSessionStack` and HUD routines merge `ClothingTouchFallOff.cslist` onto Person atoms.
+- `GabrielSessionPlugins` and HUD routines merge `ClothingTouchFallOff.cslist` onto Person atoms.
 - Hands helpers (`GripHandVisibility`, `OverlapFullGrabRelease`,
   `SpankingsGripDeferredMerge`) are compiled into `GabrielHud.cslist`.
 
@@ -30,13 +30,13 @@ helpers (overlap release, hand visibility, Spankings deferral).
 
 ## Dependencies And Coupling
 - `GripHandVisibility` wires Spankings and Clothing deferred merges owned by `ui-hud`
-  helpers and shares long non-loop motion gates with `mocap-end-default-scene`.
-- `ClothingTouchFallOff` is a managed person plugin path inside `session-stack`.
+  helpers and shares long non-loop motion gates with `animation-no-loop`.
+- `ClothingTouchFallOff` is a managed person-plugin path inside `session-plugins`.
 
 ## References
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
-- `Custom/Scripts/Gabriel/session-stack/FEATURE.md`
-- `Custom/Scripts/Gabriel/features/mocap-end-default-scene/FEATURE.md`
+- `Custom/Scripts/Gabriel/session-plugins/FEATURE.md`
+- `Custom/Scripts/Gabriel/features/animation-no-loop/FEATURE.md`
 
 ## Update Checklist
 Update this file in the same turn whenever any of these change:

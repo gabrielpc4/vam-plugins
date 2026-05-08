@@ -1,14 +1,14 @@
 # VaM scene startup and “settle” (core engine + Gabriel `SceneSettleRuntime`)
 
-This note ties together **what VaM does while a scene loads** (from decompiled `Assembly-CSharp`) and **what this workspace adds** in Gabriel's session stack so exposure, simulation, and audio stay coherent until assets are ready.
+This note ties together **what VaM does while a scene loads** (from decompiled `Assembly-CSharp`) and **what this workspace adds** in Gabriel's session plugins so exposure, simulation, and audio stay coherent until assets are ready.
 
 **Decompile location:** `Reference/Assembly-CSharp-decompiled` (read-only; do not edit).
 
-**Live plugin:** `Custom/Scripts/Gabriel/session-stack/src/SceneSettle.cs`
+**Live plugin:** `Custom/Scripts/Gabriel/session-plugins/src/SceneSettle.cs`
 plus the adjacent `PlaybackHold.cs` and `InitialExposureChange.cs` partials,
 ticked from
-`GabrielSessionStack.LateUpdate()` (see
-`Custom/Scripts/Gabriel/session-stack/src/GabrielSessionStack.cs`).
+`GabrielSessionPlugins.LateUpdate()` (see
+`Custom/Scripts/Gabriel/session-plugins/src/GabrielSessionPlugins.cs`).
 
 ---
 
@@ -169,7 +169,7 @@ Gabriel creates a dedicated **`AsyncFlag`**, calls **`PauseSimulation(flag, hidd
 ### **`camExposure` backup** (why not only the first read)
 
 Scene JSON may apply **after** the first visible value (default **~1** vs scene
-**0.03**). Logic (see live Gabriel session-stack partials):
+**0.03**). Logic (see live Gabriel session-plugins partials):
 
 - Reads **`>= ~0.99`** (“bright”) **overwrite** the backup anytime (works while **`isLoading`** is still true; fixes short loads).
 - Reads **below ~0.99`** tighten with **`Mathf.Min`** so a transient bright flash then the real dim scene value still restores **low** exposure (e.g. passenger scene).
@@ -208,5 +208,5 @@ Order is intentional:
 | `freezeAnimation`, `SetFreezeAnimation`, `PauseSimulation` | same |
 | `Atom.PauseSimulation` | `Reference/Assembly-CSharp-decompiled/Atom.cs` |
 | `AsyncFlag` | `Reference/Assembly-CSharp-decompiled/AsyncFlag.cs` |
-| Gabriel settle + exposure + pause + audio | `Custom/Scripts/Gabriel/session-stack/src/SceneSettle.cs` + `PlaybackHold.cs` + `InitialExposureChange.cs` |
-| Runtime caller | `Custom/Scripts/Gabriel/session-stack/src/GabrielSessionStack.cs` |
+| Gabriel settle + exposure + pause + audio | `Custom/Scripts/Gabriel/session-plugins/src/SceneSettle.cs` + `PlaybackHold.cs` + `InitialExposureChange.cs` |
+| Runtime caller | `Custom/Scripts/Gabriel/session-plugins/src/GabrielSessionPlugins.cs` |

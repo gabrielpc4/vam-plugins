@@ -12,7 +12,7 @@ namespace geesp0t
     internal sealed class GabrielHotkeys
     {
         private const string CoreControlAtomUid = "CoreControl";
-        private const string GabrielSessionStackSuffix = ".GabrielSessionStack";
+        private const string GabrielSessionPluginsSuffix = ".GabrielSessionPlugins";
         private const string ForceReleaseSceneSettleHoldActionName =
             "ForceReleaseSceneSettleHold";
 
@@ -126,7 +126,7 @@ namespace geesp0t
         private static void TryForceReleaseSceneSettleHoldFromHotkey()
         {
             Atom coreControl;
-            JSONStorable sessionStackStorable;
+            JSONStorable sessionPluginsStorable;
             JSONStorableAction forceReleaseAction;
 
             coreControl =
@@ -136,26 +136,26 @@ namespace geesp0t
                 return;
             }
 
-            sessionStackStorable =
+            sessionPluginsStorable =
                 FindSessionPluginStorableBySuffix(
                     coreControl,
-                    GabrielSessionStackSuffix);
-            if (sessionStackStorable == null)
+                    GabrielSessionPluginsSuffix);
+            if (sessionPluginsStorable == null)
             {
                 SuperController.LogError(
-                    "Space hotkey: GabrielSessionStack plugin not found on " +
+                    "Space hotkey: GabrielSessionPlugins plugin not found on " +
                     "CoreControl.");
                 return;
             }
 
             forceReleaseAction =
-                sessionStackStorable.GetAction(
+                sessionPluginsStorable.GetAction(
                     ForceReleaseSceneSettleHoldActionName);
             if (forceReleaseAction == null ||
                 forceReleaseAction.actionCallback == null)
             {
                 SuperController.LogError(
-                    "Space hotkey: GabrielSessionStack action <" +
+                    "Space hotkey: GabrielSessionPlugins action <" +
                     ForceReleaseSceneSettleHoldActionName +
                     "> is unavailable.");
                 return;

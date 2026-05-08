@@ -16,12 +16,12 @@ namespace geesp0t
             if (SpankingsGripBlockPathKeywords
                 .CurrentSceneBlocksGripSpankingsMerge())
                 return true;
-            if (hud != null && hud.IsLoadDefaultOnLongNonLoopMocapEndEnabled())
+            if (hud != null && hud.IsLoadDefaultOnLongNonLoopAnimationEndEnabled())
             {
-                float mocapMinSec =
-                    hud.GetMinNonLoopMocapSecondsForDefaultScene();
-                if (NonLoopMocapMainEnd
-                    .CurrentSceneBlocksGripSpankingsMerge(mocapMinSec))
+                float animationMinSec =
+                    hud.GetMinNonLoopAnimationSecondsForDefaultScene();
+                if (AnimationNoLoopMainEnd
+                    .CurrentSceneBlocksGripSpankingsMerge(animationMinSec))
                     return true;
             }
 
@@ -42,12 +42,12 @@ namespace geesp0t
                     .CurrentSceneBlocksGripSpankingsMerge())
                     yield break;
                 if (hud != null &&
-                    hud.IsLoadDefaultOnLongNonLoopMocapEndEnabled())
+                    hud.IsLoadDefaultOnLongNonLoopAnimationEndEnabled())
                 {
-                    float mocapMinSec =
-                        hud.GetMinNonLoopMocapSecondsForDefaultScene();
-                    if (NonLoopMocapMainEnd
-                        .CurrentSceneBlocksGripSpankingsMerge(mocapMinSec))
+                    float animationMinSec =
+                        hud.GetMinNonLoopAnimationSecondsForDefaultScene();
+                    if (AnimationNoLoopMainEnd
+                        .CurrentSceneBlocksGripSpankingsMerge(animationMinSec))
                         yield break;
                 }
                 buttons.MergeSpankingsOnFemalePersonsOnly();
@@ -58,12 +58,13 @@ namespace geesp0t
                     .CurrentSceneBlocksGripSpankingsMerge())
                     yield break;
                 if (hud != null &&
-                    hud.IsLoadDefaultOnLongNonLoopMocapEndEnabled())
+                    hud.IsLoadDefaultOnLongNonLoopAnimationEndEnabled())
                 {
-                    float mocapMinSec =
-                        hud.GetMinNonLoopMocapSecondsForDefaultScene();
-                    if (NonLoopMocapMainEnd
-                        .CurrentSceneBlocksGripSpankingsMerge(mocapMinSec))
+                    float animationMinSecRetry =
+                        hud.GetMinNonLoopAnimationSecondsForDefaultScene();
+                    if (AnimationNoLoopMainEnd
+                        .CurrentSceneBlocksGripSpankingsMerge(
+                            animationMinSecRetry))
                         yield break;
                 }
                 if (buttons.AnyFemalePersonMissingSpankings())

@@ -1,4 +1,4 @@
-# Gabriel mocap-end default scene
+# Gabriel animation no-loop (Default scene load)
 
 ## Purpose
 Detects non-looping timeline / scene motion playback on the main
@@ -8,7 +8,7 @@ the booty-shake exception bucket. **No E-Motion coupling** — this is standalon
 scene-motion policy.
 
 ## Live Files
-- `NonLoopMocapMainEnd.cs`
+- `AnimationNoLoopMainEnd.cs`
 
 ## Load Path
 - Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
@@ -17,7 +17,7 @@ scene-motion policy.
 
 ## Dependencies And Coupling
 - `GabrielHud` owns the user toggles (saved on the HUD preset) and starts the
-  delayed load coroutine after `NonLoopMocapMainEnd.LateTick` detects end.
+  delayed load coroutine after `AnimationNoLoopMainEnd.LateTick` detects end.
 - Shares long non-loop scene qualification helpers with `spankings` grip-merge
   guard logic and `clothing-interactions` (`ClothingTouchFallOffGripMerge`
   nested in `Hands/ClothingTouchFallOff.cs`).
@@ -31,5 +31,5 @@ scene-motion policy.
 Update this file in the same turn whenever any of these change:
 
 - End detection, delay seconds, target JSON path, or booty-shake exclusion rules.
-- Interaction with other features that read `CurrentSceneUsesLongNonLoopMocap` / grip
-  merge blocking.
+- Interaction with other features that read
+  `CurrentSceneUsesLongNonLoopAnimation` / grip merge blocking.

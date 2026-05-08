@@ -10,7 +10,7 @@ with existing scenes or other scripts.
 ## Documentation
 
 Gabriel keeps **no merged feature index**. Use this file plus each area's adjacent
-**`FEATURE.md`** (for example `bootstrap/FEATURE.md`, `session-stack/FEATURE.md`,
+**`FEATURE.md`** (for example `bootstrap/FEATURE.md`, `session-plugins/FEATURE.md`,
 `features/ui-hud/FEATURE.md`, and the same pattern under `features/*/`, `tools/*/`).
 
 ## Canonical Gabriel Areas
@@ -18,7 +18,7 @@ Gabriel keeps **no merged feature index**. Use this file plus each area's adjace
 These are the only Gabriel-owned implementation paths that should be extended:
 
 - `Custom/Scripts/Gabriel/bootstrap/**`
-- `Custom/Scripts/Gabriel/session-stack/**`
+- `Custom/Scripts/Gabriel/session-plugins/**`
 - `Custom/Scripts/Gabriel/features/ui-hud/**`
 - `Custom/Scripts/Gabriel/features/palm-hud/**`
 - `Custom/Scripts/Gabriel/features/passenger-possession/**`
@@ -26,7 +26,7 @@ These are the only Gabriel-owned implementation paths that should be extended:
 - `Custom/Scripts/Gabriel/features/clothing-interactions/**`
 - `Custom/Scripts/Gabriel/features/head-hide/**`
 - `Custom/Scripts/Gabriel/features/e-motion/**`
-- `Custom/Scripts/Gabriel/features/mocap-end-default-scene/**`
+- `Custom/Scripts/Gabriel/features/animation-no-loop/**`
 - `Custom/Scripts/Gabriel/features/spankings/**`
 - `Custom/Scripts/Gabriel/features/dildo-on-hands/**`
 - `Custom/Scripts/Gabriel/features/improved-pov/**`

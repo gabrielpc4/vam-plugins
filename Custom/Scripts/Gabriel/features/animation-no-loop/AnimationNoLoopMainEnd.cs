@@ -5,20 +5,21 @@ namespace geesp0t
 {
     /// <summary>
     /// When scene motion uses <see cref="SuperController.motionAnimationMaster"/> with loop off
-    /// and at least one clip longer than a configurable minimum, detects mocap end (timeline
+    /// and at least one clip longer than a configurable minimum, detects end of playback (timeline
     /// counter enters the tail or resets from the tail toward zero). Then schedules loading
-    /// <c>Saves/scene/Default.json</c> after <see cref="MocapEndToDefaultSceneRealtimeDelaySeconds"/>
+    /// <c>Saves/scene/Default.json</c> after <see cref="AnimationNoLoopToDefaultSceneRealtimeDelaySeconds"/>
     /// realtime seconds. Skips paths containing booty shake (Haystack-style, case-insensitive).
     /// </summary>
-    internal static class NonLoopMocapMainEnd
+    internal static class AnimationNoLoopMainEnd
     {
-        private const string MocapEndLoadScenePath = "Saves/scene/Default.json";
+        private const string AnimationNoLoopDefaultScenePath = "Saves/scene/Default.json";
 
-        internal const float MocapEndToDefaultSceneRealtimeDelaySeconds = 5f;
+        internal const float AnimationNoLoopToDefaultSceneRealtimeDelaySeconds =
+            5f;
 
         private const string BootyShakePathToken = "booty shake";
 
-        private static bool _mocapEndLoadFiredThisScene;
+        private static bool _animationNoLoopDefaultLoadFiredThisScene;
 
         private static float _prevPlaybackCounter;
 
@@ -28,7 +29,7 @@ namespace geesp0t
 
         public static void ResetForNewScene()
         {
-            _mocapEndLoadFiredThisScene = false;
+            _animationNoLoopDefaultLoadFiredThisScene = false;
             _prevPlaybackCounter = 0f;
             _hasPrevPlaybackCounter = false;
             _seenPlaybackAdvance = false;
@@ -45,10 +46,10 @@ namespace geesp0t
             if (hud == null)
                 return;
 
-            if (_mocapEndLoadFiredThisScene)
+            if (_animationNoLoopDefaultLoadFiredThisScene)
                 return;
 
-            if (!CurrentSceneUsesLongNonLoopMocap(minClipLengthSeconds))
+            if (!CurrentSceneUsesLongNonLoopAnimation(minClipLengthSeconds))
                 return;
 
             SuperController sc = SuperController.singleton;
@@ -85,11 +86,11 @@ namespace geesp0t
             if (!shouldLoad)
                 return;
 
-            _mocapEndLoadFiredThisScene = true;
-            hud.StartMocapEndDefaultSceneDelayCoroutine();
+            _animationNoLoopDefaultLoadFiredThisScene = true;
+            hud.StartAnimationNoLoopDefaultSceneDelayCoroutine();
         }
 
-        private static bool TryGetLongNonLoopMocapState(
+        private static bool TryGetLongNonLoopAnimationState(
             float minClipLengthSeconds,
             out SuperController sc,
             out MotionAnimationMaster mam,
@@ -117,12 +118,13 @@ namespace geesp0t
         /// Scene qualifies for deferred Default.json: not booty-shake paths, motion on,
         /// long enough dominant clip, master not looping.
         /// </summary>
-        internal static bool CurrentSceneUsesLongNonLoopMocap(float minClipLengthSeconds)
+        internal static bool CurrentSceneUsesLongNonLoopAnimation(
+            float minClipLengthSeconds)
         {
             SuperController sc;
             MotionAnimationMaster mam;
             float maxClip;
-            if (!TryGetLongNonLoopMocapState(
+            if (!TryGetLongNonLoopAnimationState(
                 minClipLengthSeconds,
                 out sc,
                 out mam,
@@ -143,7 +145,7 @@ namespace geesp0t
             SuperController sc;
             MotionAnimationMaster mam;
             float maxClip;
-            if (!TryGetLongNonLoopMocapState(
+            if (!TryGetLongNonLoopAnimationState(
                 minClipLengthSeconds,
                 out sc,
                 out mam,
@@ -165,15 +167,16 @@ namespace geesp0t
 
             try
             {
-                sc.Load(MocapEndLoadScenePath);
+                sc.Load(AnimationNoLoopDefaultScenePath);
                 SuperController.LogMessage(
-                    "GabrielHud: Loaded " + MocapEndLoadScenePath +
-                    " after non-loop mocap end (delayed).");
+                    "GabrielHud: Loaded " + AnimationNoLoopDefaultScenePath +
+                    " after non-loop animation end (delayed).");
             }
             catch (System.Exception e)
             {
                 SuperController.LogError(
-                    "GabrielHud: scene load after mocap end: " + e.Message);
+                    "GabrielHud: scene load after non-loop animation end: " +
+                    e.Message);
             }
         }
 

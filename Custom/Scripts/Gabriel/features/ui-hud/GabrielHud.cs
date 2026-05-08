@@ -30,7 +30,7 @@ namespace geesp0t
 
         private Coroutine _mergeClothingTouchFallOffAfterGripCo;
 
-        private Coroutine _mocapEndDefaultSceneCo;
+        private Coroutine _animationNoLoopDefaultSceneCo;
 
         public JSONStorableAction hideUI;
 
@@ -69,13 +69,13 @@ namespace geesp0t
         public JSONStorableBool headProximityHide;
 
         /// <summary>
-        /// After a non-looping scene mocap long enough finishes, load Default.json
-        /// (see <see cref="NonLoopMocapMainEnd"/>).
+        /// After non-looping main scene animation runs long enough, load Default.json
+        /// (see <see cref="AnimationNoLoopMainEnd"/>).
         /// </summary>
-        public JSONStorableBool loadDefaultWhenLongNonLoopMocapEnds;
+        public JSONStorableBool loadDefaultWhenLongNonLoopAnimationEnds;
 
         /// <summary>Min dominant clip length for that path (seconds).</summary>
-        public JSONStorableFloat minSecondsNonLoopMocapClipForDefaultSceneLoad;
+        public JSONStorableFloat minSecondsNonLoopAnimationClipForDefaultSceneLoad;
 
         public JSONStorableBool restoreMonitorModeControllerLaser;
 
@@ -87,45 +87,46 @@ namespace geesp0t
 
         private bool prevSuperLoading;
 
-        internal bool IsLoadDefaultOnLongNonLoopMocapEndEnabled()
+        internal bool IsLoadDefaultOnLongNonLoopAnimationEndEnabled()
         {
-            return loadDefaultWhenLongNonLoopMocapEnds != null &&
-                loadDefaultWhenLongNonLoopMocapEnds.val;
+            return loadDefaultWhenLongNonLoopAnimationEnds != null &&
+                loadDefaultWhenLongNonLoopAnimationEnds.val;
         }
 
-        internal float GetMinNonLoopMocapSecondsForDefaultScene()
+        internal float GetMinNonLoopAnimationSecondsForDefaultScene()
         {
-            return minSecondsNonLoopMocapClipForDefaultSceneLoad != null
-                ? minSecondsNonLoopMocapClipForDefaultSceneLoad.val
+            return minSecondsNonLoopAnimationClipForDefaultSceneLoad != null
+                ? minSecondsNonLoopAnimationClipForDefaultSceneLoad.val
                 : 45f;
         }
 
         /// <summary>
-        /// Called when <see cref="NonLoopMocapMainEnd"/> detects main timeline end.
+        /// Called when <see cref="AnimationNoLoopMainEnd"/> detects main timeline end.
         /// </summary>
-        internal void StartMocapEndDefaultSceneDelayCoroutine()
+        internal void StartAnimationNoLoopDefaultSceneDelayCoroutine()
         {
-            if (_mocapEndDefaultSceneCo != null)
+            if (_animationNoLoopDefaultSceneCo != null)
             {
-                StopCoroutine(_mocapEndDefaultSceneCo);
-                _mocapEndDefaultSceneCo = null;
+                StopCoroutine(_animationNoLoopDefaultSceneCo);
+                _animationNoLoopDefaultSceneCo = null;
             }
 
-            _mocapEndDefaultSceneCo = StartCoroutine(CoDelayedMocapEndDefaultScene());
+            _animationNoLoopDefaultSceneCo =
+                StartCoroutine(CoDelayedAnimationNoLoopDefaultScene());
         }
 
-        private IEnumerator CoDelayedMocapEndDefaultScene()
+        private IEnumerator CoDelayedAnimationNoLoopDefaultScene()
         {
             try
             {
                 yield return new WaitForSecondsRealtime(
-                    NonLoopMocapMainEnd
-                        .MocapEndToDefaultSceneRealtimeDelaySeconds);
-                NonLoopMocapMainEnd.ExecuteDeferredDefaultSceneLoad();
+                    AnimationNoLoopMainEnd
+                        .AnimationNoLoopToDefaultSceneRealtimeDelaySeconds);
+                AnimationNoLoopMainEnd.ExecuteDeferredDefaultSceneLoad();
             }
             finally
             {
-                _mocapEndDefaultSceneCo = null;
+                _animationNoLoopDefaultSceneCo = null;
             }
         }
 
@@ -170,17 +171,17 @@ namespace geesp0t
             SameFolderCameraRetain.SetRetainEnabled(
                 retainCameraPoseSameFolderLoads.val);
 
-            loadDefaultWhenLongNonLoopMocapEnds = new JSONStorableBool(
-                "Load Saves/scene/Default.json when long mocap ends (no loop)",
+            loadDefaultWhenLongNonLoopAnimationEnds = new JSONStorableBool(
+                "Load Saves/scene/Default.json when long animation ends (no loop)",
                 true);
-            RegisterBool(loadDefaultWhenLongNonLoopMocapEnds);
+            RegisterBool(loadDefaultWhenLongNonLoopAnimationEnds);
 
-            minSecondsNonLoopMocapClipForDefaultSceneLoad = new JSONStorableFloat(
-                "Min mocap length (s) for end-of-clip default scene load",
+            minSecondsNonLoopAnimationClipForDefaultSceneLoad = new JSONStorableFloat(
+                "Min animation length (s) for end-of-clip default scene load",
                 45f,
                 5f,
                 600f);
-            RegisterFloat(minSecondsNonLoopMocapClipForDefaultSceneLoad);
+            RegisterFloat(minSecondsNonLoopAnimationClipForDefaultSceneLoad);
 
             restoreMonitorModeControllerLaser = new JSONStorableBool(
                 "Monitor mode: beams (Quest X/A touch or SteamVR TargetShow)",
@@ -243,9 +244,9 @@ namespace geesp0t
         {
             if (mainUIButtons == null)
                 return;
-            float mocapMinSec = GetMinNonLoopMocapSecondsForDefaultScene();
-            if (NonLoopMocapMainEnd
-                .CurrentSceneUsesLongNonLoopMocap(mocapMinSec))
+            float animationMinSec = GetMinNonLoopAnimationSecondsForDefaultScene();
+            if (AnimationNoLoopMainEnd
+                .CurrentSceneUsesLongNonLoopAnimation(animationMinSec))
                 return;
             if (_mergeClothingTouchFallOffAfterGripCo != null)
                 StopCoroutine(_mergeClothingTouchFallOffAfterGripCo);
@@ -259,7 +260,7 @@ namespace geesp0t
             {
                 yield return StartCoroutine(
                     ClothingTouchFallOffGripMerge.CoMergeAfterGripDeferred(
-                        GetMinNonLoopMocapSecondsForDefaultScene(),
+                        GetMinNonLoopAnimationSecondsForDefaultScene(),
                         mainUIButtons));
             }
             finally
@@ -320,7 +321,7 @@ namespace geesp0t
 
             StartCoroutine(CoRefreshHeadProximityHooksAfterStartFrames());
             GripHandVisibility.DisableVrHandModelsForSceneStart();
-            NonLoopMocapMainEnd.ResetForNewScene();
+            AnimationNoLoopMainEnd.ResetForNewScene();
 
             SuperController camSc = SuperController.singleton;
             if (camSc != null)
@@ -467,7 +468,7 @@ namespace geesp0t
 
             if (sceneChanged)
             {
-                NonLoopMocapMainEnd.ResetForNewScene();
+                AnimationNoLoopMainEnd.ResetForNewScene();
                 sceneChanged = false;
                 Log(
                     "GabrielHud Scene Changed, Load Dir: "
@@ -556,18 +557,18 @@ namespace geesp0t
                 retainCameraPoseSameFolderLoads.val)
                 SameFolderCameraRetain.LateTickIdleCapture(SuperController.singleton);
 
-            bool mocapLoadDefault =
-                loadDefaultWhenLongNonLoopMocapEnds != null &&
-                loadDefaultWhenLongNonLoopMocapEnds.val;
+            bool animationNoLoopLoadDefault =
+                loadDefaultWhenLongNonLoopAnimationEnds != null &&
+                loadDefaultWhenLongNonLoopAnimationEnds.val;
 
-            float mocapMinSec =
-                minSecondsNonLoopMocapClipForDefaultSceneLoad != null
-                    ? minSecondsNonLoopMocapClipForDefaultSceneLoad.val
+            float animationMinSec =
+                minSecondsNonLoopAnimationClipForDefaultSceneLoad != null
+                    ? minSecondsNonLoopAnimationClipForDefaultSceneLoad.val
                     : 45f;
 
-            NonLoopMocapMainEnd.LateTick(
-                mocapLoadDefault,
-                mocapMinSec,
+            AnimationNoLoopMainEnd.LateTick(
+                animationNoLoopLoadDefault,
+                animationMinSec,
                 this);
 
             bool monitorLaser =
@@ -611,10 +612,10 @@ namespace geesp0t
                 _mergeClothingTouchFallOffAfterGripCo = null;
             }
 
-            if (_mocapEndDefaultSceneCo != null)
+            if (_animationNoLoopDefaultSceneCo != null)
             {
-                StopCoroutine(_mocapEndDefaultSceneCo);
-                _mocapEndDefaultSceneCo = null;
+                StopCoroutine(_animationNoLoopDefaultSceneCo);
+                _animationNoLoopDefaultSceneCo = null;
             }
 
             GripHandVisibility.SetMergeSpankingsOnFirstGrip(null);

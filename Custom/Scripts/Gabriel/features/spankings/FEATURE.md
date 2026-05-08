@@ -22,14 +22,14 @@ Minimal blocklist feature for Spankings auto-merge, plus HUD-compiled deferral h
   deferred first-grip merge when the HUD enables it.
 
 ## Dependencies And Coupling
-- Used with `mocap-end-default-scene` (`NonLoopMocapMainEnd` blocks until long
+- Used with `animation-no-loop` (`AnimationNoLoopMainEnd` blocks until long
   timelines finish in long non-loop setups) and `GabrielHudButtons` Spankings
   plugin toggles.
 
 ## References
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md`
-- `Custom/Scripts/Gabriel/features/mocap-end-default-scene/FEATURE.md`
+- `Custom/Scripts/Gabriel/features/animation-no-loop/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/e-motion/FEATURE.md`
 
 ## Update Checklist

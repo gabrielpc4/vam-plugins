@@ -40,7 +40,7 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
   - palm HUD / VR gestures -> `Custom/Scripts/Gabriel/features/palm-hud/**`
   - passenger possession -> `Custom/Scripts/Gabriel/features/passenger-possession/**`
   - scene startup / person plugin stack ->
-    `Custom/Scripts/Gabriel/session-stack/**`
+    `Custom/Scripts/Gabriel/session-plugins/**`
 - Removed during the Gabriel cutover:
   - `Custom/Scripts/ImprovedPoV_TongueLicking.cs`
   - `Custom/Scripts/LocalMp4Viewer/**`
@@ -62,7 +62,7 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
   - **Session load order** (first missing entries are prepended when merging):
     1. `Custom/Scripts/Gabriel/features/ui-hud/VaMLogClipboardHud.cslist` — log clipboard HUD (**separate compile** from `EasyMate.cslist`).
     2. `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist` — main Easy Mate stack (includes `MainUIButtons`).
-    3. `Custom/Scripts/Gabriel/session-stack/GabrielSessionStack.cslist`.
+    3. `Custom/Scripts/Gabriel/session-plugins/GabrielSessionPlugins.cslist`.
   - In desktop mode, also adds `Custom/Scripts/prestigitis_DesktopClothGrab.cs`.
   - Directly sets `SuperController.singleton.navigationRig.position` during init, so it already affects initial camera placement.
 
@@ -116,7 +116,16 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
   - **`Custom/Scripts/E-MotionFinal/E-Motion_Final_AddThisONLY.cslist`** (`PluginEMotionFinal`).
   - **Different basename** from full/lite so scenes and tooling do not confuse it with **`E-Motion_AddThisONLY.cslist`**. Lives under **`Custom/Scripts/E-MotionFinal/`** so edits to Original or Lite sources do not affect Final files when only Final is loaded.
   - Presets and defaults load from **`Custom/Scripts/E-MotionFinal/Presets/`** (same pattern as Original/Lite: **`GetPluginPath()`** + `\Presets\`), not from legacy **`Custom/E-Motion/Presets`**.
-  - After a **long non-loop** scene mocap ends, **`EasyMateMotionAnimationEmotionEnd`** calls **`MergeEmotionFinalOnFemalePersonsOnly`** once per scene (EasyMate toggles **`mergeEmotionWhenLongMocapEndsNoLoop`** / **`longMocapMinSecondsForEmotionMerge`**).
+  - **Gabriel HUD** (`Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cs`):
+    after a qualifying **long non-loop** main **`motionAnimationMaster`**
+    timeline ends (when **`loadDefaultWhenLongNonLoopAnimationEnds`** / minimum
+    clip seconds are met), **`AnimationNoLoopMainEnd`** triggers a delayed load of
+    **`Saves/scene/Default.json`** (see **`features/animation-no-loop`**); this
+    is **not** an E-Motion merge.
+  - Legacy EasyMate note (historical bundled stack): after a **long non-loop**
+    scene motion ended, **`EasyMateMotionAnimationEmotionEnd`** could call
+    **`MergeEmotionFinalOnFemalePersonsOnly`** (`mergeEmotionWhenLongMocapEndsNoLoop` /
+    `longMocapMinSecondsForEmotionMerge`).
 
 - **`EasyMateEmotionPathKeywords.cs`** (`Custom/Scripts/Easy Mate/src/EasyMateEmotionPathKeywords.cs`, listed in **`EasyMate.cslist`**):
   - **`KeywordsFileRelative`**: **`Custom/Scripts/Easy Mate/emotion_path_keywords.txt`** — read with **`SuperController.ReadFileIntoString`**; `#` lines skipped; tokens trimmed and split on newline / comma / semicolon; stored lowercase for matching.
@@ -531,7 +540,7 @@ Useful operations:
 Existing references:
 
 - `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs`
-- `Custom/Scripts/Gabriel/session-stack/src/GabrielSessionStack.cs`
+- `Custom/Scripts/Gabriel/session-plugins/src/GabrielSessionPlugins.cs`
 - `Custom/Scripts/Easy Moan/src/EasyMoan.cs`
 
 ## Camera / Rig / Possession Notes

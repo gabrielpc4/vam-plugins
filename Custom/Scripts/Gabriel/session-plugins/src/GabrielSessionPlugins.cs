@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace geesp0t
 {
-    public class GabrielSessionStack : MVRScript
+    public class GabrielSessionPlugins : MVRScript
     {
         private const string ForceReleaseSceneSettleHoldActionName =
             "ForceReleaseSceneSettleHold";
@@ -26,7 +26,7 @@ namespace geesp0t
         {
             explanationString = new JSONStorableString(
                 "",
-                "Gabriel session stack handles scene-settle playback hold, " +
+                "Gabriel session plugins handle scene-settle playback hold, " +
                 "same-folder load suppression, and the scene-settle release " +
                 "action used by the shared hotkey dispatcher.");
             UIDynamicTextField dtext = CreateTextField(explanationString);
@@ -86,8 +86,7 @@ namespace geesp0t
 
             HeadProximityHide.AfterSuperControllerFinishedSceneSettle(this);
             SuperController.LogMessage(
-                "Gabriel session stack: Space released scene settle hold.");
+                "Gabriel session plugins: Space released scene settle hold.");
         }
     }
 }
- 

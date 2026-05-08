@@ -2,8 +2,8 @@ GabrielHud.cs
 GabrielHudButtons.cs
 NextSceneUiButton.cs
 GabrielHotkeys.cs
-../mocap-end-default-scene/NonLoopMocapMainEnd.cs
-../session-stack/src/SceneLoadDirNormalize.cs
+../animation-no-loop/AnimationNoLoopMainEnd.cs
+../session-plugins/src/SceneLoadDirNormalize.cs
 ../palm-hud/VrInput.cs
 ../palm-hud/VrEulerPossessPoseCheck.cs
 ../palm-hud/VrEulerPossessHandHud.cs

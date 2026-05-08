@@ -8,9 +8,7 @@
 !.gitignore
 !**/*.md
 !**/*.py
-!/Saves/
-!/Saves/scene/
-!Saves/scene/**/*.jpg
+/Saves/
 !**/*.vac
 !**/*.json
 !**/*.cs

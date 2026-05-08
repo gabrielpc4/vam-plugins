@@ -532,8 +532,7 @@ namespace geesp0t
             GameObject canvasObject;
             CanvasScaler scaler;
             const float scale = 0.001f;
-            const float emotionColButtonWidth = 168f;
-            const float rightColButtonWidth = 132f;
+            const float hudButtonWidth = 132f;
 
             DestroyHudCanvas();
 
@@ -561,35 +560,35 @@ namespace geesp0t
                 OnEmotionPrimaryHudButtonClicked,
                 1,
                 0,
-                emotionColButtonWidth);
+                hudButtonWidth);
 
             emotionPackCycleHudButton = AddButton(
                 EmotionPackLabelForIndex(_emotionPackIndex),
                 CycleEmotionPackButton,
                 1,
                 1,
-                emotionColButtonWidth);
+                hudButtonWidth);
 
             emotionGenderCycleHudButton = AddButton(
                 EmotionGenderCycleLabel(_emotionMaleOnlyGender),
                 CycleEmotionGenderButton,
                 1,
                 2,
-                emotionColButtonWidth);
+                hudButtonWidth);
 
             spankingsButton = AddButton(
                 "+ Spankings Male",
                 ToggleSpankingsPluginOnAllPersons,
                 2,
                 0,
-                rightColButtonWidth);
+                hudButtonWidth);
 
             removeSpankingsButton = AddButton(
                 "Remove Spankings",
                 RemoveSpankingsFromAllPersons,
                 2,
                 1,
-                rightColButtonWidth);
+                hudButtonWidth);
 
             RefreshPluginToggleLabels();
             _canvas.transform.Translate(0f, 0.2f, 0f);

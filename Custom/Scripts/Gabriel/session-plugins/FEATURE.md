@@ -1,13 +1,14 @@
 # Gabriel Session Plugins
 
 ## Purpose
-Runtime helper for scene loads. It decides when the full scene-settle workflow
-should run, skips that workflow for same-folder load pulses, and exposes a
-scene-settle release action for the shared HUD hotkey dispatcher.
+Session bundle loaded from `GabrielSessionPlugins.cslist`. The host
+`GabrielSessionOrchestrator` script drives scene loads: same-folder load
+pulses, full scene-settle workflow, late feature ticks, HUD binding, and the
+scene-settle release action for the shared hotkey dispatcher.
 
 ## Live Files
 - `GabrielSessionPlugins.cslist`
-- `src/GabrielSessionPlugins.cs`
+- `src/GabrielSessionOrchestrator.cs` *(session runtime; scene settle + toggles)*
 - `src/SceneSettle.cs`
 - `src/PlaybackHold.cs`
 - `src/InitialExposureChange.cs`
@@ -17,8 +18,9 @@ scene-settle release action for the shared HUD hotkey dispatcher.
 
 ## Load Path
 - Loaded as a session plugin by `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cs`.
-- Detects same-folder load pulses before delegating scene-settle control to
-  the `SceneSettleRuntime` partial set in `src/SceneSettle.cs`,
+- `GabrielSessionOrchestrator` runs in `Update` / `LateUpdate` and detects
+  same-folder load pulses before delegating scene-settle control to the
+  `SceneSettleRuntime` partial set in `src/SceneSettle.cs`,
   `src/PlaybackHold.cs`, and `src/InitialExposureChange.cs`.
 
 ## Responsibilities

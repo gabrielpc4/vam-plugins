@@ -7,8 +7,10 @@ Vendored AcidBubbles Improved PoV plugin with repo-specific defaults and integra
 - `ImprovedPoV.cs`
 
 ## Load Path
-- Managed as a person plugin by `Custom/Scripts/Gabriel/session-plugins/src/GabrielSessionPlugins.cs`.
-- Also merged/prepared directly by `PassengerRuntime` when passenger mode starts.
+- Merged onto the target person by `PassengerRuntime` when passenger mode
+  starts (uses `PluginManager.TryMergePluginOntoPerson` in the same compile as
+  `GabrielSessionPlugins.cslist`, which also hosts `GabrielSessionOrchestrator`
+  and `GabrielHud`).
 
 ## Responsibilities
 - Handle first-person camera positioning, face/hair hiding, and render-time material swaps for possession.

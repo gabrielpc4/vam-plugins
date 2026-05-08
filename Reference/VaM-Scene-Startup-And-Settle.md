@@ -7,8 +7,8 @@ This note ties together **what VaM does while a scene loads** (from decompiled `
 **Live plugin:** `Custom/Scripts/Gabriel/session-plugins/src/SceneSettle.cs`
 plus the adjacent `PlaybackHold.cs` and `InitialExposureChange.cs` partials,
 ticked from
-`GabrielSessionPlugins.LateUpdate()` (see
-`Custom/Scripts/Gabriel/session-plugins/src/GabrielSessionPlugins.cs`).
+`GabrielSessionOrchestrator.LateUpdate()` (see
+`Custom/Scripts/Gabriel/session-plugins/src/GabrielSessionOrchestrator.cs`).
 
 ---
 
@@ -209,4 +209,4 @@ Order is intentional:
 | `Atom.PauseSimulation` | `Reference/Assembly-CSharp-decompiled/Atom.cs` |
 | `AsyncFlag` | `Reference/Assembly-CSharp-decompiled/AsyncFlag.cs` |
 | Gabriel settle + exposure + pause + audio | `Custom/Scripts/Gabriel/session-plugins/src/SceneSettle.cs` + `PlaybackHold.cs` + `InitialExposureChange.cs` |
-| Runtime caller | `Custom/Scripts/Gabriel/session-plugins/src/GabrielSessionPlugins.cs` |
+| Runtime caller | `Custom/Scripts/Gabriel/session-plugins/src/GabrielSessionOrchestrator.cs` |

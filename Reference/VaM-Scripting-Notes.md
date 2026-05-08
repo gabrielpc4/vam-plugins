@@ -539,7 +539,7 @@ Useful operations:
 Existing references:
 
 - `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs`
-- `Custom/Scripts/Gabriel/session-plugins/src/GabrielSessionPlugins.cs`
+- `Custom/Scripts/Gabriel/session-plugins/src/GabrielSessionOrchestrator.cs`
 - `Custom/Scripts/Easy Moan/src/EasyMoan.cs`
 
 ## Camera / Rig / Possession Notes

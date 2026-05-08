@@ -64,6 +64,11 @@ namespace geesp0t
 
         private bool _emotionMaleOnlyGender = true;
 
+        /// <summary>
+        /// Shown on pack/gender HUD buttons that cycle on click.
+        /// </summary>
+        private const string EmotionCycleButtonSuffix = " >";
+
         private UIDynamicButton spankingsButton;
 
         private UIDynamicButton removeSpankingsButton;
@@ -558,7 +563,7 @@ namespace geesp0t
                 emotionColButtonWidth);
 
             emotionGenderCycleHudButton = AddButton(
-                _emotionMaleOnlyGender ? "Male Only" : "Female Only",
+                EmotionGenderCycleLabel(_emotionMaleOnlyGender),
                 CycleEmotionGenderButton,
                 1,
                 2,
@@ -635,15 +640,27 @@ namespace geesp0t
 
         private static string EmotionPackLabelForIndex(int index)
         {
+            string s;
             switch (index)
             {
             case 0:
-                return "Lite E-Motion";
+                s = "Lite E-Motion";
+                break;
             case 1:
-                return "Original E-Motion";
+                s = "Original E-Motion";
+                break;
             default:
-                return "Final E-Motion";
+                s = "Final E-Motion";
+                break;
             }
+
+            return s + EmotionCycleButtonSuffix;
+        }
+
+        private static string EmotionGenderCycleLabel(bool maleOnly)
+        {
+            return (maleOnly ? "Male Only" : "Female Only") +
+                EmotionCycleButtonSuffix;
         }
 
         private void CycleEmotionPackButton()
@@ -661,9 +678,8 @@ namespace geesp0t
             _emotionMaleOnlyGender = !_emotionMaleOnlyGender;
             if (emotionGenderCycleHudButton != null)
             {
-                emotionGenderCycleHudButton.label = _emotionMaleOnlyGender
-                    ? "Male Only"
-                    : "Female Only";
+                emotionGenderCycleHudButton.label =
+                    EmotionGenderCycleLabel(_emotionMaleOnlyGender);
             }
         }
 

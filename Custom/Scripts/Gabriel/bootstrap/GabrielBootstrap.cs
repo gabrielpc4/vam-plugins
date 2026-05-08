@@ -15,9 +15,8 @@ namespace geesp0t
         private string[] sessionPlugins = new string[]
         {
             "Custom/Scripts/Gabriel/features/ui-hud/VaMLogClipboardHud.cslist",
-            "Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist",
-            "Custom/Scripts/Gabriel/features/dildo-on-hands/DildoOnHands.cslist",
             "Custom/Scripts/Gabriel/session-plugins/GabrielSessionPlugins.cslist",
+            "Custom/Scripts/Gabriel/features/dildo-on-hands/DildoOnHands.cslist",
             "Custom/Scripts/Gabriel/features/clothing-interactions/VrProximityStripClothing.cslist"
         };
 

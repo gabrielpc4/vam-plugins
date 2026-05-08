@@ -7,18 +7,19 @@ namespace geesp0t
 {
     /// <summary>
     /// Desktop keyboard shortcuts for the Gabriel HUD plugin; delegates menu actions
-    /// to <see cref="GabrielHudButtons"/> and cross-feature helpers.
+    /// to <see cref="GabrielHud"/> and cross-feature helpers.
     /// </summary>
     internal sealed class GabrielHotkeys
     {
         private const string CoreControlAtomUid = "CoreControl";
-        private const string GabrielSessionPluginsSuffix = ".GabrielSessionPlugins";
+        private const string GabrielSessionOrchestratorSuffix =
+            ".GabrielSessionOrchestrator";
         private const string ForceReleaseSceneSettleHoldActionName =
             "ForceReleaseSceneSettleHold";
 
-        private readonly GabrielHudButtons owner;
+        private readonly GabrielHud owner;
 
-        internal GabrielHotkeys(GabrielHudButtons owner)
+        internal GabrielHotkeys(GabrielHud owner)
         {
             this.owner = owner;
         }
@@ -113,7 +114,7 @@ namespace geesp0t
             {
                 try
                 {
-                    GabrielHudButtons.ToggleFreezeAnimationHotkey();
+                    GabrielHud.ToggleFreezeAnimationHotkey();
                 }
                 catch (Exception e)
                 {
@@ -139,12 +140,12 @@ namespace geesp0t
             sessionPluginsStorable =
                 FindSessionPluginStorableBySuffix(
                     coreControl,
-                    GabrielSessionPluginsSuffix);
+                    GabrielSessionOrchestratorSuffix);
             if (sessionPluginsStorable == null)
             {
                 SuperController.LogError(
-                    "Space hotkey: GabrielSessionPlugins plugin not found on " +
-                    "CoreControl.");
+                    "Space hotkey: GabrielSessionOrchestrator plugin not " +
+                    "found on CoreControl.");
                 return;
             }
 
@@ -155,7 +156,7 @@ namespace geesp0t
                 forceReleaseAction.actionCallback == null)
             {
                 SuperController.LogError(
-                    "Space hotkey: GabrielSessionPlugins action <" +
+                    "Space hotkey: GabrielSessionOrchestrator action <" +
                     ForceReleaseSceneSettleHoldActionName +
                     "> is unavailable.");
                 return;

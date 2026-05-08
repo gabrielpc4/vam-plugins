@@ -65,7 +65,7 @@ HMD basis: **`lookCamera`** else **`centerCameraTarget`**
 
 - **`passenger-possession/PassengerLaserPossess.cs`** — raycast resolver +
   **`TryTriggerFromRightBeamPersonHit`** (**`PollRightFaceADown`** + cooldown +
-  **`GabrielHudButtons.RequestPassengerForSpecificPerson`**). Skips **Edit**
+  **`GabrielHud.RequestPassengerForSpecificPerson`**). Skips **Edit**
   mode and when the palm HUD is **visible** (right beam aim is suppressed
   anyway while palm is up).
 - **`scene-camera/MonitorModeLaserRestore.cs`** — draws forward cylinders when
@@ -79,8 +79,7 @@ Only the **right** beam can arm possession (Person along that ray).
 
 ## 6. Clearing possession
 
-**File:** **`GabrielHudButtons.ClearAllPossession`** /
-**`RequestClearAllPossession`**
+**File:** **`GabrielHud.RequestClearAllPossession`**
 
 Clears grips, **`PassengerRuntime`**, VaM **`ClearPossess`**, head-hide restore,
 unlink stray HMD links, **`SelectModeOff`**. Used from scene-load cleanup,
@@ -99,7 +98,7 @@ not necessarily this full-path unless you wire it elsewhere.
 | Laser + A passenger | `passenger-possession/PassengerLaserPossess.cs` |
 | Aim beams glue | `scene-camera/MonitorModeLaserRestore.cs` |
 | Passenger runtime | `passenger-possession/PassengerRuntime.cs` |
-| Next-scene UIButton helpers | `ui-hud/GabrielHudButtons.cs` |
+| Next-scene UIButton helpers | `ui-hud/NextSceneUiButton.cs` |
 | Desktop hotkeys | `ui-hud/GabrielHotkeys.cs` |
 | Session **`GabrielHud`** | `ui-hud/GabrielHud.cs` |
 | Compile list | `ui-hud/GabrielHud.cslist` |

@@ -1,23 +1,27 @@
 # Gabriel UI HUD
 
 ## Purpose
-Main session HUD and hotkey hub. This area owns the world-space menu, log copy HUD,
-scene-advance UIButton resolution (`NextSceneUiButton`), and most
-cross-feature runtime orchestration.
+Main session HUD and hotkey hub. World-space menu, log copy HUD,
+scene-advance UIButton resolution (`NextSceneUiButton`), keyboard routing in
+`GabrielHotkeys`. Heavier `LateUpdate` / scene-settle orchestration lives in
+`GabrielSessionOrchestrator` in the same session bundle.
 
 ## Live Files
 - `GabrielHud.cs`
 - `GabrielHud.cslist`
-- `GabrielHudButtons.cs`
 - `NextSceneUiButton.cs`
 - `GabrielHotkeys.cs`
 - `VaMLogClipboardHud.cs`
 - `VaMLogClipboardHud.cslist`
 
 ## Load Path
-- `GabrielBootstrap` loads both `VaMLogClipboardHud.cslist` and `GabrielHud.cslist` as session plugins.
-- `GabrielHud.cslist` compiles the bulk of the HUD-adjacent feature helpers from other feature folders.
-- `VaMLogClipboardHud.cslist` stays isolated so log copy buttons can still load if the main HUD compile fails.
+- `GabrielBootstrap` loads `VaMLogClipboardHud.cslist` and
+  `GabrielSessionPlugins.cslist` (session bundle includes `GabrielHud.cs` plus
+  `GabrielSessionOrchestrator` and scene helpers).
+- `GabrielHud.cslist` still lists the same compile graph when building the HUD
+  bundle offline or duplicating the plugin list.
+- `VaMLogClipboardHud.cslist` stays isolated so log copy buttons can still load
+  if the main HUD compile fails.
 
 ## Responsibilities
 - Build and refresh the world-space Gabriel menu on `mainHUD`.
@@ -25,7 +29,8 @@ cross-feature runtime orchestration.
   `O`, `F`), plugin toggles, scene-change routing, palm **Próxima cena** via
   `NextSceneUiButton`, plus thin glue into `AnimationNoLoopDetection`, path-rule
   E-Motion merges, Spankings/Clothing grip deferrals, and fluid/camera helpers.
-- `GabrielHudButtons` owns external plugin family paths for E-Motion, Spankings, and ClothingTouchFallOff.
+- `GabrielHud` owns external plugin family paths for E-Motion, Spankings, and
+  ClothingTouchFallOff.
 - The hotkey dispatcher also invokes the session-plugins `Space` release action
   through `CoreControl`.
 - Expose user toggles for remote grip link blocking, head hide, long non-loop
@@ -38,7 +43,7 @@ cross-feature runtime orchestration.
   `passenger-possession`,
   `scene-camera`, `clothing-interactions`, `hands`, `head-hide`,
   `session-plugins`,
-  `e-motion`, `spankings`, plus `GabrielHudButtons`-owned plugin toggles.
+  `e-motion`, `spankings`, plus `GabrielHud`-owned plugin toggles.
 
 ## References
 - `Custom/Scripts/Gabriel/features/palm-hud/FEATURE.md`

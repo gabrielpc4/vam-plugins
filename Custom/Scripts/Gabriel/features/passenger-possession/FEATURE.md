@@ -15,8 +15,8 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 
 ## Load Path
 - Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
-- Start: `PassengerLaserPossess` → `GabrielHudButtons.RequestPassengerForSpecificPerson`.
-- Stop: palm HUD via `GabrielHudButtons` / `PassengerRuntime`.
+- Start: `PassengerLaserPossess` → `GabrielHud.RequestPassengerForSpecificPerson`.
+- Stop: palm HUD via `GabrielHud` / `PassengerRuntime`.
 
 ## Responsibilities
 - Pick target persons, align the navigation rig, and preserve/restore head and rig state.
@@ -28,7 +28,7 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 ## Dependencies And Coupling
 - Depends on `improved-pov/ImprovedPoV.cs` and cooperates with `HeadProximityHide`.
 - Cooperates with `scene-camera` (`MonitorModeLaserRestore`), `NextSceneUiButton`
-  (palm next-scene row), `palm-hud`, and `GabrielHudButtons` / `PassengerRuntime`.
+  (palm next-scene row), `palm-hud`, and `GabrielHud` / `PassengerRuntime`.
 
 ## References
 - `Reference/EasyMate-Hand-Menu-Passenger-Possession.md`

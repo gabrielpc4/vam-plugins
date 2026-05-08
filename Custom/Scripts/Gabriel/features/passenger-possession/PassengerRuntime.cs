@@ -13,7 +13,7 @@ namespace geesp0t
     /// once per session when you press any grip or trigger (see
     /// <see cref="VrInput.PollVrAnyTriggerOrGripPressDown"/>). Start is requested from
     /// <see cref="PassengerLaserPossess"/> (right UI-aim laser + face A) via
-    /// <see cref="GabrielHudButtons.RequestPassengerForSpecificPerson"/>.
+    /// <see cref="GabrielHud.RequestPassengerForSpecificPerson"/>.
     /// </summary>
     internal static class PassengerRuntime
     {
@@ -32,6 +32,8 @@ namespace geesp0t
         private const float PalmHudHideSecondsAfterHandsPossessTrigger = 5f;
 
         private static MVRScript _sessionPluginHost;
+
+        private static Coroutine _autoPossessCoroutine;
 
         private static bool _isPassengerModeActive;
         private static Atom _passengerTargetPerson;
@@ -103,14 +105,18 @@ namespace geesp0t
             _palmHandHudAllowedAfterTime = -1f;
         }
 
-        public static void NotifySceneChanged(MVRScript host)
+        internal static void SetSessionPluginHost(MVRScript host)
         {
             if (host != null)
             {
                 _sessionPluginHost = host;
             }
+        }
 
-            GabrielHudButtons.StopVrPassengerHandsRoutine();
+        public static void NotifySceneChanged(MVRScript host)
+        {
+            SetSessionPluginHost(host);
+            StopVrPassengerHandsRoutine();
 
             SuperController superController = SuperController.singleton;
             if (superController != null && !superController.isLoading)
@@ -138,18 +144,12 @@ namespace geesp0t
             List<string> atomUids,
             MVRScript host)
         {
-            if (host != null)
-            {
-                _sessionPluginHost = host;
-            }
+            SetSessionPluginHost(host);
         }
 
         public static void Tick(MVRScript host)
         {
-            if (host != null)
-            {
-                _sessionPluginHost = host;
-            }
+            SetSessionPluginHost(host);
 
             SuperController superController = SuperController.singleton;
             if (superController == null || superController.isLoading)
@@ -163,6 +163,209 @@ namespace geesp0t
             {
                 UpdatePassengerRuntime(superController);
             }
+        }
+
+        private static void StopAutoPossessRoutine()
+        {
+            if (_sessionPluginHost != null && _autoPossessCoroutine != null)
+            {
+                _sessionPluginHost.StopCoroutine(_autoPossessCoroutine);
+                _autoPossessCoroutine = null;
+            }
+
+            PassengerPossessableNarrow.Restore();
+        }
+
+        internal static void StopVrPassengerHandsRoutine()
+        {
+            StopAutoPossessRoutine();
+        }
+
+        internal static void StartVrPassengerHandsRoutine(Atom person)
+        {
+            if (_sessionPluginHost == null)
+            {
+                SuperController.LogError(
+                    "Easy Mate passenger hands: session host missing.");
+                return;
+            }
+
+            StopAutoPossessRoutine();
+            _autoPossessCoroutine = _sessionPluginHost.StartCoroutine(
+                PossessHandsOnlyRoutine(person));
+        }
+
+        private static IEnumerator PossessHandsOnlyRoutine(Atom person)
+        {
+            try
+            {
+                SuperController sc = SuperController.singleton;
+                if (sc == null || person == null || person.type != "Person")
+                    yield break;
+
+                FreeControllerV3 leftHand =
+                    person.GetStorableByID("lHandControl") as FreeControllerV3;
+                FreeControllerV3 rightHand =
+                    person.GetStorableByID("rHandControl") as FreeControllerV3;
+
+                if (leftHand == null && rightHand == null)
+                {
+                    SuperController.LogError(
+                        "Easy Mate passenger hands: no hand controls on " +
+                        person.name);
+                    yield break;
+                }
+
+                PassengerPossessableNarrow.ApplyForTargetPerson(person);
+                sc.SelectModePossess(true);
+
+                yield return null;
+                yield return null;
+
+                bool leftDone = leftHand == null || leftHand.possessed;
+                bool rightDone = rightHand == null || rightHand.possessed;
+                string leftError = null;
+                string rightError = null;
+                int i;
+
+                for (i = 0; i < 120 && (!leftDone || !rightDone); i++)
+                {
+                    if (!leftDone)
+                    {
+                        TryDriveControllerIntoPossessOverlap(
+                            sc,
+                            leftHand,
+                            true,
+                            out leftError);
+                        leftDone = leftHand != null && leftHand.possessed;
+                    }
+
+                    if (!rightDone)
+                    {
+                        TryDriveControllerIntoPossessOverlap(
+                            sc,
+                            rightHand,
+                            false,
+                            out rightError);
+                        rightDone = rightHand != null && rightHand.possessed;
+                    }
+
+                    if (!leftDone || !rightDone)
+                        yield return null;
+                }
+
+                try
+                {
+                    sc.SelectModeOff();
+                }
+                catch (Exception selectModeException)
+                {
+                    SuperController.LogError(
+                        "Easy Mate passenger hands SelectModeOff: " +
+                        selectModeException.Message);
+                }
+
+                string leftState = leftDone ? "ok" : "failed";
+                string rightState = rightDone ? "ok" : "failed";
+                SuperController.LogMessage(
+                    "Easy Mate passenger hands: " +
+                    person.name +
+                    " (left " +
+                    leftState +
+                    ", right " +
+                    rightState +
+                    ").");
+
+                if (!leftDone && leftError != null)
+                {
+                    SuperController.LogMessage(
+                        "Easy Mate passenger hands left detail: " +
+                        leftError);
+                }
+
+                if (!rightDone && rightError != null)
+                {
+                    SuperController.LogMessage(
+                        "Easy Mate passenger hands right detail: " +
+                        rightError);
+                }
+
+                if ((leftHand != null && leftHand.possessed) ||
+                    (rightHand != null && rightHand.possessed))
+                {
+                    RefreshHudPluginToggleLabels();
+                }
+            }
+            finally
+            {
+                PassengerPossessableNarrow.Restore();
+                _autoPossessCoroutine = null;
+            }
+        }
+
+        private static void RefreshHudPluginToggleLabels()
+        {
+            GabrielSessionOrchestrator orchestrator =
+                _sessionPluginHost as GabrielSessionOrchestrator;
+            if (orchestrator != null)
+            {
+                orchestrator.RefreshHudPluginToggleLabels();
+            }
+        }
+
+        private static bool TryPrepareHandForPossess(
+            SuperController sc,
+            FreeControllerV3 controller,
+            bool left,
+            out string error)
+        {
+            error = null;
+            if (controller == null)
+                return true;
+
+            Transform motionController = GetMotionControllerTransform(sc, left);
+            if (sc == null || motionController == null)
+            {
+                error = "missing SuperController or player hand transform";
+                return false;
+            }
+
+            try
+            {
+                controller.PossessMoveAndAlignTo(motionController);
+                return true;
+            }
+            catch (Exception e)
+            {
+                error = e.Message;
+                return false;
+            }
+        }
+
+        private static bool TryDriveControllerIntoPossessOverlap(
+            SuperController sc,
+            FreeControllerV3 controller,
+            bool left,
+            out string error)
+        {
+            error = null;
+            if (controller == null)
+                return true;
+
+            if (controller.possessed)
+                return true;
+
+            return TryPrepareHandForPossess(sc, controller, left, out error);
+        }
+
+        private static Transform GetMotionControllerTransform(
+            SuperController sc,
+            bool left)
+        {
+            if (sc == null)
+                return null;
+
+            return left ? sc.leftHand : sc.rightHand;
         }
 
         public static void RequestStartForFemale(Atom femalePerson)
@@ -192,7 +395,7 @@ namespace geesp0t
         public static void RequestStopForPalmHud()
         {
             ClearPendingPassengerModeActivation();
-            GabrielHudButtons.StopVrPassengerHandsRoutine();
+            StopVrPassengerHandsRoutine();
 
             StopPassengerMode();
 
@@ -271,7 +474,7 @@ namespace geesp0t
 
         public static void OnPluginDestroy()
         {
-            GabrielHudButtons.StopVrPassengerHandsRoutine();
+            StopVrPassengerHandsRoutine();
             PassengerHandPrePossessSnapshot.DiscardSnapshot();
             PassengerPossessableNarrow.Restore();
             StopPassengerMode();
@@ -289,7 +492,7 @@ namespace geesp0t
 
             if (improvedPoVStorable == null)
             {
-                GabrielHudButtons.TryMergePluginOntoPerson(
+                GabrielHud.TryMergePluginOntoPerson(
                     passengerPerson,
                     ImprovedPoVPluginPath);
                 QueuePassengerModeUntilImprovedPoVReady(passengerPerson.uid);
@@ -920,7 +1123,7 @@ namespace geesp0t
             PassengerHandPrePossessSnapshot.CaptureFromPersonBeforeHandPossess(
                 resolvedPassengerPerson);
             NotifyPassengerHandsPossessionTriggeredForPalmHud();
-            GabrielHudButtons.StartVrPassengerHandsRoutine(resolvedPassengerPerson);
+            StartVrPassengerHandsRoutine(resolvedPassengerPerson);
         }
 
         private static JSONStorable FindPluginStorableByClassSuffix(

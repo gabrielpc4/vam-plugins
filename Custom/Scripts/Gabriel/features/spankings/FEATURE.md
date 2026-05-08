@@ -13,7 +13,7 @@ helpers sourced from **`features/hands/`**.
 ## Load Path
 - `SpankingsGripBlockPathKeywords` compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
 - `SpankingsGripDeferredMerge` lives under `features/hands/` but ships in the same HUD compile unit.
-- Queried by `GabrielHud` / `GabrielHudButtons` through `SpankingsGripDeferredMerge`
+- Queried by `GabrielHud` through `SpankingsGripDeferredMerge`
   and `SpankingsGripBlockPathKeywords` before the deferred first-grip merges run.
 
 ## Responsibilities
@@ -24,7 +24,7 @@ helpers sourced from **`features/hands/`**.
 
 ## Dependencies And Coupling
 - Used with `animation-no-loop-detection` (`AnimationNoLoopDetection` blocks until long
-  timelines finish in long non-loop setups) and `GabrielHudButtons` Spankings
+  timelines finish in long non-loop setups) and `GabrielHud` Spankings
   plugin toggles.
 
 ## References

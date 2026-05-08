@@ -10,8 +10,8 @@ namespace geesp0t
     /// Separate session plugin: Copy Errors / Copy Console / Clear logs, plus when
     /// VaM adds new error-lines (SuperController.errorCount rises), brings main HUD
     /// to headset in VR and expands the Error Log panel so faults are readable in-HMD.
-    /// Own .cslist so controls still load if GabrielHud.cslist or GabrielHudButtons fails;
-    /// layout column 0 matches GabrielHudButtons columns 1–3 on mainHUD.
+    /// Own .cslist so controls still load if GabrielHud.cslist fails; layout column 0
+    /// matches GabrielHud columns 1–3 on mainHUD.
     /// </summary>
     public class VaMLogClipboardHud : MVRScript
     {

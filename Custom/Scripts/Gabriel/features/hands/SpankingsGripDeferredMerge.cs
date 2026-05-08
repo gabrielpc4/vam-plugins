@@ -9,17 +9,17 @@ namespace geesp0t
     /// </summary>
     internal static class SpankingsGripDeferredMerge
     {
-        internal static bool ShouldSkipQueue(GabrielHud hud, GabrielHudButtons buttons)
+        internal static bool ShouldSkipQueue(
+            GabrielSessionOrchestrator orchestrator)
         {
-            if (buttons == null)
-                return true;
             if (SpankingsGripBlockPathKeywords
                 .CurrentSceneBlocksGripSpankingsMerge())
                 return true;
-            if (hud != null && hud.IsLoadDefaultOnLongNonLoopAnimationEndEnabled())
+            if (orchestrator != null &&
+                orchestrator.IsLoadDefaultOnLongNonLoopAnimationEndEnabled())
             {
                 float animationMinSec =
-                    hud.GetMinNonLoopAnimationSecondsForDefaultScene();
+                    orchestrator.GetMinNonLoopAnimationSecondsForDefaultScene();
                 if (AnimationNoLoopDetection
                     .CurrentSceneBlocksGripSpankingsMerge(animationMinSec))
                     return true;
@@ -29,46 +29,48 @@ namespace geesp0t
         }
 
         internal static IEnumerator CoMergeAfterGripDeferred(
-            GabrielHud hud,
-            GabrielHudButtons buttons)
+            GabrielSessionOrchestrator orchestrator,
+            GabrielHud hud)
         {
             try
             {
                 yield return null;
                 yield return null;
-                if (buttons == null)
+                if (hud == null)
                     yield break;
                 if (SpankingsGripBlockPathKeywords
                     .CurrentSceneBlocksGripSpankingsMerge())
                     yield break;
-                if (hud != null &&
-                    hud.IsLoadDefaultOnLongNonLoopAnimationEndEnabled())
+                if (orchestrator != null &&
+                    orchestrator.IsLoadDefaultOnLongNonLoopAnimationEndEnabled())
                 {
                     float animationMinSec =
-                        hud.GetMinNonLoopAnimationSecondsForDefaultScene();
+                        orchestrator
+                            .GetMinNonLoopAnimationSecondsForDefaultScene();
                     if (AnimationNoLoopDetection
                         .CurrentSceneBlocksGripSpankingsMerge(animationMinSec))
                         yield break;
                 }
-                buttons.MergeSpankingsOnFemalePersonsOnly();
+                hud.MergeSpankingsOnFemalePersonsOnly();
                 yield return new WaitForSeconds(4f);
-                if (buttons == null)
+                if (hud == null)
                     yield break;
                 if (SpankingsGripBlockPathKeywords
                     .CurrentSceneBlocksGripSpankingsMerge())
                     yield break;
-                if (hud != null &&
-                    hud.IsLoadDefaultOnLongNonLoopAnimationEndEnabled())
+                if (orchestrator != null &&
+                    orchestrator.IsLoadDefaultOnLongNonLoopAnimationEndEnabled())
                 {
                     float animationMinSecRetry =
-                        hud.GetMinNonLoopAnimationSecondsForDefaultScene();
+                        orchestrator
+                            .GetMinNonLoopAnimationSecondsForDefaultScene();
                     if (AnimationNoLoopDetection
                         .CurrentSceneBlocksGripSpankingsMerge(
                             animationMinSecRetry))
                         yield break;
                 }
-                if (buttons.AnyFemalePersonMissingSpankings())
-                    buttons.MergeSpankingsOnFemalePersonsOnly();
+                if (hud.AnyFemalePersonMissingSpankings())
+                    hud.MergeSpankingsOnFemalePersonsOnly();
             }
             finally
             {

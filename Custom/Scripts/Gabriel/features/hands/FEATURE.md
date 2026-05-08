@@ -15,8 +15,8 @@ full-grab auto-release without reflection.
 - Sources sit under `features/hands/`; no separate VaM `.cslist` entry.
 
 ## Dependencies And Coupling
-- Invoked only from `GabrielHud` / `GabrielHotkeys`; uses `GabrielHudButtons`,
-  `GabrielHud`, palm-hud input, passenger runtime,
+- Invoked only from `GabrielHud` / `GabrielHotkeys`; uses palm-hud input,
+  passenger runtime,
   animation-no-loop-detection heuristics,
   and `SpankingsGripBlockPathKeywords`.
 - `ClothingTouchFallOffGripMerge` stays in `clothing-interactions/ClothingTouchFallOff.cs`

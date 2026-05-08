@@ -18,7 +18,7 @@ This note summarizes work done in chat (another agent) on this repo’s Gabriel 
 
 ## Files changed (only these in this workstream)
 
-### `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudButtons.cs`
+### `Custom/Scripts/Gabriel/features/ui-hud/NextSceneUiButton.cs`
 
 - **`TryResolveNextSceneUIButtonTrigger(SuperController sc)`** (private): prefers atom UID `nxtUIButton` if valid; else scans **`sc.GetAtoms()`** for `type == "UIButton"`, `activeInHierarchy`, matches label on child **`UnityEngine.UI.Text`** or **`Text` storable** param `"text"`, returns first `UIButtonTrigger` on storable id **`Trigger`** with non-null `trigger`.
 - **`NextSceneUIButtonLabelMatches`** (private): substring checks for `next`, `proxima`, `próxima` (\u00F3).

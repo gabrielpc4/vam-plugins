@@ -325,20 +325,20 @@ namespace geesp0t
     {
         internal static IEnumerator CoMergeAfterGripDeferred(
             float minNonLoopAnimationClipSeconds,
-            GabrielHudButtons buttons)
+            GabrielHud hud)
         {
             try
             {
                 yield return null;
                 yield return null;
-                if (buttons == null)
+                if (hud == null)
                     yield break;
                 if (AnimationNoLoopDetection
                     .CurrentSceneUsesLongNonLoopAnimation(
                         minNonLoopAnimationClipSeconds))
                     yield break;
-                buttons.MergeClothingTouchFallOffOnAllPersonsOnly();
-                buttons.RefreshPluginToggleLabels();
+                hud.MergeClothingTouchFallOffOnAllPersonsOnly();
+                hud.RefreshPluginToggleLabels();
             }
             finally
             {

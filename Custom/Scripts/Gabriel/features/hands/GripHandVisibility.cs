@@ -39,13 +39,13 @@ namespace geesp0t
 
         private static Action _mergeClothingTouchFallOffOnAllPersons;
 
-        /// <summary>Called from <see cref="GabrielHud.Init"/>; pass <c>null</c> on teardown.</summary>
+        /// <summary>Called from <see cref="GabrielSessionOrchestrator.BindGabrielHud"/>; pass <c>null</c> on teardown.</summary>
         public static void SetMergeSpankingsOnFirstGrip(Action mergeSpankingsOntoPersonsMissingOnly)
         {
             _mergeSpankingsOntoPersonsMissingOnly = mergeSpankingsOntoPersonsMissingOnly;
         }
 
-        /// <summary>Called from <see cref="GabrielHud.Init"/>; pass <c>null</c> on teardown.</summary>
+        /// <summary>Called from <see cref="GabrielSessionOrchestrator.BindGabrielHud"/>; pass <c>null</c> on teardown.</summary>
         public static void SetMergeClothingTouchFallOffOnFirstMale2Grip(
             Action mergeClothingTouchFallOffOnAllPersons)
         {

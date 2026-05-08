@@ -4,7 +4,7 @@ Reference for the current hand-menu passenger possession flow used by Gabriel.
 
 This documents the path that starts from the VR hand menu and ends in the Passenger-style female possession runtime. It reflects the latest behavior in:
 
-- `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudButtons.cs`
+- `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cs`
 - `Custom/Scripts/Gabriel/features/passenger-possession/PassengerRuntime.cs`
 - `Custom/Scripts/Gabriel/features/passenger-possession/PassengerHandPrePossessSnapshot.cs`
 - `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs`

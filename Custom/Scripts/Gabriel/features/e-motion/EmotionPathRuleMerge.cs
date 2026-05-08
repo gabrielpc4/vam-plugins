@@ -9,7 +9,7 @@ namespace geesp0t
     /// </summary>
     internal static class EmotionPathRuleMerge
     {
-        internal static IEnumerator CoApplyAfterSceneSettles(GabrielHudButtons buttons)
+        internal static IEnumerator CoApplyAfterSceneSettles(GabrielHud hud)
         {
             yield return null;
             yield return null;
@@ -17,21 +17,21 @@ namespace geesp0t
 
             try
             {
-                if (SuperController.singleton == null || buttons == null)
+                if (SuperController.singleton == null || hud == null)
                     yield break;
 
                 bool pathRuleMerge = EmotionPathKeywords.MatchesCurrentScenePath();
 
                 if (pathRuleMerge)
-                    buttons.MergeEmotionLiteForPathRuleOnAllPersonsOnly();
-                buttons.RefreshPluginToggleLabels();
+                    hud.MergeEmotionLiteOnAllPersonsOnly();
+                hud.RefreshPluginToggleLabels();
             }
             finally
             {
             }
         }
 
-        internal static IEnumerator CoPathRuleMergeDeferred(GabrielHudButtons buttons)
+        internal static IEnumerator CoPathRuleMergeDeferred(GabrielHud hud)
         {
             try
             {
@@ -43,13 +43,13 @@ namespace geesp0t
                 yield return null;
                 yield return new WaitForSecondsRealtime(0.35f);
 
-                if (sc == null || buttons == null)
+                if (sc == null || hud == null)
                     yield break;
                 if (!EmotionPathKeywords.MatchesCurrentScenePath())
                     yield break;
 
-                buttons.MergeEmotionLiteForPathRuleOnAllPersonsOnly();
-                buttons.RefreshPluginToggleLabels();
+                hud.MergeEmotionLiteOnAllPersonsOnly();
+                hud.RefreshPluginToggleLabels();
             }
             finally
             {

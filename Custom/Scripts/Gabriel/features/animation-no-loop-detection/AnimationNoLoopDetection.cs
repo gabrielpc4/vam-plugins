@@ -37,12 +37,12 @@ namespace geesp0t
         public static void LateTick(
             bool featureEnabled,
             float minClipLengthSeconds,
-            GabrielHud hud)
+            GabrielSessionOrchestrator orchestrator)
         {
             if (!featureEnabled)
                 return;
 
-            if (hud == null)
+            if (orchestrator == null)
                 return;
 
             if (_deferredDefaultSceneLoadFiredThisScene)
@@ -86,7 +86,7 @@ namespace geesp0t
                 return;
 
             _deferredDefaultSceneLoadFiredThisScene = true;
-            hud.StartAnimationNoLoopDetectionDeferredDefaultCoroutine();
+            orchestrator.StartAnimationNoLoopDetectionDeferredDefaultCoroutine();
         }
 
         private static bool TryGetLongNonLoopAnimationState(
@@ -168,13 +168,15 @@ namespace geesp0t
             {
                 sc.Load(DeferredDefaultScenePath);
                 SuperController.LogMessage(
-                    "GabrielHud: Loaded " + DeferredDefaultScenePath +
+                    "Gabriel session orchestrator: Loaded " +
+                    DeferredDefaultScenePath +
                     " after non-loop animation end (delayed).");
             }
             catch (System.Exception e)
             {
                 SuperController.LogError(
-                    "GabrielHud: scene load after non-loop animation end: " +
+                    "Gabriel session orchestrator: scene load after " +
+                    "non-loop animation end: " +
                     e.Message);
             }
         }

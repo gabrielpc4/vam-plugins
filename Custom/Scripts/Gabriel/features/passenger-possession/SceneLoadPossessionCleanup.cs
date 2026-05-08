@@ -39,7 +39,7 @@ namespace geesp0t
             {
                 if (!SceneHasAnyActivePossession())
                     return;
-                GabrielHudButtons.RequestClearAllPossession(
+                GabrielHud.RequestClearAllPossession(
                     "GabrielHud: ClearPossess after scene load (possession was active).");
             }
             catch (System.Exception e)

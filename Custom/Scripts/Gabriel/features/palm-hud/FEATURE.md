@@ -25,7 +25,7 @@ rows. Passenger **start** is not from the palm (see `passenger-possession` +
 
 ## Dependencies And Coupling
 - Calls into **`NextSceneUiButton`**, **`PassengerRuntime`**, and legacy
-  palm-adjacent paths in **`GabrielHudButtons`** where still needed.
+  palm-adjacent paths in **`GabrielHud`** where still needed.
 - `LEGACY-NOTES.md` contains the deeper handoff details that should stay aligned with this feature doc.
 
 ## References

@@ -36,7 +36,6 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
   or `Custom/Scripts/AutoMate/...` often map like this:
   - bootstrap -> `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cs`
   - main HUD -> `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cs`
-    and `GabrielHudButtons.cs`
   - palm HUD / VR gestures -> `Custom/Scripts/Gabriel/features/palm-hud/**`
   - passenger possession -> `Custom/Scripts/Gabriel/features/passenger-possession/**`
   - scene startup / person plugin stack ->

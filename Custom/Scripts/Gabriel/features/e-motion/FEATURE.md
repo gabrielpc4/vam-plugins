@@ -11,8 +11,8 @@ Gabriel auto-merges E-Motion Lite from **path keywords** (<c>emotion_path_keywor
 
 ## Load Path
 - Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
-- Invoked by `GabrielHud` on scene settle / atom UID churn and by
-  `GabrielHudButtons` for manual installs.
+- Invoked by `GabrielHud` on scene settle, atom UID churn, and HUD button
+  merges.
 
 ## Responsibilities
 - Parse path-keyword allow lists from `emotion_path_keywords.txt` using VaM file APIs.
@@ -21,7 +21,7 @@ Gabriel auto-merges E-Motion Lite from **path keywords** (<c>emotion_path_keywor
 
 ## Dependencies And Coupling
 - Depends on external plugin families `E-Motion`, `E-MotionLite`, and `E-MotionFinal`
-  exposed by `GabrielHudButtons`.
+  exposed by `GabrielHud`.
 - Shares long non-loop **scene-motion** qualifiers with Spankings / clothing grip merges
   through `features/animation-no-loop-detection` (`AnimationNoLoopDetection`), not via this hook.
 

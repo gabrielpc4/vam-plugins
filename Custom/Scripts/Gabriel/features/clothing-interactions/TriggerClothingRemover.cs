@@ -16,10 +16,23 @@ namespace geesp0t
     /// Runs from <see cref="GabrielSessionOrchestrator.LateUpdate"/> (not a
     /// separate CoreControl <c>MVRScript</c>) so the session bundle avoids an
     /// extra plugin instance / <c>Update</c> shim that destabilizes some loads.
+    /// When every active Person atom has zero active garments, skips all work until
+    /// the next orchestrator scene change or atom UID list change wakes checks.
     /// </summary>
     internal static class TriggerClothingRemover
     {
         private const float MaxHandToTorsoMeters = 0.62f;
+
+        /// <summary>
+        /// When true, no Person in the scene had active clothing last time we
+        /// looked; skip work until <see cref="NotifyClothingStripEligibilityDirty"/>.
+        /// </summary>
+        private static bool _idleNoStripBecauseNoGarments;
+
+        internal static void NotifyClothingStripEligibilityDirty()
+        {
+            _idleNoStripBecauseNoGarments = false;
+        }
 
         internal static void LateTickStrip()
         {
@@ -39,6 +52,17 @@ namespace geesp0t
 
             if (!sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
             {
+                return;
+            }
+
+            if (_idleNoStripBecauseNoGarments)
+            {
+                return;
+            }
+
+            if (!SceneHasPersonWithAnyActiveClothing())
+            {
+                _idleNoStripBecauseNoGarments = true;
                 return;
             }
 
@@ -253,6 +277,34 @@ namespace geesp0t
 
             preferUpper = bestPreferUpper;
             return true;
+        }
+
+        /// <summary>
+        /// Cheap presence check: any active Person geometry has active clothing.
+        /// </summary>
+        private static bool SceneHasPersonWithAnyActiveClothing()
+        {
+            int i;
+            List<Atom> persons = PersonAtomCache.GetActivePersonsThisFrame();
+
+            if (persons == null || persons.Count == 0)
+            {
+                return false;
+            }
+
+            for (i = 0; i < persons.Count; i++)
+            {
+                Atom atom = persons[i];
+                if (atom == null || atom.type != "Person")
+                {
+                    continue;
+                }
+
+                if (PersonAtomCache.PersonHasAnyActiveClothingOnGeometry(atom))
+                    return true;
+            }
+
+            return false;
         }
 
         private static bool HasAnyActiveClothing(DAZCharacterSelector selector)

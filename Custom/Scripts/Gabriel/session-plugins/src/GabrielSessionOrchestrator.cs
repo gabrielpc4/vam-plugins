@@ -503,6 +503,7 @@ namespace geesp0t
         {
             try
             {
+                TriggerClothingRemover.NotifyClothingStripEligibilityDirty();
                 PassengerRuntime.NotifyAtomUidsChanged(atomUids, this);
 
                 if (atomUids == null || atomUids.Count == 0)
@@ -617,6 +618,7 @@ namespace geesp0t
 
             if (sceneChanged)
             {
+                TriggerClothingRemover.NotifyClothingStripEligibilityDirty();
                 GabrielHud hud;
                 string currentLoadDirNorm;
                 bool sameFolderLoad;

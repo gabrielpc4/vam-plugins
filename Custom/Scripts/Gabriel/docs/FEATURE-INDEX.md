@@ -2,6 +2,12 @@
 
 Canonical map for the Gabriel feature-agent system.
 
+## Handoff
+
+- `Custom/Scripts/Gabriel/docs/AI-HANDOFF.md`: project-wide continuation
+  context for another AI, including major user decisions, current runtime
+  shape, and the highest-value files to read first.
+
 ## Areas
 
 - `bootstrap`: doc `Custom/Scripts/Gabriel/bootstrap/FEATURE.md`, skill `.cursor/skills/gabriel-bootstrap/SKILL.md`, rule `.cursor/rules/gabriel-bootstrap-doc.mdc`

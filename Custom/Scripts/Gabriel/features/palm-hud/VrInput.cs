@@ -1,28 +1,32 @@
 using UnityEngine;
+using UnityEngine.XR;
 
 namespace geesp0t
 {
     /// <summary>
-    /// VR input: <see cref="OVRInput"/> on Oculus path and
-    /// <see cref="SuperController"/> hold-grab / select for SteamVR/OpenVR.
-    /// Active headset uses <see cref="SuperController.isOVR"/> and
-    /// <see cref="SuperController.isOpenVR"/> only. Omit XRSettings (Mono emit
-    /// crash risk in VaM DynamicCSharp).
+    /// VR input: <see cref="OVRInput"/> when Oculus path is active or when XR is enabled (no Unity <c>InputDevice</c> API —
+    /// not available to VaM plugin compile in some builds), plus <see cref="SuperController"/> hold-grab / select for SteamVR/OpenVR.
     /// </summary>
     internal static class VrInput
     {
-        /// <summary>
-        /// Fallback after explicit OVR/OpenVR branches retry OVR polls.
-        /// Only SuperController VR flags — no XRSettings reads.
-        /// </summary>
         private static bool XrHeadsetLikelyOn(SuperController sc)
         {
-            return sc != null && (sc.isOVR || sc.isOpenVR);
+            if (sc != null && (sc.isOVR || sc.isOpenVR))
+                return true;
+            try
+            {
+                return XRSettings.enabled;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>
-        /// True only when VaM exposes OVR or OpenVR on SuperController so desktop
-        /// skips reliably; XRSettings is omitted (Mono compile instability).
+        /// True when OVR/OpenVR is active or Unity XR reports enabled (OpenXR
+        /// style). VaM exposes OVR/OpenVR flags whenever a VR runtime is typical.
+        /// Separate try blocks so flaky XR reads on desktop resolve to false.
         /// </summary>
         internal static bool IsLikelyVrRuntimeSafe(SuperController sc)
         {
@@ -38,7 +42,14 @@ namespace geesp0t
                 return false;
             }
 
-            return false;
+            try
+            {
+                return XRSettings.enabled;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public static void ResetEdgeState()
@@ -243,7 +254,7 @@ namespace geesp0t
                 return false;
             }
 
-            if (!sc.isOVR && !sc.isOpenVR)
+            if (!sc.isOVR && !sc.isOpenVR && !XrHeadsetLikelyOn(sc))
             {
                 return false;
             }

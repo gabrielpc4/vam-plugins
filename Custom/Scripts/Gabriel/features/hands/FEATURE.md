@@ -6,7 +6,6 @@ Male2 toggles vs sphere proxy, deferred first-grip Spankings merges, overlap
 full-grab auto-release without reflection.
 
 ## Live Files
-- `FirstGripDetection.cs`
 - `GripHandVisibility.cs`
 - `OverlapFullGrabRelease.cs`
 - `SpankingsGripDeferredMerge.cs`
@@ -17,10 +16,6 @@ full-grab auto-release without reflection.
   hands-only `.cslist`.
 
 ## Dependencies And Coupling
-- **`FirstGripDetection`** stores first-grip merge availability per hand reset;
-  **`GripHandVisibility.DisableVrHandModelsForSceneStart`** forwards the
-  orchestrator’s same-folder continuation flags so sequential same-folder JSON
-  loads do not re-arm first-grip merges.
 - Invoked from `GabrielHud` / `GabrielHotkeys`; clothing touch-fall deferral
   routes to **`GabrielSessionOrchestrator`** (`TryMerge…` /
   `GripHandVisibility.SetMerge…`) with same-folder suppression so grip merge runs

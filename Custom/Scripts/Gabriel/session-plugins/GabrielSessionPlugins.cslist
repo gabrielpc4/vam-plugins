@@ -32,5 +32,6 @@ src/GabrielSessionOrchestrator.cs
 ../features/e-motion/EmotionPathRuleMerge.cs
 ../features/spankings/SpankingsGripBlockPathKeywords.cs
 ../features/spankings/SpankingsAtomsRemoval.cs
+../features/dildo-on-hands/DildoOnHands.cs
 ../features/clothing-interactions/ClothingClassifier.cs
 ../features/clothing-interactions/TriggerClothingRemover.cs

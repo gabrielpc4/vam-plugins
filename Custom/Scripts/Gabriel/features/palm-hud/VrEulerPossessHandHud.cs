@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.XR;
 
 namespace geesp0t
 {
@@ -57,7 +58,7 @@ namespace geesp0t
                 return;
             }
 
-            if (!(sc.isOVR || sc.isOpenVR))
+            if (!(sc.isOVR || sc.isOpenVR || XRSettings.enabled))
             {
                 SetVisible(false);
                 return;

@@ -12,6 +12,8 @@ scene-settle release action for the shared HUD hotkey dispatcher.
 - `src/PlaybackHold.cs`
 - `src/InitialExposureChange.cs`
 - `src/SameFolderSceneLoadCheck.cs`
+- `src/SceneLoadDirNormalize.cs` *(also compiled into `GabrielHud.cslist`; path
+  normalization helpers for HUD same-folder cues)*
 
 ## Load Path
 - Loaded as a session plugin by `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cs`.
@@ -29,7 +31,8 @@ scene-settle release action for the shared HUD hotkey dispatcher.
 
 ## Dependencies And Coupling
 - Depends on `src/SceneSettle.cs`, `src/PlaybackHold.cs`,
-  `src/InitialExposureChange.cs`, and `src/SameFolderSceneLoadCheck.cs`.
+  `src/InitialExposureChange.cs`, `src/SameFolderSceneLoadCheck.cs`,
+  and `src/SceneLoadDirNormalize.cs` (Hud shares the latter helpers).
 - Calls `Custom/Scripts/Gabriel/features/head-hide/HeadProximityHide.cs` after
   the settle hold ends.
 - Exposes a `JSONStorableAction` on `CoreControl` so the HUD plugin can

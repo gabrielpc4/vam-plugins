@@ -1,6 +1,6 @@
 ---
 name: gabriel-e-motion
-description: Specialize on Gabriel E-Motion path-keyword logic and the mocap-end default-scene automation. Use when editing `Custom/Scripts/Gabriel/features/e-motion/**` or debugging emotion merge triggers.
+description: Specialize on Gabriel E-Motion path-keyword logic and deferred path-rule merges (`EmotionPathRuleMerge`). Use when editing `Custom/Scripts/Gabriel/features/e-motion/**` or debugging Lite auto-merge triggers. For post-mocap Default.json policy, use `features/mocap-end-default-scene/`.
 ---
 
 # Gabriel E-Motion Hooks

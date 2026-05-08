@@ -8,18 +8,14 @@ namespace geesp0t
     /// and at least one clip longer than a configurable minimum, detects mocap end (timeline
     /// counter enters the tail or resets from the tail toward zero). Then schedules loading
     /// <c>Saves/scene/Default.json</c> after <see cref="MocapEndToDefaultSceneRealtimeDelaySeconds"/>
-    /// realtime seconds. Skips when load/save dir paths contain booty shake (case-insensitive).
+    /// realtime seconds. Skips paths containing booty shake (Haystack-style, case-insensitive).
     /// </summary>
-    internal static class MotionAnimationEmotionEnd
+    internal static class NonLoopMocapMainEnd
     {
-        /// <summary>Relative to VaM install; same pattern as <c>ResetVROrientation</c>.
-        /// </summary>
         private const string MocapEndLoadScenePath = "Saves/scene/Default.json";
 
-        /// <summary>Realtime wait after mocap end before <c>Load(Default.json)</c>.</summary>
         internal const float MocapEndToDefaultSceneRealtimeDelaySeconds = 5f;
 
-        /// <summary>Substring on load/save dir haystack for exception from default load.</summary>
         private const string BootyShakePathToken = "booty shake";
 
         private static bool _mocapEndLoadFiredThisScene;
@@ -41,12 +37,12 @@ namespace geesp0t
         public static void LateTick(
             bool featureEnabled,
             float minClipLengthSeconds,
-            GabrielHud coroutineHost)
+            GabrielHud hud)
         {
             if (!featureEnabled)
                 return;
 
-            if (coroutineHost == null)
+            if (hud == null)
                 return;
 
             if (_mocapEndLoadFiredThisScene)
@@ -90,7 +86,7 @@ namespace geesp0t
                 return;
 
             _mocapEndLoadFiredThisScene = true;
-            coroutineHost.StartDelayedMocapEndDefaultScene();
+            hud.StartMocapEndDefaultSceneDelayCoroutine();
         }
 
         private static bool TryGetLongNonLoopMocapState(
@@ -118,13 +114,10 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Same scene qualification used by the delayed Default.json load:
-        /// current scene is not a booty-shake exception, has scene motion,
-        /// at least one clip is long enough, and the motion master is not
-        /// looping.
+        /// Scene qualifies for deferred Default.json: not booty-shake paths, motion on,
+        /// long enough dominant clip, master not looping.
         /// </summary>
-        internal static bool CurrentSceneUsesLongNonLoopMocap(
-            float minClipLengthSeconds)
+        internal static bool CurrentSceneUsesLongNonLoopMocap(float minClipLengthSeconds)
         {
             SuperController sc;
             MotionAnimationMaster mam;
@@ -140,9 +133,9 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Used by grip-triggered Spankings merge:
-        /// non-booty-shake long non-loop scenes always block; booty-shake
-        /// scenes block only until playback reaches the end of the clip.
+        /// Grip-triggered Spankings merge rules: non-booty long non-loop always blocks early
+        /// merge until rules say otherwise; booty-shake blocks only until playback nears clip
+        /// end.
         /// </summary>
         internal static bool CurrentSceneBlocksGripSpankingsMerge(
             float minClipLengthSeconds)
@@ -164,7 +157,6 @@ namespace geesp0t
             return mam.playbackCounter < maxClip - endEps;
         }
 
-        /// <summary>Called from <see cref="GabrielHud"/> coroutine after delay.</summary>
         internal static void ExecuteDeferredDefaultSceneLoad()
         {
             SuperController sc = SuperController.singleton;
@@ -214,11 +206,6 @@ namespace geesp0t
             return maxLen;
         }
 
-        /// <summary>
-        /// Exclude certain folder-named scenes from post-mocap default load (Haystack-style
-        /// match on <see cref="SuperController.currentLoadDir"/> and
-        /// <see cref="SuperController.currentSaveDir"/>.
-        /// </summary>
         private static bool CurrentScenePathIndicatesBootyShake(SuperController sc)
         {
             if (sc == null)
@@ -226,8 +213,12 @@ namespace geesp0t
 
             string loadDir = sc.currentLoadDir;
             string saveDir = sc.currentSaveDir;
-            string hay = ((loadDir != null ? loadDir : "") + " " + (saveDir != null ? saveDir : "")).Replace('\\', '/');
-            return hay.IndexOf(BootyShakePathToken, StringComparison.OrdinalIgnoreCase) >= 0;
+            string hay =
+                ((loadDir != null ? loadDir : "") +
+                " " + (saveDir != null ? saveDir : ""))
+                .Replace('\\', '/');
+            return hay.IndexOf(BootyShakePathToken, System.StringComparison.OrdinalIgnoreCase)
+                >= 0;
         }
     }
 }

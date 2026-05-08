@@ -1,40 +1,26 @@
 using System;
-using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using SimpleJSON;
+using UnityEngine;
 
 namespace geesp0t
 {
-    /// <summary>Runs lifecycle callbacks late for overlap release and monitor dot lasers.</summary>
+    /// <summary>Late lifecycle; session toggles; ticks feature glue for palm/lasers,
+    /// passenger, etc.</summary>
     [DefaultExecutionOrder(32000)]
     public class GabrielHud : MVRScript
     {
-        //Manage the GabrielHud menu system, add Main Menu and other buttons to scenes which are loaded from a menu but don't have any return buttons
-        //This is also required for scenes packaged in var files, etc., which we won't modify
+        private static bool logMessages;
 
-        private static bool logMessages = false;
-
-        private GabrielHudButtons mainUIButtons = null; //LOAD PERSON, POSE, ETC.
-
-        public const string resetVROrientationID = "_ResetVROrientation";
-        Atom resetVROrientation;
-
-        private string menuDataJSONNodeName = "_Gabriel";
-        private string menuDataJSONName = "plugin#0_geesp0t.GabrielBootstrap";
-        private string pluginDataJSONName = "plugin#0_geesp0t.ResetVROrientation";
-        private string uiNeedsUpdateJSONName = "UI Needs Update";
-        private string buttonTextJSONName = "Additional Button Text";
-        private string buttonSceneJSONName = "Additional Button Scene";
-        private string menuButtonScene = "Saves/scene/MainMenu_Page_3.json"; //change this as we browse between menus
-        private string menuButtonText = "Menu Page 3";
+        private GabrielHudButtons mainUIButtons;
 
         private bool isLoading = true;
-        private bool sceneChanged = true;
-        private float loadingTimeCounter = 0;
 
-        private string lastLoadDir = ""; //wish this was last full path of loaded file included directory and filename!
+        private bool sceneChanged = true;
+
+        private float loadingTimeCounter;
+
+        private string lastLoadDir = "";
 
         private Coroutine _applyEmotionAfterSceneCo;
 
@@ -47,6 +33,7 @@ namespace geesp0t
         private Coroutine _mocapEndDefaultSceneCo;
 
         public JSONStorableAction hideUI;
+
         public JSONStorableAction showUI;
 
         /// <summary>
@@ -81,63 +68,65 @@ namespace geesp0t
         /// </summary>
         public JSONStorableBool headProximityHide;
 
-        /// <summary>When true (default), after a non-looping scene mocap at least
-        /// <see cref="longMocapMinSecondsForEmotionMerge"/> long finishes, loads
-        /// <c>Saves/scene/Default.json</c> once (uses
-        /// <see cref="SuperController.motionAnimationMaster"/>).</summary>
-        public JSONStorableBool mergeEmotionWhenLongMocapEndsNoLoop;
-
-        /// <summary>Minimum longest <see cref="MotionAnimationClip.clipLength"/> in
-        /// the scene (seconds) for end-of-mocap default scene load; avoids short clips.
-        /// </summary>
-        public JSONStorableFloat longMocapMinSecondsForEmotionMerge;
-
         /// <summary>
-        /// When true (default), in main monitor mode, shows blue/red aim cylinders while
-        /// the UI-aim gesture is active: Oculus X/A capacitive touch, or OpenVR (SteamVR
-        /// / e.g. Virtual Desktop) <c>TargetShow</c> via
-        /// <see cref="SuperController.GetLeftUIPointerShow"/> /
-        /// <see cref="SuperController.GetRightUIPointerShow"/>.
+        /// After a non-looping scene mocap long enough finishes, load Default.json
+        /// (see <see cref="NonLoopMocapMainEnd"/>).
         /// </summary>
+        public JSONStorableBool loadDefaultWhenLongNonLoopMocapEnds;
+
+        /// <summary>Min dominant clip length for that path (seconds).</summary>
+        public JSONStorableFloat minSecondsNonLoopMocapClipForDefaultSceneLoad;
+
         public JSONStorableBool restoreMonitorModeControllerLaser;
 
-        /// <summary>
-        /// Restore navigation rig, monitor orientation, and player height after a
-        /// load when VaM stays in the same <see cref="SuperController.currentLoadDir"/>
-        /// (e.g. switching between JSON files inside one chapter folder).
-        /// </summary>
         public JSONStorableBool retainCameraPoseSameFolderLoads;
 
-        /// <summary>
-        /// Hides DillDoe cum Fluid CustomUnityAsset until load completes plus
-        /// <see cref="fluidCumRevealDelayRealtimeSeconds"/> (see
-        /// <see cref="FluidCumHideDuringSceneLoad"/>).
-        /// </summary>
         public JSONStorableBool hideFluidCumMeshUntilAfterLoadDelay;
 
-        /// <summary>
-        /// Realtime seconds after <see cref="SuperController.isLoading"/> becomes
-        /// false before DillDoe cum mesh / embedded canvases under that atom are
-        /// shown again.
-        /// </summary>
         public JSONStorableFloat fluidCumRevealDelayRealtimeSeconds;
 
         private bool prevSuperLoading;
 
-        private const float VamDefaultMonitorCameraFov = 40f;
-
-        private const float GabrielDefaultMonitorCameraFov = 50f;
-
-        private static string NormalizeLoadDir(string dir)
+        internal bool IsLoadDefaultOnLongNonLoopMocapEndEnabled()
         {
-            if (string.IsNullOrEmpty(dir))
-                return "";
+            return loadDefaultWhenLongNonLoopMocapEnds != null &&
+                loadDefaultWhenLongNonLoopMocapEnds.val;
+        }
 
-            string normalized = dir.Replace('\\', '/').Trim();
-            while (normalized.Length > 1 && normalized.EndsWith("/"))
-                normalized = normalized.Substring(0, normalized.Length - 1);
+        internal float GetMinNonLoopMocapSecondsForDefaultScene()
+        {
+            return minSecondsNonLoopMocapClipForDefaultSceneLoad != null
+                ? minSecondsNonLoopMocapClipForDefaultSceneLoad.val
+                : 45f;
+        }
 
-            return normalized;
+        /// <summary>
+        /// Called when <see cref="NonLoopMocapMainEnd"/> detects main timeline end.
+        /// </summary>
+        internal void StartMocapEndDefaultSceneDelayCoroutine()
+        {
+            if (_mocapEndDefaultSceneCo != null)
+            {
+                StopCoroutine(_mocapEndDefaultSceneCo);
+                _mocapEndDefaultSceneCo = null;
+            }
+
+            _mocapEndDefaultSceneCo = StartCoroutine(CoDelayedMocapEndDefaultScene());
+        }
+
+        private IEnumerator CoDelayedMocapEndDefaultScene()
+        {
+            try
+            {
+                yield return new WaitForSecondsRealtime(
+                    NonLoopMocapMainEnd
+                        .MocapEndToDefaultSceneRealtimeDelaySeconds);
+                NonLoopMocapMainEnd.ExecuteDeferredDefaultSceneLoad();
+            }
+            finally
+            {
+                _mocapEndDefaultSceneCo = null;
+            }
         }
 
         public override void Init()
@@ -146,9 +135,9 @@ namespace geesp0t
             mainUIButtons = new GabrielHudButtons();
             mainUIButtons.Init(this);
 
-            hideUI = new JSONStorableAction("Hide UI", () => HideUI());
+            hideUI = new JSONStorableAction("Hide UI", HideUI);
             RegisterAction(hideUI);
-            showUI = new JSONStorableAction("Show UI", () => ShowUI());
+            showUI = new JSONStorableAction("Show UI", ShowUI);
             RegisterAction(showUI);
 
             disableRemoteGripHandLink = new JSONStorableBool(
@@ -157,13 +146,20 @@ namespace geesp0t
                 OnDisableRemoteGripHandLinkChanged);
             RegisterBool(disableRemoteGripHandLink);
 
-            gripTogglesHandVisibility = new JSONStorableBool("Grip toggles VR hand visibility", true);
+            gripTogglesHandVisibility = new JSONStorableBool(
+                "Grip toggles VR hand visibility",
+                true);
             RegisterBool(gripTogglesHandVisibility);
 
-            blockOverlapFullGrab = new JSONStorableBool("Block overlap full-grab (auto-release each frame)", true);
+            blockOverlapFullGrab = new JSONStorableBool(
+                "Block overlap full-grab (auto-release each frame)",
+                true);
             RegisterBool(blockOverlapFullGrab);
 
-            headProximityHide = new JSONStorableBool("VR head proximity hide", true, OnHeadProximityHideChanged);
+            headProximityHide = new JSONStorableBool(
+                "VR head proximity hide",
+                true,
+                OnHeadProximityHideChanged);
             RegisterBool(headProximityHide);
 
             retainCameraPoseSameFolderLoads = new JSONStorableBool(
@@ -174,17 +170,17 @@ namespace geesp0t
             SameFolderCameraRetain.SetRetainEnabled(
                 retainCameraPoseSameFolderLoads.val);
 
-            mergeEmotionWhenLongMocapEndsNoLoop = new JSONStorableBool(
+            loadDefaultWhenLongNonLoopMocapEnds = new JSONStorableBool(
                 "Load Saves/scene/Default.json when long mocap ends (no loop)",
                 true);
-            RegisterBool(mergeEmotionWhenLongMocapEndsNoLoop);
+            RegisterBool(loadDefaultWhenLongNonLoopMocapEnds);
 
-            longMocapMinSecondsForEmotionMerge = new JSONStorableFloat(
+            minSecondsNonLoopMocapClipForDefaultSceneLoad = new JSONStorableFloat(
                 "Min mocap length (s) for end-of-clip default scene load",
                 45f,
                 5f,
                 600f);
-            RegisterFloat(longMocapMinSecondsForEmotionMerge);
+            RegisterFloat(minSecondsNonLoopMocapClipForDefaultSceneLoad);
 
             restoreMonitorModeControllerLaser = new JSONStorableBool(
                 "Monitor mode: beams (Quest X/A touch or SteamVR TargetShow)",
@@ -203,10 +199,13 @@ namespace geesp0t
                 120f);
             RegisterFloat(fluidCumRevealDelayRealtimeSeconds);
 
-            SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
-            SuperController.singleton.onAtomUIDsChangedHandlers += OnAtomUIDsChangedPathRuleEmotion;
+            SuperController.singleton.onAtomUIDsChangedHandlers -=
+                OnAtomUIDsChangedHandlers;
+            SuperController.singleton.onAtomUIDsChangedHandlers +=
+                OnAtomUIDsChangedHandlers;
 
-            GripHandVisibility.SetMergeSpankingsOnFirstGrip(QueueMergeSpankingsAfterGripDeferred);
+            GripHandVisibility.SetMergeSpankingsOnFirstGrip(
+                QueueMergeSpankingsAfterGripDeferred);
             GripHandVisibility.SetMergeClothingTouchFallOffOnFirstMale2Grip(
                 QueueMergeClothingTouchFallOffAfterGripDeferred);
         }
@@ -215,66 +214,24 @@ namespace geesp0t
         {
             if (mainUIButtons == null)
                 return;
-            if (SpankingsGripBlockPathKeywords.CurrentSceneBlocksGripSpankingsMerge())
+            if (SpankingsGripDeferredMerge.ShouldSkipQueue(this, mainUIButtons))
                 return;
-            if (mergeEmotionWhenLongMocapEndsNoLoop != null &&
-                mergeEmotionWhenLongMocapEndsNoLoop.val)
-            {
-                float mocapMinSec =
-                    longMocapMinSecondsForEmotionMerge != null
-                    ? longMocapMinSecondsForEmotionMerge.val
-                    : 45f;
-                if (MotionAnimationEmotionEnd
-                    .CurrentSceneBlocksGripSpankingsMerge(mocapMinSec))
-                    return;
-            }
+
             if (_mergeSpankingsAfterGripCo != null)
                 StopCoroutine(_mergeSpankingsAfterGripCo);
-            _mergeSpankingsAfterGripCo = StartCoroutine(CoMergeSpankingsAfterGripDeferred());
+
+            _mergeSpankingsAfterGripCo =
+                StartCoroutine(WrapTrackSpankingsGripDeferred());
         }
 
-        private IEnumerator CoMergeSpankingsAfterGripDeferred()
+        private IEnumerator WrapTrackSpankingsGripDeferred()
         {
             try
             {
-                yield return null;
-                yield return null;
-                if (mainUIButtons == null)
-                    yield break;
-                if (SpankingsGripBlockPathKeywords
-                    .CurrentSceneBlocksGripSpankingsMerge())
-                    yield break;
-                if (mergeEmotionWhenLongMocapEndsNoLoop != null &&
-                    mergeEmotionWhenLongMocapEndsNoLoop.val)
-                {
-                    float mocapMinSec =
-                        longMocapMinSecondsForEmotionMerge != null
-                        ? longMocapMinSecondsForEmotionMerge.val
-                        : 45f;
-                    if (MotionAnimationEmotionEnd
-                        .CurrentSceneBlocksGripSpankingsMerge(mocapMinSec))
-                        yield break;
-                }
-                mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
-                yield return new WaitForSeconds(4f);
-                if (mainUIButtons == null)
-                    yield break;
-                if (SpankingsGripBlockPathKeywords
-                    .CurrentSceneBlocksGripSpankingsMerge())
-                    yield break;
-                if (mergeEmotionWhenLongMocapEndsNoLoop != null &&
-                    mergeEmotionWhenLongMocapEndsNoLoop.val)
-                {
-                    float mocapMinSec =
-                        longMocapMinSecondsForEmotionMerge != null
-                        ? longMocapMinSecondsForEmotionMerge.val
-                        : 45f;
-                    if (MotionAnimationEmotionEnd
-                        .CurrentSceneBlocksGripSpankingsMerge(mocapMinSec))
-                        yield break;
-                }
-                if (mainUIButtons.AnyFemalePersonMissingSpankings())
-                    mainUIButtons.MergeSpankingsOnFemalePersonsOnly();
+                yield return StartCoroutine(
+                    SpankingsGripDeferredMerge.CoMergeAfterGripDeferred(
+                        this,
+                        mainUIButtons));
             }
             finally
             {
@@ -286,72 +243,28 @@ namespace geesp0t
         {
             if (mainUIButtons == null)
                 return;
-            if (CurrentSceneHasLongNonLoopMocap())
+            float mocapMinSec = GetMinNonLoopMocapSecondsForDefaultScene();
+            if (NonLoopMocapMainEnd
+                .CurrentSceneUsesLongNonLoopMocap(mocapMinSec))
                 return;
             if (_mergeClothingTouchFallOffAfterGripCo != null)
                 StopCoroutine(_mergeClothingTouchFallOffAfterGripCo);
             _mergeClothingTouchFallOffAfterGripCo =
-                StartCoroutine(CoMergeClothingTouchFallOffAfterGripDeferred());
+                StartCoroutine(WrapTrackClothingGripDeferred());
         }
 
-        private IEnumerator CoMergeClothingTouchFallOffAfterGripDeferred()
+        private IEnumerator WrapTrackClothingGripDeferred()
         {
             try
             {
-                yield return null;
-                yield return null;
-                if (mainUIButtons == null)
-                    yield break;
-                if (CurrentSceneHasLongNonLoopMocap())
-                    yield break;
-                mainUIButtons.MergeClothingTouchFallOffOnAllPersonsOnly();
-                mainUIButtons.RefreshPluginToggleLabels();
+                yield return StartCoroutine(
+                    ClothingTouchFallOffGripMerge.CoMergeAfterGripDeferred(
+                        GetMinNonLoopMocapSecondsForDefaultScene(),
+                        mainUIButtons));
             }
             finally
             {
                 _mergeClothingTouchFallOffAfterGripCo = null;
-            }
-        }
-
-        private bool CurrentSceneHasLongNonLoopMocap()
-        {
-            float mocapMinSec =
-                longMocapMinSecondsForEmotionMerge != null
-                ? longMocapMinSecondsForEmotionMerge.val
-                : 45f;
-
-            return MotionAnimationEmotionEnd
-                .CurrentSceneUsesLongNonLoopMocap(mocapMinSec);
-        }
-
-        /// <summary>
-        /// Called by <see cref="MotionAnimationEmotionEnd"/> after mocap-end
-        /// is detected; waits realtime then loads Default.json.
-        /// </summary>
-        public void StartDelayedMocapEndDefaultScene()
-        {
-            if (_mocapEndDefaultSceneCo != null)
-            {
-                StopCoroutine(_mocapEndDefaultSceneCo);
-                _mocapEndDefaultSceneCo = null;
-            }
-
-            _mocapEndDefaultSceneCo =
-                StartCoroutine(CoDelayedMocapEndDefaultScene());
-        }
-
-        private IEnumerator CoDelayedMocapEndDefaultScene()
-        {
-            try
-            {
-                yield return new WaitForSecondsRealtime(
-                    MotionAnimationEmotionEnd
-                        .MocapEndToDefaultSceneRealtimeDelaySeconds);
-                MotionAnimationEmotionEnd.ExecuteDeferredDefaultSceneLoad();
-            }
-            finally
-            {
-                _mocapEndDefaultSceneCo = null;
             }
         }
 
@@ -383,47 +296,35 @@ namespace geesp0t
                 sc.EnableRemoteHoldGrab();
         }
 
-        private void ApplyDefaultMonitorCameraFovIfNeeded()
-        {
-            SuperController sc = SuperController.singleton;
-            if (sc == null)
-                return;
-
-            if (Mathf.Abs(sc.monitorCameraFOV - VamDefaultMonitorCameraFov) >
-                0.001f)
-            {
-                return;
-            }
-
-            sc.monitorCameraFOV = GabrielDefaultMonitorCameraFov;
-        }
-
         public void ShowUI()
         {
             if (mainUIButtons != null)
-            {
                 mainUIButtons.ShowUI(true);
-            }
         }
+
         public void HideUI()
         {
             if (mainUIButtons != null)
-            {
                 mainUIButtons.ShowUI(false);
-            }
         }
 
         void Start()
         {
             Log("GabrielHud Start");
-            if (mainUIButtons != null) mainUIButtons.Start();
+            if (mainUIButtons != null)
+                mainUIButtons.Start();
+
             ApplyRemoteHoldGrabPreference();
             if (headProximityHide != null)
                 HeadProximityHide.SetHeadProximityHideEnabled(headProximityHide.val, this);
+
             StartCoroutine(CoRefreshHeadProximityHooksAfterStartFrames());
             GripHandVisibility.DisableVrHandModelsForSceneStart();
-            MotionAnimationEmotionEnd.ResetForNewScene();
-            ApplyDefaultMonitorCameraFovIfNeeded();
+            NonLoopMocapMainEnd.ResetForNewScene();
+
+            SuperController camSc = SuperController.singleton;
+            if (camSc != null)
+                DefaultMonitorCameraFov.ApplyGabrielPreferenceIfStillStock(camSc);
         }
 
         private IEnumerator CoRefreshHeadProximityHooksAfterStartFrames()
@@ -432,47 +333,42 @@ namespace geesp0t
             yield return null;
 
             if (headProximityHide == null)
-            {
                 yield break;
-            }
 
             HeadProximityHide.SetHeadProximityHideEnabled(headProximityHide.val, this);
         }
 
-        /// <summary>
-        /// Person plugin lists can restore over several frames; merge E-MotionLite when load/save paths match keywords in
-        /// <see cref="EmotionPathKeywords.KeywordsFileRelative"/> (see <see cref="EmotionPathKeywords"/>); refresh HUD.
-        /// </summary>
-        private IEnumerator CoApplyEmotionAfterSceneSettles()
+        private void StartPathRuleEmotionMergeDeferred()
         {
-            yield return null;
-            yield return null;
-            yield return new WaitForSecondsRealtime(0.35f);
+            if (!EmotionPathKeywords.MatchesCurrentScenePath())
+                return;
+            if (_pathRuleEmotionMergeCo != null)
+            {
+                StopCoroutine(_pathRuleEmotionMergeCo);
+                _pathRuleEmotionMergeCo = null;
+            }
+            _pathRuleEmotionMergeCo =
+                StartCoroutine(WrapTrackPathRuleMergeDeferred());
+        }
 
+        private IEnumerator WrapTrackPathRuleMergeDeferred()
+        {
             try
             {
-                if (SuperController.singleton == null || mainUIButtons == null)
-                    yield break;
-
-                bool pathRuleMerge = EmotionPathKeywords.MatchesCurrentScenePath();
-
-                if (pathRuleMerge)
-                    mainUIButtons.MergeEmotionLiteForPathRuleOnAllPersonsOnly();
-                mainUIButtons.RefreshPluginToggleLabels();
+                yield return StartCoroutine(
+                    EmotionPathRuleMerge.CoPathRuleMergeDeferred(mainUIButtons));
             }
             finally
             {
-                _applyEmotionAfterSceneCo = null;
+                _pathRuleEmotionMergeCo = null;
             }
         }
 
-        private void OnAtomUIDsChangedPathRuleEmotion(List<string> atomUids)
+        private void OnAtomUIDsChangedHandlers(List<string> atomUids)
         {
             try
             {
-                PassengerRuntime.NotifyAtomUidsChanged(
-                    atomUids,
-                    this);
+                PassengerRuntime.NotifyAtomUidsChanged(atomUids, this);
 
                 if (atomUids == null || atomUids.Count == 0)
                     return;
@@ -501,189 +397,20 @@ namespace geesp0t
             }
             catch (Exception e)
             {
-                LogError("GabrielHud path-rule E-Motion (atom UID change): " + e.Message);
+                LogError(
+                    "GabrielHud path-rule E-Motion (atom UID change): " + e.Message);
             }
         }
 
-        private void StartPathRuleEmotionMergeDeferred()
-        {
-            if (!EmotionPathKeywords.MatchesCurrentScenePath())
-                return;
-            if (_pathRuleEmotionMergeCo != null)
-            {
-                StopCoroutine(_pathRuleEmotionMergeCo);
-                _pathRuleEmotionMergeCo = null;
-            }
-            _pathRuleEmotionMergeCo = StartCoroutine(CoPathRuleEmotionMergeDeferred());
-        }
-
-        private IEnumerator CoPathRuleEmotionMergeDeferred()
-        {
-            try
-            {
-                SuperController sc = SuperController.singleton;
-                while (sc != null && sc.isLoading)
-                    yield return null;
-
-                yield return null;
-                yield return null;
-                yield return new WaitForSecondsRealtime(0.35f);
-
-                if (sc == null || mainUIButtons == null)
-                    yield break;
-                if (!EmotionPathKeywords.MatchesCurrentScenePath())
-                    yield break;
-
-                mainUIButtons.MergeEmotionLiteForPathRuleOnAllPersonsOnly();
-                mainUIButtons.RefreshPluginToggleLabels();
-            }
-            finally
-            {
-                _pathRuleEmotionMergeCo = null;
-            }
-        }
-
-        private IEnumerator CreateResetVROrientationAtom()
-        {
-            yield return SuperController.singleton.AddAtomByType("Empty", resetVROrientationID);
-            resetVROrientation = SuperController.singleton.GetAtomByUid(resetVROrientationID);
-            ConfigureResetVROrientation();
-        }
-
-        private void GetMenuData()
-        {
-            //THIS DATA ISN'T WHAT TO SET FOR THIS PAGE, IT'S WHAT TO SET ON ANY NEXT PAGE THAT DOESN'T HAVE ANYTHING SET
-            Atom menuData = SuperController.singleton.GetAtomByUid(menuDataJSONNodeName);
-            if (menuData != null)
-            {
-                JSONStorable easyMateMenuData = menuData.GetStorableByID(menuDataJSONName);
-                if (easyMateMenuData != null)
-                {
-                    string buttonText = easyMateMenuData.GetStringParamValue(buttonTextJSONName);
-                    if (buttonText != null && buttonText != "")
-                    {
-                        Log("Last Menu Button Text: " + buttonText);
-                        menuButtonText = buttonText;
-                    }
-
-                    string buttonScene = easyMateMenuData.GetStringParamValue(buttonSceneJSONName);
-                    if (buttonScene != null && buttonScene != "")
-                    {
-                        Log("Last Menu Button Scene: " + buttonScene);
-                        menuButtonScene = buttonScene;
-                    }
-                }
-            }
-        }
-
-        private void LogError(string error)
+        private static void LogError(string error)
         {
             SuperController.LogError(error);
         }
 
         private void Log(string message)
         {
-            if (logMessages) SuperController.LogMessage(message);
-        }
-
-        private static bool SceneHasAnyActivePossession()
-        {
-            try
-            {
-                SuperController sc = SuperController.singleton;
-                if (sc == null)
-                    return false;
-                foreach (Atom a in sc.GetAtoms())
-                {
-                    if (a == null || !a.gameObject.activeInHierarchy)
-                        continue;
-                    FreeControllerV3[] fcs = a.transform.GetComponentsInChildren<FreeControllerV3>(true);
-                    for (int i = 0; i < fcs.Length; i++)
-                    {
-                        if (fcs[i] != null && fcs[i].possessed)
-                            return true;
-                    }
-                }
-            }
-            catch
-            {
-            }
-
-            return false;
-        }
-
-        private void ClearAllPossessionIfLoadedSceneHadAny()
-        {
-            try
-            {
-                if (!SceneHasAnyActivePossession())
-                    return;
-                GabrielHudButtons.RequestClearAllPossession(
-                    "GabrielHud: ClearPossess after scene load (possession was active).");
-            }
-            catch (Exception e)
-            {
-                LogError("GabrielHud ClearPossess on scene load failed: " + e.Message);
-            }
-        }
-
-        private void ConfigureResetVROrientation()
-        {
-            if (resetVROrientation == null)
-            {
-                LogError("Missing required " + resetVROrientationID + " Atom.");
-            }
-
-            JSONClass jc;
-            MVRPluginManager pluginManager = resetVROrientation.GetStorableByID("PluginManager") as MVRPluginManager;
-            JSONClass pluginManagerJSON = pluginManager.GetJSON(true, true, true);
-            if (pluginManagerJSON["plugins"] != null && pluginManagerJSON["plugins"]["plugin#0"] != null &&
-                    pluginManagerJSON["plugins"]["plugin#0"].Value != "")
-            {
-                //has a plugin
-            } else
-            {
-                //make the plugin
-                Log("Adding ResetVROrientation Plugin");
-                jc = BuildResetVROrientationPlugin();
-                pluginManager.LateRestoreFromJSON(jc);
-            }
-
-            JSONStorable pluginData = resetVROrientation.GetStorableByID(pluginDataJSONName);
-            if (pluginData != null)
-            {
-                string buttonText = pluginData.GetStringParamValue(buttonTextJSONName);
-                string buttonScene = pluginData.GetStringParamValue(buttonSceneJSONName);
-
-                if (buttonText == null || buttonText == "" || buttonText == "Looks Menu"
-                    || buttonScene == null || buttonScene == "" || buttonScene.EndsWith("PersonLooksMenu.json"))
-                { 
-                    pluginData.SetStringParamValue(buttonTextJSONName, menuButtonText);
-                    pluginData.SetStringParamValue(buttonSceneJSONName, menuButtonScene);
-                    pluginData.SetBoolParamValue(uiNeedsUpdateJSONName, true);
-                    Log("Setting ResetVROrientation Plugin Data: " + menuButtonText + ", " + menuButtonScene);
-                } else
-                {
-                    Log("Already had ResetVROrientation Plugin Data");
-                }
-            } else
-            {
-                LogError("Missing ResetVROrientation Data Storable: " + pluginDataJSONName);
-            }
-        }
-
-        JSONClass BuildResetVROrientationPlugin()
-        {
-            //the plugin
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
-            sb.Append(" {");
-            sb.Append(" \"id\" : \"" + "PluginManager" + "\",");
-            sb.Append(" \"plugins\" : " + "{");
-            sb.Append(" \"plugin#0\" : \"Custom/Scripts/Reset VR Orientation/ResetVROrientation.cs\" ");
-            sb.Append(" }");
-            sb.Append(" }");
-            Log("Built ResetVROrientation Plugin String: " + sb.ToString());
-            return JSONNode.Parse(sb.ToString()).AsObject;
+            if (logMessages)
+                SuperController.LogMessage(message);
         }
 
         void Update()
@@ -696,13 +423,12 @@ namespace geesp0t
                 mainUIButtons.ProcessHotkeysUpdate();
 
             if (!prevSuperLoading && loadingNow)
-            {
                 PassengerRuntime.NotifySceneChanged(this);
-            }
 
             bool fluidCumHide =
                 hideFluidCumMeshUntilAfterLoadDelay != null &&
                 hideFluidCumMeshUntilAfterLoadDelay.val;
+
             float fluidCumDelay =
                 fluidCumRevealDelayRealtimeSeconds != null
                     ? fluidCumRevealDelayRealtimeSeconds.val
@@ -724,7 +450,6 @@ namespace geesp0t
 
             prevSuperLoading = loadingNow;
 
-            //once finished loading, apply
             if (SuperController.singleton.isLoading)
             {
                 isLoading = true;
@@ -733,7 +458,6 @@ namespace geesp0t
 
             if (isLoading && !SuperController.singleton.isLoading)
             {
-                //wait a little, otherwise it reloads plugins multiple times during loading
                 if (Time.timeSinceLevelLoad > loadingTimeCounter + 1.0f)
                 {
                     isLoading = false;
@@ -743,26 +467,26 @@ namespace geesp0t
 
             if (sceneChanged)
             {
-                MotionAnimationEmotionEnd.ResetForNewScene();
+                NonLoopMocapMainEnd.ResetForNewScene();
                 sceneChanged = false;
-                Log("GabrielHud Scene Changed, Load Dir: " + SuperController.singleton.currentLoadDir + ", Time Since Level Load: " + Time.timeSinceLevelLoad);
-                string currentLoadDirNorm =
-                    NormalizeLoadDir(SuperController.singleton.currentLoadDir);
+                Log(
+                    "GabrielHud Scene Changed, Load Dir: "
+                    + SuperController.singleton.currentLoadDir
+                    + ", Time Since Level Load: "
+                    + Time.timeSinceLevelLoad);
+
+                string currentLoadDirNorm = SceneLoadDirNormalize.Normalize(
+                    SuperController.singleton.currentLoadDir);
+
                 bool sameFolderLoad =
-                    currentLoadDirNorm.Length > 0 &&
-                    string.Equals(
-                        NormalizeLoadDir(lastLoadDir),
-                        currentLoadDirNorm,
-                        StringComparison.OrdinalIgnoreCase);
-                //get menu data, if this is a menu
-                GetMenuData();
+                    SceneLoadDirNormalize.SameFolderLoads(lastLoadDir, currentLoadDirNorm);
 
                 if (mainUIButtons != null)
                     mainUIButtons.InvalidateCachedPersonLists();
 
                 PassengerRuntime.NotifySceneChanged(this);
 
-                ClearAllPossessionIfLoadedSceneHadAny();
+                SceneLoadPossessionCleanup.ClearPossessionAfterSceneApplyIfHadAny();
 
                 if (mainUIButtons != null)
                 {
@@ -772,63 +496,84 @@ namespace geesp0t
                         _applyEmotionAfterSceneCo = null;
                     }
 
-                    _applyEmotionAfterSceneCo = StartCoroutine(CoApplyEmotionAfterSceneSettles());
+                    _applyEmotionAfterSceneCo =
+                        StartCoroutine(WrapTrackApplyEmotionAfterScene());
                 }
 
                 if (!sameFolderLoad)
                 {
-                    Log("Load Dir Changed from " + lastLoadDir + " to " + SuperController.singleton.currentLoadDir);
-                    lastLoadDir = SuperController.singleton.currentLoadDir;
-                    //reset clothes cycling, etc.
-                    if (mainUIButtons != null) mainUIButtons.ClothingResetCycle();
-                }
-
-                resetVROrientation = SuperController.singleton.GetAtomByUid(resetVROrientationID);
-                if (resetVROrientation == null)
-                {
-                    Log("GabrielHud adding ResetVROrientation Atom.");
-                    StartCoroutine(CreateResetVROrientationAtom());
-                }
-                else
-                {
-                    ConfigureResetVROrientation();
+                    Log(
+                        "Load Dir Changed from " + lastLoadDir + " to "
+                        + SuperController.singleton.currentLoadDir);
+                    lastLoadDir =
+                        SuperController.singleton.currentLoadDir;
+                    if (mainUIButtons != null)
+                        mainUIButtons.ClothingResetCycle();
                 }
 
                 ApplyRemoteHoldGrabPreference();
-                ApplyDefaultMonitorCameraFovIfNeeded();
+                if (scFsm != null)
+                    DefaultMonitorCameraFov.ApplyGabrielPreferenceIfStillStock(scFsm);
                 VrInput.ResetEdgeState();
                 GripHandVisibility.DisableVrHandModelsForSceneStart(
                     sameFolderLoad);
 
                 if (headProximityHide != null)
-                {
                     HeadProximityHide.SetHeadProximityHideEnabled(headProximityHide.val, this);
-                }
             }
+        }
 
+        private IEnumerator WrapTrackApplyEmotionAfterScene()
+        {
+            try
+            {
+                yield return StartCoroutine(
+                    EmotionPathRuleMerge.CoApplyAfterSceneSettles(mainUIButtons));
+            }
+            finally
+            {
+                _applyEmotionAfterSceneCo = null;
+            }
         }
 
         void LateUpdate()
         {
             if (SuperController.singleton == null || SuperController.singleton.isLoading)
                 return;
-            bool blockOverlap = blockOverlapFullGrab != null && blockOverlapFullGrab.val;
+
+            bool blockOverlap =
+                blockOverlapFullGrab != null && blockOverlapFullGrab.val;
+
             OverlapFullGrabRelease.LateTick(blockOverlap);
 
-            bool gripHands = gripTogglesHandVisibility != null && gripTogglesHandVisibility.val;
+            bool gripHands =
+                gripTogglesHandVisibility != null &&
+                gripTogglesHandVisibility.val;
+
             GripHandVisibility.LateTick(gripHands);
 
-            if (retainCameraPoseSameFolderLoads != null && retainCameraPoseSameFolderLoads.val)
+            if (retainCameraPoseSameFolderLoads != null &&
+                retainCameraPoseSameFolderLoads.val)
                 SameFolderCameraRetain.LateTickIdleCapture(SuperController.singleton);
 
-            bool mocapEmotionEnd = mergeEmotionWhenLongMocapEndsNoLoop != null && mergeEmotionWhenLongMocapEndsNoLoop.val;
-            float mocapMinSec = longMocapMinSecondsForEmotionMerge != null ? longMocapMinSecondsForEmotionMerge.val : 45f;
-            MotionAnimationEmotionEnd.LateTick(
-                mocapEmotionEnd,
+            bool mocapLoadDefault =
+                loadDefaultWhenLongNonLoopMocapEnds != null &&
+                loadDefaultWhenLongNonLoopMocapEnds.val;
+
+            float mocapMinSec =
+                minSecondsNonLoopMocapClipForDefaultSceneLoad != null
+                    ? minSecondsNonLoopMocapClipForDefaultSceneLoad.val
+                    : 45f;
+
+            NonLoopMocapMainEnd.LateTick(
+                mocapLoadDefault,
                 mocapMinSec,
                 this);
 
-            bool monitorLaser = restoreMonitorModeControllerLaser != null && restoreMonitorModeControllerLaser.val;
+            bool monitorLaser =
+                restoreMonitorModeControllerLaser != null &&
+                restoreMonitorModeControllerLaser.val;
+
             MonitorModeLaserRestore.Tick(monitorLaser);
             VrEulerPossessHandHud.Tick();
             PassengerRuntime.Tick(this);
@@ -839,8 +584,13 @@ namespace geesp0t
             FluidCumHideDuringSceneLoad.OnPluginDestroy();
 
             if (SuperController.singleton != null)
+                SuperController.singleton.onAtomUIDsChangedHandlers -=
+                    OnAtomUIDsChangedHandlers;
+
+            if (_applyEmotionAfterSceneCo != null)
             {
-                SuperController.singleton.onAtomUIDsChangedHandlers -= OnAtomUIDsChangedPathRuleEmotion;
+                StopCoroutine(_applyEmotionAfterSceneCo);
+                _applyEmotionAfterSceneCo = null;
             }
 
             if (_pathRuleEmotionMergeCo != null)
@@ -873,28 +623,9 @@ namespace geesp0t
             VrEulerPossessHandHud.OnPluginDestroy();
             PassengerRuntime.OnPluginDestroy();
             HeadProximityHide.End();
-            if (mainUIButtons != null) mainUIButtons.OnDestroy();
-        }
 
-        //NOT USED, ADDING THE OBJECT, THEN ONLY BUILDING THE PLUGIN STRING, NOT THE WHOLE OBJECT STRING
-        string BuildFullResetVROrientationJSON()
-        {
-            string json = " { \"id\" : \"_ResetVROrientation\", \"on\" : \"true\", \"type\" : \"Empty\", " +
-                "\"position\" : { \"x\" : \"0.5\", \"y\" : \"1\", \"z\" : \"0\" }, " +
-                "\"rotation\" : { \"x\" : \"0\", \"y\" : \"0\", \"z\" : \"0\" }, " +
-                "\"containerPosition\" : { \"x\" : \"0.5\", \"y\" : \"1\", \"z\" : \"0\" }, " +
-                "\"containerRotation\" : { \"x\" : \"0\", \"y\" : \"0\", \"z\" : \"0\" }," +
-                "\"storables\" : [" +
-                "{ \"id\" : \"CollisionTrigger\", \"trigger\" : { \"startActions\" : [ ], \"transitionActions\" : [ ], \"endActions\" : [ ] } }," +
-                "{ \"id\" : \"PluginManager\", \"plugins\" : { \"plugin#0\" : \"Custom/Scripts/Reset VR Orientation/ResetVROrientation.cs\" } }," +
-                "{ \"id\" : \"control\", \"position\" : { \"x\" : \"0.5\", \"y\" : \"1\", \"z\" : \"0\" }, \"rotation\" : { \"x\" : \"0\", \"y\" : \"0\", \"z\" : \"0\" } }," +
-                "{ \"id\" : \"plugin#0_geesp0t.ResetVROrientation\", " +
-                "\"Show Additional Button (reload scene to see the change)\" : \"true\"," +
-                "\"Additional Button Text\" : \"Looks Page 2\"," +
-                "\"Additional Button Scene\" : \"Saves/scene/PersonLooksMenu_2.json\"" +
-                " } ] }, } ";
-
-            return json;
+            if (mainUIButtons != null)
+                mainUIButtons.OnDestroy();
         }
     }
 }

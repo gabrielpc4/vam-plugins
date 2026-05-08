@@ -11,11 +11,13 @@ All Gabriel-owned clothing-touch, strip, and VR-hand clothing helpers. This area
 - `VrProximityStripClothing.cslist`
 - `GripHandVisibility.cs`
 - `OverlapFullGrabRelease.cs`
+- `ClothingTouchFallOffGripMerge.cs`
 
 ## Load Path
 - `GabrielBootstrap` loads `VrProximityStripClothing.cslist` as a session plugin.
 - `GabrielSessionStack` and HUD routines merge `ClothingTouchFallOff.cslist` onto Person atoms.
-- `GripHandVisibility` and `OverlapFullGrabRelease` are compiled into `GabrielHud.cslist`.
+- `GripHandVisibility`, `OverlapFullGrabRelease`, and `ClothingTouchFallOffGripMerge`
+  are compiled into `GabrielHud.cslist`.
 
 ## Responsibilities
 - Enable clothing fall-off on nearby garments when hands contact a person.
@@ -24,12 +26,14 @@ All Gabriel-owned clothing-touch, strip, and VR-hand clothing helpers. This area
 - Release stuck overlap full-grabs through public `SuperController` / `FreeControllerV3` paths.
 
 ## Dependencies And Coupling
-- `GripHandVisibility` triggers Spankings and ClothingTouchFallOff merge callbacks owned by `ui-hud`.
+- `GripHandVisibility` wires Spankings and Clothing deferred merges owned by `ui-hud`
+  helpers and shares long non-loop motion gates with `mocap-end-default-scene`.
 - `ClothingTouchFallOff` is a managed person plugin path inside `session-stack`.
 
 ## References
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/session-stack/FEATURE.md`
+- `Custom/Scripts/Gabriel/features/mocap-end-default-scene/FEATURE.md`
 
 ## Update Checklist
 Update this file in the same turn whenever any of these change:

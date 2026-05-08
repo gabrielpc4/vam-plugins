@@ -8,6 +8,7 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 - `SameFolderCameraRetain.cs`
 - `MonitorModeLaserRestore.cs`
 - `FluidCumHideDuringSceneLoad.cs`
+- `DefaultMonitorCameraFov.cs`
 
 ## Load Path
 - Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
@@ -19,6 +20,7 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 - Tick `PassengerLaserPossess` when beams run so **right beam + face A**
   can start passenger on a lit hit person.
 - Hide DillDoe fluid mesh until scene load settles.
+- Nudge standalone monitor-camera FOV from VaM defaults to Gabriel preference.
 - Capture camera/rig snapshots from the K hotkey and route them into the offline patch scripts.
 
 ## Dependencies And Coupling

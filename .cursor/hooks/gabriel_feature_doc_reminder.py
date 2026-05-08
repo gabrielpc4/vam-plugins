@@ -12,6 +12,9 @@ AREA_DOCS = {
     "Custom/Scripts/Gabriel/features/clothing-interactions/": "Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md",
     "Custom/Scripts/Gabriel/features/head-hide/": "Custom/Scripts/Gabriel/features/head-hide/FEATURE.md",
     "Custom/Scripts/Gabriel/features/e-motion/": "Custom/Scripts/Gabriel/features/e-motion/FEATURE.md",
+    "Custom/Scripts/Gabriel/features/mocap-end-default-scene/": (
+        "Custom/Scripts/Gabriel/features/mocap-end-default-scene/FEATURE.md"
+    ),
     "Custom/Scripts/Gabriel/features/spankings/": "Custom/Scripts/Gabriel/features/spankings/FEATURE.md",
     "Custom/Scripts/Gabriel/features/dildo-on-hands/": "Custom/Scripts/Gabriel/features/dildo-on-hands/FEATURE.md",
     "Custom/Scripts/Gabriel/features/improved-pov/": "Custom/Scripts/Gabriel/features/improved-pov/FEATURE.md",

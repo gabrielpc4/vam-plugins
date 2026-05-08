@@ -491,7 +491,11 @@ namespace geesp0t
             }
         }
 
-        /// <summary>Merges <see cref="PluginEMotionFinal"/> onto every <b>female</b> <c>Person</c> (used after long non-loop mocap ends — see <see cref="MotionAnimationEmotionEnd"/>).</summary>
+        /// <summary>
+        /// Merges E-Motion Final onto female Persons. Grip Spankings merge timing
+        /// consults <see cref="NonLoopMocapMainEnd"/> when the HUD mocap-end toggle
+        /// is enabled.
+        /// </summary>
         public void MergeEmotionFinalOnFemalePersonsOnly()
         {
             try

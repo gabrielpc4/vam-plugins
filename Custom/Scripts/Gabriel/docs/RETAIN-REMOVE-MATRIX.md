@@ -26,6 +26,7 @@ These are the only Gabriel-owned implementation paths that should be extended:
 - `Custom/Scripts/Gabriel/features/clothing-interactions/**`
 - `Custom/Scripts/Gabriel/features/head-hide/**`
 - `Custom/Scripts/Gabriel/features/e-motion/**`
+- `Custom/Scripts/Gabriel/features/mocap-end-default-scene/**`
 - `Custom/Scripts/Gabriel/features/spankings/**`
 - `Custom/Scripts/Gabriel/features/dildo-on-hands/**`
 - `Custom/Scripts/Gabriel/features/improved-pov/**`

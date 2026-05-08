@@ -5,21 +5,26 @@ Minimal blocklist feature for Spankings auto-merge. It prevents the first-grip m
 
 ## Live Files
 - `SpankingsGripBlockPathKeywords.cs`
+- `SpankingsGripDeferredMerge.cs`
 - `spankings_grip_merge_block_path_keywords.txt`
 
 ## Load Path
 - Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
-- Queried by `GabrielHud` before the first-grip Spankings merge path runs.
+- Queried by `GabrielHud` / `GabrielHudButtons` through `SpankingsGripDeferredMerge`
+  and `SpankingsGripBlockPathKeywords` before the deferred first-grip merges run.
 
 ## Responsibilities
 - Parse the block keyword file through VaM file APIs.
 - Block the grip-driven Spankings merge when current load/save folders match a configured substring.
 
 ## Dependencies And Coupling
-- Used together with the `e-motion` mocap-end block logic and `GabrielHudButtons` Spankings plugin toggles.
+- Used with `mocap-end-default-scene` (`NonLoopMocapMainEnd` blocks until long
+  timelines finish in long non-loop setups) and `GabrielHudButtons` Spankings
+  plugin toggles.
 
 ## References
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
+- `Custom/Scripts/Gabriel/features/mocap-end-default-scene/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/e-motion/FEATURE.md`
 
 ## Update Checklist

@@ -2,6 +2,8 @@ GabrielHud.cs
 GabrielHudButtons.cs
 NextSceneUiButton.cs
 GabrielHotkeys.cs
+../mocap-end-default-scene/NonLoopMocapMainEnd.cs
+../session-stack/src/SceneLoadDirNormalize.cs
 ../palm-hud/VrInput.cs
 ../palm-hud/VrEulerPossessPoseCheck.cs
 ../palm-hud/VrEulerPossessHandHud.cs
@@ -9,13 +11,17 @@ GabrielHotkeys.cs
 ../passenger-possession/PassengerLaserPossess.cs
 ../passenger-possession/PassengerHandPrePossessSnapshot.cs
 ../passenger-possession/PassengerPossessableNarrow.cs
+../passenger-possession/SceneLoadPossessionCleanup.cs
 ../scene-camera/SceneCameraPatch.cs
 ../scene-camera/SameFolderCameraRetain.cs
 ../scene-camera/FluidCumHideDuringSceneLoad.cs
 ../scene-camera/MonitorModeLaserRestore.cs
+../scene-camera/DefaultMonitorCameraFov.cs
 ../clothing-interactions/OverlapFullGrabRelease.cs
 ../clothing-interactions/GripHandVisibility.cs
+../clothing-interactions/ClothingTouchFallOffGripMerge.cs
 ../head-hide/HeadProximityHide.cs
 ../e-motion/EmotionPathKeywords.cs
+../e-motion/EmotionPathRuleMerge.cs
 ../spankings/SpankingsGripBlockPathKeywords.cs
-../e-motion/MotionAnimationEmotionEnd.cs
+../spankings/SpankingsGripDeferredMerge.cs

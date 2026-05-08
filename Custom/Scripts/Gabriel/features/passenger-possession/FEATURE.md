@@ -11,6 +11,7 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 - `PassengerLaserPossess.cs`
 - `PassengerHandPrePossessSnapshot.cs`
 - `PassengerPossessableNarrow.cs`
+- `SceneLoadPossessionCleanup.cs`
 
 ## Load Path
 - Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
@@ -22,6 +23,7 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 - Prepare `ImprovedPoV` on the target and suppress duplicate head-hide behavior where needed.
 - Delay VR hand possession until a later grip/trigger confirmation step.
 - Raycast along the **right** UI-aim beam and map hits to a person for laser+A start.
+- Clear stale passenger-style possession after unrelated scene loads (`SceneLoadPossessionCleanup`).
 
 ## Dependencies And Coupling
 - Depends on `improved-pov/ImprovedPoV.cs` and cooperates with `HeadProximityHide`.

@@ -4,7 +4,10 @@ This note ties together **what VaM does while a scene loads** (from decompiled `
 
 **Decompile location:** `Reference/Assembly-CSharp-decompiled` (read-only; do not edit).
 
-**Live plugin:** `Custom/Scripts/Gabriel/session-stack/src/OnSceneStartup.cs`, ticked from `GabrielSessionStack.Update()` (see `Custom/Scripts/Gabriel/session-stack/src/GabrielSessionStack.cs`).
+**Live plugin:** `Custom/Scripts/Gabriel/session-stack/src/OnSceneStartup.cs`
+plus the adjacent `OnSceneStartup.*.cs` partials, ticked from
+`GabrielSessionStack.LateUpdate()` (see
+`Custom/Scripts/Gabriel/session-stack/src/GabrielSessionStack.cs`).
 
 ---
 
@@ -164,7 +167,8 @@ Gabriel creates a dedicated **`AsyncFlag`**, calls **`PauseSimulation(flag, hidd
 
 ### **`camExposure` backup** (why not only the first read)
 
-Scene JSON may apply **after** the first visible value (default **~1** vs scene **0.03**). Logic (see live **`OnSceneStartup.cs`**):
+Scene JSON may apply **after** the first visible value (default **~1** vs scene
+**0.03**). Logic (see live **`OnSceneStartup.cs`** partial set):
 
 - Reads **`>= ~0.99`** (“bright”) **overwrite** the backup anytime (works while **`isLoading`** is still true; fixes short loads).
 - Reads **below ~0.99`** tighten with **`Mathf.Min`** so a transient bright flash then the real dim scene value still restores **low** exposure (e.g. passenger scene).
@@ -202,5 +206,5 @@ Order is intentional:
 | `freezeAnimation`, `SetFreezeAnimation`, `PauseSimulation` | same |
 | `Atom.PauseSimulation` | `Reference/Assembly-CSharp-decompiled/Atom.cs` |
 | `AsyncFlag` | `Reference/Assembly-CSharp-decompiled/AsyncFlag.cs` |
-| Gabriel settle + exposure + pause + audio | `Custom/Scripts/Gabriel/session-stack/src/OnSceneStartup.cs` |
+| Gabriel settle + exposure + pause + audio | `Custom/Scripts/Gabriel/session-stack/src/OnSceneStartup.cs` + `OnSceneStartup.*.cs` |
 | Runtime caller | `Custom/Scripts/Gabriel/session-stack/src/GabrielSessionStack.cs` |

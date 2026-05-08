@@ -9,13 +9,16 @@ session keyboard shortcuts.
 - `GabrielSessionStack.cslist`
 - `src/GabrielSessionStack.cs`
 - `src/OnSceneStartup.cs`
+- `src/OnSceneStartup.PlaybackHold.cs`
+- `src/OnSceneStartup.Exposure.cs`
+- `src/OnSceneStartup.Diagnostics.cs`
 - `src/SameFolderSceneLoadCheck.cs`
 - `src/SessionKeyboardShortcuts.cs`
 
 ## Load Path
 - Loaded as a session plugin by `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cs`.
 - Detects same-folder load pulses before delegating scene-settle control to
-  `src/OnSceneStartup.cs`.
+  the `src/OnSceneStartup*.cs` partial set.
 
 ## Responsibilities
 - Track scene load edges and same-folder load pulses.
@@ -24,8 +27,8 @@ session keyboard shortcuts.
 - Expose emergency/session shortcuts through `SessionKeyboardShortcuts`.
 
 ## Dependencies And Coupling
-- Depends on `src/OnSceneStartup.cs`, `src/SameFolderSceneLoadCheck.cs`, and
-  `src/SessionKeyboardShortcuts.cs`.
+- Depends on the `src/OnSceneStartup*.cs` partial set,
+  `src/SameFolderSceneLoadCheck.cs`, and `src/SessionKeyboardShortcuts.cs`.
 - Calls `Custom/Scripts/Gabriel/features/head-hide/HeadProximityHide.cs` after
   the settle hold ends.
 
@@ -37,4 +40,5 @@ session keyboard shortcuts.
 Update this file in the same turn whenever any of these change:
 
 - Scene-settle timing, same-folder guards, or startup keybindings change.
+- `OnSceneStartup` responsibility boundaries or file split change.
 - Plugin panel copy or the `Space`/`P` shortcut behavior changes.

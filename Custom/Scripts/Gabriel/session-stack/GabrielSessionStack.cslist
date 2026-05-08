@@ -1,4 +1,7 @@
 src/OnSceneStartup.cs
+src/OnSceneStartup.PlaybackHold.cs
+src/OnSceneStartup.Exposure.cs
+src/OnSceneStartup.Diagnostics.cs
 src/SameFolderSceneLoadCheck.cs
 src/GabrielSessionStack.cs
 src/SessionKeyboardShortcuts.cs

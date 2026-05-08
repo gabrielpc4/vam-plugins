@@ -3,5 +3,4 @@ src/PlaybackHold.cs
 src/InitialExposureChange.cs
 src/SameFolderSceneLoadCheck.cs
 src/GabrielSessionStack.cs
-src/SessionKeyboardShortcuts.cs
 ../features/head-hide/HeadProximityHide.cs

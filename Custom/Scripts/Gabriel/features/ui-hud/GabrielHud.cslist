@@ -1,5 +1,6 @@
 GabrielHud.cs
 GabrielHudButtons.cs
+GabrielHudButtons.Hotkeys.cs
 ../palm-hud/VrInput.cs
 ../palm-hud/VrGestureRuntime.cs
 ../palm-hud/VrEulerPossessPoseCheck.cs

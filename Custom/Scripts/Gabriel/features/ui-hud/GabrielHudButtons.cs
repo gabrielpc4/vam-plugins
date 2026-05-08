@@ -5,7 +5,6 @@ using UnityEngine.Events;
 using UnityEngine.UI;
 using UnityEngine.VR;
 using UnityEngine.XR;
-using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using System.Linq;
 using SimpleJSON;
@@ -27,7 +26,7 @@ namespace geesp0t
     // O = unpossess all; C = cycle Female then Male Persons (uid), Edit +
     // Selected
     // Options + root control.
-    public class GabrielHudButtons
+    public partial class GabrielHudButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
         /// <summary>Lite face/emotion pack (no scripted head/neck / eye target per fork). Loaded when <see cref="EmotionPathKeywords"/> matches load/save folder paths (<see cref="EmotionPathKeywords.KeywordsFileRelative"/>). Uses the same cslist file name as <see cref="PluginEMotion"/>; Easy Mate swaps packs via <see cref="TryReplaceEmotionFamilyWithExactPath"/>.</summary>
@@ -276,189 +275,6 @@ namespace geesp0t
                 };
             _vrGestureBindings.TriggerPossessAlignSelectClosestFemaleByHead =
                 delegate() { PossessAlignSelectClosestFemaleByHeadToCamera(); };
-        }
-
-        /// <summary>
-        /// Call from session plugin <c>Update</c>. <b>Ctrl+Shift+S</b>
-        /// toggles Spankings (same as HUD <b>+/- Spankings Male</b>): removes when
-        /// everyone has it; otherwise merges onto Persons that do not.
-        /// <b>Y</b> logs look camera / HMD-related poses (debounced ~0.35s).
-        /// With Oculus or OpenVR active, hold <b>Shift+Y</b> so the controller
-        /// Y binding does not spam logs; <c>XRSettings.enabled</c> alone is not
-        /// used for that gate (it often stays true with drivers while using the
-        /// desktop keyboard).
-        /// E‑Motion merges via HUD: <b>Lite</b>, <b>Original</b>
-        /// (everyone), <b>M</b> / <b>F</b> (<see cref="PluginEMotion"/> males
-        /// or females only), <b>Final</b>, <b>Remove all</b> — replacing other
-        /// family packs first.
-        /// <b>O</b> stops auto-possess and
-        /// <see cref="SuperController.ClearPossess"/>.
-        /// <b>I</b> hides VR hand models then cycles rig snap across
-        /// <b>Person</b> heads by uid (same rules as <b>Passenger Female</b> /
-        /// <b>Passenger Male</b> per figure). VR: <see cref="VrGestureRuntime"/> —
-        /// over-head unpossess + dual-hand euler possess can be turned off (see
-        /// that class); the right-hand palm HUD menu still handles possess flow.
-        /// <b>P</b> runs the same <b>Possess+Align+Select</b> flow as the HUD
-        /// buttons on the <b>closest Person by head</b> to the look/center
-        /// camera (not alphabetically first F/M).
-        /// <b>C</b> (without Shift, Ctrl, or Alt) cycles visible Person atoms
-        /// in order: all <b>female</b> then all <b>male</b> (by atom uid),
-        /// switches to <b>Edit</b>, shows the main HUD, opens
-        /// <b>Selected Options</b>,
-        /// and selects each atom's root <c>control</c> (or the first free
-        /// controller if there is no <c>control</c>).
-        /// <b>F</b> toggles VaM <b>Freeze animation</b> (same as the main HUD
-        /// toggle).
-        /// <b>K</b> logs navigation rig / monitor peel / <c>WindowCamera</c> /
-        /// <c>playerHeightAdjust</c> and runs
-        /// <see cref="SceneCameraPatch"/> (Python patch of the main
-        /// scene JSON under <see cref="SuperController.currentLoadDir"/>).
-        /// Blocked when Ctrl/Alt is held (same gate as O/I/P).
-        /// Skips while VaM is loading or a Unity UI text field has focus.
-        /// </summary>
-        public void ProcessHotkeysUpdate()
-        {
-            if (plugin == null || SuperController.singleton == null)
-                return;
-            if (SuperController.singleton.isLoading)
-                return;
-            if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null)
-                return;
-
-            if (Input.GetKeyDown(KeyCode.S) &&
-                (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) &&
-                (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
-            {
-                try
-                {
-                    ToggleSpankingsPluginOnAllPersons();
-                }
-                catch (Exception e)
-                {
-                    SuperController.LogError("Ctrl+Shift+S hotkey (Spankings toggle): " + e);
-                }
-
-                return;
-            }
-
-            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl) ||
-                Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
-                return;
-
-            if (Input.GetKeyDown(KeyCode.K))
-            {
-                try
-                {
-                    SceneCameraPatch.TryRunFromHotkey();
-                }
-                catch (Exception e)
-                {
-                    SuperController.LogError("K hotkey (patch scene JSON camera / rig): " + e);
-                }
-
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.O))
-            {
-                try
-                {
-                    PassengerRuntime.RequestStopForPalmHud();
-                    SuperController.LogMessage(
-                        "Easy Mate: O — stopped Passenger mode.");
-                }
-                catch (Exception e)
-                {
-                    SuperController.LogError(
-                        "O hotkey (stop Passenger): " + e);
-                }
-
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.F))
-            {
-                try
-                {
-                    ToggleFreezeAnimationHotkey();
-                }
-                catch (Exception e)
-                {
-                    SuperController.LogError("F hotkey (freeze animation toggle): " + e);
-                }
-
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.I))
-            {
-                HotkeySnapNearestHeadHideHandsThenSnap();
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.P))
-            {
-                try
-                {
-                    RequestPossessVrPalmHudByGender(true);
-                }
-                catch (Exception e)
-                {
-                    SuperController.LogError(
-                        "P hotkey (start female Passenger): " + e);
-                }
-
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.C) && !Input.GetKey(KeyCode.LeftShift) &&
-                !Input.GetKey(KeyCode.RightShift))
-            {
-                try
-                {
-                    CycleFemaleThenMalePersonRootEditMenuOnHotkey();
-                }
-                catch (Exception e)
-                {
-                    SuperController.LogError("C hotkey (cycle Person edit root): " + e);
-                }
-
-                return;
-            }
-
-            if (Input.GetKeyDown(KeyCode.Y))
-            {
-                SuperController scY = SuperController.singleton;
-                // Shift+Y only when VaM is in Oculus/OpenVR mode — not XRSettings.enabled (often true with SteamVR etc. while using keyboard).
-                bool yNeedsShiftForControllerConflict = scY != null && (scY.isOVR || scY.isOpenVR);
-                if (yNeedsShiftForControllerConflict && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift))
-                    return;
-
-                float now = Time.unscaledTime;
-                if (now - _lastYDebugLogUnscaledTime < YDebugLogMinIntervalSeconds)
-                    return;
-                _lastYDebugLogUnscaledTime = now;
-
-                try
-                {
-                    LogYKeyHmdPoseDebug();
-                }
-                catch (Exception e)
-                {
-                    SuperController.LogError("Y debug (HMD pose): " + e);
-                }
-
-                return;
-            }
-
-            try
-            {
-                VrGestureRuntime.ProcessUpdate(_vrGestureBindings);
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError("Easy Mate VR gestures: " + e);
-            }
         }
 
         /// <summary>

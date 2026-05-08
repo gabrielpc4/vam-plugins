@@ -7,6 +7,7 @@ Main session HUD and hotkey hub. This area owns the world-space menu, log copy H
 - `GabrielHud.cs`
 - `GabrielHud.cslist`
 - `GabrielHudButtons.cs`
+- `GabrielHudButtons.Hotkeys.cs`
 - `VaMLogClipboardHud.cs`
 - `VaMLogClipboardHud.cslist`
 
@@ -17,12 +18,15 @@ Main session HUD and hotkey hub. This area owns the world-space menu, log copy H
 
 ## Responsibilities
 - Build and refresh the world-space Gabriel menu on `mainHUD`.
-- Own hotkeys, next-scene UIButton resolution, plugin-family toggles, and most scene-change callbacks.
+- Own the keyboard hotkey polling surface, next-scene UIButton resolution,
+  plugin-family toggles, and most scene-change callbacks.
 - Expose user toggles for remote grip link blocking, head hide, mocap-end default loads, same-folder camera retain, monitor lasers, and fluid-cum visibility.
 
 ## Dependencies And Coupling
 - Calls into `palm-hud`, `passenger-possession`, `scene-camera`, `clothing-interactions`, `head-hide`, `e-motion`, and `spankings` helpers.
 - `GabrielHudButtons` owns external plugin family paths for E-Motion, Spankings, and ClothingTouchFallOff.
+- The hotkey dispatcher also invokes the session-stack `Space` release action
+  through `CoreControl`.
 
 ## References
 - `Custom/Scripts/Gabriel/features/palm-hud/FEATURE.md`

@@ -2,8 +2,8 @@
 
 ## Purpose
 Runtime helper for scene loads. It decides when the full scene-settle workflow
-should run, skips that workflow for same-folder load pulses, and exposes the
-session emergency shortcut.
+should run, skips that workflow for same-folder load pulses, and exposes a
+scene-settle release action for the shared HUD hotkey dispatcher.
 
 ## Live Files
 - `GabrielSessionStack.cslist`
@@ -12,7 +12,6 @@ session emergency shortcut.
 - `src/PlaybackHold.cs`
 - `src/InitialExposureChange.cs`
 - `src/SameFolderSceneLoadCheck.cs`
-- `src/SessionKeyboardShortcuts.cs`
 
 ## Load Path
 - Loaded as a session plugin by `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cs`.
@@ -25,14 +24,16 @@ session emergency shortcut.
 - Hold simulation/audio/exposure during scene settle through
   `SceneSettleRuntime` and same-folder load guards.
 - Release transient head-hide state after scene settle completes.
-- Expose the emergency `Space` shortcut through `SessionKeyboardShortcuts`.
+- Register the emergency `Space` release action consumed by the HUD hotkey
+  dispatcher.
 
 ## Dependencies And Coupling
 - Depends on `src/SceneSettle.cs`, `src/PlaybackHold.cs`,
-  `src/InitialExposureChange.cs`, `src/SameFolderSceneLoadCheck.cs`, and
-  `src/SessionKeyboardShortcuts.cs`.
+  `src/InitialExposureChange.cs`, and `src/SameFolderSceneLoadCheck.cs`.
 - Calls `Custom/Scripts/Gabriel/features/head-hide/HeadProximityHide.cs` after
   the settle hold ends.
+- Exposes a `JSONStorableAction` on `CoreControl` so the HUD plugin can
+  trigger the emergency release without duplicating settle logic.
 
 ## References
 - `Reference/VaM-Scene-Startup-And-Settle.md`
@@ -44,4 +45,4 @@ Update this file in the same turn whenever any of these change:
 - Scene-settle timing, same-folder guards, or startup keybindings change.
 - `SceneSettleRuntime` responsibility boundaries or the session-stack file split
   changes.
-- Plugin panel copy or the `Space` shortcut behavior changes.
+- Action wiring or the `Space` shortcut behavior changes.

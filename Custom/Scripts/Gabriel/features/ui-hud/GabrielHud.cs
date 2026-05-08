@@ -692,6 +692,10 @@ namespace geesp0t
             SuperController scFsm = SuperController.singleton;
             bool loadingNow =
                 scFsm != null && scFsm.isLoading;
+
+            if (mainUIButtons != null)
+                mainUIButtons.ProcessHotkeysUpdate();
+
             if (!prevSuperLoading && loadingNow)
             {
                 PassengerRuntime.NotifySceneChanged(this);
@@ -803,11 +807,6 @@ namespace geesp0t
                 }
             }
 
-            if (!SuperController.singleton.isLoading)
-            {
-                if (mainUIButtons != null)
-                    mainUIButtons.ProcessHotkeysUpdate();
-            }
         }
 
         void LateUpdate()

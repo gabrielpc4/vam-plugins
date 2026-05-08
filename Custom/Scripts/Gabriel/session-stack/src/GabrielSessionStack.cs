@@ -4,9 +4,12 @@ namespace geesp0t
 {
     public class GabrielSessionStack : MVRScript
     {
+        private const string ForceReleaseSceneSettleHoldActionName =
+            "ForceReleaseSceneSettleHold";
+
         private JSONStorableString explanationString;
 
-        private SessionKeyboardShortcuts keyboardShortcuts = null;
+        private JSONStorableAction forceReleaseSceneSettleHoldAction;
 
         private bool prevSuperControllerIsLoading = false;
 
@@ -24,24 +27,21 @@ namespace geesp0t
             explanationString = new JSONStorableString(
                 "",
                 "Gabriel session stack handles scene-settle playback hold, " +
-                "same-folder load suppression, and session keyboard " +
-                "shortcuts.\n\n" +
-                "Space forces release of the current scene-settle hold.");
+                "same-folder load suppression, and the scene-settle release " +
+                "action used by the shared hotkey dispatcher.");
             UIDynamicTextField dtext = CreateTextField(explanationString);
             dtext.height = 420;
 
-            keyboardShortcuts = new SessionKeyboardShortcuts();
-            keyboardShortcuts.Init(this, sceneSettle);
+            forceReleaseSceneSettleHoldAction = new JSONStorableAction(
+                ForceReleaseSceneSettleHoldActionName,
+                ForceReleaseSceneSettleHoldFromAction);
+            RegisterAction(forceReleaseSceneSettleHoldAction);
         }
-
 
         public void Update()
         {
             SuperController superController = SuperController.singleton;
             bool superLoadingNow;
-
-            if (keyboardShortcuts != null)
-                keyboardShortcuts.ProcessHotkeysUpdate();
 
             if (superController == null)
                 return;
@@ -75,11 +75,19 @@ namespace geesp0t
         public void OnDestroy()
         {
             sceneSettle.OnPluginDestroy();
-
-            if (keyboardShortcuts != null)
-                keyboardShortcuts.OnDestroy();
         }
 
+        private void ForceReleaseSceneSettleHoldFromAction()
+        {
+            if (!sceneSettle.ForceReleaseHoldFromShortcut())
+            {
+                return;
+            }
+
+            HeadProximityHide.AfterSuperControllerFinishedSceneSettle(this);
+            SuperController.LogMessage(
+                "Gabriel session stack: Space released scene settle hold.");
+        }
     }
 }
  

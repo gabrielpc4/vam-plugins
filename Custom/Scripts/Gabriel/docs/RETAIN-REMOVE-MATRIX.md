@@ -7,6 +7,12 @@ planning scratchpad; it records what is canonical now, what is intentionally
 kept outside Gabriel, and which legacy paths still remain for compatibility
 with existing scenes or other scripts.
 
+## Documentation
+
+Gabriel keeps **no merged feature index**. Use this file plus each area's adjacent
+**`FEATURE.md`** (for example `bootstrap/FEATURE.md`, `session-stack/FEATURE.md`,
+`features/ui-hud/FEATURE.md`, and the same pattern under `features/*/`, `tools/*/`).
+
 ## Canonical Gabriel Areas
 
 These are the only Gabriel-owned implementation paths that should be extended:
@@ -25,7 +31,6 @@ These are the only Gabriel-owned implementation paths that should be extended:
 - `Custom/Scripts/Gabriel/features/improved-pov/**`
 - `Custom/Scripts/Gabriel/tools/scene-camera/**`
 - `Custom/Scripts/Gabriel/tools/scene-menu/**`
-- `Custom/Scripts/Gabriel/docs/FEATURE-INDEX.md`
 
 ## External Dependencies Still In Use
 

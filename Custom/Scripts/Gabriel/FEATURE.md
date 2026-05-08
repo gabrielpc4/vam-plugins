@@ -39,9 +39,6 @@ Single plugin URL; one compile that typically includes:
 **Offline parity:** `features/ui-hud/GabrielHud.cslist` lists the **same** `.cs`
 set with paths relative to `features/ui-hud/`.
 
-**Compile probe:** staged `.cslist` shells under **`session-plugins-compile-probe/`**
-isolate mono emit crashes — see **`session-plugins-compile-probe/README.txt`**.
-
 **Person-only:** `ClothingTouchFallOff.cs` is merged onto **Person** atoms via
 orchestrator + `PluginManager` — it must **not** be listed beside session scripts
 in `GabrielSessionPlugins.cslist` or VaM would also run it on CoreControl.

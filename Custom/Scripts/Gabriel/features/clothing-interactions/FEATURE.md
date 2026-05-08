@@ -25,10 +25,6 @@ see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.
   **`GabrielSessionPlugins.cslist`** (same CoreControl plugin as orchestrator +
   HUD). Bootstrap only injects that `.cslist` plus log clipboard — no separate
   **`.cslist`** file for strip (`Clothing.cslist` removed).
-- **`Custom/Scripts/Gabriel/session-plugins-compile-probe/`** staged cslists
-  (Path A) reorder the strip-related sources first for VaM mono compile
-  bisects — see that folder’s **`README.txt`**; not used unless you point
-  CoreControl at a probe `.cslist`.
 - **ClothingTouchFallOff**: `GabrielSessionOrchestrator` merges the person
   plugin (`MergeClothingTouchFallOffOnAllPersonsOnly`) on first VR grip switch
   to Male2 hands when the scene includes a female with active clothing,
@@ -53,6 +49,9 @@ see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.
 ## Dependencies And Coupling
 - Grip merge queues (Spankings / clothing touch-fall) talk to
   **`GabrielSessionOrchestrator`** and **`AnimationNoLoopDetection`**.
+- `TriggerClothingRemover` reuses
+  **`PersonAtomCache.PersonHasAnyActiveClothingOnGeometry`** for both idle
+  presence checks and nearest-strip eligibility.
 - Shares behavior notes with **`features/hands`** and **`animation-no-loop-detection`**.
 - `ClothingTouchFallOff` person-plugin merge is orchestrated from
   **`GabrielSessionOrchestrator`**, not from HUD-owned plugin path constants.

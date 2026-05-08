@@ -9,16 +9,16 @@ same file).
 - `ClothingTouchFallOff.cs` *(person plugin; includes `ClothingTouchFallOffGripMerge`)*
 - `ClothingTouchFallOff.cslist`
 - `ClothingKeywords.cs` *(strip band keywords and garment text heuristics — shared)*
-- `VrProximityStripClothingPlugin.cs` *(session plugin; static strip logic in
-  `VrProximityStripClothing` in the same file)*
-- `VrProximityStripClothing.cslist` *(optional standalone compile — same sources
+- `TriggerClothingRemover.cs` *(VR grab trigger removes nearest torso-band
+  garment when Male2 hands are active)*
+- `TriggerClothingRemover.cslist` *(optional standalone compile — same sources
   are in `GabrielSessionPlugins.cslist` for normal sessions).*
 
 HUD grip/orbit/overlap companions live under parallel `features/hands/` —
 see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.
 
 ## Load Path
-- `VrProximityStripClothing` sources compile inside
+- `TriggerClothingRemover` compiles inside
   `GabrielSessionPlugins.cslist` (bootstrap); `ClothingTouchFallOff.cslist` still
   merges the touch-fall person plugin onto Person atoms.
 

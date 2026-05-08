@@ -8,11 +8,11 @@ namespace geesp0t
     /// <summary>
     /// VR: trigger press (<see cref="SuperController.GetLeftGrab"/> /
     /// <see cref="SuperController.GetRightGrab"/> are one-frame edges in VaM)
-    /// strips one active clothing item on the nearest Person when the hand is within
-    /// reach of torso anchors. Only when Male2 VR hand model is active. Upper vs
-    /// lower follows chest vs pelvis distance; falls back across bands.
+    /// removes one active clothing item on the nearest Person when the hand is
+    /// within reach of torso anchors. Only when Male2 VR hand model is active.
+    /// Upper vs lower follows chest vs pelvis distance; falls back across bands.
     /// </summary>
-    public static class VrProximityStripClothing
+    public class TriggerClothingRemover : MVRScript
     {
         private const float MaxHandToTorsoMeters = 0.62f;
 
@@ -25,8 +25,16 @@ namespace geesp0t
             FullBody = 3
         }
 
-        /// <summary>Called from <see cref="VrProximityStripClothingPlugin"/> each frame.</summary>
-        public static void Tick()
+        public override void Init()
+        {
+        }
+
+        public void Update()
+        {
+            TickStrip();
+        }
+
+        private static void TickStrip()
         {
             SuperController sc = SuperController.singleton;
             bool leftTriggerDown;
@@ -55,7 +63,7 @@ namespace geesp0t
             catch (Exception e)
             {
                 SuperController.LogError(
-                    "VrProximityStripClothing input failed: " + e.Message);
+                    "TriggerClothingRemover input failed: " + e.Message);
                 return;
             }
 
@@ -181,7 +189,7 @@ namespace geesp0t
             if (selector == null)
             {
                 SuperController.LogError(
-                    "VrProximityStripClothing: no geometry on Person " + bestPerson.uid);
+                    "TriggerClothingRemover: no geometry on Person " + bestPerson.uid);
                 return;
             }
 
@@ -198,7 +206,7 @@ namespace geesp0t
             catch (Exception e)
             {
                 SuperController.LogError(
-                    "VrProximityStripClothing: SetActiveClothingItem failed (" +
+                    "TriggerClothingRemover: SetActiveClothingItem failed (" +
                     whichHandLabel +
                     " hand, " +
                     bestPerson.uid +
@@ -522,21 +530,6 @@ namespace geesp0t
             }
 
             return ClothingBand.Unknown;
-        }
-    }
-
-    /// <summary>
-    /// Session plugin shell: all logic lives in <see cref="VrProximityStripClothing"/>.
-    /// </summary>
-    public class VrProximityStripClothingPlugin : MVRScript
-    {
-        public override void Init()
-        {
-        }
-
-        public void Update()
-        {
-            VrProximityStripClothing.Tick();
         }
     }
 }

@@ -34,4 +34,4 @@ src/GabrielSessionOrchestrator.cs
 ../features/spankings/SpankingsGripBlockPathKeywords.cs
 ../features/dildo-on-hands/DildoOnHands.cs
 ../features/clothing-interactions/ClothingKeywords.cs
-../features/clothing-interactions/VrProximityStripClothingPlugin.cs
+../features/clothing-interactions/TriggerClothingRemover.cs

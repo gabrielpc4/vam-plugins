@@ -532,7 +532,10 @@ namespace geesp0t
             GameObject canvasObject;
             CanvasScaler scaler;
             const float scale = 0.001f;
-            const float hudButtonWidth = 132f;
+            // Narrower than Spankings so column 1 does not overlap the log HUD
+            // (column 0) and Spankings (column 2) on the shared canvas.
+            const float emotionHudButtonWidth = 96f;
+            const float spankingsHudButtonWidth = 132f;
 
             DestroyHudCanvas();
 
@@ -560,35 +563,38 @@ namespace geesp0t
                 OnEmotionPrimaryHudButtonClicked,
                 1,
                 0,
-                hudButtonWidth);
+                emotionHudButtonWidth,
+                15);
 
             emotionPackCycleHudButton = AddButton(
                 EmotionPackLabelForIndex(_emotionPackIndex),
                 CycleEmotionPackButton,
                 1,
                 1,
-                hudButtonWidth);
+                emotionHudButtonWidth,
+                15);
 
             emotionGenderCycleHudButton = AddButton(
                 EmotionGenderCycleLabel(_emotionMaleOnlyGender),
                 CycleEmotionGenderButton,
                 1,
                 2,
-                hudButtonWidth);
+                emotionHudButtonWidth,
+                15);
 
             spankingsButton = AddButton(
                 "+ Spankings Male",
                 ToggleSpankingsPluginOnAllPersons,
                 2,
                 0,
-                hudButtonWidth);
+                spankingsHudButtonWidth);
 
             removeSpankingsButton = AddButton(
                 "Remove Spankings",
                 RemoveSpankingsFromAllPersons,
                 2,
                 1,
-                hudButtonWidth);
+                spankingsHudButtonWidth);
 
             RefreshPluginToggleLabels();
             _canvas.transform.Translate(0f, 0.2f, 0f);
@@ -749,13 +755,14 @@ namespace geesp0t
             UnityAction callback,
             int column,
             int row,
-            float width)
+            float width,
+            int labelFontSize)
         {
             Color accessButtonColor = new Color(0.8392f, 0.8392f, 0.8392f);
             Color accessTextColor = new Color(0f, 0f, 0f);
             float xSpacing = 0.22f;
             float ySpacing = 0.05f;
-            UIDynamicButton button = CreateButton(name, width, 40f);
+            UIDynamicButton button = CreateButton(name, width, 40f, labelFontSize);
 
             button.button.onClick.AddListener(callback);
             button.transform.Translate(
@@ -768,10 +775,24 @@ namespace geesp0t
             return button;
         }
 
+        /// <summary>
+        /// Shorter overload: default HUD label size for Spankings and similar.
+        /// </summary>
+        private UIDynamicButton AddButton(
+            string name,
+            UnityAction callback,
+            int column,
+            int row,
+            float width)
+        {
+            return AddButton(name, callback, column, row, width, 18);
+        }
+
         private UIDynamicButton CreateButton(
             string name,
             float width,
-            float height)
+            float height,
+            int labelFontSize)
         {
             Transform button =
                 GameObject.Instantiate<Transform>(manager.configurableButtonPrefab);
@@ -781,8 +802,13 @@ namespace geesp0t
 
             UIDynamicButton uiButton = button.GetComponent<UIDynamicButton>();
             uiButton.label = name;
-            uiButton.buttonText.fontSize = 18;
+            uiButton.buttonText.fontSize = labelFontSize;
             return uiButton;
+        }
+
+        private UIDynamicButton CreateButton(string name, float width, float height)
+        {
+            return CreateButton(name, width, height, 18);
         }
 
         private static void ColorButton(

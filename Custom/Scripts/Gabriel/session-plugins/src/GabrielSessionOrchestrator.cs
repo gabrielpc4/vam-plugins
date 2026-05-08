@@ -11,7 +11,6 @@ namespace geesp0t
     /// tracking, per-frame feature ticks, and session-wide toggles that used to
     /// live on <see cref="GabrielHud"/>.
     /// </summary>
-    [DefaultExecutionOrder(32000)]
     public class GabrielSessionOrchestrator : MVRScript
     {
         private const string CoreControlAtomUid = "CoreControl";

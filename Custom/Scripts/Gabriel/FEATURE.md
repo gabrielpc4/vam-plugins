@@ -68,6 +68,10 @@ in `GabrielSessionPlugins.cslist` or VaM would also run it on CoreControl.
 
 [docs/RETAIN-REMOVE-MATRIX.md](docs/RETAIN-REMOVE-MATRIX.md)
 
+## Runtime optimization history
+
+[docs/RUNTIME-OPTIMIZATION-HISTORY.md](docs/RUNTIME-OPTIMIZATION-HISTORY.md)
+
 ## References
 
 - `Reference/VaM-Scripting-Notes.md`

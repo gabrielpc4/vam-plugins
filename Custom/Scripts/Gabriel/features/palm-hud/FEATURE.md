@@ -15,7 +15,7 @@ rows. Passenger **start** is not from the palm (see `passenger-possession` +
 ## Load Path
 - Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
 - `GabrielHud` ticks the palm HUD. **Próxima cena** uses
-  `GabrielHudNextSceneButton`; **Despossuir** uses `PassengerRuntime`.
+  `NextSceneUiButton`; **Despossuir** uses `PassengerRuntime`.
 
 ## Responsibilities
 - Show/hide the right-hand palm HUD from HMD-relative euler windows.
@@ -24,7 +24,7 @@ rows. Passenger **start** is not from the palm (see `passenger-possession` +
 - Keep the right-hand back-of-hand pose window aligned with the current palm HUD behavior.
 
 ## Dependencies And Coupling
-- Calls into **`GabrielHudNextSceneButton`**, **`PassengerRuntime`**, and legacy
+- Calls into **`NextSceneUiButton`**, **`PassengerRuntime`**, and legacy
   palm-adjacent paths in **`GabrielHudButtons`** where still needed.
 - `LEGACY-NOTES.md` contains the deeper handoff details that should stay aligned with this feature doc.
 

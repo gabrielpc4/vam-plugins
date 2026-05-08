@@ -24,7 +24,7 @@ Hand-off doc for another LLM or developer. Paths live under
   (positive **X** = dorsum side).
 - **Rows:**
   - **Próxima cena:** upper row when the scene resolves a matching next
-    **`UIButton`** (see **`GabrielHudNextSceneButton`**). Poll **face B / menu**.
+    **`UIButton`** (see **`NextSceneUiButton`**). Poll **face B / menu**.
   - **Despossuir:** lower row **only while already possessed**
     (**`PassengerRuntime.IsPassengerModeActiveOrPending()`** OR any Person
     head/hand possessed). Poll **face A / Select**.

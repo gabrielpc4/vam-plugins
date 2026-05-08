@@ -48,6 +48,22 @@ namespace geesp0t
 
         private const float CanvasHeightPx = 140f;
 
+        /// <summary>
+        /// Margin between canvas bounds and backdrop panel edges.
+        /// </summary>
+        private const float PanelEdgeInsetPx = 8f;
+
+        /// <summary>
+        /// Fixed label box for row titles (world canvas px, not stretch-fill).
+        /// </summary>
+        private const float DespossuirLabelWidthPx = 232f;
+
+        private const float DespossuirLabelHeightPx = 40f;
+
+        private const float ProximaLabelWidthPx = 268f;
+
+        private const float ProximaLabelHeightPx = 40f;
+
         internal static void Tick()
         {
             SuperController sc = SuperController.singleton;
@@ -132,7 +148,7 @@ namespace geesp0t
                 _nextSceneButtonPresenceRecheckTime =
                     nowUnscaled + NextSceneButtonPresenceRecheckSeconds;
                 _cachedSceneHasNextSceneUIButton =
-                    GabrielHudNextSceneButton.HasNextSceneUiButtonInScene();
+                    NextSceneUiButton.HasNextSceneUiButtonInScene();
             }
 
             bool possessed =
@@ -153,7 +169,7 @@ namespace geesp0t
                 if (proximaCenaAvailable &&
                     VrInput.PollPalmHudProximaCenaFaceBDown(sc))
                 {
-                    GabrielHudNextSceneButton.RequestFireNextSceneAfterClosingMenu();
+                    NextSceneUiButton.RequestFireNextSceneAfterClosingMenu();
                 }
             }
             else
@@ -163,7 +179,7 @@ namespace geesp0t
 
                 if (proximaCenaAvailable && proximaB)
                 {
-                    GabrielHudNextSceneButton.RequestFireNextSceneAfterClosingMenu();
+                    NextSceneUiButton.RequestFireNextSceneAfterClosingMenu();
                 }
                 else if (possessA)
                 {
@@ -249,7 +265,7 @@ namespace geesp0t
             {
                 _btnProximaCena.onClick.AddListener(delegate
                 {
-                    GabrielHudNextSceneButton.RequestFireNextSceneAfterClosingMenu();
+                    NextSceneUiButton.RequestFireNextSceneAfterClosingMenu();
                 });
             }
         }
@@ -282,8 +298,10 @@ namespace geesp0t
                 panelRt = panelGo.AddComponent<RectTransform>();
             panelRt.anchorMin = Vector2.zero;
             panelRt.anchorMax = Vector2.one;
-            panelRt.offsetMin = Vector2.zero;
-            panelRt.offsetMax = Vector2.zero;
+            Vector2 inset =
+                new Vector2(PanelEdgeInsetPx, PanelEdgeInsetPx);
+            panelRt.offsetMin = inset;
+            panelRt.offsetMax = new Vector2(-PanelEdgeInsetPx, -PanelEdgeInsetPx);
 
             GameObject possessGo = new GameObject("DespossuirRowBtn");
             possessGo.transform.SetParent(_root.transform, false);
@@ -321,10 +339,10 @@ namespace geesp0t
                 possessTextGo.GetComponent<RectTransform>();
             if (possessTextRt == null)
                 possessTextRt = possessTextGo.AddComponent<RectTransform>();
-            possessTextRt.anchorMin = Vector2.zero;
-            possessTextRt.anchorMax = Vector2.one;
-            possessTextRt.offsetMin = Vector2.zero;
-            possessTextRt.offsetMax = Vector2.zero;
+            LayoutPalmHudCenteredLabel(
+                possessTextRt,
+                DespossuirLabelWidthPx,
+                DespossuirLabelHeightPx);
 
             _btnPossessRow.gameObject.SetActive(false);
 
@@ -335,7 +353,9 @@ namespace geesp0t
                 new Vector2(0.05f, 0.52f),
                 new Vector2(0.95f, 0.98f),
                 new Color(0.14f, 0.32f, 0.52f, 0.92f),
-                20);
+                20,
+                ProximaLabelWidthPx,
+                ProximaLabelHeightPx);
         }
 
         private static Button CreateHandButton(
@@ -345,7 +365,9 @@ namespace geesp0t
             Vector2 anchorMin,
             Vector2 anchorMax,
             Color bg,
-            int fontSize)
+            int fontSize,
+            float labelWidthPx,
+            float labelHeightPx)
         {
             GameObject go = new GameObject(name);
             go.transform.SetParent(parent, false);
@@ -386,12 +408,21 @@ namespace geesp0t
             RectTransform textRt = textGo.GetComponent<RectTransform>();
             if (textRt == null)
                 textRt = textGo.AddComponent<RectTransform>();
-            textRt.anchorMin = Vector2.zero;
-            textRt.anchorMax = Vector2.one;
-            textRt.offsetMin = Vector2.zero;
-            textRt.offsetMax = Vector2.zero;
+            LayoutPalmHudCenteredLabel(textRt, labelWidthPx, labelHeightPx);
 
             return btn;
+        }
+
+        private static void LayoutPalmHudCenteredLabel(
+            RectTransform rt,
+            float widthPx,
+            float heightPx)
+        {
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = new Vector2(widthPx, heightPx);
         }
     }
 }

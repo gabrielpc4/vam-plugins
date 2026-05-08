@@ -2,14 +2,14 @@
 
 ## Purpose
 Main session HUD and hotkey hub. This area owns the world-space menu, log copy HUD,
-scene-advance UIButton resolution (`GabrielHudNextSceneButton`), and most
+scene-advance UIButton resolution (`NextSceneUiButton`), and most
 cross-feature runtime orchestration.
 
 ## Live Files
 - `GabrielHud.cs`
 - `GabrielHud.cslist`
 - `GabrielHudButtons.cs`
-- `GabrielHudNextSceneButton.cs`
+- `NextSceneUiButton.cs`
 - `GabrielHudButtonsHotkeys.cs`
 - `VaMLogClipboardHud.cs`
 - `VaMLogClipboardHud.cslist`
@@ -23,7 +23,7 @@ cross-feature runtime orchestration.
 - Build and refresh the world-space Gabriel menu on `mainHUD`.
 - Own the keyboard hotkey polling surface (`Space`, `Ctrl+Shift+S`, `K`,
   `O`, `F`), plugin toggles, scene-change callbacks, and palm **Próxima cena** via
-  `GabrielHudNextSceneButton`.
+  `NextSceneUiButton`.
 - Expose user toggles for remote grip link blocking, head hide, mocap-end default loads, same-folder camera retain, monitor lasers, and fluid-cum visibility.
 
 ## Dependencies And Coupling

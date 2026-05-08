@@ -109,7 +109,7 @@ order:
 9. `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 10. `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cs`
 11. `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudButtons.cs`
-12. `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudNextSceneButton.cs`
+12. `Custom/Scripts/Gabriel/features/ui-hud/NextSceneUiButton.cs`
 13. `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudButtonsHotkeys.cs`
 14. `Custom/Scripts/Gabriel/features/palm-hud/FEATURE.md`
 15. `Custom/Scripts/Gabriel/features/palm-hud/VrEulerPossessHandHud.cs`
@@ -244,7 +244,7 @@ Read these before changing anything:
 
 - `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudButtonsHotkeys.cs`
 - `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudButtons.cs`
-- `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudNextSceneButton.cs`
+- `Custom/Scripts/Gabriel/features/ui-hud/NextSceneUiButton.cs`
 - `Custom/Scripts/Gabriel/features/palm-hud/VrEulerPossessHandHud.cs`
 - `Custom/Scripts/Gabriel/features/palm-hud/VrEulerPossessPoseCheck.cs`
 - `Custom/Scripts/Gabriel/features/passenger-possession/PassengerLaserPossess.cs`

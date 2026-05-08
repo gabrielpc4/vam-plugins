@@ -25,7 +25,7 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 
 ## Dependencies And Coupling
 - Depends on `improved-pov/ImprovedPoV.cs` and cooperates with `HeadProximityHide`.
-- Cooperates with `scene-camera` (`MonitorModeLaserRestore`), `GabrielHudNextSceneButton`
+- Cooperates with `scene-camera` (`MonitorModeLaserRestore`), `NextSceneUiButton`
   (palm next-scene row), `palm-hud`, and `GabrielHudButtons` / `PassengerRuntime`.
 
 ## References

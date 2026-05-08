@@ -11,7 +11,7 @@ namespace geesp0t
     /// Portuguese/English label match), then pulses its trigger. Used by the palm HUD
     /// <b>Próxima cena</b> row and VR B/menu shortcuts.
     /// </summary>
-    internal static class GabrielHudNextSceneButton
+    internal static class NextSceneUiButton
     {
         private static MVRScript _pluginRunner;
 

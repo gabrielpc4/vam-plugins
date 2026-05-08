@@ -15,7 +15,7 @@ namespace geesp0t
     // patch request and runs the Python patcher; O clears passenger possession;
     // F toggles VaM freeze animation. Passenger start uses the right UI-aim laser +
     // face A (see PassengerLaserPossess); palm HUD shows Despossuir +
-    // optional Próxima cena (see GabrielHudNextSceneButton) when unlocked.
+    // optional Próxima cena (see NextSceneUiButton) when unlocked.
     public class GabrielHudButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
@@ -193,7 +193,7 @@ namespace geesp0t
         {
             plugin = _plugin;
             _pluginHost = _plugin;
-            GabrielHudNextSceneButton.BindHost(_plugin);
+            NextSceneUiButton.BindHost(_plugin);
             _mainCamera = CameraTarget.centerTarget?.targetCamera;
             isDesktopMode = !(SuperController.singleton.isOVR || SuperController.singleton.isOpenVR);
             RegisterPersonGenderCacheInvalidation();
@@ -970,7 +970,7 @@ namespace geesp0t
         {
             try
             {
-                GabrielHudNextSceneButton.ReleaseHost();
+                NextSceneUiButton.ReleaseHost();
                 StopAutoPossessRoutine();
                 UnregisterPersonGenderCacheInvalidation();
                 InvalidatePersonGenderCaches();

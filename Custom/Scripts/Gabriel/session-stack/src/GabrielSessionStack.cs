@@ -26,9 +26,7 @@ namespace geesp0t
                 "Gabriel session stack handles scene-settle playback hold, " +
                 "same-folder load suppression, and session keyboard " +
                 "shortcuts.\n\n" +
-                "Space forces release of the current scene-settle hold.\n" +
-                "P possesses, aligns, and selects the Person under the look " +
-                "camera or the closest one.");
+                "Space forces release of the current scene-settle hold.");
             UIDynamicTextField dtext = CreateTextField(explanationString);
             dtext.height = 420;
 

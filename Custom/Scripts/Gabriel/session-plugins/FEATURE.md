@@ -6,16 +6,12 @@ Session bundle loaded from `GabrielSessionPlugins.cslist`. The host
 pulses, full scene-settle workflow, late feature ticks, HUD binding, and the
 scene-settle release action for the shared hotkey dispatcher.
 
-The same compile unit includes
-**ClothingTouchFallOffDeferredMerge** (grip-deferred clothing merge coroutine;
-`ClothingTouchFallOffPluginPath` holds the person `.cs` path), and
-**`GabrielSessionOrchestrator`** methods that call into
-`PluginManager.TryMergePluginOntoPerson`.
-**DildoOnHands** compiles from **`features/dildo-on-hands/DildoOnHands.cslist`** (own
-bootstrap slot). **TriggerClothingRemover** compiles from
-`features/clothing-interactions/Clothing.cslist` (another slot). Bootstrap merges
-log clipboard, `GabrielSessionPlugins.cslist`, **`DildoOnHands.cslist`**, and
-**Clothing.cslist** in order.
+The same compile unit includes **DildoOnHands**, **`ClothingClassifier`** +
+**TriggerClothingRemover**, **ClothingTouchFallOffDeferredMerge**, and
+**`GabrielSessionOrchestrator`** merge helpers. Bootstrap injects only
+`VaMLogClipboardHud.cslist` plus **`GabrielSessionPlugins.cslist`** (VaM does not
+nest `.cslist` files; multiple scripts share one compile by listing their `.cs`
+paths in this list).
 
 ## Live Files
 - `GabrielSessionPlugins.cslist`
@@ -26,8 +22,12 @@ log clipboard, `GabrielSessionPlugins.cslist`, **`DildoOnHands.cslist`**, and
 - `src/SameFolderSceneLoadCheck.cs`
 - `src/SceneLoadDirNormalize.cs` *(also compiled into `GabrielHud.cslist`; path
   normalization helpers for HUD same-folder cues)*
+- `../features/dildo-on-hands/DildoOnHands.cs`
+- `../features/clothing-interactions/ClothingClassifier.cs`
+- `../features/clothing-interactions/TriggerClothingRemover.cs`
 - `../features/clothing-interactions/ClothingTouchFallOffDeferredMerge.cs`
   *(grip-deferred touch-fall merge; `ClothingTouchFallOffGripMerge`)*
+
 ## Load Path
 - Loaded as a session plugin by `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cs`.
 - `GabrielSessionOrchestrator` runs in `Update` / `LateUpdate` and detects

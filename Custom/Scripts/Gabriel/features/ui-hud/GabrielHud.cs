@@ -68,8 +68,9 @@ namespace geesp0t
         private const string EmotionCycleButtonSuffix = " >";
 
         /// <summary>
-        /// All GabrielHud grid buttons share width, height, label size, and equal
-        /// horizontal/vertical spacing between cell centers.
+        /// All GabrielHud grid buttons share width, height, and label size.
+        /// Horizontal and vertical steps differ: wide buttons need a larger X
+        /// stride than Y so columns do not overlap in world space.
         /// </summary>
         private const float GabrielHudButtonWidth = 108f;
 
@@ -77,7 +78,9 @@ namespace geesp0t
 
         private const int GabrielHudButtonLabelFontSize = 16;
 
-        private const float GabrielHudGridSpacing = 0.08f;
+        private const float GabrielHudGridColumnStep = 0.14f;
+
+        private const float GabrielHudGridRowStep = 0.08f;
 
         private const float GabrielHudGridOriginX = 0.22f;
 
@@ -782,9 +785,9 @@ namespace geesp0t
                 colIndex = 0;
 
             translateX =
-                GabrielHudGridOriginX + colIndex * GabrielHudGridSpacing;
+                GabrielHudGridOriginX + colIndex * GabrielHudGridColumnStep;
             translateY =
-                GabrielHudGridOriginY - row * GabrielHudGridSpacing;
+                GabrielHudGridOriginY - row * GabrielHudGridRowStep;
 
             button.button.onClick.AddListener(callback);
             button.transform.Translate(

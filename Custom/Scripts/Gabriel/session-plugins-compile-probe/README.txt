@@ -44,7 +44,7 @@ Order reflects likely suspects tied to TriggerClothingRemover:
   stageA00_stub_only.cslist
   stageA01_stub_PersonAtomCache.cslist
   stageA02_stub_Classifier.cslist
-  stageA03_stub_VrInput.cslist          (UnityEngine.XR reads)
+  stageA03_stub_VrInput.cslist          (+ VrInput; avoid Unity XR in repo)
   stageA04_stub_TriggerStrip.cslist     (Male2 hands + garment APIs)
   stageA05_stub_strip_plus_SceneSettleRuntime.cslist
                                         (+ SceneSettle runtime partials only)

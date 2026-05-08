@@ -3,27 +3,42 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// VR input: <see cref="OVRInput"/> when Oculus path is active or when
-    /// <see cref="SuperController"/> reports OVR/OpenVR (VaM exposes those flags
-    /// for typical VR setups). SteamVR/OpenVR uses hold-grab / select APIs.
-    /// Does not reference <c>UnityEngine.XR</c> — VaM Mono dynamic-compile can
-    /// fault on XR typerefs (<c>TypeBuilder.CreateType</c> / attributes).
+    /// VR input: <see cref="OVRInput"/> on Oculus path and
+    /// <see cref="SuperController"/> hold-grab / select for SteamVR/OpenVR.
+    /// Active headset uses <see cref="SuperController.isOVR"/> and
+    /// <see cref="SuperController.isOpenVR"/> only. Omit XRSettings (Mono emit
+    /// crash risk in VaM DynamicCSharp).
     /// </summary>
     internal static class VrInput
     {
         /// <summary>
-        /// True only when VaM marks OVR or OpenVR. No Unity XR fallback.
+        /// Fallback after explicit OVR/OpenVR branches retry OVR polls.
+        /// Only SuperController VR flags — no XRSettings reads.
+        /// </summary>
+        private static bool XrHeadsetLikelyOn(SuperController sc)
+        {
+            return sc != null && (sc.isOVR || sc.isOpenVR);
+        }
+
+        /// <summary>
+        /// True only when VaM exposes OVR or OpenVR on SuperController so desktop
+        /// skips reliably; XRSettings is omitted (Mono compile instability).
         /// </summary>
         internal static bool IsLikelyVrRuntimeSafe(SuperController sc)
         {
             try
             {
-                return sc != null && (sc.isOVR || sc.isOpenVR);
+                if (sc != null && (sc.isOVR || sc.isOpenVR))
+                {
+                    return true;
+                }
             }
             catch
             {
                 return false;
             }
+
+            return false;
         }
 
         public static void ResetEdgeState()
@@ -36,9 +51,7 @@ namespace geesp0t
             {
                 try
                 {
-                    return OVRInput.GetDown(
-                        OVRInput.Button.SecondaryThumbstick,
-                        OVRInput.Controller.RTouch);
+                    return OVRInput.GetDown(OVRInput.Button.SecondaryThumbstick, OVRInput.Controller.RTouch);
                 }
                 catch
                 {
@@ -47,6 +60,17 @@ namespace geesp0t
 
             if (sc != null && sc.isOpenVR)
                 return false;
+
+            if (XrHeadsetLikelyOn(sc))
+            {
+                try
+                {
+                    return OVRInput.GetDown(OVRInput.Button.SecondaryThumbstick, OVRInput.Controller.RTouch);
+                }
+                catch
+                {
+                }
+            }
 
             return false;
         }
@@ -71,6 +95,11 @@ namespace geesp0t
             if (sc.isOpenVR)
             {
                 return sc.GetRightSelect();
+            }
+
+            if (XrHeadsetLikelyOn(sc))
+            {
+                return TryOvrRightTouchButtonDown(OVRInput.Button.One);
             }
 
             return false;
@@ -106,6 +135,11 @@ namespace geesp0t
             if (sc.isOpenVR)
             {
                 return sc.GetMenuShow();
+            }
+
+            if (XrHeadsetLikelyOn(sc))
+            {
+                return TryOvrRightTouchButtonDown(OVRInput.Button.Two);
             }
 
             return false;
@@ -149,6 +183,18 @@ namespace geesp0t
             if (sc != null && sc.isOpenVR && sc.GetLeftHoldGrab())
                 return true;
 
+            if (XrHeadsetLikelyOn(sc))
+            {
+                try
+                {
+                    if (OvrLeftGripPhysicalDown())
+                        return true;
+                }
+                catch
+                {
+                }
+            }
+
             return false;
         }
 
@@ -169,15 +215,26 @@ namespace geesp0t
             if (sc != null && sc.isOpenVR && sc.GetRightHoldGrab())
                 return true;
 
+            if (XrHeadsetLikelyOn(sc))
+            {
+                try
+                {
+                    if (OvrRightGripPhysicalDown())
+                        return true;
+                }
+                catch
+                {
+                }
+            }
+
             return false;
         }
 
         /// <summary>
-        /// Female passenger VR hands start: any controller <b>trigger or grip</b>
-        /// press this frame. Uses <see cref="SuperController.GetLeftGrab"/> /
-        /// <see cref="SuperController.GetLeftHoldGrab"/> (and right), which
-        /// match VaM&apos;s Oculus trigger vs grip mapping including
-        /// <c>oculusSwapGrabAndTrigger</c>.
+        /// Female passenger VR hands start: any controller <b>trigger or grip</b> press
+        /// this frame. Uses <see cref="SuperController.GetLeftGrab"/> /
+        /// <see cref="SuperController.GetLeftHoldGrab"/> (and right), which match VaM&apos;s
+        /// Oculus trigger vs grip mapping including <c>oculusSwapGrabAndTrigger</c>.
         /// </summary>
         public static bool PollVrAnyTriggerOrGripPressDown(SuperController sc)
         {
@@ -204,38 +261,22 @@ namespace geesp0t
             }
         }
 
-        /// <summary>
-        /// OVR path matches <see cref="SuperController.GetLeftHoldGrab"/>
-        /// (<c>Controller.Touch</c>).
-        /// </summary>
+        /// <summary>OVR path matches <see cref="SuperController.GetLeftHoldGrab"/> (<c>Controller.Touch</c>).</summary>
         private static bool OvrLeftGripPhysicalDown()
         {
-            bool swap = UserPreferences.singleton != null &&
-                UserPreferences.singleton.oculusSwapGrabAndTrigger;
+            bool swap = UserPreferences.singleton != null && UserPreferences.singleton.oculusSwapGrabAndTrigger;
             if (swap)
-                return OVRInput.GetDown(
-                    OVRInput.Button.PrimaryIndexTrigger,
-                    OVRInput.Controller.Touch);
-            return OVRInput.GetDown(
-                OVRInput.Button.PrimaryHandTrigger,
-                OVRInput.Controller.Touch);
+                return OVRInput.GetDown(OVRInput.Button.PrimaryIndexTrigger, OVRInput.Controller.Touch);
+            return OVRInput.GetDown(OVRInput.Button.PrimaryHandTrigger, OVRInput.Controller.Touch);
         }
 
-        /// <summary>
-        /// OVR path matches <see cref="SuperController.GetRightHoldGrab"/>
-        /// (<c>Controller.Touch</c>).
-        /// </summary>
+        /// <summary>OVR path matches <see cref="SuperController.GetRightHoldGrab"/> (<c>Controller.Touch</c>).</summary>
         private static bool OvrRightGripPhysicalDown()
         {
-            bool swap = UserPreferences.singleton != null &&
-                UserPreferences.singleton.oculusSwapGrabAndTrigger;
+            bool swap = UserPreferences.singleton != null && UserPreferences.singleton.oculusSwapGrabAndTrigger;
             if (swap)
-                return OVRInput.GetDown(
-                    OVRInput.Button.SecondaryIndexTrigger,
-                    OVRInput.Controller.Touch);
-            return OVRInput.GetDown(
-                OVRInput.Button.SecondaryHandTrigger,
-                OVRInput.Controller.Touch);
+                return OVRInput.GetDown(OVRInput.Button.SecondaryIndexTrigger, OVRInput.Controller.Touch);
+            return OVRInput.GetDown(OVRInput.Button.SecondaryHandTrigger, OVRInput.Controller.Touch);
         }
     }
 }

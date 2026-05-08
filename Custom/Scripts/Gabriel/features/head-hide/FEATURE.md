@@ -16,13 +16,14 @@ VR-only transient head hide that hides face, hair, hats, and glasses when the HM
 ## Responsibilities
 - Register and unregister camera pre/post render hooks for the relevant VR eye cameras.
 - Choose the closest person whose head cylinder contains the HMD and hide the right materials/accessories for that person.
-- Resolve the head-hide target once per frame per probe source and reuse that result across pre/post render callbacks.
+- Resolve the head-hide target on a short timer (about 200 ms) per probe source and reuse that result across pre/post render callbacks between refreshes.
 - Restore transient hide state cleanly on possession clears and scene-settle boundaries.
 
 ## Dependencies And Coupling
 - Uses `PassengerRuntime` to skip duplicate hide behavior during passenger hand possession.
 - Borrowed concepts and some behavior from `ImprovedPoV` and must stay compatible with its hair/material handling.
 - Caches `ImprovedPoV` passenger-suppression checks per frame so repeated render callbacks do not rescan plugin storables.
+- Shares active-person and person-controller caches from `util/PersonAtomCache`.
 
 ## References
 - `Custom/Scripts/Gabriel/FEATURE.md`

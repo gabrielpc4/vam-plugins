@@ -289,11 +289,19 @@ namespace geesp0t
 
             anchors.Add(GetPersonApproximateWorldPosition());
 
-            FreeControllerV3 head = _person.GetStorableByID("headControl") as FreeControllerV3;
+            FreeControllerV3 head;
+            PersonAtomCache.TryGetCachedFreeController(
+                _person,
+                "headControl",
+                out head);
             if (head != null && head.followWhenOff != null)
                 anchors.Add(head.followWhenOff.position);
 
-            FreeControllerV3 chest = _person.GetStorableByID("chest") as FreeControllerV3;
+            FreeControllerV3 chest;
+            PersonAtomCache.TryGetCachedFreeController(
+                _person,
+                "chest",
+                out chest);
             if (chest != null && chest.followWhenOff != null)
                 anchors.Add(chest.followWhenOff.position);
             else if (chest != null && chest.control != null)

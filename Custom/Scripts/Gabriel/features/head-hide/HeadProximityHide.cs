@@ -55,6 +55,8 @@ namespace geesp0t
         /// <summary>How often to retry skin/hair setup when skin is not ready yet or Configure failed.</summary>
         private const float TryConfigureHandlersIntervalSeconds = 0.5f;
 
+        private const float HeadZoneResolveRefreshSeconds = 0.2f;
+
         private static float _nextPollSkinNullTime = -1f;
         private static float _nextConfigureRetryTime = -1f;
 
@@ -91,13 +93,13 @@ namespace geesp0t
 
         private static Dictionary<string, HeadZoneScratch> _headZoneScratchByUid;
 
-        private static int _cachedHeadTargetFrame = -1;
-
         private static Transform _cachedHeadTargetProbeSource;
 
         private static Atom _cachedHeadTargetPerson;
 
         private static FreeControllerV3 _cachedHeadTargetHead;
+
+        private static float _nextHeadTargetRefreshTime = -1f;
 
         private static int _cachedSuppressImprovedPoVFrame = -1;
 
@@ -215,10 +217,10 @@ namespace geesp0t
 
         private static void ResetFrameCaches()
         {
-            _cachedHeadTargetFrame = -1;
             _cachedHeadTargetProbeSource = null;
             _cachedHeadTargetPerson = null;
             _cachedHeadTargetHead = null;
+            _nextHeadTargetRefreshTime = -1f;
             _cachedSuppressImprovedPoVFrame = -1;
             if (_cachedSuppressImprovedPoVByUid != null)
             {
@@ -303,8 +305,8 @@ namespace geesp0t
                 return;
 
             Transform probeSource = ResolveHeadZoneProbeTransform(sc, cam);
-            if (_cachedHeadTargetFrame == Time.frameCount &&
-                _cachedHeadTargetProbeSource == probeSource)
+            if (_cachedHeadTargetProbeSource == probeSource &&
+                Time.unscaledTime < _nextHeadTargetRefreshTime)
             {
                 bestAtom = _cachedHeadTargetPerson;
                 bestHead = _cachedHeadTargetHead;
@@ -324,9 +326,11 @@ namespace geesp0t
             else if (_hideHandlerPerson != null && _handlersConfigured &&
                 !ShouldSuppressForPassengerImprovedPoV(_hideHandlerPerson))
             {
-                FreeControllerV3 heldHead =
-                    _hideHandlerPerson.GetStorableByID("headControl") as
-                        FreeControllerV3;
+                FreeControllerV3 heldHead;
+                PersonAtomCache.TryGetCachedFreeController(
+                    _hideHandlerPerson,
+                    "headControl",
+                    out heldHead);
                 if (heldHead != null)
                 {
                     float unusedRsq;
@@ -343,30 +347,38 @@ namespace geesp0t
                 }
             }
 
-            _cachedHeadTargetFrame = Time.frameCount;
             _cachedHeadTargetProbeSource = probeSource;
             _cachedHeadTargetPerson = bestAtom;
             _cachedHeadTargetHead = bestHead;
+            _nextHeadTargetRefreshTime =
+                Time.unscaledTime + HeadZoneResolveRefreshSeconds;
         }
 
         private static Atom PickClosestPersonInHeadZone(Vector3 probeWorldPosition, float radiusScale, out FreeControllerV3 headOut)
         {
+            List<Atom> persons;
             headOut = null;
-            SuperController sc = SuperController.singleton;
-            if (sc == null)
-                return null;
 
             Atom bestPerson = null;
             FreeControllerV3 bestHead = null;
             float bestRsq = float.MaxValue;
 
-            foreach (Atom a in sc.GetAtoms())
+            persons = PersonAtomCache.GetActivePersonsThisFrame();
+            if (persons == null || persons.Count == 0)
+                return null;
+
+            for (int personIndex = 0; personIndex < persons.Count; personIndex++)
             {
+                Atom a = persons[personIndex];
                 if (a == null || a.type != "Person" || !a.gameObject.activeInHierarchy || a.hidden)
                     continue;
                 if (ShouldSuppressForPassengerImprovedPoV(a))
                     continue;
-                FreeControllerV3 head = a.GetStorableByID("headControl") as FreeControllerV3;
+                FreeControllerV3 head;
+                PersonAtomCache.TryGetCachedFreeController(
+                    a,
+                    "headControl",
+                    out head);
                 if (head == null || head.control == null)
                     continue;
                 float rsq;
@@ -561,7 +573,11 @@ namespace geesp0t
                 up.Normalize();
 
                 Vector3 fwd;
-                FreeControllerV3 chest = person.GetStorableByID("chestControl") as FreeControllerV3;
+                FreeControllerV3 chest;
+                PersonAtomCache.TryGetCachedFreeController(
+                    person,
+                    "chestControl",
+                    out chest);
                 if (chest != null && chest.control != null)
                 {
                     fwd = Vector3.ProjectOnPlane(chest.control.forward, up);

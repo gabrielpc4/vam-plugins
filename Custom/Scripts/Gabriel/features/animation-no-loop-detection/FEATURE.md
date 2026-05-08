@@ -4,7 +4,7 @@
 Detects non-looping timeline / scene motion playback on the main
 `SuperController.motionAnimationMaster` and loads `Saves/scene/Default.json` once
 after playback ends (delayed in realtime), unless the load/save dir path matches
-the booty-shake exception bucket. **No E-Motion coupling** — this is standalone
+the exception bucket. **No E-Motion coupling** — this is standalone
 scene-motion policy.
 
 ## Live Files
@@ -17,8 +17,9 @@ scene-motion policy.
 - `GabrielSessionOrchestrator.LateUpdate` calls
   `AnimationNoLoopDetection.LateTick` and starts deferred Default.json loads when
   enabled.
-- `LateTick` reuses one scene motion scan per frame for qualification and
-  end-of-clip detection.
+- `LateTick` qualifies the scene once per scene/min-length setting, then waits
+  until the estimated clip end before checking completion. If the clip is still
+  not done, it rechecks every 3 seconds.
 
 ## Dependencies And Coupling
 - `GabrielSessionOrchestrator` owns the user toggles for this policy (saved on the
@@ -37,6 +38,6 @@ scene-motion policy.
 ## Update Checklist
 Update this file in the same turn whenever any of these change:
 
-- End detection, delay seconds, target JSON path, or booty-shake exclusion rules.
+- End detection, delay seconds, target JSON path, or exception exclusion rules.
 - Interaction with other features that read
   `CurrentSceneUsesLongNonLoopAnimation` / grip merge blocking.

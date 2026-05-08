@@ -21,6 +21,8 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 - Tick `PassengerLaserPossess` when beams run so **right beam + face A**
   can start passenger on a lit hit person.
 - Keep the left beam visual-only; only the right beam resolves person hits.
+- Refresh the right-beam closest-person target at a relaxed cadence while the
+  beam stays active, and invalidate it as soon as the beam hides.
 - Hide DillDoe fluid mesh until scene load settles.
 - Nudge standalone monitor-camera FOV from VaM defaults to Gabriel preference.
 - Capture camera/rig snapshots from the K hotkey and route them into the offline patch scripts.

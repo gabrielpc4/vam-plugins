@@ -193,19 +193,29 @@ namespace geesp0t
                     continue;
                 }
 
-                FreeControllerV3 chest =
-                    atom.GetStorableByID("chestControl") as FreeControllerV3;
-                FreeControllerV3 pelvis =
-                    atom.GetStorableByID("pelvisControl") as FreeControllerV3;
+                FreeControllerV3 chest;
+                FreeControllerV3 pelvis;
 
                 Vector3 chestPos;
                 Vector3 pelvisPos;
-                if (!TryFreeControllerWorldPosition(chest, out chestPos))
+                PersonAtomCache.TryGetCachedFreeController(
+                    atom,
+                    "chestControl",
+                    out chest);
+                PersonAtomCache.TryGetCachedFreeController(
+                    atom,
+                    "pelvisControl",
+                    out pelvis);
+                if (!PersonAtomCache.TryGetFreeControllerWorldPosition(
+                        chest,
+                        out chestPos))
                 {
                     continue;
                 }
 
-                if (!TryFreeControllerWorldPosition(pelvis, out pelvisPos))
+                if (!PersonAtomCache.TryGetFreeControllerWorldPosition(
+                        pelvis,
+                        out pelvisPos))
                 {
                     pelvisPos = chestPos;
                 }
@@ -242,39 +252,6 @@ namespace geesp0t
 
             preferUpper = bestPreferUpper;
             return true;
-        }
-
-        private static bool TryFreeControllerWorldPosition(
-            FreeControllerV3 fc,
-            out Vector3 world)
-        {
-            world = Vector3.zero;
-            if (fc == null)
-            {
-                return false;
-            }
-
-            if (fc.followWhenOff != null)
-            {
-                world = fc.followWhenOff.position;
-                return true;
-            }
-
-            // VaM session compile crashed when this fallback used fc.control
-            // (see 814214a); follow + transform still valid on FreeControllerV3.
-            if (fc.follow != null)
-            {
-                world = fc.follow.position;
-                return true;
-            }
-
-            if (fc.transform != null)
-            {
-                world = fc.transform.position;
-                return true;
-            }
-
-            return false;
         }
 
         private static bool HasAnyActiveClothing(DAZCharacterSelector selector)

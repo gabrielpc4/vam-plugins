@@ -52,6 +52,7 @@ namespace geesp0t
 
             if (!featureEnabled)
             {
+                PassengerLaserPossess.ClearBeamClosestPersonCache();
                 HideBeams();
                 return;
             }
@@ -76,7 +77,10 @@ namespace geesp0t
                     _beamRight,
                     true);
             else
+            {
+                PassengerLaserPossess.ClearBeamClosestPersonCache();
                 HideOne(_beamRight);
+            }
 
             PassengerLaserPossess.TryTriggerFromRightBeamPersonHit(
                 sc,
@@ -358,6 +362,7 @@ namespace geesp0t
 
         public static void OnPluginDestroy()
         {
+            PassengerLaserPossess.ClearBeamClosestPersonCache();
             HideBeams();
             if (_root != null)
             {

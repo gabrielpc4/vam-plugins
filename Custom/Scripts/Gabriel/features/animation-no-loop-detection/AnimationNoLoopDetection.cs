@@ -5,10 +5,11 @@ namespace geesp0t
 {
     /// <summary>
     /// When scene motion uses <see cref="SuperController.motionAnimationMaster"/> with loop off
-    /// and at least one clip longer than a configurable minimum, detects end of playback (timeline
-    /// counter enters the tail or resets from the tail toward zero). Then schedules loading
-    /// <c>Saves/scene/Default.json</c> after <see cref="DeferredDefaultSceneRealtimeDelaySeconds"/>
-    /// realtime seconds. Skips paths containing booty shake (Haystack-style, case-insensitive).
+    /// and at least one clip longer than a configurable minimum, detects end of
+    /// playback and schedules loading <c>Saves/scene/Default.json</c> after
+    /// <see cref="DeferredDefaultSceneRealtimeDelaySeconds"/> realtime seconds.
+    /// Skips paths matching the exception bucket
+    /// (Haystack-style, case-insensitive).
     /// </summary>
     internal static class AnimationNoLoopDetection
     {
@@ -16,9 +17,23 @@ namespace geesp0t
 
         internal const float DeferredDefaultSceneRealtimeDelaySeconds = 5f;
 
-        private const string BootyShakePathToken = "booty shake";
+        private const string ExceptionPathToken = "booty shake";
+
+        private const float CompletionRecheckSeconds = 3f;
+
+        private const float PlaybackAdvanceEpsilon = 0.0005f;
 
         private static bool _deferredDefaultSceneLoadFiredThisScene;
+
+        private static bool _sceneAnimationStateEvaluated;
+
+        private static float _sceneAnimationStateMinClipLength = -1f;
+
+        private static bool _sceneHasLongNonLoopAnimation;
+
+        private static bool _sceneMatchesExceptionRule;
+
+        private static float _sceneMaxClipLength;
 
         private static float _prevPlaybackCounter;
 
@@ -26,12 +41,20 @@ namespace geesp0t
 
         private static bool _seenPlaybackAdvance;
 
+        private static float _nextPlaybackCompletionCheckTime = -1f;
+
         public static void ResetForNewScene()
         {
             _deferredDefaultSceneLoadFiredThisScene = false;
+            _sceneAnimationStateEvaluated = false;
+            _sceneAnimationStateMinClipLength = -1f;
+            _sceneHasLongNonLoopAnimation = false;
+            _sceneMatchesExceptionRule = false;
+            _sceneMaxClipLength = 0f;
             _prevPlaybackCounter = 0f;
             _hasPrevPlaybackCounter = false;
             _seenPlaybackAdvance = false;
+            _nextPlaybackCompletionCheckTime = -1f;
         }
 
         public static void LateTick(
@@ -42,6 +65,12 @@ namespace geesp0t
             SuperController sc;
             MotionAnimationMaster mam;
             float maxClip;
+            bool exceptionRule;
+            float pc;
+            float endEps;
+            float startEps;
+            bool atEnd;
+            bool wrappedOrResetNearStart;
 
             if (!featureEnabled)
                 return;
@@ -52,19 +81,20 @@ namespace geesp0t
             if (_deferredDefaultSceneLoadFiredThisScene)
                 return;
 
-            if (!TryGetLongNonLoopAnimationState(
+            if (!TryGetSceneAnimationState(
                     minClipLengthSeconds,
                     out sc,
                     out mam,
-                    out maxClip))
+                    out maxClip,
+                    out exceptionRule))
             {
                 return;
             }
 
-            if (CurrentScenePathIndicatesBootyShake(sc))
+            if (exceptionRule)
                 return;
 
-            float pc = mam.playbackCounter;
+            pc = mam.playbackCounter;
 
             if (!_hasPrevPlaybackCounter)
             {
@@ -73,40 +103,53 @@ namespace geesp0t
                 return;
             }
 
-            if (pc > _prevPlaybackCounter + 0.0005f)
-                _seenPlaybackAdvance = true;
-
-            float endEps = Mathf.Max(0.12f, 0.003f * maxClip);
-            bool atEnd = pc >= maxClip - endEps;
-            bool prevAtEnd = _prevPlaybackCounter >= maxClip - endEps;
-
-            bool shouldLoad = false;
-            if (_seenPlaybackAdvance)
+            if (!_seenPlaybackAdvance)
             {
-                if (atEnd && !prevAtEnd)
-                    shouldLoad = true;
-                else if (prevAtEnd && pc < Mathf.Max(0.04f * maxClip, 0.25f))
-                    shouldLoad = true;
+                if (pc > _prevPlaybackCounter + PlaybackAdvanceEpsilon)
+                {
+                    _seenPlaybackAdvance = true;
+                    _nextPlaybackCompletionCheckTime =
+                        Time.unscaledTime + Mathf.Max(0f, maxClip - pc);
+                }
+
+                _prevPlaybackCounter = pc;
+                return;
             }
 
-            _prevPlaybackCounter = pc;
-
-            if (!shouldLoad)
+            if (_nextPlaybackCompletionCheckTime > 0f &&
+                Time.unscaledTime < _nextPlaybackCompletionCheckTime)
+            {
+                _prevPlaybackCounter = pc;
                 return;
+            }
+
+            endEps = Mathf.Max(0.12f, 0.003f * maxClip);
+            startEps = Mathf.Max(0.04f * maxClip, 0.25f);
+            atEnd = pc >= maxClip - endEps;
+            wrappedOrResetNearStart = pc < startEps;
+            _prevPlaybackCounter = pc;
+            if (!atEnd && !wrappedOrResetNearStart)
+            {
+                _nextPlaybackCompletionCheckTime =
+                    Time.unscaledTime + CompletionRecheckSeconds;
+                return;
+            }
 
             _deferredDefaultSceneLoadFiredThisScene = true;
             orchestrator.StartAnimationNoLoopDetectionDeferredDefaultCoroutine();
         }
 
-        private static bool TryGetLongNonLoopAnimationState(
+        private static bool TryGetSceneAnimationState(
             float minClipLengthSeconds,
             out SuperController sc,
             out MotionAnimationMaster mam,
-            out float maxClip)
+            out float maxClip,
+            out bool exceptionRule)
         {
             sc = SuperController.singleton;
             mam = null;
             maxClip = 0f;
+            exceptionRule = false;
 
             if (sc == null || sc.isLoading)
                 return false;
@@ -115,16 +158,51 @@ namespace geesp0t
             if (mam == null)
                 return false;
 
-            maxClip = GetMaxSceneMotionClipLength(sc);
-            if (maxClip < minClipLengthSeconds || maxClip < 0.01f)
+            EnsureSceneAnimationState(
+                sc,
+                mam,
+                minClipLengthSeconds);
+
+            if (!_sceneHasLongNonLoopAnimation)
                 return false;
 
-            return !mam.loop;
+            maxClip = _sceneMaxClipLength;
+            exceptionRule = _sceneMatchesExceptionRule;
+            return true;
+        }
+
+        private static void EnsureSceneAnimationState(
+            SuperController sc,
+            MotionAnimationMaster mam,
+            float minClipLengthSeconds)
+        {
+            if (_sceneAnimationStateEvaluated &&
+                Mathf.Abs(
+                    _sceneAnimationStateMinClipLength - minClipLengthSeconds) <
+                0.0001f)
+            {
+                return;
+            }
+
+            _sceneAnimationStateEvaluated = true;
+            _sceneAnimationStateMinClipLength = minClipLengthSeconds;
+            _sceneMaxClipLength = GetMaxSceneMotionClipLength(sc);
+            _sceneHasLongNonLoopAnimation =
+                !mam.loop &&
+                _sceneMaxClipLength >= minClipLengthSeconds &&
+                _sceneMaxClipLength >= 0.01f;
+            _sceneMatchesExceptionRule =
+                _sceneHasLongNonLoopAnimation &&
+                CurrentScenePathIndicatesException(sc);
+            _hasPrevPlaybackCounter = false;
+            _prevPlaybackCounter = 0f;
+            _seenPlaybackAdvance = false;
+            _nextPlaybackCompletionCheckTime = -1f;
         }
 
         /// <summary>
-        /// Scene qualifies for deferred Default.json: not booty-shake paths, motion on,
-        /// long enough dominant clip, master not looping.
+        /// Scene qualifies for deferred Default.json: not exception paths, motion
+        /// on, long enough dominant clip, master not looping.
         /// </summary>
         internal static bool CurrentSceneUsesLongNonLoopAnimation(
             float minClipLengthSeconds)
@@ -132,20 +210,22 @@ namespace geesp0t
             SuperController sc;
             MotionAnimationMaster mam;
             float maxClip;
-            if (!TryGetLongNonLoopAnimationState(
+            bool exceptionRule;
+            if (!TryGetSceneAnimationState(
                 minClipLengthSeconds,
                 out sc,
                 out mam,
-                out maxClip))
+                out maxClip,
+                out exceptionRule))
                 return false;
 
-            return !CurrentScenePathIndicatesBootyShake(sc);
+            return !exceptionRule;
         }
 
         /// <summary>
-        /// Grip-triggered Spankings merge rules: non-booty long non-loop always blocks early
-        /// merge until rules say otherwise; booty-shake blocks only until playback nears clip
-        /// end.
+        /// Grip-triggered Spankings merge rules: non-exception long non-loop
+        /// always blocks early merge until rules say otherwise; exception scenes
+        /// block only until playback nears clip end.
         /// </summary>
         internal static bool CurrentSceneBlocksGripSpankingsMerge(
             float minClipLengthSeconds)
@@ -153,14 +233,16 @@ namespace geesp0t
             SuperController sc;
             MotionAnimationMaster mam;
             float maxClip;
-            if (!TryGetLongNonLoopAnimationState(
+            bool exceptionRule;
+            if (!TryGetSceneAnimationState(
                 minClipLengthSeconds,
                 out sc,
                 out mam,
-                out maxClip))
+                out maxClip,
+                out exceptionRule))
                 return false;
 
-            if (!CurrentScenePathIndicatesBootyShake(sc))
+            if (!exceptionRule)
                 return true;
 
             float endEps = Mathf.Max(0.12f, 0.003f * maxClip);
@@ -219,7 +301,8 @@ namespace geesp0t
             return maxLen;
         }
 
-        private static bool CurrentScenePathIndicatesBootyShake(SuperController sc)
+        private static bool CurrentScenePathIndicatesException(
+            SuperController sc)
         {
             if (sc == null)
                 return false;
@@ -230,7 +313,9 @@ namespace geesp0t
                 ((loadDir != null ? loadDir : "") +
                 " " + (saveDir != null ? saveDir : ""))
                 .Replace('\\', '/');
-            return hay.IndexOf(BootyShakePathToken, System.StringComparison.OrdinalIgnoreCase)
+            return hay.IndexOf(
+                ExceptionPathToken,
+                System.StringComparison.OrdinalIgnoreCase)
                 >= 0;
         }
     }

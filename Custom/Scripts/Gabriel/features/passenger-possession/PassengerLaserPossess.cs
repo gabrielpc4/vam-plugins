@@ -18,12 +18,18 @@ namespace geesp0t
         /// <summary>Min seconds between successful laser+A triggers.</summary>
         private const float RetriggerCooldownSeconds = 0.2f;
 
+        private const float BeamClosestPersonRefreshSeconds = 1f;
+
         private const int InitialBeamHitBufferSize = 32;
 
         private const int MaxBeamHitBufferSize = 256;
 
         private static RaycastHit[] _beamHits =
             new RaycastHit[InitialBeamHitBufferSize];
+
+        private static float _nextBeamClosestPersonRefreshTime = -1f;
+
+        private static Atom _cachedBeamClosestPerson;
 
         /// <summary>
         /// First <c>Person</c> collider along the beam, sorted by hit distance.
@@ -42,6 +48,9 @@ namespace geesp0t
                 return null;
             }
 
+            if (Time.unscaledTime < _nextBeamClosestPersonRefreshTime)
+                return _cachedBeamClosestPerson;
+
             rayDirection = direction.normalized;
             hitCount = RaycastBeamHits(
                 origin,
@@ -50,6 +59,9 @@ namespace geesp0t
                 out saturated);
             if (hitCount == 0)
             {
+                _cachedBeamClosestPerson = null;
+                _nextBeamClosestPersonRefreshTime =
+                    Time.unscaledTime + BeamClosestPersonRefreshSeconds;
                 return null;
             }
 
@@ -57,12 +69,25 @@ namespace geesp0t
             {
                 RaycastHit[] overflowHits =
                     Physics.RaycastAll(origin, rayDirection, length);
-                return FindClosestPersonInHits(
+                _cachedBeamClosestPerson = FindClosestPersonInHits(
                     overflowHits,
                     overflowHits != null ? overflowHits.Length : 0);
+                _nextBeamClosestPersonRefreshTime =
+                    Time.unscaledTime + BeamClosestPersonRefreshSeconds;
+                return _cachedBeamClosestPerson;
             }
 
-            return FindClosestPersonInHits(_beamHits, hitCount);
+            _cachedBeamClosestPerson =
+                FindClosestPersonInHits(_beamHits, hitCount);
+            _nextBeamClosestPersonRefreshTime =
+                Time.unscaledTime + BeamClosestPersonRefreshSeconds;
+            return _cachedBeamClosestPerson;
+        }
+
+        internal static void ClearBeamClosestPersonCache()
+        {
+            _cachedBeamClosestPerson = null;
+            _nextBeamClosestPersonRefreshTime = -1f;
         }
 
         private static Atom FindClosestPersonInHits(

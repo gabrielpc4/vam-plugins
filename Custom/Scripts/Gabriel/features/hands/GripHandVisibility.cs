@@ -105,7 +105,7 @@ namespace geesp0t
 
         public static void LateTick(bool featureEnabled)
         {
-            PersonAtomCache.FramePersonPossessionSnapshot possessionSnapshot;
+            PersonFramePossessionSnapshot possessionSnapshot;
 
             if (!featureEnabled)
                 return;
@@ -171,7 +171,7 @@ namespace geesp0t
                 PassengerRuntime.IsPassengerModeActiveOrPending();
         }
 
-        private static PersonAtomCache.FramePersonPossessionSnapshot
+        private static PersonFramePossessionSnapshot
             GetFramePersonPossessionSnapshot()
         {
             return PersonAtomCache.GetFramePersonPossessionSnapshot();

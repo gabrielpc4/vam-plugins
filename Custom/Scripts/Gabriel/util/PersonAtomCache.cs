@@ -1,11 +1,32 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using MeshVR;
 using UnityEngine;
 
 namespace geesp0t
 {
+    public struct PersonFramePossessionSnapshot
+    {
+        public bool AnyHeadOrHandPossessed;
+
+        public bool AnyLeftHandPossessed;
+
+        public bool AnyRightHandPossessed;
+    }
+
+    public struct PersonFrameControllers
+    {
+        public FreeControllerV3 HeadControl;
+
+        public FreeControllerV3 LeftHandControl;
+
+        public FreeControllerV3 RightHandControl;
+
+        public FreeControllerV3 ChestControl;
+
+        public FreeControllerV3 PelvisControl;
+    }
+
     /// <summary>
     /// Cached female/male <c>Person</c> lists ordered by UID; invalidated on atom
     /// set changes. Also exposes per-frame active-person possession and
@@ -13,28 +34,6 @@ namespace geesp0t
     /// </summary>
     public static class PersonAtomCache
     {
-        public struct FramePersonPossessionSnapshot
-        {
-            public bool AnyHeadOrHandPossessed;
-
-            public bool AnyLeftHandPossessed;
-
-            public bool AnyRightHandPossessed;
-        }
-
-        public struct FramePersonControllers
-        {
-            public FreeControllerV3 HeadControl;
-
-            public FreeControllerV3 LeftHandControl;
-
-            public FreeControllerV3 RightHandControl;
-
-            public FreeControllerV3 ChestControl;
-
-            public FreeControllerV3 PelvisControl;
-        }
-
         private static bool _personGenderListsCacheValid;
 
         private static List<Atom> _cachedFemalePersonsByUid;
@@ -46,14 +45,14 @@ namespace geesp0t
 
         private static int _framePersonPossessionSnapshotFrame = -1;
 
-        private static FramePersonPossessionSnapshot
+        private static PersonFramePossessionSnapshot
             _framePersonPossessionSnapshot;
 
         private static int _framePersonControllersFrame = -1;
 
-        private static readonly Dictionary<string, FramePersonControllers>
+        private static readonly Dictionary<string, PersonFrameControllers>
             _framePersonControllersByKey =
-                new Dictionary<string, FramePersonControllers>();
+                new Dictionary<string, PersonFrameControllers>();
 
         public static void InvalidatePersonGenderCaches()
         {
@@ -64,6 +63,8 @@ namespace geesp0t
 
         private static void EnsurePersonGenderCaches()
         {
+            List<Atom> atoms;
+            int i;
             SuperController sc;
 
             if (_personGenderListsCacheValid)
@@ -78,15 +79,38 @@ namespace geesp0t
                 return;
             }
 
-            _cachedFemalePersonsByUid = sc.GetAtoms()
-                .Where(x => x != null && x.type == "Person" && IsPersonFemale(x))
-                .OrderBy(x => x.uid, StringComparer.Ordinal)
-                .ToList();
-            _cachedMalePersonsByUid = sc.GetAtoms()
-                .Where(x => x != null && x.type == "Person" && !IsPersonFemale(x))
-                .OrderBy(x => x.uid, StringComparer.Ordinal)
-                .ToList();
+            atoms = sc.GetAtoms();
+            _cachedFemalePersonsByUid = new List<Atom>();
+            _cachedMalePersonsByUid = new List<Atom>();
+            if (atoms == null)
+            {
+                _personGenderListsCacheValid = true;
+                return;
+            }
+
+            // Avoid LINQ-generated helper types in VaM's old dynamic compiler.
+            for (i = 0; i < atoms.Count; i++)
+            {
+                Atom atom = atoms[i];
+                if (atom == null || atom.type != "Person")
+                    continue;
+
+                if (IsPersonFemale(atom))
+                    _cachedFemalePersonsByUid.Add(atom);
+                else
+                    _cachedMalePersonsByUid.Add(atom);
+            }
+
+            _cachedFemalePersonsByUid.Sort(CompareAtomsByUidOrdinal);
+            _cachedMalePersonsByUid.Sort(CompareAtomsByUidOrdinal);
             _personGenderListsCacheValid = true;
+        }
+
+        private static int CompareAtomsByUidOrdinal(Atom a, Atom b)
+        {
+            string uidA = a != null ? a.uid : null;
+            string uidB = b != null ? b.uid : null;
+            return StringComparer.Ordinal.Compare(uidA, uidB);
         }
 
         private static void OnPersonSceneAtomUIDsChanged(List<string> atomUids)
@@ -185,7 +209,7 @@ namespace geesp0t
             EnsureFramePersonPossessionSnapshot(sc);
         }
 
-        public static FramePersonPossessionSnapshot
+        public static PersonFramePossessionSnapshot
             GetFramePersonPossessionSnapshot()
         {
             return EnsureFramePersonPossessionSnapshot(
@@ -203,7 +227,7 @@ namespace geesp0t
             string storableId,
             out FreeControllerV3 controller)
         {
-            FramePersonControllers controllers;
+            PersonFrameControllers controllers;
 
             controller = null;
             if (atom == null ||
@@ -299,7 +323,7 @@ namespace geesp0t
             return atom != null && atom.type == "Person" && !IsPersonFemale(atom);
         }
 
-        private static FramePersonPossessionSnapshot
+        private static PersonFramePossessionSnapshot
             EnsureFramePersonPossessionSnapshot(SuperController sc)
         {
             List<Atom> atoms;
@@ -313,7 +337,7 @@ namespace geesp0t
             }
 
             _framePersonPossessionSnapshotFrame = frame;
-            _framePersonPossessionSnapshot = new FramePersonPossessionSnapshot();
+            _framePersonPossessionSnapshot = new PersonFramePossessionSnapshot();
             _frameActivePersons.Clear();
             ResetFramePersonControllersCache(frame);
 
@@ -379,11 +403,11 @@ namespace geesp0t
 
         private static bool TryGetFramePersonControllers(
             Atom atom,
-            out FramePersonControllers controllers)
+            out PersonFrameControllers controllers)
         {
             string key;
 
-            controllers = new FramePersonControllers();
+            controllers = new PersonFrameControllers();
             if (atom == null || atom.type != "Person")
                 return false;
 
@@ -412,11 +436,11 @@ namespace geesp0t
             _framePersonControllersByKey.Clear();
         }
 
-        private static FramePersonControllers BuildFramePersonControllers(
+        private static PersonFrameControllers BuildFramePersonControllers(
             Atom atom)
         {
-            FramePersonControllers controllers =
-                new FramePersonControllers();
+            PersonFrameControllers controllers =
+                new PersonFrameControllers();
 
             if (atom == null || atom.type != "Person")
                 return controllers;
@@ -442,7 +466,7 @@ namespace geesp0t
             Atom atom,
             string storableId)
         {
-            FramePersonControllers controllers;
+            PersonFrameControllers controllers;
 
             if (!TryGetFramePersonControllers(atom, out controllers))
                 return null;

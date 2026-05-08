@@ -4,165 +4,88 @@ using MeshVR;
 namespace geesp0t
 {
     /// <summary>
+    /// Torso garment band for proximity-strip classification.
+    /// </summary>
+    public enum ClothingTorsoBand
+    {
+        Unknown = 0,
+
+        Upper = 1,
+
+        Lower = 2,
+
+        FullBody = 3
+    }
+
+    /// <summary>
     /// Torso-band keywords, text heuristics, classification, and pick-one rules
     /// for proximity strip (shared across Gabriel clothing features).
+    /// Nested helper types flattened for VaM dynamic Mono emitter stability.
     /// </summary>
     public static class ClothingClassifier
     {
-        /// <summary>
-        /// Name/tag tokens for upper, lower, and full-body torso bands.
-        /// </summary>
-        public static class Keywords
+        private static readonly string[] _fullBodyKeywords = new string[]
         {
-            public static readonly string[] FullBody = new string[]
-            {
-                "dress",
-                "gown",
-                "jumpsuit",
-                "catsuit",
-                "bodysuit",
-                "romper",
-                "overall",
-            };
+            "dress",
+            "gown",
+            "jumpsuit",
+            "catsuit",
+            "bodysuit",
+            "romper",
+            "overall",
+        };
 
-            public static readonly string[] Upper = new string[]
-            {
-                "top",
-                "shirt",
-                "bra",
-                "blouse",
-                "jacket",
-                "coat",
-                "sweater",
-                "hoodie",
-                "vest",
-                "cardigan",
-                "tank",
-                "corset",
-                "bustier",
-                "halter",
-                "tube top",
-                "tubetop",
-                "crop ",
-                "tie",
-                "scarf",
-                "glass",
-            };
-
-            public static readonly string[] Lower = new string[]
-            {
-                "panties",
-                "underwear",
-                "pant",
-                "jeans",
-                "shorts",
-                "skirt",
-                "thong",
-                "brief",
-                "boxer",
-                "legging",
-                "stocking",
-                "hose",
-                "garter",
-                "sock",
-                "shoe",
-                "boot",
-                "heel",
-                "belt",
-                "bikini bottom",
-                "mini skirt",
-                "miniskirt",
-                "cargo",
-                "trouser",
-                "kilt",
-            };
-        }
-
-        /// <summary>
-        /// Strip priority band for torso garment classification.
-        /// </summary>
-        public enum TorsoBand
+        private static readonly string[] _upperKeywords = new string[]
         {
-            Unknown = 0,
-            Upper = 1,
-            Lower = 2,
-            FullBody = 3
-        }
+            "top",
+            "shirt",
+            "bra",
+            "blouse",
+            "jacket",
+            "coat",
+            "sweater",
+            "hoodie",
+            "vest",
+            "cardigan",
+            "tank",
+            "corset",
+            "bustier",
+            "halter",
+            "tube top",
+            "tubetop",
+            "crop ",
+            "tie",
+            "scarf",
+            "glass",
+        };
 
-        /// <summary>
-        /// Lowercased search blob and underwear / outerwear heuristics.
-        /// </summary>
-        public static class Text
+        private static readonly string[] _lowerKeywords = new string[]
         {
-            public static string SearchBlob(DAZClothingItem item)
-            {
-                string blob = " " + (item.displayName ?? "") + " " +
-                    (item.tags ?? "") + " ";
-
-                if (item.tagsArray != null)
-                {
-                    foreach (string tag in item.tagsArray)
-                    {
-                        if (!string.IsNullOrEmpty(tag))
-                            blob += tag + " ";
-                    }
-                }
-
-                return blob.ToLowerInvariant();
-            }
-
-            public static bool LooksLikeSkirtDressOuterGarment(DAZClothingItem item)
-            {
-                string blob = SearchBlob(item);
-                string[] avoid =
-                {
-                    "skirt", "dress", "gown", "catsuit", "jumpsuit", "hobble",
-                    "kilt", "robe", "sari", "cheongsam", "ballgown"
-                };
-
-                foreach (string token in avoid)
-                {
-                    if (blob.Contains(token))
-                        return true;
-                }
-
-                return false;
-            }
-
-            public static bool IsUnderwearLikeItem(DAZClothingItem item)
-            {
-                string blob;
-                string[] keywords =
-                {
-                    "bra", "panty", "panties", "underwear", "thong", "brief",
-                    "bikini", "lingerie", "boxer", "boyshort", "pantie",
-                    "undershirt", "camisole", "pantyhose", "stocking", "garter",
-                    "corset ", " bustier"
-                };
-
-                if (!item.active)
-                    return false;
-                if (LooksLikeSkirtDressOuterGarment(item))
-                    return false;
-
-                if (item.exclusiveRegion ==
-                        DAZClothingItem.ExclusiveRegion.UnderChest ||
-                    item.exclusiveRegion ==
-                        DAZClothingItem.ExclusiveRegion.UnderHip)
-                {
-                    return true;
-                }
-
-                blob = SearchBlob(item);
-                foreach (string keyword in keywords)
-                {
-                    if (blob.Contains(keyword))
-                        return true;
-                }
-
-                return false;
-            }
-        }
+            "panties",
+            "underwear",
+            "pant",
+            "jeans",
+            "shorts",
+            "skirt",
+            "thong",
+            "brief",
+            "boxer",
+            "legging",
+            "stocking",
+            "hose",
+            "garter",
+            "sock",
+            "shoe",
+            "boot",
+            "heel",
+            "belt",
+            "bikini bottom",
+            "mini skirt",
+            "miniskirt",
+            "cargo",
+            "trouser",
+            "kilt",
+        };
 
         public static bool TryPickClothingItemToRemove(
             DAZCharacterSelector selector,
@@ -194,40 +117,40 @@ namespace geesp0t
 
             if (preferUpper)
             {
-                if (TryFirstMatchingBand(active, TorsoBand.Upper, out picked))
+                if (TryFirstMatchingBand(active, ClothingTorsoBand.Upper, out picked))
                 {
                     return true;
                 }
 
-                if (TryFirstMatchingBand(active, TorsoBand.FullBody, out picked))
+                if (TryFirstMatchingBand(active, ClothingTorsoBand.FullBody, out picked))
                 {
                     return true;
                 }
 
-                if (TryFirstMatchingBand(active, TorsoBand.Lower, out picked))
+                if (TryFirstMatchingBand(active, ClothingTorsoBand.Lower, out picked))
                 {
                     return true;
                 }
             }
             else
             {
-                if (TryFirstMatchingBand(active, TorsoBand.Lower, out picked))
+                if (TryFirstMatchingBand(active, ClothingTorsoBand.Lower, out picked))
                 {
                     return true;
                 }
 
-                if (TryFirstMatchingBand(active, TorsoBand.FullBody, out picked))
+                if (TryFirstMatchingBand(active, ClothingTorsoBand.FullBody, out picked))
                 {
                     return true;
                 }
 
-                if (TryFirstMatchingBand(active, TorsoBand.Upper, out picked))
+                if (TryFirstMatchingBand(active, ClothingTorsoBand.Upper, out picked))
                 {
                     return true;
                 }
             }
 
-            if (TryFirstMatchingBand(active, TorsoBand.Unknown, out picked))
+            if (TryFirstMatchingBand(active, ClothingTorsoBand.Unknown, out picked))
             {
                 return true;
             }
@@ -236,14 +159,14 @@ namespace geesp0t
             return true;
         }
 
-        public static TorsoBand ClassifyTorsoBand(DAZClothingItem item)
+        public static ClothingTorsoBand ClassifyTorsoBand(DAZClothingItem item)
         {
             DAZClothingItem.ExclusiveRegion region = item.exclusiveRegion;
-            string blob = Text.SearchBlob(item);
+            string blob = SearchBlob(item);
 
-            if (BlobContainsAny(blob, Keywords.FullBody))
+            if (BlobContainsAny(blob, _fullBodyKeywords))
             {
-                return TorsoBand.FullBody;
+                return ClothingTorsoBand.FullBody;
             }
 
             bool upperFromRegion =
@@ -261,53 +184,74 @@ namespace geesp0t
 
             if (upperFromRegion && lowerFromRegion)
             {
-                return TorsoBand.FullBody;
+                return ClothingTorsoBand.FullBody;
             }
 
             if (upperFromRegion)
             {
-                return TorsoBand.Upper;
+                return ClothingTorsoBand.Upper;
             }
 
             if (lowerFromRegion)
             {
-                return TorsoBand.Lower;
+                return ClothingTorsoBand.Lower;
             }
 
-            bool upperFromText = BlobContainsAny(blob, Keywords.Upper);
-            bool lowerFromText = BlobContainsAny(blob, Keywords.Lower);
+            bool upperFromText = BlobContainsAny(blob, _upperKeywords);
+            bool lowerFromText = BlobContainsAny(blob, _lowerKeywords);
 
             if (upperFromText && lowerFromText)
             {
-                return TorsoBand.FullBody;
+                return ClothingTorsoBand.FullBody;
             }
 
             if (upperFromText)
             {
-                return TorsoBand.Upper;
+                return ClothingTorsoBand.Upper;
             }
 
             if (lowerFromText)
             {
-                return TorsoBand.Lower;
+                return ClothingTorsoBand.Lower;
             }
 
             if (blob.Contains("bikini"))
             {
-                return TorsoBand.FullBody;
+                return ClothingTorsoBand.FullBody;
             }
 
             if (blob.Contains("lingerie"))
             {
-                return TorsoBand.FullBody;
+                return ClothingTorsoBand.FullBody;
             }
 
-            return TorsoBand.Unknown;
+            return ClothingTorsoBand.Unknown;
+        }
+
+        private static string SearchBlob(DAZClothingItem item)
+        {
+            string blob = " " + (item.displayName ?? "") + " " +
+                (item.tags ?? "") + " ";
+
+            if (item.tagsArray != null)
+            {
+                int ti;
+                for (ti = 0; ti < item.tagsArray.Length; ti++)
+                {
+                    string tag = item.tagsArray[ti];
+                    if (!string.IsNullOrEmpty(tag))
+                    {
+                        blob += tag + " ";
+                    }
+                }
+            }
+
+            return blob.ToLowerInvariant();
         }
 
         private static bool TryFirstMatchingBand(
             List<DAZClothingItem> items,
-            TorsoBand band,
+            ClothingTorsoBand band,
             out DAZClothingItem found)
         {
             found = null;

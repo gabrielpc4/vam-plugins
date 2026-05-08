@@ -17,9 +17,8 @@ namespace geesp0t
     /// extra plugin instance / <c>Update</c> shim that destabilizes some loads.
     /// When every active Person atom has zero active garments, skips all work until
     /// the next orchestrator scene change or atom UID list change wakes checks.
-    /// Gated by <see cref="VrInput.IsLikelyVrRuntimeSafe"/> so desktop modes skip
-    /// all garment and trigger polls; VR uses OVR/OpenVR flags and XR fallback when
-    /// needed.
+    /// Gated by VrInput.IsLikelyVrRuntimeSafe so desktop modes skip all garment and
+    /// trigger polls; VR uses OVR/OpenVR flags and XR fallback when needed.
     /// </summary>
     internal static class TriggerClothingRemover
     {

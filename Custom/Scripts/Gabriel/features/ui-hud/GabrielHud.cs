@@ -67,6 +67,22 @@ namespace geesp0t
         /// </summary>
         private const string EmotionCycleButtonSuffix = " >";
 
+        /// <summary>
+        /// All GabrielHud grid buttons share width, height, label size, and equal
+        /// horizontal/vertical spacing between cell centers.
+        /// </summary>
+        private const float GabrielHudButtonWidth = 108f;
+
+        private const float GabrielHudButtonHeight = 40f;
+
+        private const int GabrielHudButtonLabelFontSize = 16;
+
+        private const float GabrielHudGridSpacing = 0.08f;
+
+        private const float GabrielHudGridOriginX = 0.22f;
+
+        private const float GabrielHudGridOriginY = 0.50f;
+
         private UIDynamicButton spankingsButton;
 
         private UIDynamicButton removeSpankingsButton;
@@ -532,10 +548,6 @@ namespace geesp0t
             GameObject canvasObject;
             CanvasScaler scaler;
             const float scale = 0.001f;
-            // Narrower than Spankings so column 1 does not overlap the log HUD
-            // (column 0) and Spankings (column 2) on the shared canvas.
-            const float emotionHudButtonWidth = 96f;
-            const float spankingsHudButtonWidth = 132f;
 
             DestroyHudCanvas();
 
@@ -562,39 +574,31 @@ namespace geesp0t
                 EmotionPrimaryButtonLabelText(),
                 OnEmotionPrimaryHudButtonClicked,
                 1,
-                0,
-                emotionHudButtonWidth,
-                15);
+                0);
 
             emotionPackCycleHudButton = AddButton(
                 EmotionPackLabelForIndex(_emotionPackIndex),
                 CycleEmotionPackButton,
                 1,
-                1,
-                emotionHudButtonWidth,
-                15);
+                1);
 
             emotionGenderCycleHudButton = AddButton(
                 EmotionGenderCycleLabel(_emotionMaleOnlyGender),
                 CycleEmotionGenderButton,
                 1,
-                2,
-                emotionHudButtonWidth,
-                15);
+                2);
 
             spankingsButton = AddButton(
                 "+ Spankings Male",
                 ToggleSpankingsPluginOnAllPersons,
                 2,
-                0,
-                spankingsHudButtonWidth);
+                0);
 
             removeSpankingsButton = AddButton(
                 "Remove Spankings",
                 RemoveSpankingsFromAllPersons,
                 2,
-                1,
-                spankingsHudButtonWidth);
+                1);
 
             RefreshPluginToggleLabels();
             _canvas.transform.Translate(0f, 0.2f, 0f);
@@ -750,61 +754,47 @@ namespace geesp0t
             RefreshPluginToggleLabels();
         }
 
-        private UIDynamicButton AddButton(
-            string name,
-            UnityAction callback,
-            int column,
-            int row,
-            float width,
-            int labelFontSize)
-        {
-            Color accessButtonColor = new Color(0.8392f, 0.8392f, 0.8392f);
-            Color accessTextColor = new Color(0f, 0f, 0f);
-            // Column 1 (E-Motion) stays anchored; column 2 is closer than
-            // 2 * spacing so Spankings sit nearer without shifting E-Motion
-            // toward the log clipboard column.
-            const float emotionColumnTranslateX = 0.22f;
-            const float gapEmotionColumnToSpankings = 0.14f;
-            const float fallbackColumnStride = 0.22f;
-            float translateX;
-            float ySpacing = 0.05f;
-            UIDynamicButton button = CreateButton(name, width, 40f, labelFontSize);
-
-            switch (column)
-            {
-            case 1:
-                translateX = emotionColumnTranslateX;
-                break;
-            case 2:
-                translateX = emotionColumnTranslateX + gapEmotionColumnToSpankings;
-                break;
-            default:
-                translateX = column * fallbackColumnStride;
-                break;
-            }
-
-            button.button.onClick.AddListener(callback);
-            button.transform.Translate(
-                translateX,
-                0.50f - row * ySpacing,
-                0f,
-                Space.Self);
-            ColorButton(button, accessTextColor, accessButtonColor);
-
-            return button;
-        }
-
         /// <summary>
-        /// Shorter overload: default HUD label size for Spankings and similar.
+        /// Builds a HUD button on the Gabriel grid: shared size, spacing, font.
+        /// Columns 1–2 align (column 0 reserved for VaMLogClipboardHud).
         /// </summary>
         private UIDynamicButton AddButton(
             string name,
             UnityAction callback,
             int column,
-            int row,
-            float width)
+            int row)
         {
-            return AddButton(name, callback, column, row, width, 18);
+            Color accessButtonColor = new Color(0.8392f, 0.8392f, 0.8392f);
+            Color accessTextColor = new Color(0f, 0f, 0f);
+            int colIndex;
+            float translateX;
+            float translateY;
+            UIDynamicButton button;
+
+            button = CreateButton(
+                name,
+                GabrielHudButtonWidth,
+                GabrielHudButtonHeight,
+                GabrielHudButtonLabelFontSize);
+
+            colIndex = column - 1;
+            if (colIndex < 0)
+                colIndex = 0;
+
+            translateX =
+                GabrielHudGridOriginX + colIndex * GabrielHudGridSpacing;
+            translateY =
+                GabrielHudGridOriginY - row * GabrielHudGridSpacing;
+
+            button.button.onClick.AddListener(callback);
+            button.transform.Translate(
+                translateX,
+                translateY,
+                0f,
+                Space.Self);
+            ColorButton(button, accessTextColor, accessButtonColor);
+
+            return button;
         }
 
         private UIDynamicButton CreateButton(
@@ -823,11 +813,6 @@ namespace geesp0t
             uiButton.label = name;
             uiButton.buttonText.fontSize = labelFontSize;
             return uiButton;
-        }
-
-        private UIDynamicButton CreateButton(string name, float width, float height)
-        {
-            return CreateButton(name, width, height, 18);
         }
 
         private static void ColorButton(

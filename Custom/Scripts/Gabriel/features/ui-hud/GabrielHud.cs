@@ -68,22 +68,29 @@ namespace geesp0t
         private const string EmotionCycleButtonSuffix = " >";
 
         /// <summary>
-        /// All GabrielHud grid buttons share width, height, and label size.
-        /// Horizontal and vertical steps differ: wide buttons need a larger X
-        /// stride than Y so columns do not overlap in world space.
+        /// All GabrielHud grid buttons share width and height with
+        /// <see cref="VaMLogClipboardHud"/> column 0: same Translate math so column
+        /// 1 (E-Motion) and 2 (Spankings) align with VaM spacing.
         /// </summary>
-        private const float GabrielHudButtonWidth = 108f;
+        private const float GabrielHudButtonWidth = 118f;
 
         private const float GabrielHudButtonHeight = 40f;
 
-        private const int GabrielHudButtonLabelFontSize = 16;
+        private const int GabrielHudButtonLabelFontSize = 18;
 
-        private const float GabrielHudGridColumnStep = 0.14f;
+        /// <summary>
+        /// Mirrors <c>AddHudButton</c> X stride in VaMLogClipboardHud (0.22f).
+        /// </summary>
+        private const float GabrielHudGridXSpacing = 0.22f;
 
-        private const float GabrielHudGridRowStep = 0.08f;
+        /// <summary>
+        /// Mirrors <c>AddHudButton</c> Y stride in VaMLogClipboardHud (0.05f).
+        /// </summary>
+        private const float GabrielHudGridYSpacing = 0.05f;
 
-        private const float GabrielHudGridOriginX = 0.22f;
-
+        /// <summary>
+        /// Top row baseline; same as VaMLogClipboardHud (0.50f - row * ySpacing).
+        /// </summary>
         private const float GabrielHudGridOriginY = 0.50f;
 
         private UIDynamicButton spankingsButton;
@@ -758,8 +765,8 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Builds a HUD button on the Gabriel grid: shared size, spacing, font.
-        /// Columns 1–2 align (column 0 reserved for VaMLogClipboardHud).
+        /// Same layout convention as VaMLogClipboardHud: column * xSpacing and
+        /// originY - row * ySpacing (columns 1–2; 0 reserved for log HUD).
         /// </summary>
         private UIDynamicButton AddButton(
             string name,
@@ -769,7 +776,6 @@ namespace geesp0t
         {
             Color accessButtonColor = new Color(0.8392f, 0.8392f, 0.8392f);
             Color accessTextColor = new Color(0f, 0f, 0f);
-            int colIndex;
             float translateX;
             float translateY;
             UIDynamicButton button;
@@ -780,14 +786,9 @@ namespace geesp0t
                 GabrielHudButtonHeight,
                 GabrielHudButtonLabelFontSize);
 
-            colIndex = column - 1;
-            if (colIndex < 0)
-                colIndex = 0;
-
-            translateX =
-                GabrielHudGridOriginX + colIndex * GabrielHudGridColumnStep;
-            translateY =
-                GabrielHudGridOriginY - row * GabrielHudGridRowStep;
+            translateX = column * GabrielHudGridXSpacing;
+            translateY = GabrielHudGridOriginY -
+                row * GabrielHudGridYSpacing;
 
             button.button.onClick.AddListener(callback);
             button.transform.Translate(

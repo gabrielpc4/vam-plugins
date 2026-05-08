@@ -49,6 +49,9 @@ see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.
 ## Dependencies And Coupling
 - Grip merge queues (Spankings / clothing touch-fall) talk to
   **`GabrielSessionOrchestrator`** and **`AnimationNoLoopDetection`**.
+- `TriggerClothingRemover` reuses
+  **`PersonAtomCache.PersonHasAnyActiveClothingOnGeometry`** for both idle
+  presence checks and nearest-strip eligibility.
 - Shares behavior notes with **`features/hands`** and **`animation-no-loop-detection`**.
 - `ClothingTouchFallOff` person-plugin merge is orchestrated from
   **`GabrielSessionOrchestrator`**, not from HUD-owned plugin path constants.

@@ -287,9 +287,7 @@ namespace geesp0t
                     continue;
                 }
 
-                DAZCharacterSelector selector =
-                    atom.GetStorableByID("geometry") as DAZCharacterSelector;
-                if (selector == null || !HasAnyActiveClothing(selector))
+                if (!PersonAtomCache.PersonHasAnyActiveClothingOnGeometry(atom))
                 {
                     continue;
                 }
@@ -346,26 +344,6 @@ namespace geesp0t
                 catch
                 {
                     // Geometry / garment state during teardown; skip atom.
-                }
-            }
-
-            return false;
-        }
-
-        private static bool HasAnyActiveClothing(DAZCharacterSelector selector)
-        {
-            DAZClothingItem[] items = selector.clothingItems;
-            if (items == null)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < items.Length; i++)
-            {
-                DAZClothingItem item = items[i];
-                if (item != null && item.active)
-                {
-                    return true;
                 }
             }
 

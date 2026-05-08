@@ -17,9 +17,9 @@ namespace geesp0t
     /// extra plugin instance / <c>Update</c> shim that destabilizes some loads.
     /// When every active Person atom has zero active garments, skips all work until
     /// the next orchestrator scene change or atom UID list change wakes checks.
-    /// Oculus / OpenVR gate only (<see cref="SuperController.isOVR"/> /
-    /// <see cref="SuperController.isOpenVR"/>): avoids XR module access that can
-    /// hard-crash some VaM builds.
+    /// Gated by <see cref="VrInput.IsLikelyVrRuntimeSafe"/> so desktop modes skip
+    /// all garment and trigger polls; VR uses OVR/OpenVR flags and XR fallback when
+    /// needed.
     /// </summary>
     internal static class TriggerClothingRemover
     {
@@ -36,24 +36,23 @@ namespace geesp0t
             _idleNoStripBecauseNoGarments = false;
         }
 
-        internal static void LateTickStrip()
+        internal static void LateTickStrip(SuperController sc)
         {
-            TickStrip();
+            if (!VrInput.IsLikelyVrRuntimeSafe(sc))
+            {
+                return;
+            }
+
+            TickStrip(sc);
         }
 
-        private static void TickStrip()
+        private static void TickStrip(SuperController sc)
         {
-            SuperController sc = SuperController.singleton;
             bool leftTriggerDown;
             bool rightTriggerDown;
             bool anyClothes;
 
             if (sc == null || sc.isLoading)
-            {
-                return;
-            }
-
-            if (!sc.isOVR && !sc.isOpenVR)
             {
                 return;
             }

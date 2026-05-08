@@ -23,6 +23,36 @@ namespace geesp0t
             }
         }
 
+        /// <summary>
+        /// True when OVR/OpenVR is active or <see cref="XRSettings.enabled"/>
+        /// reads true (OpenXR-style); VaM exposes OVR/OpenVR flags whenever a VR
+        /// runtime is typical. Separate try blocks so flaky XR reads on desktop
+        /// resolve to false.
+        /// </summary>
+        internal static bool IsLikelyVrRuntimeSafe(SuperController sc)
+        {
+            try
+            {
+                if (sc != null && (sc.isOVR || sc.isOpenVR))
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            try
+            {
+                return XRSettings.enabled;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public static void ResetEdgeState()
         {
         }

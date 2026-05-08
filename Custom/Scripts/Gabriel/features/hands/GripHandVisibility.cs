@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using MeshVR;
 using UnityEngine;
-using UnityEngine.XR;
 
 namespace geesp0t
 {
@@ -28,6 +27,14 @@ namespace geesp0t
 
         /// <summary>Until the user presses a VR grip this scene, sphere proxies stay non-colliding after scene reset.</summary>
         private static bool _vrGripUsedThisScene;
+
+        /// <summary>After <see cref="DisableVrHandModelsForSceneStart"/>, first grip press this scene merges Spankings once onto females missing it.</summary>
+        private static bool _mergedSpankingsAfterFirstGripThisScene;
+
+        private static Action _mergeSpankingsOntoPersonsMissingOnly;
+
+        /// <summary>After <see cref="DisableVrHandModelsForSceneStart"/>, first grip press that turns on Male2 hands merges clothing touch fall-off once.</summary>
+        private static bool _mergedClothingTouchFallOffAfterFirstMale2ThisScene;
 
         /// <summary>
         /// Orchestrator: true once this folder-batch pass is settled (merged,
@@ -73,10 +80,12 @@ namespace geesp0t
 
         /// <summary>
         /// Scene load: both sides sphere (or legacy-off if slot missing);
-        /// collisions off until first VR grip.
-        /// <see cref="FirstGripDetection.OnSceneHandModelReset"/> receives
-        /// continuation flags from the session orchestrator (same-folder loads)
-        /// so merge slots are not reset as &quot;fresh first grip&quot;.
+        /// collisions off until first VR grip. Optionally marks the
+        /// first-grip Spankings merge as already consumed, used for
+        /// same-folder continuation loads. When
+        /// <paramref name="suppressClothingTouchFallOffGripMergeThisScene"/>
+        /// is true, the first Male2 grip will not run the clothing touch
+        /// fall-off merge (used after it already ran for this folder batch).
         /// </summary>
         public static void DisableVrHandModelsForSceneStart(
             bool suppressFirstGripSpankingsMergeThisScene = false,
@@ -84,9 +93,10 @@ namespace geesp0t
         {
             _leftArticulated = false;
             _rightArticulated = false;
-            FirstGripDetection.OnSceneHandModelReset(
-                suppressFirstGripSpankingsMergeThisScene,
-                suppressClothingTouchFallOffGripMergeThisScene);
+            _mergedSpankingsAfterFirstGripThisScene =
+                suppressFirstGripSpankingsMergeThisScene;
+            _mergedClothingTouchFallOffAfterFirstMale2ThisScene =
+                suppressClothingTouchFallOffGripMergeThisScene;
             _vrGripUsedThisScene = false;
             SuperController sc = SuperController.singleton;
             ApplyBothControls(sc);
@@ -103,7 +113,7 @@ namespace geesp0t
             SuperController sc = SuperController.singleton;
             if (sc == null || sc.isLoading)
                 return;
-            if (!sc.isOVR && !sc.isOpenVR && !XRSettings.enabled)
+            if (!VrInput.IsLikelyVrRuntimeSafe(sc))
                 return;
 
             if (ShouldForceNoneVrHandProxies())
@@ -169,19 +179,19 @@ namespace geesp0t
 
         private static void TryMergeSpankingsOnFirstGripPressThisScene()
         {
-            if (!FirstGripDetection.SpankingsFirstGripMergeStillAvailable())
+            if (_mergedSpankingsAfterFirstGripThisScene)
                 return;
             if (_mergeSpankingsOntoPersonsMissingOnly == null)
                 return;
 
-            FirstGripDetection.MarkSpankingsFirstGripMergeConsumed();
+            _mergedSpankingsAfterFirstGripThisScene = true;
             try
             {
                 _mergeSpankingsOntoPersonsMissingOnly();
             }
             catch (Exception e)
             {
-                FirstGripDetection.RevertSpankingsFirstGripMergeConsumed();
+                _mergedSpankingsAfterFirstGripThisScene = false;
                 SuperController.LogError("GripHandVisibility: Spankings merge on first grip: " + e.Message);
             }
         }
@@ -189,7 +199,7 @@ namespace geesp0t
         private static void TryMergeClothingTouchFallOffOnFirstMale2GripThisScene()
         {
             bool consumed;
-            if (!FirstGripDetection.ClothingTouchFallOffFirstMale2MergeStillAvailable())
+            if (_mergedClothingTouchFallOffAfterFirstMale2ThisScene)
                 return;
             if (_tryMergeClothingTouchFallOffOnFirstMale2Grip == null)
                 return;
@@ -209,7 +219,7 @@ namespace geesp0t
 
             if (consumed)
             {
-                FirstGripDetection.MarkClothingTouchFallOffFirstMale2MergeConsumed();
+                _mergedClothingTouchFallOffAfterFirstMale2ThisScene = true;
             }
         }
 

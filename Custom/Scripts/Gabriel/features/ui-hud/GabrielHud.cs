@@ -41,17 +41,6 @@ namespace geesp0t
         public const string PluginSpankings =
             "Custom/Scripts/Spankings/Spankings.cslist";
 
-        /// <summary>
-        /// Scene atom UIDs created by <c>octopussy.Spankings</c>; removed when
-        /// Spankings is toggled off.
-        /// </summary>
-        private static readonly string[] SpankingsOwnedSceneAtomUids =
-        {
-            "HitAudioSource",
-            "CheekLeft",
-            "CheekRight"
-        };
-
         private GabrielHotkeys _hotkeys;
 
         private GabrielSessionOrchestrator _orchestrator;
@@ -351,36 +340,13 @@ namespace geesp0t
                     PluginManager.TryRemovePluginFromPerson(at, fn);
                 }
 
-                TryRemoveSpankingsOwnedSceneAtoms();
+                SpankingsAtomsRemoval.TryRemoveOwnedSceneAtoms();
                 RefreshPluginToggleLabels();
             }
             catch (Exception e)
             {
                 SuperController.LogError(
                     "Spankings remove from all Persons: " + e);
-            }
-        }
-
-        private static void TryRemoveSpankingsOwnedSceneAtoms()
-        {
-            SuperController sc = SuperController.singleton;
-            if (sc == null || sc.isLoading)
-                return;
-
-            foreach (string uid in SpankingsOwnedSceneAtomUids)
-            {
-                try
-                {
-                    Atom atom = sc.GetAtomByUid(uid);
-                    if (atom != null)
-                        sc.RemoveAtom(atom);
-                }
-                catch (Exception e)
-                {
-                    SuperController.LogError(
-                        "Easy Mate: remove Spankings scene atom \"" + uid +
-                        "\": " + e.Message);
-                }
             }
         }
 

@@ -6,17 +6,22 @@ helpers sourced from **`features/hands/`**.
 
 ## Live Files
 - `SpankingsGripBlockPathKeywords.cs`
+- `SpankingsAtomsRemoval.cs` *(HitAudioSource / cheek scene atoms when removing Spankings)*
 - `spankings_grip_merge_block_path_keywords.txt`
 - Deferred first-grip merge source: `features/hands/SpankingsGripDeferredMerge.cs`
   (referenced from `GabrielHud.cslist`).
 
 ## Load Path
-- `SpankingsGripBlockPathKeywords` compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
+- `SpankingsGripBlockPathKeywords` and **`SpankingsAtomsRemoval`** compile into
+  `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist` (same session bundle
+  as `GabrielSessionPlugins.cslist`).
 - `SpankingsGripDeferredMerge` lives under `features/hands/` but ships in the same HUD compile unit.
 - Queried by `GabrielHud` through `SpankingsGripDeferredMerge`
   and `SpankingsGripBlockPathKeywords` before the deferred first-grip merges run.
 
 ## Responsibilities
+- `SpankingsAtomsRemoval` deletes Spankings-owned scene atoms when the HUD strips
+  Spankings from Persons.
 - Parse the block keyword file through VaM file APIs.
 - Block the grip-driven Spankings merge when current load/save folders match a configured substring.
 - `SpankingsGripDeferredMerge` (see `features/hands/`) applies the

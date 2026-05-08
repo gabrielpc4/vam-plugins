@@ -2,7 +2,7 @@ GabrielHud.cs
 GabrielHudButtons.cs
 NextSceneUiButton.cs
 GabrielHotkeys.cs
-../animation-no-loop/AnimationNoLoopMainEnd.cs
+../animation-no-loop-detection/AnimationNoLoopDetection.cs
 ../session-plugins/src/SceneLoadDirNormalize.cs
 ../palm-hud/VrInput.cs
 ../palm-hud/VrEulerPossessPoseCheck.cs

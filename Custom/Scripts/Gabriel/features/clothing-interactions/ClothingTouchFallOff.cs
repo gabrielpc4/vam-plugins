@@ -333,7 +333,7 @@ namespace geesp0t
                 yield return null;
                 if (buttons == null)
                     yield break;
-                if (AnimationNoLoopMainEnd
+                if (AnimationNoLoopDetection
                     .CurrentSceneUsesLongNonLoopAnimation(
                         minNonLoopAnimationClipSeconds))
                     yield break;

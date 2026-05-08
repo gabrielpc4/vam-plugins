@@ -23,7 +23,7 @@ cross-feature runtime orchestration.
 - Build and refresh the world-space Gabriel menu on `mainHUD`.
 - Own the keyboard hotkeys in `GabrielHotkeys` (`Space`, `Ctrl+Shift+S`, `K`,
   `O`, `F`), plugin toggles, scene-change routing, palm **Próxima cena** via
-  `NextSceneUiButton`, plus thin glue into `AnimationNoLoopMainEnd`, path-rule
+  `NextSceneUiButton`, plus thin glue into `AnimationNoLoopDetection`, path-rule
   E-Motion merges, Spankings/Clothing grip deferrals, and fluid/camera helpers.
 - `GabrielHudButtons` owns external plugin family paths for E-Motion, Spankings, and ClothingTouchFallOff.
 - The hotkey dispatcher also invokes the session-plugins `Space` release action
@@ -34,14 +34,15 @@ cross-feature runtime orchestration.
 
 ## Dependencies And Coupling
 - Calls into other feature folders compiled via `GabrielHud.cslist` — see adjacent
-  `FEATURE.md` under `palm-hud`, `animation-no-loop`, `passenger-possession`,
+  `FEATURE.md` under `palm-hud`, `animation-no-loop-detection`,
+  `passenger-possession`,
   `scene-camera`, `clothing-interactions`, `hands`, `head-hide`,
   `session-plugins`,
   `e-motion`, `spankings`, plus `GabrielHudButtons`-owned plugin toggles.
 
 ## References
 - `Custom/Scripts/Gabriel/features/palm-hud/FEATURE.md`
-- `Custom/Scripts/Gabriel/features/animation-no-loop/FEATURE.md`
+- `Custom/Scripts/Gabriel/features/animation-no-loop-detection/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/scene-camera/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/hands/FEATURE.md`

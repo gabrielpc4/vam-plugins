@@ -13,8 +13,8 @@ AREA_DOCS = {
     "Custom/Scripts/Gabriel/features/hands/": "Custom/Scripts/Gabriel/features/hands/FEATURE.md",
     "Custom/Scripts/Gabriel/features/head-hide/": "Custom/Scripts/Gabriel/features/head-hide/FEATURE.md",
     "Custom/Scripts/Gabriel/features/e-motion/": "Custom/Scripts/Gabriel/features/e-motion/FEATURE.md",
-    "Custom/Scripts/Gabriel/features/animation-no-loop/": (
-        "Custom/Scripts/Gabriel/features/animation-no-loop/FEATURE.md"
+    "Custom/Scripts/Gabriel/features/animation-no-loop-detection/": (
+        "Custom/Scripts/Gabriel/features/animation-no-loop-detection/FEATURE.md"
     ),
     "Custom/Scripts/Gabriel/features/spankings/": "Custom/Scripts/Gabriel/features/spankings/FEATURE.md",
     "Custom/Scripts/Gabriel/features/dildo-on-hands/": "Custom/Scripts/Gabriel/features/dildo-on-hands/FEATURE.md",

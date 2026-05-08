@@ -7,19 +7,18 @@ namespace geesp0t
     /// When scene motion uses <see cref="SuperController.motionAnimationMaster"/> with loop off
     /// and at least one clip longer than a configurable minimum, detects end of playback (timeline
     /// counter enters the tail or resets from the tail toward zero). Then schedules loading
-    /// <c>Saves/scene/Default.json</c> after <see cref="AnimationNoLoopToDefaultSceneRealtimeDelaySeconds"/>
+    /// <c>Saves/scene/Default.json</c> after <see cref="DeferredDefaultSceneRealtimeDelaySeconds"/>
     /// realtime seconds. Skips paths containing booty shake (Haystack-style, case-insensitive).
     /// </summary>
-    internal static class AnimationNoLoopMainEnd
+    internal static class AnimationNoLoopDetection
     {
-        private const string AnimationNoLoopDefaultScenePath = "Saves/scene/Default.json";
+        private const string DeferredDefaultScenePath = "Saves/scene/Default.json";
 
-        internal const float AnimationNoLoopToDefaultSceneRealtimeDelaySeconds =
-            5f;
+        internal const float DeferredDefaultSceneRealtimeDelaySeconds = 5f;
 
         private const string BootyShakePathToken = "booty shake";
 
-        private static bool _animationNoLoopDefaultLoadFiredThisScene;
+        private static bool _deferredDefaultSceneLoadFiredThisScene;
 
         private static float _prevPlaybackCounter;
 
@@ -29,7 +28,7 @@ namespace geesp0t
 
         public static void ResetForNewScene()
         {
-            _animationNoLoopDefaultLoadFiredThisScene = false;
+            _deferredDefaultSceneLoadFiredThisScene = false;
             _prevPlaybackCounter = 0f;
             _hasPrevPlaybackCounter = false;
             _seenPlaybackAdvance = false;
@@ -46,7 +45,7 @@ namespace geesp0t
             if (hud == null)
                 return;
 
-            if (_animationNoLoopDefaultLoadFiredThisScene)
+            if (_deferredDefaultSceneLoadFiredThisScene)
                 return;
 
             if (!CurrentSceneUsesLongNonLoopAnimation(minClipLengthSeconds))
@@ -86,8 +85,8 @@ namespace geesp0t
             if (!shouldLoad)
                 return;
 
-            _animationNoLoopDefaultLoadFiredThisScene = true;
-            hud.StartAnimationNoLoopDefaultSceneDelayCoroutine();
+            _deferredDefaultSceneLoadFiredThisScene = true;
+            hud.StartAnimationNoLoopDetectionDeferredDefaultCoroutine();
         }
 
         private static bool TryGetLongNonLoopAnimationState(
@@ -167,9 +166,9 @@ namespace geesp0t
 
             try
             {
-                sc.Load(AnimationNoLoopDefaultScenePath);
+                sc.Load(DeferredDefaultScenePath);
                 SuperController.LogMessage(
-                    "GabrielHud: Loaded " + AnimationNoLoopDefaultScenePath +
+                    "GabrielHud: Loaded " + DeferredDefaultScenePath +
                     " after non-loop animation end (delayed).");
             }
             catch (System.Exception e)

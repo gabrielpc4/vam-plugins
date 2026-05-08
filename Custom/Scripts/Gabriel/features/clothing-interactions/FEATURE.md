@@ -28,15 +28,15 @@ see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.
 - Proximity-strip session/person glue for VR-assisted band removal paths.
 
 ## Dependencies And Coupling
-- Grip merge queues use `GabrielHud` helpers and **`AnimationNoLoopMainEnd`**.
-- Shares behavior notes with **`features/hands`** and **`animation-no-loop`**.
+- Grip merge queues use `GabrielHud` helpers and **`AnimationNoLoopDetection`**.
+- Shares behavior notes with **`features/hands`** and **`animation-no-loop-detection`**.
 - `ClothingTouchFallOff` is a managed person-plugin path inside `session-plugins`.
 
 ## References
 - `Custom/Scripts/Gabriel/features/hands/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/session-plugins/FEATURE.md`
-- `Custom/Scripts/Gabriel/features/animation-no-loop/FEATURE.md`
+- `Custom/Scripts/Gabriel/features/animation-no-loop-detection/FEATURE.md`
 
 ## Update Checklist
 Update this file in the same turn whenever any of these change:

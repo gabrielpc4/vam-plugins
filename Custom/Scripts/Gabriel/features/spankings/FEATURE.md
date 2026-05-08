@@ -23,7 +23,7 @@ helpers sourced from **`features/hands/`**.
   deferred first-grip merge when the HUD enables it.
 
 ## Dependencies And Coupling
-- Used with `animation-no-loop` (`AnimationNoLoopMainEnd` blocks until long
+- Used with `animation-no-loop-detection` (`AnimationNoLoopDetection` blocks until long
   timelines finish in long non-loop setups) and `GabrielHudButtons` Spankings
   plugin toggles.
 
@@ -31,7 +31,7 @@ helpers sourced from **`features/hands/`**.
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/hands/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md`
-- `Custom/Scripts/Gabriel/features/animation-no-loop/FEATURE.md`
+- `Custom/Scripts/Gabriel/features/animation-no-loop-detection/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/e-motion/FEATURE.md`
 
 ## Update Checklist

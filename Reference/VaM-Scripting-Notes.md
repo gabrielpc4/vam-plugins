@@ -119,8 +119,8 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
   - **Gabriel HUD** (`Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cs`):
     after a qualifying **long non-loop** main **`motionAnimationMaster`**
     timeline ends (when **`loadDefaultWhenLongNonLoopAnimationEnds`** / minimum
-    clip seconds are met), **`AnimationNoLoopMainEnd`** triggers a delayed load of
-    **`Saves/scene/Default.json`** (see **`features/animation-no-loop`**); this
+    clip seconds are met), **`AnimationNoLoopDetection`** triggers a delayed load of
+    **`Saves/scene/Default.json`** (see **`features/animation-no-loop-detection`**); this
     is **not** an E-Motion merge.
   - Legacy EasyMate note (historical bundled stack): after a **long non-loop**
     scene motion ended, **`EasyMateMotionAnimationEmotionEnd`** could call

@@ -30,7 +30,7 @@ namespace geesp0t
 
         private Coroutine _mergeClothingTouchFallOffAfterGripCo;
 
-        private Coroutine _animationNoLoopDefaultSceneCo;
+        private Coroutine _animationNoLoopDetectionDeferredDefaultCo;
 
         public JSONStorableAction hideUI;
 
@@ -70,7 +70,7 @@ namespace geesp0t
 
         /// <summary>
         /// After non-looping main scene animation runs long enough, load Default.json
-        /// (see <see cref="AnimationNoLoopMainEnd"/>).
+        /// (see <see cref="AnimationNoLoopDetection"/>).
         /// </summary>
         public JSONStorableBool loadDefaultWhenLongNonLoopAnimationEnds;
 
@@ -101,32 +101,31 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Called when <see cref="AnimationNoLoopMainEnd"/> detects main timeline end.
+        /// Called when <see cref="AnimationNoLoopDetection"/> detects main timeline end.
         /// </summary>
-        internal void StartAnimationNoLoopDefaultSceneDelayCoroutine()
+        internal void StartAnimationNoLoopDetectionDeferredDefaultCoroutine()
         {
-            if (_animationNoLoopDefaultSceneCo != null)
+            if (_animationNoLoopDetectionDeferredDefaultCo != null)
             {
-                StopCoroutine(_animationNoLoopDefaultSceneCo);
-                _animationNoLoopDefaultSceneCo = null;
+                StopCoroutine(_animationNoLoopDetectionDeferredDefaultCo);
+                _animationNoLoopDetectionDeferredDefaultCo = null;
             }
 
-            _animationNoLoopDefaultSceneCo =
-                StartCoroutine(CoDelayedAnimationNoLoopDefaultScene());
+            _animationNoLoopDetectionDeferredDefaultCo =
+                StartCoroutine(CoAnimationNoLoopDetectionDeferredDefault());
         }
 
-        private IEnumerator CoDelayedAnimationNoLoopDefaultScene()
+        private IEnumerator CoAnimationNoLoopDetectionDeferredDefault()
         {
             try
             {
                 yield return new WaitForSecondsRealtime(
-                    AnimationNoLoopMainEnd
-                        .AnimationNoLoopToDefaultSceneRealtimeDelaySeconds);
-                AnimationNoLoopMainEnd.ExecuteDeferredDefaultSceneLoad();
+                    AnimationNoLoopDetection.DeferredDefaultSceneRealtimeDelaySeconds);
+                AnimationNoLoopDetection.ExecuteDeferredDefaultSceneLoad();
             }
             finally
             {
-                _animationNoLoopDefaultSceneCo = null;
+                _animationNoLoopDetectionDeferredDefaultCo = null;
             }
         }
 
@@ -245,7 +244,7 @@ namespace geesp0t
             if (mainUIButtons == null)
                 return;
             float animationMinSec = GetMinNonLoopAnimationSecondsForDefaultScene();
-            if (AnimationNoLoopMainEnd
+            if (AnimationNoLoopDetection
                 .CurrentSceneUsesLongNonLoopAnimation(animationMinSec))
                 return;
             if (_mergeClothingTouchFallOffAfterGripCo != null)
@@ -321,7 +320,7 @@ namespace geesp0t
 
             StartCoroutine(CoRefreshHeadProximityHooksAfterStartFrames());
             GripHandVisibility.DisableVrHandModelsForSceneStart();
-            AnimationNoLoopMainEnd.ResetForNewScene();
+            AnimationNoLoopDetection.ResetForNewScene();
 
             SuperController camSc = SuperController.singleton;
             if (camSc != null)
@@ -468,7 +467,7 @@ namespace geesp0t
 
             if (sceneChanged)
             {
-                AnimationNoLoopMainEnd.ResetForNewScene();
+                AnimationNoLoopDetection.ResetForNewScene();
                 sceneChanged = false;
                 Log(
                     "GabrielHud Scene Changed, Load Dir: "
@@ -557,7 +556,7 @@ namespace geesp0t
                 retainCameraPoseSameFolderLoads.val)
                 SameFolderCameraRetain.LateTickIdleCapture(SuperController.singleton);
 
-            bool animationNoLoopLoadDefault =
+            bool animationNoLoopDetectionLoadDefault =
                 loadDefaultWhenLongNonLoopAnimationEnds != null &&
                 loadDefaultWhenLongNonLoopAnimationEnds.val;
 
@@ -566,8 +565,8 @@ namespace geesp0t
                     ? minSecondsNonLoopAnimationClipForDefaultSceneLoad.val
                     : 45f;
 
-            AnimationNoLoopMainEnd.LateTick(
-                animationNoLoopLoadDefault,
+            AnimationNoLoopDetection.LateTick(
+                animationNoLoopDetectionLoadDefault,
                 animationMinSec,
                 this);
 
@@ -612,10 +611,10 @@ namespace geesp0t
                 _mergeClothingTouchFallOffAfterGripCo = null;
             }
 
-            if (_animationNoLoopDefaultSceneCo != null)
+            if (_animationNoLoopDetectionDeferredDefaultCo != null)
             {
-                StopCoroutine(_animationNoLoopDefaultSceneCo);
-                _animationNoLoopDefaultSceneCo = null;
+                StopCoroutine(_animationNoLoopDetectionDeferredDefaultCo);
+                _animationNoLoopDetectionDeferredDefaultCo = null;
             }
 
             GripHandVisibility.SetMergeSpankingsOnFirstGrip(null);

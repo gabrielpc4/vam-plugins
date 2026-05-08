@@ -1,6 +1,6 @@
 ---
 name: gabriel-e-motion
-description: Specialize on Gabriel E-Motion path-keyword logic and deferred path-rule merges (`EmotionPathRuleMerge`). Use when editing `Custom/Scripts/Gabriel/features/e-motion/**` or debugging Lite auto-merge triggers. For post-animation Default.json policy, use `features/animation-no-loop/`.
+description: Specialize on Gabriel E-Motion path-keyword logic and deferred path-rule merges (`EmotionPathRuleMerge`). Use when editing `Custom/Scripts/Gabriel/features/e-motion/**` or debugging Lite auto-merge triggers. For post-animation Default.json policy, use `features/animation-no-loop-detection/`.
 ---
 
 # Gabriel E-Motion Hooks

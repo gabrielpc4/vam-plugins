@@ -27,7 +27,7 @@ These are the only Gabriel-owned implementation paths that should be extended:
 - `Custom/Scripts/Gabriel/features/hands/**`
 - `Custom/Scripts/Gabriel/features/head-hide/**`
 - `Custom/Scripts/Gabriel/features/e-motion/**`
-- `Custom/Scripts/Gabriel/features/animation-no-loop/**`
+- `Custom/Scripts/Gabriel/features/animation-no-loop-detection/**`
 - `Custom/Scripts/Gabriel/features/spankings/**`
 - `Custom/Scripts/Gabriel/features/dildo-on-hands/**`
 - `Custom/Scripts/Gabriel/features/improved-pov/**`

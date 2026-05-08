@@ -16,7 +16,8 @@ full-grab auto-release without reflection.
 
 ## Dependencies And Coupling
 - Invoked only from `GabrielHud` / `GabrielHotkeys`; uses `GabrielHudButtons`,
-  `GabrielHud`, palm-hud input, passenger runtime, animation-no-loop heuristics,
+  `GabrielHud`, palm-hud input, passenger runtime,
+  animation-no-loop-detection heuristics,
   and `SpankingsGripBlockPathKeywords`.
 - `ClothingTouchFallOffGripMerge` stays in `clothing-interactions/ClothingTouchFallOff.cs`
   (different area).

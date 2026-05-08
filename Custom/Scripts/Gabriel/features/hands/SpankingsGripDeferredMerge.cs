@@ -20,7 +20,7 @@ namespace geesp0t
             {
                 float animationMinSec =
                     hud.GetMinNonLoopAnimationSecondsForDefaultScene();
-                if (AnimationNoLoopMainEnd
+                if (AnimationNoLoopDetection
                     .CurrentSceneBlocksGripSpankingsMerge(animationMinSec))
                     return true;
             }
@@ -46,7 +46,7 @@ namespace geesp0t
                 {
                     float animationMinSec =
                         hud.GetMinNonLoopAnimationSecondsForDefaultScene();
-                    if (AnimationNoLoopMainEnd
+                    if (AnimationNoLoopDetection
                         .CurrentSceneBlocksGripSpankingsMerge(animationMinSec))
                         yield break;
                 }
@@ -62,7 +62,7 @@ namespace geesp0t
                 {
                     float animationMinSecRetry =
                         hud.GetMinNonLoopAnimationSecondsForDefaultScene();
-                    if (AnimationNoLoopMainEnd
+                    if (AnimationNoLoopDetection
                         .CurrentSceneBlocksGripSpankingsMerge(
                             animationMinSecRetry))
                         yield break;

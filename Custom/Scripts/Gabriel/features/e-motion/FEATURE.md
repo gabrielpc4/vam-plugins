@@ -23,10 +23,10 @@ Gabriel auto-merges E-Motion Lite from **path keywords** (<c>emotion_path_keywor
 - Depends on external plugin families `E-Motion`, `E-MotionLite`, and `E-MotionFinal`
   exposed by `GabrielHudButtons`.
 - Shares long non-loop **scene-motion** qualifiers with Spankings / clothing grip merges
-  through `features/animation-no-loop` (`AnimationNoLoopMainEnd`), not via this hook.
+  through `features/animation-no-loop-detection` (`AnimationNoLoopDetection`), not via this hook.
 
 ## References
-- `Custom/Scripts/Gabriel/features/animation-no-loop/FEATURE.md`
+- `Custom/Scripts/Gabriel/features/animation-no-loop-detection/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/spankings/FEATURE.md`
 - `Reference/VaM-Scripting-Notes.md`

@@ -1,29 +1,22 @@
-using System.Collections.Generic;
 using MeshVR;
 
 namespace geesp0t
 {
     /// <summary>
-    /// Torso garment band for proximity-strip classification.
-    /// </summary>
-    public enum ClothingTorsoBand
-    {
-        Unknown = 0,
-
-        Upper = 1,
-
-        Lower = 2,
-
-        FullBody = 3
-    }
-
-    /// <summary>
     /// Torso-band keywords, text heuristics, classification, and pick-one rules
-    /// for proximity strip (shared across Gabriel clothing features).
-    /// Nested helper types flattened for VaM dynamic Mono emitter stability.
+    /// for proximity strip. No enum or List in this module so VaM dynamic Mono
+    /// emit stays minimal (emitter crash at ClassifyTorsoBand public enum slice).
     /// </summary>
     public static class ClothingClassifier
     {
+        private const int BandUnknown = 0;
+
+        private const int BandUpper = 1;
+
+        private const int BandLower = 2;
+
+        private const int BandFullBody = 3;
+
         private static readonly string[] _fullBodyKeywords = new string[]
         {
             "dress",
@@ -92,81 +85,95 @@ namespace geesp0t
             bool preferUpper,
             out DAZClothingItem picked)
         {
+            DAZClothingItem[] bucket;
+            DAZClothingItem[] items;
+            int activeCount;
+            int i;
+
             picked = null;
-            DAZClothingItem[] items = selector.clothingItems;
+            items = selector.clothingItems;
             if (items == null)
             {
                 return false;
             }
 
-            List<DAZClothingItem> active = new List<DAZClothingItem>();
-            int i;
+            activeCount = 0;
+            for (i = 0; i < items.Length; i++)
+            {
+                if (items[i] != null && items[i].active)
+                {
+                    activeCount++;
+                }
+            }
+
+            if (activeCount == 0)
+            {
+                return false;
+            }
+
+            bucket = new DAZClothingItem[activeCount];
+            activeCount = 0;
             for (i = 0; i < items.Length; i++)
             {
                 DAZClothingItem item = items[i];
                 if (item != null && item.active)
                 {
-                    active.Add(item);
+                    bucket[activeCount++] = item;
                 }
-            }
-
-            if (active.Count == 0)
-            {
-                return false;
             }
 
             if (preferUpper)
             {
-                if (TryFirstMatchingBand(active, ClothingTorsoBand.Upper, out picked))
+                if (TryFirstMatchingBand(bucket, activeCount, BandUpper, out picked))
                 {
                     return true;
                 }
 
-                if (TryFirstMatchingBand(active, ClothingTorsoBand.FullBody, out picked))
+                if (TryFirstMatchingBand(bucket, activeCount, BandFullBody, out picked))
                 {
                     return true;
                 }
 
-                if (TryFirstMatchingBand(active, ClothingTorsoBand.Lower, out picked))
+                if (TryFirstMatchingBand(bucket, activeCount, BandLower, out picked))
                 {
                     return true;
                 }
             }
             else
             {
-                if (TryFirstMatchingBand(active, ClothingTorsoBand.Lower, out picked))
+                if (TryFirstMatchingBand(bucket, activeCount, BandLower, out picked))
                 {
                     return true;
                 }
 
-                if (TryFirstMatchingBand(active, ClothingTorsoBand.FullBody, out picked))
+                if (TryFirstMatchingBand(bucket, activeCount, BandFullBody, out picked))
                 {
                     return true;
                 }
 
-                if (TryFirstMatchingBand(active, ClothingTorsoBand.Upper, out picked))
+                if (TryFirstMatchingBand(bucket, activeCount, BandUpper, out picked))
                 {
                     return true;
                 }
             }
 
-            if (TryFirstMatchingBand(active, ClothingTorsoBand.Unknown, out picked))
+            if (TryFirstMatchingBand(bucket, activeCount, BandUnknown, out picked))
             {
                 return true;
             }
 
-            picked = active[0];
+            picked = bucket[0];
             return true;
         }
 
-        public static ClothingTorsoBand ClassifyTorsoBand(DAZClothingItem item)
+        private static int ClassifyTorsoBandInt(DAZClothingItem item)
         {
             DAZClothingItem.ExclusiveRegion region = item.exclusiveRegion;
             string blob = SearchBlob(item);
 
             if (BlobContainsAny(blob, _fullBodyKeywords))
             {
-                return ClothingTorsoBand.FullBody;
+                return BandFullBody;
             }
 
             bool upperFromRegion =
@@ -184,17 +191,17 @@ namespace geesp0t
 
             if (upperFromRegion && lowerFromRegion)
             {
-                return ClothingTorsoBand.FullBody;
+                return BandFullBody;
             }
 
             if (upperFromRegion)
             {
-                return ClothingTorsoBand.Upper;
+                return BandUpper;
             }
 
             if (lowerFromRegion)
             {
-                return ClothingTorsoBand.Lower;
+                return BandLower;
             }
 
             bool upperFromText = BlobContainsAny(blob, _upperKeywords);
@@ -202,30 +209,30 @@ namespace geesp0t
 
             if (upperFromText && lowerFromText)
             {
-                return ClothingTorsoBand.FullBody;
+                return BandFullBody;
             }
 
             if (upperFromText)
             {
-                return ClothingTorsoBand.Upper;
+                return BandUpper;
             }
 
             if (lowerFromText)
             {
-                return ClothingTorsoBand.Lower;
+                return BandLower;
             }
 
             if (blob.Contains("bikini"))
             {
-                return ClothingTorsoBand.FullBody;
+                return BandFullBody;
             }
 
             if (blob.Contains("lingerie"))
             {
-                return ClothingTorsoBand.FullBody;
+                return BandFullBody;
             }
 
-            return ClothingTorsoBand.Unknown;
+            return BandUnknown;
         }
 
         private static string SearchBlob(DAZClothingItem item)
@@ -250,16 +257,18 @@ namespace geesp0t
         }
 
         private static bool TryFirstMatchingBand(
-            List<DAZClothingItem> items,
-            ClothingTorsoBand band,
+            DAZClothingItem[] bucket,
+            int bucketCount,
+            int band,
             out DAZClothingItem found)
         {
-            found = null;
             int i;
-            for (i = 0; i < items.Count; i++)
+
+            found = null;
+            for (i = 0; i < bucketCount; i++)
             {
-                DAZClothingItem item = items[i];
-                if (ClassifyTorsoBand(item) == band)
+                DAZClothingItem item = bucket[i];
+                if (ClassifyTorsoBandInt(item) == band)
                 {
                     found = item;
                     return true;

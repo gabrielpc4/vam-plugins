@@ -1,6 +1,6 @@
 ---
 name: gabriel-clothing-interactions
-description: Specialize on Gabriel clothing interaction helpers (`Hands/` grip visibility, overlap release, Spankings deferral), touch fall-off, and VR proximity strip. Use when editing `Custom/Scripts/Gabriel/features/clothing-interactions/**` or debugging clothing interaction behavior.
+description: Specialize on Gabriel clothing-touch fall-off, proximity strip, and ClothingTouchFallOff person-plugin wiring. Grip visibility, overlap release, and Spankings deferral HUD sources live under `Custom/Scripts/Gabriel/features/hands/`. Use when editing `Custom/Scripts/Gabriel/features/clothing-interactions/**` or debugging those behaviors when they touch grip merge paths.
 ---
 
 # Gabriel Clothing Interactions

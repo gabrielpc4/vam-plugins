@@ -1,39 +1,39 @@
 # Gabriel Clothing Interactions
 
 ## Purpose
-All Gabriel-owned clothing-touch, strip, and VR-hand clothing helpers. This area
-mixes one session plugin, one per-person plugin, and `Hands/` HUD-compiled grip
-helpers (overlap release, hand visibility, Spankings deferral).
+All Gabriel-owned clothing-touch, strip, and proximity-strip helpers — plus the
+TouchFallOff **person plugin** (`ClothingTouchFallOffGripMerge` lives in that
+same file).
 
 ## Live Files
-- `Hands/ClothingTouchFallOff.cs` *(person plugin; includes
-  `ClothingTouchFallOffGripMerge` helper in same file)*
+- `ClothingTouchFallOff.cs` *(person plugin; includes `ClothingTouchFallOffGripMerge`)*
 - `ClothingTouchFallOff.cslist`
 - `VrProximityStripClothing.cs`
 - `VrProximityStripClothingPlugin.cs`
 - `VrProximityStripClothing.cslist`
-- `Hands/GripHandVisibility.cs`
-- `Hands/OverlapFullGrabRelease.cs`
-- `Hands/SpankingsGripDeferredMerge.cs`
+
+HUD grip/orbit/overlap companions live under parallel `features/hands/` —
+see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.
 
 ## Load Path
 - `GabrielBootstrap` loads `VrProximityStripClothing.cslist` as a session plugin.
-- `GabrielSessionPlugins` and HUD routines merge `ClothingTouchFallOff.cslist` onto Person atoms.
-- Hands helpers (`GripHandVisibility`, `OverlapFullGrabRelease`,
-  `SpankingsGripDeferredMerge`) are compiled into `GabrielHud.cslist`.
+- `GabrielSessionPlugins` and HUD routines merge `ClothingTouchFallOff.cslist`
+  onto Person atoms.
 
 ## Responsibilities
 - Enable clothing fall-off on nearby garments when hands contact a person.
 - Strip clothing bands from scene persons when Male2 VR hands grab near the torso.
-- Toggle Male2 vs sphere/none VR hand models and trigger first-grip merge side effects.
-- Release stuck overlap full-grabs through public `SuperController` / `FreeControllerV3` paths.
+- Defer ClothingTouchFallOff merge on grip when long non-loop motion rules qualify
+  (see **`features/hands/GripHandVisibility`** callbacks into HUD).
+- Proximity-strip session/person glue for VR-assisted band removal paths.
 
 ## Dependencies And Coupling
-- `GripHandVisibility` wires Spankings and Clothing deferred merges owned by `ui-hud`
-  helpers and shares long non-loop motion gates with `animation-no-loop`.
+- Grip merge queues use `GabrielHud` helpers and **`AnimationNoLoopMainEnd`**.
+- Shares behavior notes with **`features/hands`** and **`animation-no-loop`**.
 - `ClothingTouchFallOff` is a managed person-plugin path inside `session-plugins`.
 
 ## References
+- `Custom/Scripts/Gabriel/features/hands/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/session-plugins/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/animation-no-loop/FEATURE.md`
@@ -42,5 +42,5 @@ helpers (overlap release, hand visibility, Spankings deferral).
 Update this file in the same turn whenever any of these change:
 
 - Any cslist load path changes.
-- Grip-trigger merge side effects or Male2 hand assumptions change.
-- Band classification, proximity thresholds, or fall-off heuristics change.
+- Touch fall-off thresholds or garment scan rules change.
+- Band classification / proximity-strip behavior changes.

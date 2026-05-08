@@ -35,7 +35,8 @@ cross-feature runtime orchestration.
 ## Dependencies And Coupling
 - Calls into other feature folders compiled via `GabrielHud.cslist` — see adjacent
   `FEATURE.md` under `palm-hud`, `animation-no-loop`, `passenger-possession`,
-  `scene-camera`, `clothing-interactions`, `head-hide`, `session-plugins`,
+  `scene-camera`, `clothing-interactions`, `hands`, `head-hide`,
+  `session-plugins`,
   `e-motion`, `spankings`, plus `GabrielHudButtons`-owned plugin toggles.
 
 ## References
@@ -43,6 +44,8 @@ cross-feature runtime orchestration.
 - `Custom/Scripts/Gabriel/features/animation-no-loop/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/scene-camera/FEATURE.md`
+- `Custom/Scripts/Gabriel/features/hands/FEATURE.md`
+- `Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md`
 - `Reference/EasyMate-next-scene-hand-hud-handoff.md`
 - `Reference/VaM-Scripting-Notes.md`
 

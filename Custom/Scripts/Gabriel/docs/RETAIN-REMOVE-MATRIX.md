@@ -24,6 +24,7 @@ These are the only Gabriel-owned implementation paths that should be extended:
 - `Custom/Scripts/Gabriel/features/passenger-possession/**`
 - `Custom/Scripts/Gabriel/features/scene-camera/**`
 - `Custom/Scripts/Gabriel/features/clothing-interactions/**`
+- `Custom/Scripts/Gabriel/features/hands/**`
 - `Custom/Scripts/Gabriel/features/head-hide/**`
 - `Custom/Scripts/Gabriel/features/e-motion/**`
 - `Custom/Scripts/Gabriel/features/animation-no-loop/**`

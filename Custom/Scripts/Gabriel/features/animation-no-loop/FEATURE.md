@@ -20,7 +20,7 @@ scene-motion policy.
   delayed load coroutine after `AnimationNoLoopMainEnd.LateTick` detects end.
 - Shares long non-loop scene qualification helpers with `spankings` grip-merge
   guard logic and `clothing-interactions` (`ClothingTouchFallOffGripMerge`
-  nested in `Hands/ClothingTouchFallOff.cs`).
+  nested in `clothing-interactions/ClothingTouchFallOff.cs`).
 
 ## References
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`

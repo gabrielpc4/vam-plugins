@@ -10,6 +10,7 @@ AREA_DOCS = {
     "Custom/Scripts/Gabriel/features/passenger-possession/": "Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md",
     "Custom/Scripts/Gabriel/features/scene-camera/": "Custom/Scripts/Gabriel/features/scene-camera/FEATURE.md",
     "Custom/Scripts/Gabriel/features/clothing-interactions/": "Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md",
+    "Custom/Scripts/Gabriel/features/hands/": "Custom/Scripts/Gabriel/features/hands/FEATURE.md",
     "Custom/Scripts/Gabriel/features/head-hide/": "Custom/Scripts/Gabriel/features/head-hide/FEATURE.md",
     "Custom/Scripts/Gabriel/features/e-motion/": "Custom/Scripts/Gabriel/features/e-motion/FEATURE.md",
     "Custom/Scripts/Gabriel/features/animation-no-loop/": (

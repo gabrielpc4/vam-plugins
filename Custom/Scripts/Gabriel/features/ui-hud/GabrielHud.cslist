@@ -17,9 +17,9 @@ GabrielHotkeys.cs
 ../scene-camera/FluidCumHideDuringSceneLoad.cs
 ../scene-camera/MonitorModeLaserRestore.cs
 ../scene-camera/DefaultMonitorCameraFov.cs
-../clothing-interactions/Hands/OverlapFullGrabRelease.cs
-../clothing-interactions/Hands/GripHandVisibility.cs
-../clothing-interactions/Hands/SpankingsGripDeferredMerge.cs
+../hands/OverlapFullGrabRelease.cs
+../hands/GripHandVisibility.cs
+../hands/SpankingsGripDeferredMerge.cs
 ../head-hide/HeadProximityHide.cs
 ../e-motion/EmotionPathKeywords.cs
 ../e-motion/EmotionPathRuleMerge.cs

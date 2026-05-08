@@ -9,7 +9,7 @@ namespace geesp0t
     /// <see cref="MonitorModeLaserRestore"/>) hits a Person and the user presses
     /// right face <b>A</b> / OpenVR Select (<see cref="VrInput.PollRightFaceADown"/>).
     /// Palm-hand back-of-hand pose HUD does not trigger passenger start — only this
-    /// path and <see cref="GabrielHud.RequestPassengerForSpecificPerson"/> do.
+    /// path and <see cref="PassengerRuntime.RequestPassengerForSpecificPerson"/> do.
     /// </summary>
     internal static class PassengerLaserPossess
     {
@@ -95,7 +95,7 @@ namespace geesp0t
                 return;
             }
 
-            if (!GabrielHud.RequestPassengerForSpecificPerson(targetPerson))
+            if (!PassengerRuntime.RequestPassengerForSpecificPerson(targetPerson))
             {
                 return;
             }

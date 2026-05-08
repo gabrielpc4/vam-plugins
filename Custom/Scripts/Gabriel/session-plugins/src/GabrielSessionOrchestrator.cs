@@ -584,10 +584,7 @@ namespace geesp0t
                     currentLoadDirNorm);
                 hud = ResolveGabrielHud();
 
-                if (hud != null)
-                {
-                    hud.InvalidateCachedPersonLists();
-                }
+                PersonAtomCache.InvalidatePersonGenderCaches();
 
                 PassengerRuntime.NotifySceneChanged(this);
                 SceneLoadPossessionCleanup.ClearPossessionAfterSceneApplyIfHadAny();

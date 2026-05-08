@@ -304,24 +304,6 @@ namespace geesp0t
             return false;
         }
 
-        private static string ClothingSearchBlob(DAZClothingItem item)
-        {
-            string s = " " + (item.displayName ?? "") + " " + (item.tags ?? "") + " ";
-            if (item.tagsArray != null)
-            {
-                for (int i = 0; i < item.tagsArray.Length; i++)
-                {
-                    string t = item.tagsArray[i];
-                    if (!string.IsNullOrEmpty(t))
-                    {
-                        s += t + " ";
-                    }
-                }
-            }
-
-            return s.ToLowerInvariant();
-        }
-
         private static bool BlobContainsAny(string blob, string[] keys)
         {
             for (int i = 0; i < keys.Length; i++)
@@ -338,7 +320,7 @@ namespace geesp0t
         private static ClothingBand ClassifyClothingBand(DAZClothingItem item)
         {
             DAZClothingItem.ExclusiveRegion region = item.exclusiveRegion;
-            string blob = ClothingSearchBlob(item);
+            string blob = VrProximityClothingTextHeuristics.ClothingSearchBlob(item);
 
             string[] fullBodyKeys =
             {

@@ -13,7 +13,7 @@ namespace geesp0t
     /// once per session when you press any grip or trigger (see
     /// <see cref="VrInput.PollVrAnyTriggerOrGripPressDown"/>). Start is requested from
     /// <see cref="PassengerLaserPossess"/> (right UI-aim laser + face A) via
-    /// <see cref="GabrielHud.RequestPassengerForSpecificPerson"/>.
+    /// <see cref="PassengerRuntime.RequestPassengerForSpecificPerson"/>.
     /// </summary>
     internal static class PassengerRuntime
     {
@@ -392,6 +392,30 @@ namespace geesp0t
             RequestStartForPerson(malePerson);
         }
 
+        /// <summary>
+        /// Laser + face A entry: start passenger for a <c>Person</c> of either
+        /// gender when recognized as male or female.
+        /// </summary>
+        public static bool RequestPassengerForSpecificPerson(Atom targetPerson)
+        {
+            if (targetPerson == null || targetPerson.type != "Person")
+                return false;
+
+            if (IsFemalePerson(targetPerson))
+            {
+                RequestStartForFemale(targetPerson);
+                return true;
+            }
+
+            if (IsMalePerson(targetPerson))
+            {
+                RequestStartForMale(targetPerson);
+                return true;
+            }
+
+            return false;
+        }
+
         public static void RequestStopForPalmHud()
         {
             ClearPendingPassengerModeActivation();
@@ -492,7 +516,7 @@ namespace geesp0t
 
             if (improvedPoVStorable == null)
             {
-                GabrielHud.TryMergePluginOntoPerson(
+                GabrielPluginManagerMerge.TryMergePluginOntoPerson(
                     passengerPerson,
                     ImprovedPoVPluginPath);
                 QueuePassengerModeUntilImprovedPoVReady(passengerPerson.uid);

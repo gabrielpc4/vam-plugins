@@ -65,7 +65,7 @@ HMD basis: **`lookCamera`** else **`centerCameraTarget`**
 
 - **`passenger-possession/PassengerLaserPossess.cs`** — raycast resolver +
   **`TryTriggerFromRightBeamPersonHit`** (**`PollRightFaceADown`** + cooldown +
-  **`GabrielHud.RequestPassengerForSpecificPerson`**). Skips **Edit**
+  **`PassengerRuntime.RequestPassengerForSpecificPerson`**). Skips **Edit**
   mode and when the palm HUD is **visible** (right beam aim is suppressed
   anyway while palm is up).
 - **`scene-camera/MonitorModeLaserRestore.cs`** — draws forward cylinders when

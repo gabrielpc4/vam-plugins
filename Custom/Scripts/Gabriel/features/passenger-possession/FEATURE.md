@@ -15,7 +15,7 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 
 ## Load Path
 - Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
-- Start: `PassengerLaserPossess` → `GabrielHud.RequestPassengerForSpecificPerson`.
+- Start: `PassengerLaserPossess` → `PassengerRuntime.RequestPassengerForSpecificPerson`.
 - Stop: palm HUD via `GabrielHud` / `PassengerRuntime`.
 
 ## Responsibilities

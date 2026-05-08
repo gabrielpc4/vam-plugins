@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using MeshVR;
 using SimpleJSON;
 using UnityEngine;
 using UnityEngine.Events;
@@ -55,16 +55,6 @@ namespace geesp0t
             "CheekRight"
         };
 
-        /// <summary>
-        /// Rebuilt from <see cref="SuperController.GetAtoms"/> when invalid; see
-        /// <see cref="InvalidatePersonGenderCaches"/>.
-        /// </summary>
-        private static bool _personGenderListsCacheValid;
-
-        private static List<Atom> _cachedFemalePersonsByUid;
-
-        private static List<Atom> _cachedMalePersonsByUid;
-
         private GabrielHotkeys _hotkeys;
 
         private GabrielSessionOrchestrator _orchestrator;
@@ -89,10 +79,6 @@ namespace geesp0t
 
         private UIDynamicButton removeSpankingsButton;
 
-        private UIDynamicButton stripAllClothesButton;
-
-        private UIDynamicButton removeUnderwearButton;
-
         public JSONStorableAction hideUI;
 
         public JSONStorableAction showUI;
@@ -102,7 +88,7 @@ namespace geesp0t
             NextSceneUiButton.BindHost(this);
             _isDesktopMode = !(SuperController.singleton.isOVR ||
                 SuperController.singleton.isOpenVR);
-            RegisterPersonGenderCacheInvalidation();
+            PersonAtomCache.RegisterPersonGenderCacheInvalidation();
             _hotkeys = new GabrielHotkeys(this);
 
             hideUI = new JSONStorableAction("Hide UI", HideUI);
@@ -152,8 +138,8 @@ namespace geesp0t
 
             NextSceneUiButton.ReleaseHost();
             PassengerRuntime.StopVrPassengerHandsRoutine();
-            UnregisterPersonGenderCacheInvalidation();
-            InvalidatePersonGenderCaches();
+            PersonAtomCache.UnregisterPersonGenderCacheInvalidation();
+            PersonAtomCache.InvalidatePersonGenderCaches();
             DestroyHudCanvas();
         }
 
@@ -205,64 +191,6 @@ namespace geesp0t
             }
         }
 
-        private static void InvalidatePersonGenderCaches()
-        {
-            _personGenderListsCacheValid = false;
-            _cachedFemalePersonsByUid = null;
-            _cachedMalePersonsByUid = null;
-        }
-
-        private static void EnsurePersonGenderCaches()
-        {
-            SuperController sc;
-
-            if (_personGenderListsCacheValid)
-                return;
-
-            sc = SuperController.singleton;
-            if (sc == null)
-            {
-                _cachedFemalePersonsByUid = new List<Atom>();
-                _cachedMalePersonsByUid = new List<Atom>();
-                _personGenderListsCacheValid = true;
-                return;
-            }
-
-            _cachedFemalePersonsByUid = sc.GetAtoms()
-                .Where(x => x != null && x.type == "Person" && IsPersonFemale(x))
-                .OrderBy(x => x.uid, StringComparer.Ordinal)
-                .ToList();
-            _cachedMalePersonsByUid = sc.GetAtoms()
-                .Where(x => x != null && x.type == "Person" && !IsPersonFemale(x))
-                .OrderBy(x => x.uid, StringComparer.Ordinal)
-                .ToList();
-            _personGenderListsCacheValid = true;
-        }
-
-        private static void OnPersonSceneAtomUIDsChanged(List<string> atomUids)
-        {
-            InvalidatePersonGenderCaches();
-        }
-
-        private static void RegisterPersonGenderCacheInvalidation()
-        {
-            SuperController sc = SuperController.singleton;
-            if (sc == null)
-                return;
-
-            sc.onAtomUIDsChangedHandlers -= OnPersonSceneAtomUIDsChanged;
-            sc.onAtomUIDsChangedHandlers += OnPersonSceneAtomUIDsChanged;
-        }
-
-        private static void UnregisterPersonGenderCacheInvalidation()
-        {
-            SuperController sc = SuperController.singleton;
-            if (sc == null)
-                return;
-
-            sc.onAtomUIDsChangedHandlers -= OnPersonSceneAtomUIDsChanged;
-        }
-
         internal static void ToggleFreezeAnimationHotkey()
         {
             SuperController sc = SuperController.singleton;
@@ -299,7 +227,8 @@ namespace geesp0t
             sc.ClearPossess();
             PassengerHandPrePossessSnapshot
                 .RestoreAfterPossessClearThenDiscardSnapshot();
-            UnlinkStrayHmdLinkedFreeControllersAndNaturalizeHeads(sc);
+            PassengerHmdFreeControllerCleanup
+                .UnlinkStrayHmdLinkedFreeControllersAndNaturalizeHeads(sc);
             try
             {
                 sc.SelectModeOff();
@@ -313,131 +242,6 @@ namespace geesp0t
             HeadProximityHide.HidePossessorAlignmentPreviewMeshes();
             if (!string.IsNullOrEmpty(logMessage))
                 SuperController.LogMessage(logMessage);
-        }
-
-        /// <summary>
-        /// After <see cref="SuperController.ClearPossess"/>, free any
-        /// <see cref="FreeControllerV3"/> still parent-linked to the HMD/center
-        /// camera rigidbody. For <c>headControl</c>, nudge pose toward neck/chest
-        /// so the head sits naturally on the body.
-        /// </summary>
-        private static void UnlinkStrayHmdLinkedFreeControllersAndNaturalizeHeads(
-            SuperController sc)
-        {
-            Rigidbody hmdRb;
-
-            if (sc == null || sc.centerCameraTarget == null)
-                return;
-
-            hmdRb = sc.centerCameraTarget.GetComponent<Rigidbody>();
-            if (hmdRb == null)
-                return;
-
-            foreach (Atom a in sc.GetAtoms())
-            {
-                if (a == null)
-                    continue;
-
-                try
-                {
-                    FreeControllerV3[] fcs =
-                        a.GetComponentsInChildren<FreeControllerV3>(true);
-                    if (fcs == null)
-                        continue;
-
-                    for (int i = 0; i < fcs.Length; i++)
-                    {
-                        FreeControllerV3 fc = fcs[i];
-                        bool isHead;
-
-                        if (fc == null || fc.linkToRB != hmdRb)
-                            continue;
-
-                        isHead = a.type == "Person" &&
-                            a.GetStorableByID("headControl") == fc;
-
-                        fc.RestorePreLinkState();
-                        if (fc.linkToRB == hmdRb)
-                            fc.SelectLinkToRigidbody(null);
-                        fc.possessed = false;
-                        fc.startedPossess = false;
-
-                        if (isHead)
-                            TryRestoreNaturalHeadPose(fc, a);
-                    }
-                }
-                catch
-                {
-                }
-            }
-        }
-
-        /// <summary>
-        /// Approximate a neutral head-on-neck pose after HMD unlink.
-        /// </summary>
-        private static void TryRestoreNaturalHeadPose(
-            FreeControllerV3 head,
-            Atom person)
-        {
-            if (head == null || head.control == null || person == null)
-                return;
-
-            FreeControllerV3 neck =
-                person.GetStorableByID("neckControl") as FreeControllerV3;
-            if (neck != null && neck.control != null)
-            {
-                head.control.rotation = neck.control.rotation *
-                    Quaternion.Euler(8f, 0f, 0f);
-                Vector3 targetPos =
-                    neck.control.position + neck.control.up * 0.1f;
-                head.control.position = Vector3.Lerp(
-                    head.control.position,
-                    targetPos,
-                    0.75f);
-                return;
-            }
-
-            FreeControllerV3 chest =
-                person.GetStorableByID("chestControl") as FreeControllerV3;
-            if (chest != null && chest.control != null)
-            {
-                Vector3 up = chest.control.up;
-                Vector3 fwd = Vector3.ProjectOnPlane(
-                    head.control.position - chest.control.position,
-                    up);
-                if (fwd.sqrMagnitude > 1e-8f)
-                    fwd.Normalize();
-                else
-                    fwd = chest.control.forward;
-
-                head.control.rotation = Quaternion.LookRotation(fwd, up);
-                Vector3 targetPos =
-                    chest.control.position + fwd * 0.18f + up * 0.38f;
-                head.control.position = Vector3.Lerp(
-                    head.control.position,
-                    targetPos,
-                    0.6f);
-            }
-        }
-
-        public static bool RequestPassengerForSpecificPerson(Atom targetPerson)
-        {
-            if (targetPerson == null || targetPerson.type != "Person")
-                return false;
-
-            if (IsPersonFemale(targetPerson))
-            {
-                PassengerRuntime.RequestStartForFemale(targetPerson);
-                return true;
-            }
-
-            if (IsMalePerson(targetPerson))
-            {
-                PassengerRuntime.RequestStartForMale(targetPerson);
-                return true;
-            }
-
-            return false;
         }
 
         public void MergeEmotionLiteOnAllPersonsOnly()
@@ -469,7 +273,7 @@ namespace geesp0t
         {
             MergeEmotionFamilyOnPersons(
                 PluginEMotion,
-                IsMalePerson,
+                PersonAtomCache.IsMalePerson,
                 "E-Motion Original merge on males");
         }
 
@@ -481,7 +285,7 @@ namespace geesp0t
         {
             MergeEmotionFamilyOnPersons(
                 PluginEMotion,
-                IsPersonFemale,
+                PersonAtomCache.IsPersonFemale,
                 "E-Motion Original merge on females");
         }
 
@@ -503,7 +307,7 @@ namespace geesp0t
         {
             MergeEmotionFamilyOnPersons(
                 PluginEMotionFinal,
-                IsPersonFemale,
+                PersonAtomCache.IsPersonFemale,
                 "E-Motion Final merge on female Persons");
         }
 
@@ -514,9 +318,11 @@ namespace geesp0t
         {
             try
             {
-                foreach (Atom at in GetPersonAtoms())
+                foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                 {
-                    TryMergePluginOntoPerson(at, PluginClothingTouchFallOff);
+                    GabrielPluginManagerMerge.TryMergePluginOntoPerson(
+                        at,
+                        PluginClothingTouchFallOff);
                 }
             }
             catch (Exception e)
@@ -535,12 +341,16 @@ namespace geesp0t
         {
             try
             {
-                string fnPack = GetFileName(PluginEMotion);
-                string fnFinal = GetFileName(PluginEMotionFinal);
-                foreach (Atom at in GetPersonAtoms())
+                string fnPack = VaMFilePathUtil.GetFileName(PluginEMotion);
+                string fnFinal = VaMFilePathUtil.GetFileName(PluginEMotionFinal);
+                foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                 {
-                    TryRemovePluginFromPerson(at, fnPack);
-                    TryRemovePluginFromPerson(at, fnFinal);
+                    GabrielPluginManagerMerge.TryRemovePluginFromPerson(
+                        at,
+                        fnPack);
+                    GabrielPluginManagerMerge.TryRemovePluginFromPerson(
+                        at,
+                        fnFinal);
                 }
 
                 RefreshPluginToggleLabels();
@@ -560,10 +370,10 @@ namespace geesp0t
         {
             try
             {
-                string fn = GetFileName(PluginSpankings);
-                foreach (Atom at in GetPersonAtoms())
+                string fn = VaMFilePathUtil.GetFileName(PluginSpankings);
+                foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                 {
-                    TryRemovePluginFromPerson(at, fn);
+                    GabrielPluginManagerMerge.TryRemovePluginFromPerson(at, fn);
                 }
 
                 TryRemoveSpankingsOwnedSceneAtoms();
@@ -616,7 +426,7 @@ namespace geesp0t
         public void MergeSpankingsOnFemalePersonsOnly()
         {
             MergeSpankingsOnPersons(
-                IsPersonFemale,
+                PersonAtomCache.IsPersonFemale,
                 "Spankings merge on female Persons");
         }
 
@@ -627,12 +437,14 @@ namespace geesp0t
         {
             try
             {
-                string fn = GetFileName(PluginSpankings);
-                foreach (Atom at in GetPersonAtoms())
+                string fn = VaMFilePathUtil.GetFileName(PluginSpankings);
+                foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                 {
-                    if (!IsPersonFemale(at))
+                    if (!PersonAtomCache.IsPersonFemale(at))
                         continue;
-                    if (!PersonHasPluginByFileName(at, fn))
+                    if (!GabrielPluginManagerMerge.PersonHasPluginByFileName(
+                        at,
+                        fn))
                         return true;
                 }
 
@@ -653,7 +465,7 @@ namespace geesp0t
         {
             try
             {
-                foreach (Atom at in GetPersonAtoms())
+                foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                 {
                     if (includePerson != null && !includePerson(at))
                         continue;
@@ -677,13 +489,17 @@ namespace geesp0t
         {
             try
             {
-                string fn = GetFileName(PluginSpankings);
-                foreach (Atom at in GetPersonAtoms())
+                string fn = VaMFilePathUtil.GetFileName(PluginSpankings);
+                foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                 {
                     if (includePerson != null && !includePerson(at))
                         continue;
-                    if (!PersonHasPluginByFileName(at, fn))
-                        TryMergePluginOntoPerson(at, PluginSpankings);
+                    if (!GabrielPluginManagerMerge.PersonHasPluginByFileName(
+                        at,
+                        fn))
+                        GabrielPluginManagerMerge.TryMergePluginOntoPerson(
+                            at,
+                            PluginSpankings);
                 }
 
                 RefreshPluginToggleLabels();
@@ -692,23 +508,6 @@ namespace geesp0t
             {
                 SuperController.LogError(logContext + ": " + e);
             }
-        }
-
-        private static List<Atom> GetPersonAtoms()
-        {
-            List<Atom> persons = new List<Atom>();
-            SuperController sc = SuperController.singleton;
-
-            if (sc == null)
-                return persons;
-
-            foreach (Atom at in sc.GetAtoms())
-            {
-                if (at != null && at.type == "Person")
-                    persons.Add(at);
-            }
-
-            return persons;
         }
 
         private void RebuildHudCanvas()
@@ -746,12 +545,6 @@ namespace geesp0t
                 1,
                 0,
                 emotionColButtonWidth);
-            removeUnderwearButton = AddButton(
-                "Remove underwear",
-                RemoveUnderwearOnAllPersons,
-                3,
-                0,
-                rightColButtonWidth);
 
             emotionOriginalHudButton = AddButton(
                 "E-Motion Original",
@@ -759,12 +552,6 @@ namespace geesp0t
                 1,
                 1,
                 emotionColButtonWidth);
-            stripAllClothesButton = AddButton(
-                "Remove All Clothes",
-                StripAllClothesOnAllPersons,
-                3,
-                1,
-                rightColButtonWidth);
 
             emotionFinalHudButton = AddButton(
                 "E-Motion Final",
@@ -772,11 +559,12 @@ namespace geesp0t
                 1,
                 2,
                 emotionColButtonWidth);
+
             spankingsButton = AddButton(
                 "+ Spankings Male",
                 ToggleSpankingsPluginOnAllPersons,
                 3,
-                2,
+                0,
                 rightColButtonWidth);
 
             emotionRemoveAllHudButton = AddButton(
@@ -789,7 +577,7 @@ namespace geesp0t
                 "Remove Spankings",
                 RemoveSpankingsFromAllPersons,
                 3,
-                3,
+                1,
                 rightColButtonWidth);
 
             emotionMaleHudButton = AddButton(
@@ -854,27 +642,14 @@ namespace geesp0t
                 spankingsButton.gameObject.SetActive(setToActive);
             if (removeSpankingsButton != null)
                 removeSpankingsButton.gameObject.SetActive(setToActive);
-            if (stripAllClothesButton != null)
-                stripAllClothesButton.gameObject.SetActive(setToActive);
-            if (removeUnderwearButton != null)
-                removeUnderwearButton.gameObject.SetActive(setToActive);
 
             if (setToActive)
                 RefreshPluginToggleLabels();
         }
 
-        /// <summary>
-        /// Called when the scene set may have changed without a load-dir change
-        /// (e.g. same save reloaded).
-        /// </summary>
-        internal void InvalidateCachedPersonLists()
-        {
-            InvalidatePersonGenderCaches();
-        }
-
         internal void ClothingResetCycle()
         {
-            InvalidatePersonGenderCaches();
+            PersonAtomCache.InvalidatePersonGenderCaches();
             RefreshPluginToggleLabels();
         }
 
@@ -971,7 +746,8 @@ namespace geesp0t
         {
             try
             {
-                string desiredFileName = GetFileName(PluginSpankings);
+                string desiredFileName =
+                    VaMFilePathUtil.GetFileName(PluginSpankings);
                 bool turningOff =
                     AllPersonAtomsHavePluginByFileName(desiredFileName);
 
@@ -981,10 +757,14 @@ namespace geesp0t
                 }
                 else
                 {
-                    foreach (Atom at in GetPersonAtoms())
+                    foreach (Atom at in PersonAtomCache.GetPersonAtoms())
                     {
-                        if (!PersonHasPluginByFileName(at, desiredFileName))
-                            TryMergePluginOntoPerson(at, PluginSpankings);
+                        if (!GabrielPluginManagerMerge.PersonHasPluginByFileName(
+                            at,
+                            desiredFileName))
+                            GabrielPluginManagerMerge.TryMergePluginOntoPerson(
+                                at,
+                                PluginSpankings);
                     }
                 }
 
@@ -1012,7 +792,7 @@ namespace geesp0t
             if (button == null || SuperController.singleton == null)
                 return;
 
-            string fileName = GetFileName(pluginPath);
+            string fileName = VaMFilePathUtil.GetFileName(pluginPath);
             bool allHave = AllPersonAtomsHavePluginByFileName(fileName);
             button.label = (allHave ? "- " : "+ ") + labelBase;
         }
@@ -1020,138 +800,16 @@ namespace geesp0t
         private static bool AllPersonAtomsHavePluginByFileName(string desiredFileName)
         {
             bool any = false;
-            foreach (Atom at in GetPersonAtoms())
+            foreach (Atom at in PersonAtomCache.GetPersonAtoms())
             {
                 any = true;
-                if (!PersonHasPluginByFileName(at, desiredFileName))
+                if (!GabrielPluginManagerMerge.PersonHasPluginByFileName(
+                    at,
+                    desiredFileName))
                     return false;
             }
 
             return any;
-        }
-
-        private static bool PersonHasPluginByFileName(
-            Atom atom,
-            string desiredFileName)
-        {
-            MVRPluginManager pluginManager =
-                atom.GetStorableByID("PluginManager") as MVRPluginManager;
-            if (pluginManager == null)
-                return false;
-
-            foreach (string path in CollectNormalizedPluginPaths(pluginManager))
-            {
-                if (GetFileName(path) == desiredFileName)
-                    return true;
-            }
-
-            return false;
-        }
-
-        private static List<string> CollectNormalizedPluginPaths(
-            MVRPluginManager pluginManager)
-        {
-            List<string> paths = new List<string>();
-            JSONClass current = pluginManager.GetJSON(true, true, true);
-
-            if (current["plugins"] == null ||
-                current["plugins"]["plugin#0"] == null ||
-                current["plugins"]["plugin#0"].Value == "")
-            {
-                return paths;
-            }
-
-            foreach (JSONNode pluginNode in current["plugins"].Childs)
-            {
-                string path = pluginNode.Value;
-                int folderSeparatorIndex;
-
-                if (path.StartsWith("./"))
-                    path = SuperController.singleton.currentSaveDir + "/" +
-                        path.Substring(2);
-
-                folderSeparatorIndex = path.LastIndexOf("/");
-                if (folderSeparatorIndex < 0)
-                {
-                    path = SuperController.singleton.currentSaveDir + "/" + path;
-                    folderSeparatorIndex = path.LastIndexOf("/");
-                }
-
-                if (folderSeparatorIndex > 0 &&
-                    folderSeparatorIndex < path.Length - 1 &&
-                    !FileExists(path))
-                {
-                    string scriptInStandardFolder =
-                        "Custom/Scripts/" + GetFileName(path);
-                    if (FileExists(scriptInStandardFolder))
-                        path = scriptInStandardFolder;
-                    else
-                        continue;
-                }
-
-                paths.Add(path);
-            }
-
-            return paths;
-        }
-
-        private static void ApplyPluginPathsToManager(
-            MVRPluginManager pluginManager,
-            List<string> paths)
-        {
-            if (paths == null || paths.Count == 0)
-            {
-                const string emptyPluginManager =
-                    "{ \"id\" : \"PluginManager\", \"plugins\" : { } }";
-                JSONClass emptyState =
-                    JSONNode.Parse(emptyPluginManager).AsObject;
-                pluginManager.LateRestoreFromJSON(emptyState);
-                return;
-            }
-
-            pluginManager.LateRestoreFromJSON(CreatePluginJSON(paths.ToArray()));
-        }
-
-        internal static void TryMergePluginOntoPerson(
-            Atom atom,
-            string desiredPluginPath)
-        {
-            MVRPluginManager pluginManager =
-                atom.GetStorableByID("PluginManager") as MVRPluginManager;
-            if (pluginManager == null)
-                return;
-
-            string desiredFileName = GetFileName(desiredPluginPath);
-            List<string> paths = CollectNormalizedPluginPaths(pluginManager);
-            bool has = false;
-
-            foreach (string path in paths)
-            {
-                if (GetFileName(path) == desiredFileName)
-                {
-                    has = true;
-                    break;
-                }
-            }
-
-            if (!has)
-                paths.Add(desiredPluginPath);
-
-            ApplyPluginPathsToManager(pluginManager, paths);
-        }
-
-        private static void TryRemovePluginFromPerson(
-            Atom atom,
-            string desiredFileName)
-        {
-            MVRPluginManager pluginManager =
-                atom.GetStorableByID("PluginManager") as MVRPluginManager;
-            if (pluginManager == null)
-                return;
-
-            List<string> paths = CollectNormalizedPluginPaths(pluginManager);
-            paths.RemoveAll(path => GetFileName(path) == desiredFileName);
-            ApplyPluginPathsToManager(pluginManager, paths);
         }
 
         /// <summary>
@@ -1172,234 +830,22 @@ namespace geesp0t
             if (pluginManager == null)
                 return;
 
-            fnOrig = GetFileName(PluginEMotion);
-            fnLite = GetFileName(PluginEMotionLite);
-            fnFinal = GetFileName(PluginEMotionFinal);
-            paths = CollectNormalizedPluginPaths(pluginManager);
+            fnOrig = VaMFilePathUtil.GetFileName(PluginEMotion);
+            fnLite = VaMFilePathUtil.GetFileName(PluginEMotionLite);
+            fnFinal = VaMFilePathUtil.GetFileName(PluginEMotionFinal);
+            paths = GabrielPluginManagerMerge.CollectNormalizedPluginPaths(
+                pluginManager);
             paths.RemoveAll(path =>
             {
-                string fileName = GetFileName(path);
+                string fileName = VaMFilePathUtil.GetFileName(path);
                 return fileName == fnOrig ||
                     fileName == fnLite ||
                     fileName == fnFinal;
             });
             paths.Add(desiredPluginPath);
-            ApplyPluginPathsToManager(pluginManager, paths);
-        }
-
-        private static DAZCharacterSelector TryGetCharacterSelector(Atom atom)
-        {
-            JSONStorable geometry = atom.GetStorableByID("geometry");
-            return geometry as DAZCharacterSelector;
-        }
-
-        private static string ClothingSearchBlob(DAZClothingItem item)
-        {
-            string blob = " " + (item.displayName ?? "") + " " +
-                (item.tags ?? "") + " ";
-
-            if (item.tagsArray != null)
-            {
-                foreach (string tag in item.tagsArray)
-                {
-                    if (!string.IsNullOrEmpty(tag))
-                        blob += tag + " ";
-                }
-            }
-
-            return blob.ToLowerInvariant();
-        }
-
-        private static bool LooksLikeSkirtDressOuterGarment(DAZClothingItem item)
-        {
-            string blob = ClothingSearchBlob(item);
-            string[] avoid =
-            {
-                "skirt", "dress", "gown", "catsuit", "jumpsuit", "hobble",
-                "kilt", "robe", "sari", "cheongsam", "ballgown"
-            };
-
-            foreach (string token in avoid)
-            {
-                if (blob.Contains(token))
-                    return true;
-            }
-
-            return false;
-        }
-
-        private static bool IsUnderwearLikeItem(DAZClothingItem item)
-        {
-            string blob;
-            string[] keywords =
-            {
-                "bra", "panty", "panties", "underwear", "thong", "brief",
-                "bikini", "lingerie", "boxer", "boyshort", "pantie",
-                "undershirt", "camisole", "pantyhose", "stocking", "garter",
-                "corset ", " bustier"
-            };
-
-            if (!item.active)
-                return false;
-            if (LooksLikeSkirtDressOuterGarment(item))
-                return false;
-
-            if (item.exclusiveRegion ==
-                    DAZClothingItem.ExclusiveRegion.UnderChest ||
-                item.exclusiveRegion ==
-                    DAZClothingItem.ExclusiveRegion.UnderHip)
-            {
-                return true;
-            }
-
-            blob = ClothingSearchBlob(item);
-            foreach (string keyword in keywords)
-            {
-                if (blob.Contains(keyword))
-                    return true;
-            }
-
-            return false;
-        }
-
-        private static void StripAllClothesOnAllPersons()
-        {
-            try
-            {
-                foreach (Atom at in GetPersonAtoms())
-                {
-                    DAZCharacterSelector character = TryGetCharacterSelector(at);
-                    if (character == null)
-                        continue;
-
-                    try
-                    {
-                        character.EnableUndressAllClothingItems();
-                    }
-                    catch
-                    {
-                    }
-
-                    foreach (DAZClothingItem item in character.clothingItems.ToList())
-                        character.SetActiveClothingItem(item, false);
-                }
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError("Strip all clothes: " + e);
-            }
-        }
-
-        private static void RemoveUnderwearOnAllPersons()
-        {
-            try
-            {
-                foreach (Atom at in GetPersonAtoms())
-                {
-                    DAZCharacterSelector character = TryGetCharacterSelector(at);
-                    if (character == null)
-                        continue;
-
-                    try
-                    {
-                        character.EnableUndressAllClothingItems();
-                    }
-                    catch
-                    {
-                    }
-
-                    foreach (DAZClothingItem item in character.clothingItems.ToList())
-                    {
-                        if (IsUnderwearLikeItem(item))
-                            character.SetActiveClothingItem(item, false);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError("Remove underwear: " + e);
-            }
-        }
-
-        private static bool IsPersonFemale(Atom atom)
-        {
-            if (atom == null || atom.type != "Person")
-                return false;
-
-            DAZCharacter dazCharacter = atom.GetComponentInChildren<DAZCharacter>();
-            return dazCharacter != null && !dazCharacter.isMale;
-        }
-
-        private static bool IsMalePerson(Atom atom)
-        {
-            return atom != null && atom.type == "Person" && !IsPersonFemale(atom);
-        }
-
-        private static List<Atom> FemalePersonsByUid()
-        {
-            EnsurePersonGenderCaches();
-            return new List<Atom>(_cachedFemalePersonsByUid);
-        }
-
-        private static List<Atom> MalePersonsByUid()
-        {
-            EnsurePersonGenderCaches();
-            return new List<Atom>(_cachedMalePersonsByUid);
-        }
-
-        private static JSONClass CreatePluginJSON(string[] pluginList)
-        {
-            System.Text.StringBuilder builder = new System.Text.StringBuilder();
-
-            builder.Append("{");
-            builder.Append(" \"id\": \"PluginManager\",");
-            builder.Append(" \"plugins\": {");
-            for (int i = 0; i < pluginList.Length; i++)
-            {
-                builder.Append(
-                    string.Format(
-                        "    \"plugin#{0}\": \"{1}\"{2}",
-                        i,
-                        pluginList[i],
-                        (i + 1) < pluginList.Length ? "," : ""));
-            }
-            builder.Append("  }");
-            builder.Append("}");
-            return JSONNode.Parse(builder.ToString()).AsObject;
-        }
-
-        private static string GetFileName(string relativePath)
-        {
-            return relativePath.Substring(
-                relativePath.LastIndexOfAny(new[] { '/', '\\' }) + 1);
-        }
-
-        private static bool FileExists(string relativePath)
-        {
-            int folderSeparatorIndex;
-            string pathFolder;
-            string pathFile;
-            string[] pathFileList;
-
-            folderSeparatorIndex = relativePath.LastIndexOfAny(
-                new[] { '/', '\\' });
-            if (folderSeparatorIndex < 0)
-                return false;
-
-            pathFolder = relativePath.Substring(0, folderSeparatorIndex);
-            pathFile = relativePath.Substring(folderSeparatorIndex + 1);
-            pathFileList = SuperController.singleton.GetFilesAtPath(pathFolder);
-            if (pathFileList == null || pathFileList.Length == 0)
-                return false;
-
-            foreach (string foundPathFile in pathFileList)
-            {
-                string correctedPathFile = foundPathFile.Replace("\\", "/");
-                if (correctedPathFile.EndsWith("/" + pathFile))
-                    return true;
-            }
-
-            return false;
+            GabrielPluginManagerMerge.ApplyPluginPathsToManager(
+                pluginManager,
+                paths);
         }
     }
 }

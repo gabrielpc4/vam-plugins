@@ -1,3 +1,7 @@
+../../util/VaMFilePathUtil.cs
+../../util/PersonAtomCache.cs
+../../util/GabrielPluginManagerMerge.cs
+../passenger-possession/PassengerHmdFreeControllerCleanup.cs
 GabrielHud.cs
 NextSceneUiButton.cs
 GabrielHotkeys.cs

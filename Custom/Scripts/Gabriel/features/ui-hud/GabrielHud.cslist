@@ -5,6 +5,7 @@ GabrielHudButtonsHotkeys.cs
 ../palm-hud/VrEulerPossessPoseCheck.cs
 ../palm-hud/VrEulerPossessHandHud.cs
 ../passenger-possession/PassengerRuntime.cs
+../passenger-possession/PassengerLaserPossess.cs
 ../passenger-possession/PassengerHandPrePossessSnapshot.cs
 ../passenger-possession/PassengerPossessableNarrow.cs
 ../scene-camera/SceneCameraPatch.cs

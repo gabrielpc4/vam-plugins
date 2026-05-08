@@ -1,7 +1,10 @@
 # Gabriel Palm HUD
 
 ## Purpose
-VR-only hand HUD layer. It decides when the right-hand palm UI appears, how A/B/menu inputs are interpreted, and whether optional gesture-based possess/unpossess flows are active.
+VR-only hand HUD layer. It decides when the right-hand palm UI appears and how
+A/B/menu inputs are interpreted for **Despossuir**, **Próxima cena**, and related
+rows. Passenger **start** is not from the palm (see `passenger-possession` +
+`scene-camera` lasers + face A).
 
 ## Live Files
 - `VrEulerPossessHandHud.cs`
@@ -16,7 +19,7 @@ VR-only hand HUD layer. It decides when the right-hand palm UI appears, how A/B/
 ## Responsibilities
 - Show/hide the right-hand palm HUD from HMD-relative euler windows.
 - Map Quest/OpenVR face buttons, menu, select, and grip-trigger abstractions through `VrInput`.
-- Drive the gender-choice step and the next-scene row while possession is active or pending.
+- Show **Despossuir** and **Próxima cena** when applicable; no gender submenu.
 - Keep the right-hand back-of-hand pose window aligned with the current palm HUD behavior.
 
 ## Dependencies And Coupling
@@ -33,5 +36,5 @@ VR-only hand HUD layer. It decides when the right-hand palm UI appears, how A/B/
 Update this file in the same turn whenever any of these change:
 
 - Palm HUD pose windows or button mappings change.
-- Gender-step behavior or hand-pose visibility rules change.
+- Hand-pose visibility rules or which rows appear change.
 - `LEGACY-NOTES.md` becomes inconsistent with current runtime behavior.

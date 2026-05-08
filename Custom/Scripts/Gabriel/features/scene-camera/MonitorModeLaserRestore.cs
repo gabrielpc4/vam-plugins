@@ -1,4 +1,3 @@
-using MeshVR;
 using System;
 using UnityEngine;
 
@@ -10,8 +9,10 @@ namespace geesp0t
     /// A right capacitive (<c>OVRInput.Touch</c> on LTouch/RTouch); on OpenVR
     /// (SteamVR, including Virtual Desktop), <see cref="SuperController.GetLeftUIPointerShow"/> /
     /// <see cref="SuperController.GetRightUIPointerShow"/> (SteamVR TargetShow per hand).
-    /// Hides when that input is inactive. Monitor camera sync still only runs in monitor
-    /// mode, but beam aiming and A-confirm passenger targeting work regardless of monitor mode.
+    /// Hides when that input is inactive. VR-headset alignment for the desktop
+    /// monitor preview camera runs only while monitor rig mode is active; aim
+    /// cylinders and <see cref="PassengerLaserPossess"/> (A confirms on a lit beam)
+    /// follow this feature&apos;s plugin toggle independently of monitor mode.
     /// </summary>
     internal static class MonitorModeLaserRestore
     {
@@ -20,8 +21,6 @@ namespace geesp0t
         private static readonly Color BeamRed = new Color(1f, 0.2f, 0.12f, 1f);
 
         private static float _nextMonitorCameraSyncIssueLogTime = -1f;
-
-        private static float _nextBeamPossessTriggerTime = -1f;
 
         /// <summary>World-space beam radius before applying worldScale.</summary>
         private const float BaseRadiusM = 0.0015f;
@@ -76,7 +75,11 @@ namespace geesp0t
             else
                 HideOne(_beamRight);
 
-            TryTriggerPassengerPossessionFromBeam(sc, leftTarget, rightTarget);
+            PassengerLaserPossess.TryTriggerFromBeamPersonHits(
+                sc,
+                leftTarget,
+                rightTarget,
+                VrEulerPossessHandHud.IsVisible());
         }
 
         /// <summary>
@@ -329,103 +332,10 @@ namespace geesp0t
                 radialScale);
 
             beam.gameObject.SetActive(true);
-            return FindFirstPersonHitAlongBeam(motion.position, motion.forward, len);
-        }
-
-        private static void TryTriggerPassengerPossessionFromBeam(
-            SuperController sc,
-            Atom leftTarget,
-            Atom rightTarget)
-        {
-            if (sc == null)
-                return;
-
-            if (sc.gameMode == SuperController.GameMode.Edit)
-                return;
-
-            if (VrEulerPossessHandHud.IsVisible())
-                return;
-
-            if (Time.unscaledTime < _nextBeamPossessTriggerTime)
-                return;
-
-            if (!VrInput.PollRightFaceADown(sc))
-                return;
-
-            Atom targetPerson = rightTarget != null ? rightTarget : leftTarget;
-            if (targetPerson == null)
-                return;
-
-            if (!GabrielHudButtons.RequestPassengerForSpecificPerson(targetPerson))
-                return;
-
-            _nextBeamPossessTriggerTime = Time.unscaledTime + 0.2f;
-        }
-
-        private static Atom FindFirstPersonHitAlongBeam(
-            Vector3 origin,
-            Vector3 direction,
-            float length)
-        {
-            if (direction.sqrMagnitude < 1e-12f)
-                return null;
-
-            RaycastHit[] hits = Physics.RaycastAll(origin, direction, length);
-            if (hits == null || hits.Length == 0)
-                return null;
-
-            Array.Sort(hits, delegate(RaycastHit a, RaycastHit b)
-            {
-                return a.distance.CompareTo(b.distance);
-            });
-
-            for (int hitIndex = 0; hitIndex < hits.Length; hitIndex++)
-            {
-                Atom hitPerson = TryResolvePersonFromHit(hits[hitIndex]);
-                if (hitPerson != null)
-                    return hitPerson;
-            }
-
-            return null;
-        }
-
-        private static Atom TryResolvePersonFromHit(RaycastHit hit)
-        {
-            if (hit.collider == null)
-                return null;
-
-            Transform hitTransform = hit.collider.transform;
-            if (hitTransform == null)
-                return null;
-
-            FreeControllerV3 freeController =
-                hitTransform.GetComponentInParent<FreeControllerV3>();
-            if (freeController != null &&
-                freeController.containingAtom != null &&
-                freeController.containingAtom.type == "Person")
-            {
-                return freeController.containingAtom;
-            }
-
-            ForceReceiver forceReceiver =
-                hitTransform.GetComponentInParent<ForceReceiver>();
-            if (forceReceiver != null &&
-                forceReceiver.containingAtom != null &&
-                forceReceiver.containingAtom.type == "Person")
-            {
-                return forceReceiver.containingAtom;
-            }
-
-            JSONStorable jsonStorable =
-                hitTransform.GetComponentInParent<JSONStorable>();
-            if (jsonStorable != null &&
-                jsonStorable.containingAtom != null &&
-                jsonStorable.containingAtom.type == "Person")
-            {
-                return jsonStorable.containingAtom;
-            }
-
-            return null;
+            return PassengerLaserPossess.FindFirstPersonAlongBeam(
+                motion.position,
+                motion.forward,
+                len);
         }
 
         private static void HideOne(Transform beam)

@@ -16,12 +16,14 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 ## Responsibilities
 - Persist/reapply camera pose across same-folder loads.
 - Restore desktop/monitor aim cylinders for the expected input gestures.
+- Tick `PassengerLaserPossess` when beams are active so laser + A can start passenger on a hit person.
 - Hide DillDoe fluid mesh until scene load settles.
 - Capture camera/rig snapshots from the K hotkey and route them into the offline patch scripts.
 
 ## Dependencies And Coupling
 - Shares scene-settle assumptions with `session-stack` and
   `SceneSettleRuntime`.
+- `MonitorModeLaserRestore` calls into `passenger-possession/PassengerLaserPossess.cs` for shared beam hit tests.
 - Depends on `Custom/Scripts/Gabriel/tools/scene-camera/FEATURE.md` for the offline script side.
 
 ## References

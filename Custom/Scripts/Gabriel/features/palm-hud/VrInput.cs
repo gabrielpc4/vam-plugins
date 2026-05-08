@@ -88,7 +88,7 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Palm HUD <b>Possuir</b> row (lower): same as
+        /// Palm HUD <b>Despossuir</b> row: same as
         /// <see cref="PollRightFaceADown"/>.
         /// </summary>
         public static bool PollPalmHudPossessRowFaceADown(SuperController sc)
@@ -100,9 +100,7 @@ namespace geesp0t
         /// Palm HUD face <b>B</b> / SteamVR menu: OVR <c>RTouch</c>
         /// <see cref="OVRInput.Button.Two"/>; OpenVR
         /// <see cref="SuperController.GetMenuShow"/>.
-        /// Shared by <see cref="PollPalmHudProximaCenaFaceBDown"/> and
-        /// <see cref="PollPalmHudHomemChoiceDown"/>; the gender step and main
-        /// two-row HUD never evaluate it in the same tick.
+        /// Shared by <see cref="PollPalmHudProximaCenaFaceBDown"/>.
         /// </summary>
         private static bool PollPalmHudFaceBOrVrMenuDown(SuperController sc)
         {
@@ -134,24 +132,6 @@ namespace geesp0t
         /// <see cref="PollPalmHudFaceBOrVrMenuDown"/>).
         /// </summary>
         public static bool PollPalmHudProximaCenaFaceBDown(SuperController sc)
-        {
-            return PollPalmHudFaceBOrVrMenuDown(sc);
-        }
-
-        /// <summary>
-        /// Palm HUD gender row <b>Mulher (A)</b>: same as
-        /// <see cref="PollRightFaceADown"/> (face A / right Select).
-        /// </summary>
-        public static bool PollPalmHudMulherChoiceDown(SuperController sc)
-        {
-            return PollRightFaceADown(sc);
-        }
-
-        /// <summary>
-        /// Palm HUD gender row <b>Homem (B)</b>: face B / Menu (same as
-        /// <see cref="PollPalmHudFaceBOrVrMenuDown"/>).
-        /// </summary>
-        public static bool PollPalmHudHomemChoiceDown(SuperController sc)
         {
             return PollPalmHudFaceBOrVrMenuDown(sc);
         }

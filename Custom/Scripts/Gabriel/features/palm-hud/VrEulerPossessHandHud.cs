@@ -5,23 +5,15 @@ using UnityEngine.XR;
 namespace geesp0t
 {
     /// <summary>
-    /// When the <b>right hand alone</b> matches the HMD-relative euler
-    /// window for the VR possess rule, shows a small world UI on
-    /// <c>rightHand</c> (back of hand / watch pose): <b>Próxima cena</b> on the
-    /// <b>upper</b> row and
-    /// <b>Possuir</b> / <b>Despossuir</b> on the <b>lower</b> row.
-    /// <b>Upper</b> row (<b>Próxima cena</b>): only when the scene has a resolvable
-    /// &quot;next&quot; <c>UIButton</c> (same rules as <see cref="GabrielHudButtons.HasNextSceneUiButtonInScene"/>);
-    /// face <b>B</b> / OpenVR menu, or tap the button.
-    /// <b>Lower</b> row (<b>Possuir</b> / <b>Despossuir</b>): face <b>A</b> / OpenVR select.
-    /// While possessed, <b>A</b> triggers Despossuir; <b>B</b> still runs
-    /// <see cref="GabrielHudButtons.RequestFireNextSceneUiButton"/> (same as when not possessed). Unity often
-    /// sends no laser hits to this hand canvas, so face buttons are polled.
-    /// The whole HUD, including this row, only shows while the right-hand
-    /// euler window matches.
-    /// <b>Gender step:</b> <b>Homem (B)</b> upper row, <b>Mulher (A)</b> lower row.
-    /// VaM menu shortcut still dismisses the main UI into this step when a Person exists.
-    /// Leaving the pose closes the HUD (no third “back” button). Billboard faces the HMD.
+    /// When the <b>right hand alone</b> matches the HMD-relative euler window
+    /// (back of hand toward HMD), shows a small world UI on
+    /// <c>rightHand</c>: <b>Próxima cena</b> on the upper row when available,
+    /// and <b>Despossuir</b> on the lower row only while already in possession
+    /// (VaM passenger or head/hand possessed). Passenger <b>start</b> does not use
+    /// this HUD — aim lasers + face <b>A</b> (<see cref="PassengerLaserPossess"/>).
+    /// Face <b>B</b> / OpenVR menu runs next scene; face <b>A</b> / Select runs
+    /// <see cref="PassengerRuntime.RequestStopForPalmHud"/> while the Despossuir row is
+    /// visible. Buttons are polled; VaM lasers often miss the canvas.
     /// </summary>
     internal static class VrEulerPossessHandHud
     {
@@ -35,12 +27,6 @@ namespace geesp0t
 
         private static Button _btnProximaCena;
 
-        private static Button _btnMulher;
-
-        private static Button _btnHomem;
-
-        private static bool _genderChooseStepActive;
-
         private static bool _listenersAttached;
 
         private static Sprite _whiteSprite;
@@ -51,32 +37,15 @@ namespace geesp0t
 
         private const float NextSceneButtonPresenceRecheckSeconds = 1f;
 
-        private static readonly Color PossessRowPossuirColor =
-            new Color(0.12f, 0.45f, 0.22f, 0.92f);
-
         private static readonly Color PossessRowDespossuirColor =
             new Color(0.5f, 0.14f, 0.14f, 0.92f);
 
-        /// <summary>
-        /// Local offset on <c>rightHand</c> (meters in hand space). Positive
-        /// X is the dorsum / watch side on OpenVR / OVR right controllers
-        /// (palm-facing HUD used negative X with the same Y,Z magnitudes).
-        /// </summary>
         private static readonly Vector3 LocalHandHudOffset =
             new Vector3(0.065f, 0.012f, 0.025f);
 
         private const float CanvasWidthPx = 260f;
 
         private const float CanvasHeightPx = 140f;
-
-        /// <summary>
-        /// Opens <b>Mulher</b>/<b>Homem</b> on the next palm HUD tick (for
-        /// menu shortcuts and <see cref="GabrielHudButtons"/> helpers).
-        /// </summary>
-        internal static void RequestGenderChooseStep()
-        {
-            _genderChooseStepActive = true;
-        }
 
         internal static void Tick()
         {
@@ -168,38 +137,25 @@ namespace geesp0t
             bool possessed =
                 PassengerRuntime.IsPassengerModeActiveOrPending() ||
                 GripHandVisibility.IsAnyPersonHeadOrHandPossessed();
-            if (possessed)
-                _genderChooseStepActive = false;
 
-            RefreshGenderVersusMainRows(possessed);
+            RefreshPanels(possessed);
 
-            bool onGenderChoosePanel = _genderChooseStepActive && !possessed;
-            bool proximaCenaAvailable =
-                _cachedSceneHasNextSceneUIButton && !onGenderChoosePanel;
+            bool proximaCenaAvailable = _cachedSceneHasNextSceneUIButton;
 
             if (_btnPossessRow != null)
-                _btnPossessRow.interactable = true;
+                _btnPossessRow.interactable = possessed;
             if (_btnProximaCena != null)
                 _btnProximaCena.interactable = true;
-            if (_btnMulher != null)
-                _btnMulher.interactable = true;
-            if (_btnHomem != null)
-                _btnHomem.interactable = true;
 
-            if (onGenderChoosePanel)
+            if (!possessed)
             {
-                bool mulherA = VrInput.PollPalmHudMulherChoiceDown(sc);
-                bool homemB = VrInput.PollPalmHudHomemChoiceDown(sc);
-                if (mulherA)
+                if (proximaCenaAvailable &&
+                    VrInput.PollPalmHudProximaCenaFaceBDown(sc))
                 {
-                    InvokeGenderMulherChoice();
-                }
-                else if (homemB)
-                {
-                    InvokeGenderHomemChoice();
+                    GabrielHudButtons.RequestFireNextSceneAfterClosingMenu();
                 }
             }
-            else if (possessed)
+            else
             {
                 bool possessA = VrInput.PollPalmHudPossessRowFaceADown(sc);
                 bool proximaB = VrInput.PollPalmHudProximaCenaFaceBDown(sc);
@@ -210,19 +166,7 @@ namespace geesp0t
                 }
                 else if (possessA)
                 {
-                    InvokePossessRowPrimaryAction();
-                }
-            }
-            else
-            {
-                if (VrInput.PollPalmHudPossessRowFaceADown(sc))
-                {
-                    InvokePossessRowPrimaryAction();
-                }
-                else if (proximaCenaAvailable &&
-                    VrInput.PollPalmHudProximaCenaFaceBDown(sc))
-                {
-                    GabrielHudButtons.RequestFireNextSceneAfterClosingMenu();
+                    PassengerRuntime.RequestStopForPalmHud();
                 }
             }
         }
@@ -244,9 +188,6 @@ namespace geesp0t
             _possessRowImage = null;
             _possessRowText = null;
             _btnProximaCena = null;
-            _btnMulher = null;
-            _btnHomem = null;
-            _genderChooseStepActive = false;
             _listenersAttached = false;
             _whiteSprite = null;
             _cachedSceneHasNextSceneUIButton = false;
@@ -257,82 +198,21 @@ namespace geesp0t
         {
             if (_root != null)
                 _root.SetActive(v);
-            if (!v)
-                _genderChooseStepActive = false;
         }
 
-        private static void RefreshGenderVersusMainRows(bool possessed)
+        private static void RefreshPanels(bool possessed)
         {
-            bool gender = _genderChooseStepActive && !possessed;
-            bool showProximaCenaRow = !gender && _cachedSceneHasNextSceneUIButton;
-            if (_btnMulher != null)
-                _btnMulher.gameObject.SetActive(gender);
-            if (_btnHomem != null)
-                _btnHomem.gameObject.SetActive(gender);
+            bool showProximaRow = _cachedSceneHasNextSceneUIButton;
             if (_btnPossessRow != null)
-                _btnPossessRow.gameObject.SetActive(!gender);
+                _btnPossessRow.gameObject.SetActive(possessed);
             if (_btnProximaCena != null)
-                _btnProximaCena.gameObject.SetActive(showProximaCenaRow);
+                _btnProximaCena.gameObject.SetActive(showProximaRow);
 
-            if (gender || _possessRowText == null)
+            if (!possessed || _possessRowText == null)
                 return;
-            _possessRowText.text = possessed ?
-                "Despossuir (A)" :
-                "Possuir (A)";
+            _possessRowText.text = "Despossuir (A)";
             if (_possessRowImage != null)
-            {
-                _possessRowImage.color = possessed ?
-                    PossessRowDespossuirColor :
-                    PossessRowPossuirColor;
-            }
-        }
-
-        private static void InvokeGenderMulherChoice()
-        {
-            DismissVaMOverlayUiIfAny();
-            GabrielHudButtons.RequestPossessVrPalmHudByGender(true);
-            _genderChooseStepActive = false;
-            RefreshGenderVersusMainRows(
-                PassengerRuntime.IsPassengerModeActiveOrPending() ||
-                GripHandVisibility.IsAnyPersonHeadOrHandPossessed());
-            DismissVaMOverlayUiIfAny();
-        }
-
-        private static void InvokeGenderHomemChoice()
-        {
-            DismissVaMOverlayUiIfAny();
-            GabrielHudButtons.RequestPossessVrPalmHudByGender(false);
-            _genderChooseStepActive = false;
-            RefreshGenderVersusMainRows(
-                PassengerRuntime.IsPassengerModeActiveOrPending() ||
-                GripHandVisibility.IsAnyPersonHeadOrHandPossessed());
-            DismissVaMOverlayUiIfAny();
-        }
-
-        private static void DismissVaMOverlayUiIfAny()
-        {
-            SuperController sc = SuperController.singleton;
-            if (sc != null)
-                sc.activeUI = SuperController.ActiveUI.None;
-        }
-
-        private static void InvokePossessRowPrimaryAction()
-        {
-            if (PassengerRuntime.IsPassengerModeActiveOrPending() ||
-                GripHandVisibility.IsAnyPersonHeadOrHandPossessed())
-            {
-                PassengerRuntime.RequestStopForPalmHud();
-            }
-            else if (GabrielHudButtons.VrPalmHudNeedsGenderChoiceStep())
-            {
-                DismissVaMOverlayUiIfAny();
-                RequestGenderChooseStep();
-                RefreshGenderVersusMainRows(false);
-            }
-            else
-            {
-                GabrielHudButtons.RequestPossessVrPalmHudAutoWithoutGenderMenu();
-            }
+                _possessRowImage.color = PossessRowDespossuirColor;
         }
 
         private static Sprite WhiteSprite()
@@ -360,23 +240,7 @@ namespace geesp0t
             {
                 _btnPossessRow.onClick.AddListener(delegate
                 {
-                    InvokePossessRowPrimaryAction();
-                });
-            }
-
-            if (_btnMulher != null)
-            {
-                _btnMulher.onClick.AddListener(delegate
-                {
-                    InvokeGenderMulherChoice();
-                });
-            }
-
-            if (_btnHomem != null)
-            {
-                _btnHomem.onClick.AddListener(delegate
-                {
-                    InvokeGenderHomemChoice();
+                    PassengerRuntime.RequestStopForPalmHud();
                 });
             }
 
@@ -414,11 +278,11 @@ namespace geesp0t
             panelImg.raycastTarget = false;
             StretchFull(panelGo);
 
-            GameObject possessGo = new GameObject("PossessRowBtn");
+            GameObject possessGo = new GameObject("DespossuirRowBtn");
             possessGo.transform.SetParent(_root.transform, false);
             _possessRowImage = possessGo.AddComponent<Image>();
             _possessRowImage.sprite = WhiteSprite();
-            _possessRowImage.color = PossessRowPossuirColor;
+            _possessRowImage.color = PossessRowDespossuirColor;
             _possessRowImage.raycastTarget = true;
             _btnPossessRow = possessGo.AddComponent<Button>();
             ColorBlock cb = _btnPossessRow.colors;
@@ -440,13 +304,15 @@ namespace geesp0t
                 Resources.GetBuiltinResource(typeof(Font), "Arial.ttf") as Font;
             if (font != null)
                 _possessRowText.font = font;
-            _possessRowText.text = "Possuir (A)";
+            _possessRowText.text = "Despossuir (A)";
             _possessRowText.fontSize = 22;
             _possessRowText.fontStyle = FontStyle.Bold;
             _possessRowText.alignment = TextAnchor.MiddleCenter;
             _possessRowText.color = Color.white;
             _possessRowText.raycastTarget = false;
             StretchFull(possessTextGo);
+
+            _btnPossessRow.gameObject.SetActive(false);
 
             _btnProximaCena = CreateHandButton(
                 _root.transform,
@@ -456,26 +322,6 @@ namespace geesp0t
                 new Vector2(0.95f, 0.98f),
                 new Color(0.14f, 0.32f, 0.52f, 0.92f),
                 20);
-
-            _btnHomem = CreateHandButton(
-                _root.transform,
-                "HomemBtn",
-                "Homem (B)",
-                new Vector2(0.05f, 0.52f),
-                new Vector2(0.95f, 0.98f),
-                new Color(0.14f, 0.32f, 0.52f, 0.92f),
-                20);
-            _btnHomem.gameObject.SetActive(false);
-
-            _btnMulher = CreateHandButton(
-                _root.transform,
-                "MulherBtn",
-                "Mulher (A)",
-                new Vector2(0.05f, 0.02f),
-                new Vector2(0.95f, 0.48f),
-                PossessRowPossuirColor,
-                20);
-            _btnMulher.gameObject.SetActive(false);
         }
 
         private static void StretchFull(GameObject go)

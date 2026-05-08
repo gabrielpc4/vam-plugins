@@ -13,8 +13,9 @@ namespace geesp0t
 {
     // World-space HUD: Ctrl+Shift+S toggles Spankings; K writes the scene-camera
     // patch request and runs the Python patcher; O clears passenger possession;
-    // F toggles VaM freeze animation. Passenger start now comes only from the
-    // hand HUD or laser-target flows.
+    // F toggles VaM freeze animation. Passenger start uses UI-aim lasers + face A
+    // (see PassengerLaserPossess); palm HUD shows Despossuir + optional next scene
+    // only while holding the watch pose when already possessed.
     public class GabrielHudButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
@@ -36,11 +37,6 @@ namespace geesp0t
         private static MVRScript _pluginHost;
         private static Coroutine _autoPossessCoroutine;
         private static Coroutine _autoPossessConfirmCo;
-        private static Coroutine _vrPalmHudMenuConfirmCo;
-        /// <summary>VR palm HUD: rotate <b>Mulher</b> target (uid-sorted list) after unpossess.</summary>
-        private static int _vrPalmHudFemaleCycleIndex;
-        /// <summary>VR palm HUD: rotate <b>Homem</b> target (uid-sorted list) after unpossess.</summary>
-        private static int _vrPalmHudMaleCycleIndex;
         /// <summary>Set in <see cref="Init"/> so static possess coroutine can refresh HUD after merging plugins.</summary>
         private static System.Action _refreshPluginToggleLabelsStatic;
         private GabrielHudButtonsHotkeys hotkeys;
@@ -229,15 +225,11 @@ namespace geesp0t
             sc.SetFreezeAnimation(!currentlyOn);
         }
 
-        private static void ClearAllPossession(
-            string logMessage,
-            bool advanceVrPalmHudGenderCycle)
+        private static void ClearAllPossession(string logMessage)
         {
             SuperController sc = SuperController.singleton;
             if (sc == null)
                 return;
-            bool hadPossessed =
-                GripHandVisibility.IsAnyPersonHeadOrHandPossessed();
             StopAutoPossessRoutine();
             HeadProximityHide.RestoreTransientHeadHideState();
             PassengerRuntime.StopPassengerMode();
@@ -254,11 +246,6 @@ namespace geesp0t
                     "Easy Mate ClearPossess: SelectModeOff: " + e.Message);
             }
             HeadProximityHide.HidePossessorAlignmentPreviewMeshes();
-            if (advanceVrPalmHudGenderCycle && hadPossessed)
-            {
-                _vrPalmHudFemaleCycleIndex++;
-                _vrPalmHudMaleCycleIndex++;
-            }
             if (!string.IsNullOrEmpty(logMessage))
                 SuperController.LogMessage(logMessage);
         }
@@ -362,64 +349,10 @@ namespace geesp0t
         }
 
         /// <summary>Stops Easy Mate auto-possess coroutine and <see cref="SuperController.ClearPossess"/> (for hotkeys and auto-release).</summary>
-        public static void RequestClearAllPossession(
-            string logMessage,
-            bool advanceVrPalmHudGenderCycle = false)
+        public static void RequestClearAllPossession(string logMessage)
         {
             ClearAllPossession(
-                string.IsNullOrEmpty(logMessage) ? null : logMessage,
-                advanceVrPalmHudGenderCycle);
-        }
-
-        /// <summary>
-        /// VR palm HUD: show the gender possession choice whenever there is at
-        /// least one female or male <c>Person</c>.
-        /// </summary>
-        public static bool VrPalmHudNeedsGenderChoiceStep()
-        {
-            EnsurePersonGenderCaches();
-            int femaleCount = _cachedFemalePersonsByUid != null ?
-                _cachedFemalePersonsByUid.Count : 0;
-            int maleCount = _cachedMalePersonsByUid != null ?
-                _cachedMalePersonsByUid.Count : 0;
-            return femaleCount > 0 || maleCount > 0;
-        }
-
-        /// <summary>
-        /// VR palm HUD: <b>Mulher</b> starts the Passenger-style female mode on
-        /// the closest female by head to the camera. <b>Homem</b> mirrors the
-        /// same flow for the closest male.
-        /// </summary>
-        public static void RequestPossessVrPalmHudByGender(bool female)
-        {
-            EnsurePersonGenderCaches();
-
-            if (female)
-            {
-                Atom femaleTarget = FindClosestPersonInListByHeadToCamera(
-                    _cachedFemalePersonsByUid);
-                if (femaleTarget == null)
-                {
-                    SuperController.LogMessage(
-                        "Easy Mate: VR mão — nenhuma Person feminina.");
-                    return;
-                }
-
-                PassengerRuntime.RequestStartForFemale(
-                    femaleTarget);
-                return;
-            }
-
-            Atom maleTarget = FindClosestPersonInListByHeadToCamera(
-                _cachedMalePersonsByUid);
-            if (maleTarget == null)
-            {
-                SuperController.LogMessage(
-                    "Easy Mate: VR mão — nenhuma Person masculina.");
-                return;
-            }
-
-            PassengerRuntime.RequestStartForMale(maleTarget);
+                string.IsNullOrEmpty(logMessage) ? null : logMessage);
         }
 
         public static bool RequestPassengerForSpecificPerson(Atom targetPerson)
@@ -442,81 +375,6 @@ namespace geesp0t
             }
 
             return false;
-        }
-
-        /// <summary>
-        /// VR palm HUD: if there is at least one male or female Person, opens
-        /// the gender step on the hand panel (no direct possess here).
-        /// </summary>
-        public static void RequestPossessVrPalmHudAutoWithoutGenderMenu()
-        {
-            EnsurePersonGenderCaches();
-            int femaleCount = _cachedFemalePersonsByUid != null ?
-                _cachedFemalePersonsByUid.Count : 0;
-            int maleCount = _cachedMalePersonsByUid != null ?
-                _cachedMalePersonsByUid.Count : 0;
-            if (femaleCount <= 0 && maleCount <= 0)
-            {
-                SuperController.LogMessage(
-                    "Easy Mate: VR mão — nenhuma Person na cena.");
-                return;
-            }
-
-            VrEulerPossessHandHud.RequestGenderChooseStep();
-        }
-
-        /// <summary>
-        /// VR palm HUD entry (legacy name): same as
-        /// <see cref="RequestPossessVrPalmHudAutoWithoutGenderMenu"/>.
-        /// </summary>
-        public static void RequestPossessClosestFemaleByVrHandHud()
-        {
-            RequestPossessVrPalmHudAutoWithoutGenderMenu();
-        }
-
-        /// <summary>
-        /// VR palm HUD: <see cref="SuperController.GetMenuShow"/> (Quest <b>B</b> /
-        /// SteamVR menu). Waits 100ms, clears <see cref="SuperController.activeUI"/>
-        /// so the menu closes, then opens the gender step
-        /// when a male or female Person exists.
-        /// </summary>
-        public static void RequestVrPalmHudMenuButtonPossessAfterDismissMenu()
-        {
-            if (_pluginHost == null)
-                return;
-            if (_vrPalmHudMenuConfirmCo != null)
-                return;
-            _vrPalmHudMenuConfirmCo = _pluginHost.StartCoroutine(
-                VrPalmHudMenuButtonPossessAfterDismissMenuCo());
-        }
-
-        private static IEnumerator VrPalmHudMenuButtonPossessAfterDismissMenuCo()
-        {
-            try
-            {
-                yield return new WaitForSecondsRealtime(0.1f);
-                SuperController sc = SuperController.singleton;
-                if (sc != null)
-                    sc.activeUI = SuperController.ActiveUI.None;
-                if (VrPalmHudNeedsGenderChoiceStep())
-                    VrEulerPossessHandHud.RequestGenderChooseStep();
-                else
-                    SuperController.LogMessage(
-                        "Easy Mate: menu — nenhuma Person na cena.");
-            }
-            finally
-            {
-                _vrPalmHudMenuConfirmCo = null;
-            }
-        }
-
-        private static void StopVrPalmHudMenuConfirmRoutine()
-        {
-            if (_pluginHost != null && _vrPalmHudMenuConfirmCo != null)
-            {
-                _pluginHost.StopCoroutine(_vrPalmHudMenuConfirmCo);
-                _vrPalmHudMenuConfirmCo = null;
-            }
         }
 
         private const string NextSceneUIButtonAtomUid = "nxtUIButton";
@@ -1282,7 +1140,6 @@ namespace geesp0t
         {
             try
             {
-                StopVrPalmHudMenuConfirmRoutine();
                 StopAutoPossessRoutine();
                 UnregisterPersonGenderCacheInvalidation();
                 InvalidatePersonGenderCaches();
@@ -2074,51 +1931,6 @@ namespace geesp0t
             {
                 _autoPossessConfirmCo = null;
             }
-        }
-
-        private static Vector3 GetPersonHeadWorldPosition(Atom person)
-        {
-            if (person == null)
-                return Vector3.zero;
-            FreeControllerV3 head = person.GetStorableByID("headControl") as FreeControllerV3;
-            if (head != null && head.followWhenOff != null)
-                return head.followWhenOff.position;
-            return person.transform.position;
-        }
-
-        /// <summary>Same position source as head snap alignment (<see cref="SuperController.lookCamera"/> then center camera target).</summary>
-        private static Vector3 GetLookOrCenterCameraWorldPosition()
-        {
-            SuperController sc = SuperController.singleton;
-            if (sc == null)
-                return Vector3.zero;
-            if (sc.lookCamera != null)
-                return sc.lookCamera.transform.position;
-            if (sc.centerCameraTarget != null)
-                return sc.centerCameraTarget.transform.position;
-            return Vector3.zero;
-        }
-
-        private static Atom FindClosestPersonInListByHeadToCamera(IEnumerable<Atom> persons)
-        {
-            if (persons == null)
-                return null;
-            Vector3 cam = GetLookOrCenterCameraWorldPosition();
-            Atom best = null;
-            float bestSq = float.MaxValue;
-            foreach (Atom at in persons)
-            {
-                if (at == null)
-                    continue;
-                float dSq = (GetPersonHeadWorldPosition(at) - cam).sqrMagnitude;
-                if (dSq < bestSq)
-                {
-                    bestSq = dSq;
-                    best = at;
-                }
-            }
-
-            return best;
         }
 
         private static JSONClass CreatePluginJSON(string[] pluginList)

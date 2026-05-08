@@ -11,7 +11,9 @@ namespace geesp0t
     /// the first activation frame, then stays independent so the model can turn without
     /// dragging the rig&apos;s yaw/pitch/roll. ImprovedPoV setup; VR hand possession starts
     /// once per session when you press any grip or trigger (see
-    /// <see cref="VrInput.PollVrAnyTriggerOrGripPressDown"/>).
+    /// <see cref="VrInput.PollVrAnyTriggerOrGripPressDown"/>). Start is requested from
+    /// <see cref="PassengerLaserPossess"/> (lasers + face A) via
+    /// <see cref="GabrielHudButtons.RequestPassengerForSpecificPerson"/>.
     /// </summary>
     internal static class PassengerRuntime
     {

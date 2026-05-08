@@ -1,25 +1,31 @@
 # Gabriel Passenger Possession
 
 ## Purpose
-Passenger-style body possession runtime used by the Gabriel palm HUD and possess flows. It aligns the rig to a target person, prepares ImprovedPoV, and hands off to delayed VR hand possession.
+Passenger-style body possession: align the rig to a target person, prepare
+ImprovedPoV, then delayed VR hand possession. **Entry** is UI-aim **lasers + face
+A** (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** uses palm
+**Despossuir** (`PassengerRuntime.RequestStopForPalmHud`).
 
 ## Live Files
 - `PassengerRuntime.cs`
+- `PassengerLaserPossess.cs`
 - `PassengerHandPrePossessSnapshot.cs`
 - `PassengerPossessableNarrow.cs`
 
 ## Load Path
 - Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
-- Entered from `GabrielHudButtons` palm HUD / possess routines rather than from standalone scene buttons.
+- Start: `PassengerLaserPossess` → `GabrielHudButtons.RequestPassengerForSpecificPerson`.
+- Stop: palm HUD via `GabrielHudButtons` / `PassengerRuntime`.
 
 ## Responsibilities
 - Pick target persons, align the navigation rig, and preserve/restore head and rig state.
 - Prepare `ImprovedPoV` on the target and suppress duplicate head-hide behavior where needed.
 - Delay VR hand possession until a later grip/trigger confirmation step.
+- Raycast along monitor UI-aim beams and map hits to a person for laser+A start.
 
 ## Dependencies And Coupling
 - Depends on `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs` and cooperates with `HeadProximityHide`.
-- Driven primarily by the `palm-hud` and `ui-hud` layers.
+- Cooperates with `scene-camera` (`MonitorModeLaserRestore`), `palm-hud` (stop + next scene), and `ui-hud`.
 
 ## References
 - `Reference/EasyMate-Hand-Menu-Passenger-Possession.md`
@@ -30,6 +36,6 @@ Passenger-style body possession runtime used by the Gabriel palm HUD and possess
 ## Update Checklist
 Update this file in the same turn whenever any of these change:
 
-- Target selection, startup alignment, or hand possession timing changes.
+- Target selection, startup alignment, hand possession timing, or laser+A rules change.
 - ImprovedPoV prep or restore behavior changes.
 - Any preserved-state fields or narrow-possess filters change.

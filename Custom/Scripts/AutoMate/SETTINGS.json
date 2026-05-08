@@ -1,0 +1,19 @@
+{ 
+   "femalePlugins" : [ 
+      "Custom/Scripts/ExplosionLimiter-ns.cs", 
+      "Custom/Scripts/Spankings/Spankings.cslist"
+   ], 
+   "femaleSoloPlugins" : [ 
+      "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist", 
+      "Custom/Scripts/Easy Moan/EasyMoan.cslist", 
+      "Custom/Scripts/Easy Background Sounds/EasyBackgroundSounds.cs"
+   ], 
+   "malePlugins" : [ 
+      "Custom/Scripts/ExplosionLimiter-ns.cs", 
+      "Custom/Scripts/ImprovedPoV.cs"
+   ], 
+   "autoLoadType" : "0", 
+   "showAutoLoadButton" : "0", 
+   "currentPluginSet" : "1", 
+   "currentPluginSet2" : "1"
+}

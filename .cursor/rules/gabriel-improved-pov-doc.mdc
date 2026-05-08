@@ -6,7 +6,15 @@ alwaysApply: false
 
 # Gabriel Improved PoV Doc Sync
 
-- Read `Custom/Scripts/Gabriel/features/improved-pov/FEATURE.md` and
-  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
-- Update `Custom/Scripts/Gabriel/features/improved-pov/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- Read `Custom/Scripts/Gabriel/features/improved-pov/FEATURE.md`,
+  `Custom/Scripts/Gabriel/FEATURE.md`, and
+  `Custom/Scripts/Gabriel/docs/RUNTIME-OPTIMIZATION-HISTORY.md` before changing
+  this area.
+- Use `features/improved-pov/FEATURE.md` references to pull adjacent Gabriel
+  docs when Improved PoV changes cross into head-hide or passenger behavior.
+- Current optimization notes: render hooks register only while the effect is
+  active, and hair refresh uses explicit loops instead of render-path LINQ.
+- Update `Custom/Scripts/Gabriel/features/improved-pov/FEATURE.md` in the same
+  turn whenever behavior, file ownership, load paths, settings, dependencies,
+  or optimization assumptions change.
 - If the change crosses into another Gabriel area, update both adjacent docs.

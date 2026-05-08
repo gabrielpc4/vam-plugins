@@ -6,9 +6,18 @@ alwaysApply: false
 
 # Gabriel Session Plugins Doc Sync
 
-- Read `Custom/Scripts/Gabriel/session-plugins/FEATURE.md` and
-  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
-- Update `Custom/Scripts/Gabriel/session-plugins/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
-- When `GabrielSessionPlugins.cslist` sources change in ways users discover from the
-  tree overview, update `Custom/Scripts/Gabriel/FEATURE.md`.
+- Read `Custom/Scripts/Gabriel/session-plugins/FEATURE.md`,
+  `Custom/Scripts/Gabriel/FEATURE.md`, and
+  `Custom/Scripts/Gabriel/docs/RUNTIME-OPTIMIZATION-HISTORY.md` before changing
+  this area.
+- Use `session-plugins/FEATURE.md` references to pull adjacent Gabriel docs when
+  orchestrator changes cross feature boundaries.
+- Current optimization notes: the orchestrator primes the shared per-frame
+  person snapshot, and long non-loop animation scheduling lives under this
+  session area.
+- Update `Custom/Scripts/Gabriel/session-plugins/FEATURE.md` in the same turn
+  whenever behavior, file ownership, load paths, settings, dependencies, or
+  optimization assumptions change.
+- When `GabrielSessionPlugins.cslist` sources change in ways users discover from
+  the tree overview, update `Custom/Scripts/Gabriel/FEATURE.md`.
 - If the change crosses into another Gabriel area, update both adjacent docs.

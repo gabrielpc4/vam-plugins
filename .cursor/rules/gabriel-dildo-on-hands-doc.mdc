@@ -6,7 +6,16 @@ alwaysApply: false
 
 # Gabriel Dildo On Hands Doc Sync
 
-- Read `Custom/Scripts/Gabriel/features/dildo-on-hands/FEATURE.md` and
-  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
-- Update `Custom/Scripts/Gabriel/features/dildo-on-hands/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- Read `Custom/Scripts/Gabriel/features/dildo-on-hands/FEATURE.md`,
+  `Custom/Scripts/Gabriel/FEATURE.md`, and
+  `Custom/Scripts/Gabriel/docs/RUNTIME-OPTIMIZATION-HISTORY.md` before changing
+  this area.
+- Use `features/dildo-on-hands/FEATURE.md` references to pull adjacent Gabriel
+  docs when toy-spawn changes cross into hands or shared possession logic.
+- Current optimization notes: the possession guard uses the shared per-frame
+  possession snapshot, and legacy type preference uses a single-pass scene type
+  cache.
+- Update `Custom/Scripts/Gabriel/features/dildo-on-hands/FEATURE.md` in the
+  same turn whenever behavior, file ownership, load paths, settings,
+  dependencies, or optimization assumptions change.
 - If the change crosses into another Gabriel area, update both adjacent docs.

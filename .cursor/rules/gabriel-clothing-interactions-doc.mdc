@@ -6,7 +6,17 @@ alwaysApply: false
 
 # Gabriel Clothing Interactions Doc Sync
 
-- Read `Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md` and
-  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
-- Update `Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- Read `Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md`,
+  `Custom/Scripts/Gabriel/FEATURE.md`, and
+  `Custom/Scripts/Gabriel/docs/RUNTIME-OPTIMIZATION-HISTORY.md` before changing
+  this area.
+- Use `features/clothing-interactions/FEATURE.md` references to pull adjacent
+  Gabriel docs when clothing behavior crosses into hands, spankings, or
+  animation-no-loop logic.
+- Current optimization notes: strip targeting uses the shared active-person
+  scan, and clothing fall-off enable memoizes garment state until clothing
+  changes invalidate it.
+- Update `Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md` in
+  the same turn whenever behavior, file ownership, load paths, settings,
+  dependencies, or optimization assumptions change.
 - If the change crosses into another Gabriel area, update both adjacent docs.

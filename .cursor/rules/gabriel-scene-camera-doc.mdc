@@ -6,7 +6,16 @@ alwaysApply: false
 
 # Gabriel Scene Camera Doc Sync
 
-- Read `Custom/Scripts/Gabriel/features/scene-camera/FEATURE.md` and
-  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
-- Update `Custom/Scripts/Gabriel/features/scene-camera/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- Read `Custom/Scripts/Gabriel/features/scene-camera/FEATURE.md`,
+  `Custom/Scripts/Gabriel/FEATURE.md`, and
+  `Custom/Scripts/Gabriel/docs/RUNTIME-OPTIMIZATION-HISTORY.md` before changing
+  this area.
+- Use `features/scene-camera/FEATURE.md` references to pull adjacent Gabriel
+  docs when camera behavior crosses into passenger, HUD, or offline camera
+  tooling.
+- Current optimization notes: the left monitor beam stays visual-only, and the
+  right-beam cached person target clears when the beam hides.
+- Update `Custom/Scripts/Gabriel/features/scene-camera/FEATURE.md` in the same
+  turn whenever behavior, file ownership, load paths, settings, dependencies,
+  or optimization assumptions change.
 - If the change crosses into another Gabriel area, update both adjacent docs.

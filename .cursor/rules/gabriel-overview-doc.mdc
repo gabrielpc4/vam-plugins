@@ -1,15 +1,18 @@
----
-description: Gabriel tree overview FEATURE.md — bootstrap and session bundle index
+description: Gabriel tree overview FEATURE.md - bootstrap, feature index, optimization history
 globs: Custom/Scripts/Gabriel/FEATURE.md
 alwaysApply: false
 ---
 
 # Gabriel Overview Doc
 
+- Read `Custom/Scripts/Gabriel/FEATURE.md` and
+  `Custom/Scripts/Gabriel/docs/RUNTIME-OPTIMIZATION-HISTORY.md` before changing
+  Gabriel overview docs.
 - Keep `Custom/Scripts/Gabriel/FEATURE.md` aligned with bootstrap injection
-  (`GabrielBootstrap.sessionPlugins`) and `GabrielSessionPlugins.cslist` membership
-  when those change in a user-visible way.
-- When adding a new `Custom/Scripts/Gabriel/features/*/` area, add a row to
-  `FEATURE.md` and ensure that folder has its own `FEATURE.md`.
-- If the change crosses into a specific feature, still update the adjacent
-  `features/*/FEATURE.md` for that area.
+  (`GabrielBootstrap.sessionPlugins`), `GabrielSessionPlugins.cslist`
+  membership, and the runtime optimization history link.
+- When adding a new `Custom/Scripts/Gabriel/features/*/` or `tools/*/` area, add
+  the row to `FEATURE.md`, ensure that folder has its own `FEATURE.md`, and add
+  matching `.cursor/rules` / `.cursor/skills` guidance if missing.
+- If the change crosses into a specific Gabriel area, still update the adjacent
+  `FEATURE.md` for that area.

@@ -6,7 +6,15 @@ alwaysApply: false
 
 # Gabriel UI HUD Doc Sync
 
-- Read `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md` and
-  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
-- Update `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- Read `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`,
+  `Custom/Scripts/Gabriel/FEATURE.md`, and
+  `Custom/Scripts/Gabriel/docs/RUNTIME-OPTIMIZATION-HISTORY.md` before changing
+  this area.
+- Use `features/ui-hud/FEATURE.md` references to pull adjacent Gabriel docs when
+  HUD behavior crosses into other feature areas.
+- Current optimization notes: next-scene trigger discovery is cached; check the
+  optimization history before changing trigger resolution timing.
+- Update `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md` in the same turn
+  whenever behavior, file ownership, load paths, settings, dependencies, or
+  optimization assumptions change.
 - If the change crosses into another Gabriel area, update both adjacent docs.

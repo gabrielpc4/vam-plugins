@@ -6,7 +6,16 @@ alwaysApply: false
 
 # Gabriel Head Hide Doc Sync
 
-- Read `Custom/Scripts/Gabriel/features/head-hide/FEATURE.md` and
-  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
-- Update `Custom/Scripts/Gabriel/features/head-hide/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- Read `Custom/Scripts/Gabriel/features/head-hide/FEATURE.md`,
+  `Custom/Scripts/Gabriel/FEATURE.md`, and
+  `Custom/Scripts/Gabriel/docs/RUNTIME-OPTIMIZATION-HISTORY.md` before changing
+  this area.
+- Use `features/head-hide/FEATURE.md` references to pull adjacent Gabriel docs
+  when head-hide behavior crosses into improved-pov, passenger, or scene-camera
+  logic.
+- Current optimization notes: head target resolution is timer-based
+  (about 200 ms) and reuses shared active-person and controller caches.
+- Update `Custom/Scripts/Gabriel/features/head-hide/FEATURE.md` in the same turn
+  whenever behavior, file ownership, load paths, settings, dependencies, or
+  optimization assumptions change.
 - If the change crosses into another Gabriel area, update both adjacent docs.

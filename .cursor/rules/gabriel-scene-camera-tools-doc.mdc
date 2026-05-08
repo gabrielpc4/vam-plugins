@@ -6,7 +6,16 @@ alwaysApply: false
 
 # Gabriel Scene Camera Tools Doc Sync
 
-- Read `Custom/Scripts/Gabriel/tools/scene-camera/FEATURE.md` and
-  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
-- Update `Custom/Scripts/Gabriel/tools/scene-camera/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- Read `Custom/Scripts/Gabriel/tools/scene-camera/FEATURE.md`,
+  `Custom/Scripts/Gabriel/FEATURE.md`, and
+  `Custom/Scripts/Gabriel/docs/RUNTIME-OPTIMIZATION-HISTORY.md` before changing
+  this area.
+- Use `tools/scene-camera/FEATURE.md` references to pull adjacent Gabriel docs
+  when offline patch changes depend on scene-camera runtime contracts.
+- Current optimization notes: no tool-only runtime entry yet; still consult the
+  optimization history when K-hotkey runtime or cached scene-camera behavior
+  explains the tool contract.
+- Update `Custom/Scripts/Gabriel/tools/scene-camera/FEATURE.md` in the same
+  turn whenever behavior, file ownership, load paths, settings, dependencies,
+  or optimization assumptions change.
 - If the change crosses into another Gabriel area, update both adjacent docs.

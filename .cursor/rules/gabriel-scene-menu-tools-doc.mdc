@@ -6,7 +6,15 @@ alwaysApply: false
 
 # Gabriel Scene Menu Tools Doc Sync
 
-- Read `Custom/Scripts/Gabriel/tools/scene-menu/FEATURE.md` and
-  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
-- Update `Custom/Scripts/Gabriel/tools/scene-menu/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- Read `Custom/Scripts/Gabriel/tools/scene-menu/FEATURE.md`,
+  `Custom/Scripts/Gabriel/FEATURE.md`, and
+  `Custom/Scripts/Gabriel/docs/RUNTIME-OPTIMIZATION-HISTORY.md` before changing
+  this area.
+- Use `tools/scene-menu/FEATURE.md` references to pull adjacent Gabriel docs
+  when offline menu tooling depends on HUD or runtime scene behavior.
+- Current optimization notes: no tool-only runtime entry yet; still consult the
+  optimization history when cached HUD or scene timing explains tool output.
+- Update `Custom/Scripts/Gabriel/tools/scene-menu/FEATURE.md` in the same turn
+  whenever behavior, file ownership, load paths, settings, dependencies, or
+  optimization assumptions change.
 - If the change crosses into another Gabriel area, update both adjacent docs.

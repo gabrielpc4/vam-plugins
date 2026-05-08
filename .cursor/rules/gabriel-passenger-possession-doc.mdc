@@ -6,7 +6,17 @@ alwaysApply: false
 
 # Gabriel Passenger Possession Doc Sync
 
-- Read `Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md` and
-  `Custom/Scripts/Gabriel/FEATURE.md` before changing this area.
-- Update `Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md` in the same turn whenever behavior, file ownership, load paths, settings, or dependencies change.
+- Read `Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md`,
+  `Custom/Scripts/Gabriel/FEATURE.md`, and
+  `Custom/Scripts/Gabriel/docs/RUNTIME-OPTIMIZATION-HISTORY.md` before changing
+  this area.
+- Use `features/passenger-possession/FEATURE.md` references to pull adjacent
+  Gabriel docs when passenger changes cross into scene-camera, head-hide, or
+  palm-HUD behavior.
+- Current optimization notes: right-beam closest-person resolution is cached for
+  about 1 second while the beam stays active.
+- Update
+  `Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md` in the same
+  turn whenever behavior, file ownership, load paths, settings, dependencies,
+  or optimization assumptions change.
 - If the change crosses into another Gabriel area, update both adjacent docs.

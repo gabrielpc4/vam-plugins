@@ -2,8 +2,8 @@
 
 ## Purpose
 Passenger-style body possession: align the rig to a target person, prepare
-ImprovedPoV, then delayed VR hand possession. **Entry** is UI-aim **lasers + face
-A** (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** uses palm
+ImprovedPoV, then delayed VR hand possession. **Entry** is the **right** UI-aim
+beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** uses palm
 **Despossuir** (`PassengerRuntime.RequestStopForPalmHud`).
 
 ## Live Files
@@ -21,11 +21,12 @@ A** (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** uses palm
 - Pick target persons, align the navigation rig, and preserve/restore head and rig state.
 - Prepare `ImprovedPoV` on the target and suppress duplicate head-hide behavior where needed.
 - Delay VR hand possession until a later grip/trigger confirmation step.
-- Raycast along monitor UI-aim beams and map hits to a person for laser+A start.
+- Raycast along the **right** UI-aim beam and map hits to a person for laser+A start.
 
 ## Dependencies And Coupling
 - Depends on `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs` and cooperates with `HeadProximityHide`.
-- Cooperates with `scene-camera` (`MonitorModeLaserRestore`), `palm-hud` (stop + next scene), and `ui-hud`.
+- Cooperates with `scene-camera`, `GabrielHudNextSceneButton`, `palm-hud`,
+  `ui-hud`, and ImprovedPoV/head-hide.
 
 ## References
 - `Reference/EasyMate-Hand-Menu-Passenger-Possession.md`

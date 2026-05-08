@@ -16,7 +16,8 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 ## Responsibilities
 - Persist/reapply camera pose across same-folder loads.
 - Restore desktop/monitor aim cylinders for the expected input gestures.
-- Tick `PassengerLaserPossess` when beams are active so laser + A can start passenger on a hit person.
+- Tick `PassengerLaserPossess` when beams run so **right beam + face A**
+  can start passenger on a lit hit person.
 - Hide DillDoe fluid mesh until scene load settles.
 - Capture camera/rig snapshots from the K hotkey and route them into the offline patch scripts.
 

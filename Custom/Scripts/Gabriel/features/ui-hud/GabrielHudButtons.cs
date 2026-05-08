@@ -13,9 +13,9 @@ namespace geesp0t
 {
     // World-space HUD: Ctrl+Shift+S toggles Spankings; K writes the scene-camera
     // patch request and runs the Python patcher; O clears passenger possession;
-    // F toggles VaM freeze animation. Passenger start uses UI-aim lasers + face A
-    // (see PassengerLaserPossess); palm HUD shows Despossuir + optional next scene
-    // only while holding the watch pose when already possessed.
+    // F toggles VaM freeze animation. Passenger start uses the right UI-aim laser +
+    // face A (see PassengerLaserPossess); palm HUD shows Despossuir +
+    // optional Próxima cena (see GabrielHudNextSceneButton) when unlocked.
     public class GabrielHudButtons
     {
         public const string PluginEMotion = "Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/E-Motion_AddThisONLY.cslist";
@@ -193,6 +193,7 @@ namespace geesp0t
         {
             plugin = _plugin;
             _pluginHost = _plugin;
+            GabrielHudNextSceneButton.BindHost(_plugin);
             _mainCamera = CameraTarget.centerTarget?.targetCamera;
             isDesktopMode = !(SuperController.singleton.isOVR || SuperController.singleton.isOpenVR);
             RegisterPersonGenderCacheInvalidation();
@@ -375,177 +376,6 @@ namespace geesp0t
             }
 
             return false;
-        }
-
-        private const string NextSceneUIButtonAtomUid = "nxtUIButton";
-        private const string UiButtonTriggerStorableId = "Trigger";
-        private const string UiButtonTextStorableId = "Text";
-
-        /// <summary>
-        /// True when a <c>UIButton</c> label should be treated as the scene-advance control
-        /// (English <c>next</c>, Portuguese <c>próxima</c> / <c>proxima</c>, or <c>próxima cena</c> style).
-        /// </summary>
-        private static bool NextSceneUIButtonLabelMatches(string raw)
-        {
-            if (string.IsNullOrEmpty(raw))
-                return false;
-            string trimmed = raw.Trim();
-            if (trimmed.Length == 0)
-                return false;
-            if (trimmed.IndexOf("next", StringComparison.OrdinalIgnoreCase) >= 0)
-                return true;
-            if (trimmed.IndexOf("proxima", StringComparison.OrdinalIgnoreCase) >= 0)
-                return true;
-            if (trimmed.IndexOf("pr\u00F3xima", StringComparison.OrdinalIgnoreCase) >= 0)
-                return true;
-            return false;
-        }
-
-        /// <summary>
-        /// Pulses the scene &quot;next&quot; <c>UIButton</c> trigger: atom
-        /// <see cref="NextSceneUIButtonAtomUid"/> if present, else any active
-        /// <c>UIButton</c> whose label matches <see cref="NextSceneUIButtonLabelMatches"/>
-        /// (Unity <c>Text</c> children or <c>Text</c> storable; same idea as Quest thumbstick shortcut).
-        /// </summary>
-        public static void RequestFireNextSceneUiButton()
-        {
-            if (_pluginHost == null)
-                return;
-            SuperController sc = SuperController.singleton;
-            if (sc == null || sc.isLoading)
-                return;
-
-            UIButtonTrigger ubt = TryResolveNextSceneUIButtonTrigger(sc);
-            if (ubt == null || ubt.trigger == null)
-                return;
-
-            _pluginHost.StartCoroutine(FireUIButtonTriggerActivePulseCo(ubt));
-        }
-
-        /// <summary>
-        /// VR palm HUD B/menu path: close VaM menu first, then pulse the next-scene
-        /// UIButton on the following frame so the default menu-open behavior does not
-        /// fight the scene advance.
-        /// </summary>
-        public static void RequestFireNextSceneAfterClosingMenu()
-        {
-            if (_pluginHost == null)
-                return;
-            SuperController sc = SuperController.singleton;
-            if (sc == null || sc.isLoading)
-                return;
-
-            _pluginHost.StartCoroutine(FireNextSceneUiButtonAfterClosingMenuCo(sc));
-        }
-
-        /// <summary>
-        /// True when <see cref="RequestFireNextSceneUiButton"/> would resolve an active
-        /// <c>UIButton</c> trigger (used to show palm-HUD <b>Próxima cena</b> only when it can fire).
-        /// </summary>
-        public static bool HasNextSceneUiButtonInScene()
-        {
-            SuperController sc = SuperController.singleton;
-            if (sc == null || sc.isLoading)
-                return false;
-            UIButtonTrigger ubt = TryResolveNextSceneUIButtonTrigger(sc);
-            return ubt != null && ubt.trigger != null;
-        }
-
-        private static UIButtonTrigger TryResolveNextSceneUIButtonTrigger(
-            SuperController sc)
-        {
-            if (sc == null)
-                return null;
-
-            Atom byUid = sc.GetAtomByUid(NextSceneUIButtonAtomUid);
-            if (byUid != null && byUid.gameObject.activeInHierarchy &&
-                string.Equals(byUid.type, "UIButton", StringComparison.Ordinal))
-            {
-                UIButtonTrigger ubt =
-                    byUid.GetStorableByID(UiButtonTriggerStorableId) as UIButtonTrigger;
-                if (ubt != null && ubt.trigger != null)
-                    return ubt;
-            }
-
-            foreach (Atom at in sc.GetAtoms())
-            {
-                if (at == null ||
-                    !string.Equals(at.type, "UIButton", StringComparison.Ordinal) ||
-                    !at.gameObject.activeInHierarchy)
-                    continue;
-
-                Text[] texts = at.gameObject.GetComponentsInChildren<Text>(true);
-                if (texts == null)
-                    continue;
-
-                bool labelLooksLikeNext = false;
-                for (int i = 0; i < texts.Length; i++)
-                {
-                    Text t = texts[i];
-                    if (t == null || t.text == null)
-                        continue;
-                    if (NextSceneUIButtonLabelMatches(t.text))
-                    {
-                        labelLooksLikeNext = true;
-                        break;
-                    }
-                }
-
-                if (!labelLooksLikeNext)
-                {
-                    JSONStorable textStorable = at.GetStorableByID(UiButtonTextStorableId);
-                    if (textStorable != null)
-                    {
-                        JSONStorableString textParam = textStorable.GetStringJSONParam("text");
-                        if (textParam != null &&
-                            NextSceneUIButtonLabelMatches(textParam.val))
-                        {
-                            labelLooksLikeNext = true;
-                        }
-                    }
-                }
-
-                if (!labelLooksLikeNext)
-                    continue;
-
-                UIButtonTrigger ubt =
-                    at.GetStorableByID(UiButtonTriggerStorableId) as UIButtonTrigger;
-                if (ubt != null && ubt.trigger != null)
-                    return ubt;
-            }
-
-            return null;
-        }
-
-        private static IEnumerator FireUIButtonTriggerActivePulseCo(UIButtonTrigger ubt)
-        {
-            if (ubt == null || ubt.trigger == null)
-                yield break;
-            ubt.trigger.active = true;
-            yield return null;
-            if (ubt != null && ubt.trigger != null)
-                ubt.trigger.active = false;
-        }
-
-        private static IEnumerator FireNextSceneUiButtonAfterClosingMenuCo(
-            SuperController sc)
-        {
-            if (sc == null)
-                yield break;
-
-            sc.activeUI = SuperController.ActiveUI.None;
-            sc.HideMainHUD();
-
-            yield return null;
-
-            if (sc == null || sc.isLoading)
-                yield break;
-
-            UIButtonTrigger ubt = TryResolveNextSceneUIButtonTrigger(sc);
-            if (ubt == null || ubt.trigger == null)
-                yield break;
-
-            yield return FireUIButtonTriggerActivePulseCo(ubt);
         }
 
         /// <summary>Merges <see cref="PluginEMotionLite"/> onto every Person (HUD). Removes other E-Motion family entries first.</summary>
@@ -1140,6 +970,7 @@ namespace geesp0t
         {
             try
             {
+                GabrielHudNextSceneButton.ReleaseHost();
                 StopAutoPossessRoutine();
                 UnregisterPersonGenderCacheInvalidation();
                 InvalidatePersonGenderCaches();

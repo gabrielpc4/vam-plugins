@@ -11,7 +11,7 @@ namespace geesp0t
     /// <see cref="SuperController.GetRightUIPointerShow"/> (SteamVR TargetShow per hand).
     /// Hides when that input is inactive. VR-headset alignment for the desktop
     /// monitor preview camera runs only while monitor rig mode is active; aim
-    /// cylinders and <see cref="PassengerLaserPossess"/> (A confirms on a lit beam)
+    /// cylinders and <see cref="PassengerLaserPossess"/> (right beam + face A confirms)
     /// follow this feature&apos;s plugin toggle independently of monitor mode.
     /// </summary>
     internal static class MonitorModeLaserRestore
@@ -75,9 +75,8 @@ namespace geesp0t
             else
                 HideOne(_beamRight);
 
-            PassengerLaserPossess.TryTriggerFromBeamPersonHits(
+            PassengerLaserPossess.TryTriggerFromRightBeamPersonHit(
                 sc,
-                leftTarget,
                 rightTarget,
                 VrEulerPossessHandHud.IsVisible());
         }

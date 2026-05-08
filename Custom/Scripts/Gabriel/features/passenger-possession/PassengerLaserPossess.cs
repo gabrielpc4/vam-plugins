@@ -5,8 +5,8 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// Start passenger mode when UI-aim beams (see
-    /// <see cref="MonitorModeLaserRestore"/>) hit a Person and the user presses
+    /// Start passenger mode when the <b>right</b> UI-aim beam (see
+    /// <see cref="MonitorModeLaserRestore"/>) hits a Person and the user presses
     /// right face <b>A</b> / OpenVR Select (<see cref="VrInput.PollRightFaceADown"/>).
     /// Palm-hand back-of-hand pose HUD does not trigger passenger start — only this
     /// path and <see cref="GabrielHudButtons.RequestPassengerForSpecificPerson"/> do.
@@ -55,13 +55,12 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// If <paramref name="rightPersonHit"/> is set, it wins; else
-        /// <paramref name="leftPersonHit"/>. Skips Edit mode, palm HUD visible,
-        /// debounce, and requires A/Select this frame.
+        /// Only the <b>right</b> UI-aim beam (see <see cref="MonitorModeLaserRestore"/>)
+        /// can arm a passenger start. Skips Edit mode, palm HUD visible, cooldown, and
+        /// requires face A / OpenVR Select this frame.
         /// </summary>
-        internal static void TryTriggerFromBeamPersonHits(
+        internal static void TryTriggerFromRightBeamPersonHit(
             SuperController sc,
-            Atom leftPersonHit,
             Atom rightPersonHit,
             bool palmHandHudVisible)
         {
@@ -90,8 +89,7 @@ namespace geesp0t
                 return;
             }
 
-            Atom targetPerson =
-                rightPersonHit != null ? rightPersonHit : leftPersonHit;
+            Atom targetPerson = rightPersonHit;
             if (targetPerson == null)
             {
                 return;

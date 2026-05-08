@@ -10,7 +10,8 @@ namespace geesp0t
     /// <c>rightHand</c>: <b>Próxima cena</b> on the upper row when available,
     /// and <b>Despossuir</b> on the lower row only while already in possession
     /// (VaM passenger or head/hand possessed). Passenger <b>start</b> does not use
-    /// this HUD — aim lasers + face <b>A</b> (<see cref="PassengerLaserPossess"/>).
+    /// this HUD — use <b>right</b> UI-aim laser + face <b>A</b>
+    /// (<see cref="PassengerLaserPossess"/>).
     /// Face <b>B</b> / OpenVR menu runs next scene; face <b>A</b> / Select runs
     /// <see cref="PassengerRuntime.RequestStopForPalmHud"/> while the Despossuir row is
     /// visible. Buttons are polled; VaM lasers often miss the canvas.
@@ -131,7 +132,7 @@ namespace geesp0t
                 _nextSceneButtonPresenceRecheckTime =
                     nowUnscaled + NextSceneButtonPresenceRecheckSeconds;
                 _cachedSceneHasNextSceneUIButton =
-                    GabrielHudButtons.HasNextSceneUiButtonInScene();
+                    GabrielHudNextSceneButton.HasNextSceneUiButtonInScene();
             }
 
             bool possessed =
@@ -152,7 +153,7 @@ namespace geesp0t
                 if (proximaCenaAvailable &&
                     VrInput.PollPalmHudProximaCenaFaceBDown(sc))
                 {
-                    GabrielHudButtons.RequestFireNextSceneAfterClosingMenu();
+                    GabrielHudNextSceneButton.RequestFireNextSceneAfterClosingMenu();
                 }
             }
             else
@@ -162,7 +163,7 @@ namespace geesp0t
 
                 if (proximaCenaAvailable && proximaB)
                 {
-                    GabrielHudButtons.RequestFireNextSceneAfterClosingMenu();
+                    GabrielHudNextSceneButton.RequestFireNextSceneAfterClosingMenu();
                 }
                 else if (possessA)
                 {
@@ -248,7 +249,7 @@ namespace geesp0t
             {
                 _btnProximaCena.onClick.AddListener(delegate
                 {
-                    GabrielHudButtons.RequestFireNextSceneAfterClosingMenu();
+                    GabrielHudNextSceneButton.RequestFireNextSceneAfterClosingMenu();
                 });
             }
         }
@@ -276,7 +277,13 @@ namespace geesp0t
             panelImg.sprite = WhiteSprite();
             panelImg.color = new Color(0.08f, 0.08f, 0.1f, 0.82f);
             panelImg.raycastTarget = false;
-            StretchFull(panelGo);
+            RectTransform panelRt = panelGo.GetComponent<RectTransform>();
+            if (panelRt == null)
+                panelRt = panelGo.AddComponent<RectTransform>();
+            panelRt.anchorMin = Vector2.zero;
+            panelRt.anchorMax = Vector2.one;
+            panelRt.offsetMin = Vector2.zero;
+            panelRt.offsetMax = Vector2.zero;
 
             GameObject possessGo = new GameObject("DespossuirRowBtn");
             possessGo.transform.SetParent(_root.transform, false);
@@ -310,7 +317,14 @@ namespace geesp0t
             _possessRowText.alignment = TextAnchor.MiddleCenter;
             _possessRowText.color = Color.white;
             _possessRowText.raycastTarget = false;
-            StretchFull(possessTextGo);
+            RectTransform possessTextRt =
+                possessTextGo.GetComponent<RectTransform>();
+            if (possessTextRt == null)
+                possessTextRt = possessTextGo.AddComponent<RectTransform>();
+            possessTextRt.anchorMin = Vector2.zero;
+            possessTextRt.anchorMax = Vector2.one;
+            possessTextRt.offsetMin = Vector2.zero;
+            possessTextRt.offsetMax = Vector2.zero;
 
             _btnPossessRow.gameObject.SetActive(false);
 
@@ -322,17 +336,6 @@ namespace geesp0t
                 new Vector2(0.95f, 0.98f),
                 new Color(0.14f, 0.32f, 0.52f, 0.92f),
                 20);
-        }
-
-        private static void StretchFull(GameObject go)
-        {
-            RectTransform rt = go.GetComponent<RectTransform>();
-            if (rt == null)
-                rt = go.AddComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
         }
 
         private static Button CreateHandButton(
@@ -380,7 +383,13 @@ namespace geesp0t
             txt.alignment = TextAnchor.MiddleCenter;
             txt.color = Color.white;
             txt.raycastTarget = false;
-            StretchFull(textGo);
+            RectTransform textRt = textGo.GetComponent<RectTransform>();
+            if (textRt == null)
+                textRt = textGo.AddComponent<RectTransform>();
+            textRt.anchorMin = Vector2.zero;
+            textRt.anchorMax = Vector2.one;
+            textRt.offsetMin = Vector2.zero;
+            textRt.offsetMax = Vector2.zero;
 
             return btn;
         }

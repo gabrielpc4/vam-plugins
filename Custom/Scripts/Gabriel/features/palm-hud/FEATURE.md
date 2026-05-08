@@ -4,7 +4,7 @@
 VR-only hand HUD layer. It decides when the right-hand palm UI appears and how
 A/B/menu inputs are interpreted for **Despossuir**, **Próxima cena**, and related
 rows. Passenger **start** is not from the palm (see `passenger-possession` +
-`scene-camera` lasers + face A).
+`scene-camera` **right** UI-aim laser + face A).
 
 ## Live Files
 - `VrEulerPossessHandHud.cs`
@@ -14,7 +14,8 @@ rows. Passenger **start** is not from the palm (see `passenger-possession` +
 
 ## Load Path
 - Compiled into `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cslist`.
-- `GabrielHud` ticks the palm HUD and `GabrielHudButtons` supplies the possess/unpossess actions.
+- `GabrielHud` ticks the palm HUD. **Próxima cena** uses
+  `GabrielHudNextSceneButton`; **Despossuir** uses `PassengerRuntime`.
 
 ## Responsibilities
 - Show/hide the right-hand palm HUD from HMD-relative euler windows.
@@ -23,7 +24,8 @@ rows. Passenger **start** is not from the palm (see `passenger-possession` +
 - Keep the right-hand back-of-hand pose window aligned with the current palm HUD behavior.
 
 ## Dependencies And Coupling
-- Calls into `GabrielHudButtons` for actual actions and `PassengerRuntime` for possession flow.
+- Calls into **`GabrielHudNextSceneButton`**, **`PassengerRuntime`**, and legacy
+  palm-adjacent paths in **`GabrielHudButtons`** where still needed.
 - `LEGACY-NOTES.md` contains the deeper handoff details that should stay aligned with this feature doc.
 
 ## References

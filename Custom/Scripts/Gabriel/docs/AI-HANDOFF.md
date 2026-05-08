@@ -60,8 +60,8 @@ These are not tentative:
 - `EXPLOSION_LIMITER`, `_IMPROVED_POV`, and `Spankings` should not be
   auto-loaded onto every male on scene load.
 - `OnSceneStartup` naming had to disappear from both file names and code.
-- The only desired possession **start** is passenger mode via **UI-aim lasers +
-  face A** (`PassengerLaserPossess`). The palm HUD does **not** start passenger;
+- The only desired possession **start** is passenger mode via the **right** UI-aim laser +
+  face A (`PassengerLaserPossess`). The palm HUD does **not** start passenger;
   it still offers **Despossuir** and next-scene when applicable.
 - `P` should do nothing.
 - `HotkeySnapNearestHeadHideHandsThenSnap` is dead and should stay dead.
@@ -109,20 +109,21 @@ order:
 9. `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 10. `Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cs`
 11. `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudButtons.cs`
-12. `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudButtonsHotkeys.cs`
-13. `Custom/Scripts/Gabriel/features/palm-hud/FEATURE.md`
-14. `Custom/Scripts/Gabriel/features/palm-hud/VrEulerPossessHandHud.cs`
-15. `Custom/Scripts/Gabriel/features/palm-hud/VrEulerPossessPoseCheck.cs`
-16. `Custom/Scripts/Gabriel/features/palm-hud/VrInput.cs`
-17. `Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md`
-18. `Custom/Scripts/Gabriel/features/passenger-possession/PassengerLaserPossess.cs`
-19. `Custom/Scripts/Gabriel/features/passenger-possession/PassengerRuntime.cs`
-20. `Custom/Scripts/Gabriel/features/scene-camera/FEATURE.md`
-21. `Custom/Scripts/Gabriel/features/scene-camera/MonitorModeLaserRestore.cs`
-22. `Custom/Scripts/Gabriel/features/scene-camera/SceneCameraPatch.cs`
-23. `Reference/VaM-Scripting-Notes.md`
-24. `Reference/VaM-Scene-Startup-And-Settle.md`
-25. `Reference/EasyMate-next-scene-hand-hud-handoff.md`
+12. `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudNextSceneButton.cs`
+13. `Custom/Scripts/Gabriel/features/ui-hud/GabrielHudButtonsHotkeys.cs`
+14. `Custom/Scripts/Gabriel/features/palm-hud/FEATURE.md`
+15. `Custom/Scripts/Gabriel/features/palm-hud/VrEulerPossessHandHud.cs`
+16. `Custom/Scripts/Gabriel/features/palm-hud/VrEulerPossessPoseCheck.cs`
+17. `Custom/Scripts/Gabriel/features/palm-hud/VrInput.cs`
+18. `Custom/Scripts/Gabriel/features/passenger-possession/FEATURE.md`
+19. `Custom/Scripts/Gabriel/features/passenger-possession/PassengerLaserPossess.cs`
+20. `Custom/Scripts/Gabriel/features/passenger-possession/PassengerRuntime.cs`
+21. `Custom/Scripts/Gabriel/features/scene-camera/FEATURE.md`
+22. `Custom/Scripts/Gabriel/features/scene-camera/MonitorModeLaserRestore.cs`
+23. `Custom/Scripts/Gabriel/features/scene-camera/SceneCameraPatch.cs`
+24. `Reference/VaM-Scripting-Notes.md`
+25. `Reference/VaM-Scene-Startup-And-Settle.md`
+26. `Reference/EasyMate-next-scene-hand-hud-handoff.md`
 
 If you need the older palm-hud reasoning/history after the recent cleanup:
 
@@ -173,7 +174,7 @@ Current live model:
 Live possession expectation:
 
 - passenger possession only
-- **start:** lasers + face A on a lit beam hitting a person
+- **start:** **right** UI-aim laser + face A on a lit beam hitting a person
 - **stop:** palm **Despossuir** (and underlying clear/cleanup paths)
 - no palm **Possuir** or gender submenu
 - no `P` key possession
@@ -267,7 +268,7 @@ The current Gabriel tree is already past the big cutover. The most recent
 state change was a deliberate removal of obsolete snap, hotkey, and gesture
 paths so the live behavior matches the user's current workflow:
 
-- passenger possession only (laser+A to start, palm Despossuir to stop)
+- passenger possession only (right laser+A to start, palm Despossuir to stop)
 - back-of-hand palm HUD pose retained
 - no old snap-possession or dual-hand gesture paths
 - no `P/C/Y/I` keyboard flow

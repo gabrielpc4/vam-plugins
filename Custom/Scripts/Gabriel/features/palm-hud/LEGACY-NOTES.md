@@ -24,12 +24,12 @@ Hand-off doc for another LLM or developer. Paths live under
   (positive **X** = dorsum side).
 - **Rows:**
   - **Próxima cena:** upper row when the scene resolves a matching next
-    **`UIButton`** (see **`GabrielHudButtons`**). Poll **face B / menu**.
+    **`UIButton`** (see **`GabrielHudNextSceneButton`**). Poll **face B / menu**.
   - **Despossuir:** lower row **only while already possessed**
     (**`PassengerRuntime.IsPassengerModeActiveOrPending()`** OR any Person
     head/hand possessed). Poll **face A / Select**.
 - **Does not start passenger:** there is **no Possuir**, no gender submenu.
-  Passenger **start** uses **lasers + A** only (**§7**).
+  Passenger **start** uses the **right** laser + **A** only (**§7**).
 
 ---
 
@@ -64,7 +64,7 @@ HMD basis: **`lookCamera`** else **`centerCameraTarget`**
 **Files:**
 
 - **`passenger-possession/PassengerLaserPossess.cs`** — raycast resolver +
-  **`TryTriggerFromBeamPersonHits`** (**`PollRightFaceADown`** + cooldown +
+  **`TryTriggerFromRightBeamPersonHit`** (**`PollRightFaceADown`** + cooldown +
   **`GabrielHudButtons.RequestPassengerForSpecificPerson`**). Skips **Edit**
   mode and when the palm HUD is **visible** (right beam aim is suppressed
   anyway while palm is up).
@@ -73,7 +73,7 @@ HMD basis: **`lookCamera`** else **`centerCameraTarget`**
   **GetLeft/RightUIPointerShow**); passes hit **`Person`** atoms into
   **`PassengerLaserPossess`**.
 
-Prefer **right beam** Person hit; otherwise **left**.
+Only the **right** beam can arm possession (Person along that ray).
 
 ---
 

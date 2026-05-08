@@ -79,7 +79,7 @@ namespace geesp0t
                 !string.IsNullOrEmpty(superController.currentLoadDir))
             {
                 exposureWorkflowLastIdleLoadDirNorm =
-                    SameFolderSceneLoadCheck.NormalizeLoadDir(
+                    SameFolderLoadCheck.NormalizeLoadDir(
                         superController.currentLoadDir);
             }
 
@@ -270,7 +270,7 @@ namespace geesp0t
                 return false;
             }
 
-            string nowNorm = SameFolderSceneLoadCheck.NormalizeLoadDir(
+            string nowNorm = SameFolderLoadCheck.NormalizeLoadDir(
                 superController.currentLoadDir);
             return nowNorm.Length > 0 &&
                 string.Equals(

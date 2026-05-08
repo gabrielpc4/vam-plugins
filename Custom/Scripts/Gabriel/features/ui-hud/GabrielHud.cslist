@@ -1,9 +1,7 @@
-../../util/SameFolderLoadDirNormalize.cs
+../../util/SameFolderLoadCheck.cs
 ../session-plugins/src/SceneSettle.cs
 ../session-plugins/src/PlaybackHold.cs
 ../session-plugins/src/InitialExposureChange.cs
-../session-plugins/src/SameFolderSceneLoadCheck.cs
-../session-plugins/src/SceneLoadDirNormalize.cs
 ../session-plugins/src/GabrielSessionOrchestrator.cs
 ../../util/FileManager.cs
 ../../util/PersonAtomCache.cs

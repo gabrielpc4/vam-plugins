@@ -94,8 +94,7 @@ namespace geesp0t
         // re-run the full settle workflow.
         private bool skipSceneSettleWorkflowForPendingLoad;
 
-        private SameFolderSceneLoadCheck sameFolderSceneLoadCheck =
-            new SameFolderSceneLoadCheck();
+        private SameFolderLoadCheck sameFolderLoadCheck = new SameFolderLoadCheck();
 
         private SceneSettleRuntime sceneSettle = new SceneSettleRuntime();
 
@@ -559,12 +558,12 @@ namespace geesp0t
             if (!prevSuperControllerIsLoading && loadingNow)
             {
                 skipSceneSettleWorkflowForPendingLoad =
-                    sameFolderSceneLoadCheck.IsSameFolderLoad(scFsm);
+                    sameFolderLoadCheck.IsSameFolderLoad(scFsm);
                 PassengerRuntime.NotifySceneChanged(this);
             }
             else if (!loadingNow)
             {
-                sameFolderSceneLoadCheck.CaptureIdleLoadDir(scFsm);
+                sameFolderLoadCheck.CaptureIdleLoadDir(scFsm);
             }
 
             fluidCumHide =
@@ -619,9 +618,9 @@ namespace geesp0t
                     ", Time Since Level Load: " +
                     Time.timeSinceLevelLoad);
 
-                currentLoadDirNorm = SceneLoadDirNormalize.Normalize(
+                currentLoadDirNorm = SameFolderLoadCheck.Normalize(
                     scFsm.currentLoadDir);
-                sameFolderLoad = SceneLoadDirNormalize.SameFolderLoads(
+                sameFolderLoad = SameFolderLoadCheck.SameFolderLoads(
                     lastLoadDir,
                     currentLoadDirNorm);
                 hud = ResolveGabrielHud();

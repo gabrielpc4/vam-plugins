@@ -7,9 +7,10 @@ pulses, full scene-settle workflow, late feature ticks, HUD binding, and the
 scene-settle release action for the shared hotkey dispatcher.
 
 The same compile unit includes **DildoOnHands**, **`ClothingClassifier`** +
-**`TriggerClothingRemover`**, **`SameFolderLoadDirNormalize.cs`** (`util/`) for shared VaM load-folder
-normalization (with **`SameFolderSceneLoadCheck`**, **`SceneLoadDirNormalize`**, **`SameFolderCameraRetain`**,
-and clothing touch-fall same-folder suppression). Bootstrap injects only
+**`TriggerClothingRemover`**, **`GabrielSessionOrchestrator`**, and
+**`../util/SameFolderLoadCheck.cs`** (path normalization plus idle vs load-folder
+matching for **`SameFolderCameraRetain`**, **`SceneSettleRuntime`**, and
+clothing touch-fall same-folder suppression). Bootstrap injects only
 `VaMLogClipboardHud.cslist` plus **`GabrielSessionPlugins.cslist`** (VaM does not
 nest `.cslist` files; multiple scripts share one compile by listing their `.cs`
 paths in this list).
@@ -20,13 +21,11 @@ paths in this list).
 - `src/SceneSettle.cs`
 - `src/PlaybackHold.cs`
 - `src/InitialExposureChange.cs`
-- `src/SameFolderSceneLoadCheck.cs`
-- `src/SceneLoadDirNormalize.cs` *(also compiled into `GabrielHud.cslist`; path
-  normalization helpers for HUD same-folder cues)*
+- `../util/SameFolderLoadCheck.cs` *(path normalize + same-folder checker;
+  shared with `GabrielHud.cslist`)*
 - `../features/dildo-on-hands/DildoOnHands.cs`
 - `../features/clothing-interactions/ClothingClassifier.cs`
 - `../features/clothing-interactions/TriggerClothingRemover.cs`
-- `../util/SameFolderLoadDirNormalize.cs` *(shared normalization for same-folder loads)*
 - `../features/clothing-interactions/ClothingTouchFallOffDeferredMerge.cs`
   *(optional standalone; touch-fall merge is implemented inline on **`GabrielSessionOrchestrator`**)*
 
@@ -49,9 +48,8 @@ paths in this list).
 
 ## Dependencies And Coupling
 - Depends on `src/SceneSettle.cs`, `src/PlaybackHold.cs`,
-  `src/InitialExposureChange.cs`, `src/SameFolderSceneLoadCheck.cs`,
-  `src/SceneLoadDirNormalize.cs`, `../util/SameFolderLoadDirNormalize.cs` (Hud
-  shares the latter helpers).
+  `src/InitialExposureChange.cs`, and `../util/SameFolderLoadCheck.cs` (Hud
+  shares the latter).
 - Calls `Custom/Scripts/Gabriel/features/head-hide/HeadProximityHide.cs` after
   the settle hold ends.
 - Exposes a `JSONStorableAction` on `CoreControl` so the HUD plugin can

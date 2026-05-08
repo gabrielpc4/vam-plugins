@@ -1,9 +1,7 @@
-../util/SameFolderLoadDirNormalize.cs
+../util/SameFolderLoadCheck.cs
 src/SceneSettle.cs
 src/PlaybackHold.cs
 src/InitialExposureChange.cs
-src/SameFolderSceneLoadCheck.cs
-src/SceneLoadDirNormalize.cs
 src/GabrielSessionOrchestrator.cs
 ../util/FileManager.cs
 ../util/PersonAtomCache.cs

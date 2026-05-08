@@ -29,8 +29,8 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 
 ## Dependencies And Coupling
 - Shares scene-settle assumptions with `session-plugins` and `SceneSettleRuntime`.
-- `SameFolderCameraRetain` shares folder normalization via `../util/
-  SameFolderLoadDirNormalize.cs` (also referenced by `SameFolderSceneLoadCheck`).
+- `SameFolderCameraRetain` uses static `SameFolderLoadCheck.Normalize`
+  (see `../util/SameFolderLoadCheck.cs`) for folder compares.
 - `MonitorModeLaserRestore` calls into `passenger-possession/PassengerLaserPossess.cs` for shared beam hit tests.
 - Beam hit tests use a shared non-alloc closest-person scan so monitor lasers do
   not allocate every frame while aiming.

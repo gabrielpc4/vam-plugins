@@ -49,7 +49,7 @@ namespace geesp0t
             if (string.IsNullOrEmpty(sc.currentLoadDir))
                 return;
 
-            lastIdleLoadDirNorm = SameFolderLoadDirNormalize.Normalize(
+            lastIdleLoadDirNorm = SameFolderLoadCheck.Normalize(
                 sc.currentLoadDir);
 
             capturedNavWorldPos = sc.navigationRig.position;
@@ -73,8 +73,7 @@ namespace geesp0t
                 return;
             if (!hasCapturedPose || string.IsNullOrEmpty(lastIdleLoadDirNorm))
                 return;
-            string newNorm = SameFolderLoadDirNormalize.Normalize(
-                sc.currentLoadDir);
+            string newNorm = SameFolderLoadCheck.Normalize(sc.currentLoadDir);
             if (newNorm.Length == 0 || newNorm != lastIdleLoadDirNorm)
                 return;
             pendingRestoreAfterCurrentLoad = true;

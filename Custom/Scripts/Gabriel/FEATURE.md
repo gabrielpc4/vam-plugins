@@ -27,7 +27,7 @@ Single plugin URL; one compile that typically includes:
 
 - **`session-plugins/src/*`** — `GabrielSessionOrchestrator`,
   `SceneSettleRuntime` partials (`SceneSettle`, `PlaybackHold`,
-  `InitialExposureChange`), `SameFolderSceneLoadCheck`, `SceneLoadDirNormalize`
+  `InitialExposureChange`), `SameFolderLoadCheck` (`util/SameFolderLoadCheck.cs`)
 - **`features/ui-hud/*`** — `GabrielHud`, `GabrielHotkeys`, `NextSceneUiButton`
 - **`features/dildo-on-hands/DildoOnHands.cs`** — toy spawn `MVRScript`
 - **`features/clothing-interactions/*`** — `ClothingClassifier`,

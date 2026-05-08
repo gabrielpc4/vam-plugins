@@ -11,15 +11,16 @@ same file).
 - `ClothingKeywords.cs` *(strip band keywords and garment text heuristics — shared)*
 - `VrProximityStripClothing.cs`
 - `VrProximityStripClothingPlugin.cs`
-- `VrProximityStripClothing.cslist`
+- `VrProximityStripClothing.cslist` *(optional standalone compile — same sources
+  are in `GabrielSessionPlugins.cslist` for normal sessions).*
 
 HUD grip/orbit/overlap companions live under parallel `features/hands/` —
 see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.
 
 ## Load Path
-- `GabrielBootstrap` loads `VrProximityStripClothing.cslist` as a session plugin.
-- `GabrielSessionPlugins` and HUD routines merge `ClothingTouchFallOff.cslist`
-  onto Person atoms.
+- `VrProximityStripClothing` sources compile inside
+  `GabrielSessionPlugins.cslist` (bootstrap); `ClothingTouchFallOff.cslist` still
+  merges the touch-fall person plugin onto Person atoms.
 
 ## Responsibilities
 - Enable clothing fall-off on nearby garments when hands contact a person.

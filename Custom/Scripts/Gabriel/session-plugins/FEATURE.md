@@ -6,6 +6,10 @@ Session bundle loaded from `GabrielSessionPlugins.cslist`. The host
 pulses, full scene-settle workflow, late feature ticks, HUD binding, and the
 scene-settle release action for the shared hotkey dispatcher.
 
+The same compile unit also includes **DildoOnHands** (VR hand toy spawn) and
+**VrProximityStripClothing** (VR proximity strip), so bootstrap only merges this
+cslist plus the separate log clipboard bundle.
+
 ## Live Files
 - `GabrielSessionPlugins.cslist`
 - `src/GabrielSessionOrchestrator.cs` *(session runtime; scene settle + toggles)*

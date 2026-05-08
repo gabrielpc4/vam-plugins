@@ -5,11 +5,12 @@ VR toy spawn utility loaded as a session plugin. It spawns or clones a toy at th
 
 ## Live Files
 - `DildoOnHands.cs`
-- `DildoOnHands.cslist`
+- `DildoOnHands.cslist` *(optional standalone compile for isolated testing only).*
 - `handspawn_toy_atoms.json`
 
 ## Load Path
-- Loaded directly by `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cs`.
+- Compiled inside `Custom/Scripts/Gabriel/session-plugins/GabrielSessionPlugins.cslist`
+  (same bundle as `GabrielSessionOrchestrator` and `GabrielHud` via bootstrap).
 - Uses `handspawn_toy_atoms.json` as the default catalog scene extracted beside the plugin.
 
 ## Responsibilities

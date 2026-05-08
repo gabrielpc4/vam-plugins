@@ -30,6 +30,8 @@ scene-advance UIButton resolution (`NextSceneUiButton`), keyboard routing in
   `O`, `F`), plugin toggles, scene-change routing, and palm HUD next-scene via
   `NextSceneUiButton`, plus thin glue into `AnimationNoLoopDetection`, path-rule
   E-Motion merges, Spankings/Clothing grip deferrals, and fluid/camera helpers.
+- Cache the resolved next-scene `UIButtonTrigger` until scene/load or atom UID
+  changes invalidate it.
 - `GabrielHud` owns external plugin family paths for E-Motion and Spankings.
   Clothing touch-fall path and person merges live on
   **`GabrielSessionOrchestrator`**.

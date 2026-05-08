@@ -41,6 +41,10 @@ public class ImprovedPoV : MVRScript
     private int _tryAgainAttempts;
     private float _originalWorldScale;
     private float _originalPlayerHeightAdjust;
+    private bool _renderHooksRegistered;
+
+    private static readonly DAZHairGroup[] EmptyHairGroups =
+        new DAZHairGroup[0];
 
     public override void Init()
     {
@@ -69,8 +73,7 @@ public class ImprovedPoV : MVRScript
             _selector = _person.GetComponentInChildren<DAZCharacterSelector>();
 
             InitControls();
-            Camera.onPreRender += OnPreRender;
-            Camera.onPostRender += OnPostRender;
+            SetRenderHooksRegistered(IsEffectActive());
         }
         catch (Exception e)
         {
@@ -88,11 +91,14 @@ public class ImprovedPoV : MVRScript
             if (_skinHandler != null)
                 _skinHandler.BeforeRender();
             if (_hairHandlers != null)
-                _hairHandlers.ForEach(x =>
+            {
+                for (int i = 0; i < _hairHandlers.Count; i++)
                 {
-                    if (x != null)
-                        x.BeforeRender();
-                });
+                    HairHandler hairHandler = _hairHandlers[i];
+                    if (hairHandler != null)
+                        hairHandler.BeforeRender();
+                }
+            }
         }
         catch (Exception e)
         {
@@ -111,11 +117,14 @@ public class ImprovedPoV : MVRScript
             if (_skinHandler != null)
                 _skinHandler.AfterRender();
             if (_hairHandlers != null)
-                _hairHandlers.ForEach(x =>
+            {
+                for (int i = 0; i < _hairHandlers.Count; i++)
                 {
-                    if (x != null)
-                        x.AfterRender();
-                });
+                    HairHandler hairHandler = _hairHandlers[i];
+                    if (hairHandler != null)
+                        hairHandler.AfterRender();
+                }
+            }
         }
         catch (Exception e)
         {
@@ -240,30 +249,32 @@ public class ImprovedPoV : MVRScript
         {
             SuperController.LogError("Failed to disable Improved PoV: " + e);
         }
+
+        SetRenderHooksRegistered(false);
     }
 
     public void OnDestroy()
     {
         OnDisable();
-        Camera.onPreRender -= OnPreRender;
-        Camera.onPostRender -= OnPostRender;
     }
 
     public void Update()
     {
         try
         {
-            var active = _headControl.possessed || !_possessedOnlyJSON.val;
+            bool active = IsEffectActive();
 
             if (!_lastActive && active)
             {
                 ApplyAll(true);
                 _lastActive = true;
+                SetRenderHooksRegistered(true);
             }
             else if (_lastActive && !active)
             {
                 ApplyAll(false);
                 _lastActive = false;
+                SetRenderHooksRegistered(false);
             }
             else if (_dirty)
             {
@@ -276,18 +287,11 @@ public class ImprovedPoV : MVRScript
                 _skinHandler = null;
                 ApplyAll(true);
             }
-            else if (_lastActive && !_selector.hairItems.Where(h => h.active).SequenceEqual(_hair))
+            else if (_lastActive && !ActiveHairMatchesCached())
             {
                 // Note: This only checks if the first hair changed. It'll be good enough for most purposes, but imperfect.
-                if (_hairHandlers != null)
-                {
-                    _hairHandlers.ForEach(x =>
-                    {
-                        if (x != null)
-                            x.Restore();
-                    });
-                    _hairHandlers = null;
-                }
+                RestoreHairHandlers(_hairHandlers);
+                _hairHandlers = null;
                 ApplyAll(true);
             }
         }
@@ -310,7 +314,7 @@ public class ImprovedPoV : MVRScript
         }
 
         _character = _selector.selectedCharacter;
-        _hair = _selector.hairItems.Where(h => h.active).ToArray();
+        _hair = GetActiveHairItems();
 
         ApplyAutoWorldScale(active);
         ApplyCameraPosition(active);
@@ -328,6 +332,113 @@ public class ImprovedPoV : MVRScript
         }
 
         if (!_dirty) _tryAgainAttempts = 0;
+    }
+
+    private bool IsEffectActive()
+    {
+        return _headControl != null &&
+            (_headControl.possessed || !_possessedOnlyJSON.val);
+    }
+
+    private void SetRenderHooksRegistered(bool shouldRegister)
+    {
+        if (_renderHooksRegistered == shouldRegister)
+            return;
+
+        if (shouldRegister)
+        {
+            Camera.onPreRender += OnPreRender;
+            Camera.onPostRender += OnPostRender;
+        }
+        else
+        {
+            Camera.onPreRender -= OnPreRender;
+            Camera.onPostRender -= OnPostRender;
+        }
+
+        _renderHooksRegistered = shouldRegister;
+    }
+
+    private static void RestoreHairHandlers(List<HairHandler> hairHandlers)
+    {
+        if (hairHandlers == null)
+            return;
+
+        for (int i = 0; i < hairHandlers.Count; i++)
+        {
+            HairHandler hairHandler = hairHandlers[i];
+            if (hairHandler != null)
+                hairHandler.Restore();
+        }
+    }
+
+    private bool ActiveHairMatchesCached()
+    {
+        DAZHairGroup[] hairItems;
+        int activeCount;
+        int i;
+
+        hairItems = _selector != null ? _selector.hairItems : null;
+        if (hairItems == null)
+            return _hair == null || _hair.Length == 0;
+
+        activeCount = 0;
+        for (i = 0; i < hairItems.Length; i++)
+        {
+            DAZHairGroup hairGroup = hairItems[i];
+            if (hairGroup == null || !hairGroup.active)
+                continue;
+
+            if (_hair == null ||
+                activeCount >= _hair.Length ||
+                _hair[activeCount] != hairGroup)
+            {
+                return false;
+            }
+
+            activeCount++;
+        }
+
+        return _hair != null
+            ? activeCount == _hair.Length
+            : activeCount == 0;
+    }
+
+    private DAZHairGroup[] GetActiveHairItems()
+    {
+        DAZHairGroup[] hairItems;
+        DAZHairGroup[] activeHair;
+        int activeCount;
+        int i;
+
+        hairItems = _selector != null ? _selector.hairItems : null;
+        if (hairItems == null || hairItems.Length == 0)
+            return EmptyHairGroups;
+
+        activeCount = 0;
+        for (i = 0; i < hairItems.Length; i++)
+        {
+            DAZHairGroup hairGroup = hairItems[i];
+            if (hairGroup != null && hairGroup.active)
+                activeCount++;
+        }
+
+        if (activeCount == 0)
+            return EmptyHairGroups;
+
+        activeHair = new DAZHairGroup[activeCount];
+        activeCount = 0;
+        for (i = 0; i < hairItems.Length; i++)
+        {
+            DAZHairGroup hairGroup = hairItems[i];
+            if (hairGroup == null || !hairGroup.active)
+                continue;
+
+            activeHair[activeCount] = hairGroup;
+            activeCount++;
+        }
+
+        return activeHair;
     }
 
     private void MakeDirty(string reason)

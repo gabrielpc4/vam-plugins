@@ -17,6 +17,8 @@ scene-motion policy.
 - `GabrielSessionOrchestrator.LateUpdate` calls
   `AnimationNoLoopDetection.LateTick` and starts deferred Default.json loads when
   enabled.
+- `LateTick` reuses one scene motion scan per frame for qualification and
+  end-of-clip detection.
 
 ## Dependencies And Coupling
 - `GabrielSessionOrchestrator` owns the user toggles for this policy (saved on the

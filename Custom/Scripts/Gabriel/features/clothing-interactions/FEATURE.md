@@ -35,7 +35,10 @@ see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.
 
 ## Responsibilities
 - Enable clothing fall-off on nearby garments when hands contact a person.
-- Strip clothing bands from scene persons when Male2 VR hands grab near the torso.
+- Memoize garments whose fall-off is already enabled until clothing slots or
+  active counts change.
+- Strip clothing bands from scene persons when Male2 VR hands grab near the
+  torso, without doing a scene-wide idle precheck every frame.
 - Defer ClothingTouchFallOff merge on grip when long non-loop motion rules qualify
   (see **`features/hands/GripHandVisibility`** → `GabrielSessionOrchestrator`).
 - Proximity-strip session/person glue for VR-assisted band removal paths.

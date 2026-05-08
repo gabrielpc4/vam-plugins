@@ -20,6 +20,7 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 - Restore desktop/monitor aim cylinders for the expected input gestures.
 - Tick `PassengerLaserPossess` when beams run so **right beam + face A**
   can start passenger on a lit hit person.
+- Keep the left beam visual-only; only the right beam resolves person hits.
 - Hide DillDoe fluid mesh until scene load settles.
 - Nudge standalone monitor-camera FOV from VaM defaults to Gabriel preference.
 - Capture camera/rig snapshots from the K hotkey and route them into the offline patch scripts.
@@ -28,6 +29,8 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 - Shares scene-settle assumptions with `session-plugins` and
   `SceneSettleRuntime`.
 - `MonitorModeLaserRestore` calls into `passenger-possession/PassengerLaserPossess.cs` for shared beam hit tests.
+- Beam hit tests use a shared non-alloc closest-person scan so monitor lasers do
+  not allocate every frame while aiming.
 - Depends on `Custom/Scripts/Gabriel/tools/scene-camera/FEATURE.md` for the offline script side.
 
 ## References

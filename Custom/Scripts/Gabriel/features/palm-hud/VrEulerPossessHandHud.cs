@@ -135,9 +135,11 @@ namespace geesp0t
                     NextSceneUiButton.HasNextSceneUiButtonInScene();
             }
 
+            PersonAtomCache.FramePersonPossessionSnapshot possessionSnapshot =
+                PersonAtomCache.GetFramePersonPossessionSnapshot();
             bool possessed =
                 PassengerRuntime.IsPassengerModeActiveOrPending() ||
-                GripHandVisibility.IsAnyPersonHeadOrHandPossessed();
+                possessionSnapshot.AnyHeadOrHandPossessed;
 
             RefreshPanels(possessed);
 

@@ -39,6 +39,10 @@ namespace geesp0t
             float minClipLengthSeconds,
             GabrielSessionOrchestrator orchestrator)
         {
+            SuperController sc;
+            MotionAnimationMaster mam;
+            float maxClip;
+
             if (!featureEnabled)
                 return;
 
@@ -48,12 +52,17 @@ namespace geesp0t
             if (_deferredDefaultSceneLoadFiredThisScene)
                 return;
 
-            if (!CurrentSceneUsesLongNonLoopAnimation(minClipLengthSeconds))
+            if (!TryGetLongNonLoopAnimationState(
+                    minClipLengthSeconds,
+                    out sc,
+                    out mam,
+                    out maxClip))
+            {
                 return;
+            }
 
-            SuperController sc = SuperController.singleton;
-            MotionAnimationMaster mam = sc.motionAnimationMaster;
-            float maxClip = GetMaxSceneMotionClipLength(sc);
+            if (CurrentScenePathIndicatesBootyShake(sc))
+                return;
 
             float pc = mam.playbackCounter;
 

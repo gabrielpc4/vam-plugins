@@ -90,6 +90,8 @@ namespace geesp0t
 
         public static void LateTick(bool featureEnabled)
         {
+            PersonAtomCache.FramePersonPossessionSnapshot possessionSnapshot;
+
             if (!featureEnabled)
                 return;
 
@@ -114,13 +116,15 @@ namespace geesp0t
             TryMergeSpankingsOnFirstGripPressThisScene();
 
             _vrGripUsedThisScene = true;
+            possessionSnapshot =
+                PersonAtomCache.GetFramePersonPossessionSnapshot();
 
             // Toggle both hands in lockstep (show both Male2 when going articulated) — per-side still respects possession.
             bool nextBothArticulated = !(_leftArticulated && _rightArticulated);
             if (nextBothArticulated)
             {
-                _leftArticulated = !AnyPersonLeftHandPossessed();
-                _rightArticulated = !AnyPersonRightHandPossessed();
+                _leftArticulated = !possessionSnapshot.AnyLeftHandPossessed;
+                _rightArticulated = !possessionSnapshot.AnyRightHandPossessed;
                 TryMergeClothingTouchFallOffOnFirstMale2GripThisScene();
             }
             else
@@ -139,7 +143,7 @@ namespace geesp0t
         /// </summary>
         public static bool IsAnyPersonHeadOrHandPossessed()
         {
-            return AnyPersonHeadOrHandPossessed();
+            return GetFramePersonPossessionSnapshot().AnyHeadOrHandPossessed;
         }
 
         /// <summary>
@@ -148,92 +152,14 @@ namespace geesp0t
         /// </summary>
         private static bool ShouldForceNoneVrHandProxies()
         {
-            return AnyPersonHeadOrHandPossessed() ||
+            return GetFramePersonPossessionSnapshot().AnyHeadOrHandPossessed ||
                 PassengerRuntime.IsPassengerModeActiveOrPending();
         }
 
-        /// <summary>
-        /// Any <c>Person</c> with head or hand control possessed (player POV).
-        /// </summary>
-        private static bool AnyPersonHeadOrHandPossessed()
+        private static PersonAtomCache.FramePersonPossessionSnapshot
+            GetFramePersonPossessionSnapshot()
         {
-            try
-            {
-                SuperController sc = SuperController.singleton;
-                if (sc == null)
-                    return false;
-                foreach (Atom a in sc.GetAtoms())
-                {
-                    if (a == null || a.type != "Person" ||
-                        !a.gameObject.activeInHierarchy)
-                        continue;
-                    FreeControllerV3 h =
-                        a.GetStorableByID("headControl") as FreeControllerV3;
-                    if (h != null && h.possessed)
-                        return true;
-                    FreeControllerV3 l =
-                        a.GetStorableByID("lHandControl") as FreeControllerV3;
-                    if (l != null && l.possessed)
-                        return true;
-                    FreeControllerV3 r =
-                        a.GetStorableByID("rHandControl") as FreeControllerV3;
-                    if (r != null && r.possessed)
-                        return true;
-                }
-            }
-            catch
-            {
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Name is historical: also used when passenger mode hides proxies
-        /// before possession flags flip.
-        /// </summary>
-        private static void ApplyNoneBothHandsWhilePossessed(SuperController sc)
-        {
-            if (sc == null)
-                return;
-            _leftArticulated = false;
-            _rightArticulated = false;
-            ApplyNoneBothControls(sc);
-            QueueApplyHandsEndOfFrame(sc);
-        }
-
-        private static void ApplyNoneBothControls(SuperController sc)
-        {
-            if (sc == null)
-                return;
-            ApplyNoneOnSingleControl(sc.commonHandModelControl);
-            ApplyNoneOnSingleControl(sc.alternateControllerHandModelControl);
-        }
-
-        /// <summary>
-        /// Both sides use VaM’s <c>None</c> hand entry when present; else that
-        /// side disabled.
-        /// </summary>
-        private static void ApplyNoneOnSingleControl(HandModelControl h)
-        {
-            if (h == null)
-                return;
-            h.leftHandEnabled = true;
-            h.rightHandEnabled = true;
-
-            if (HandsArrayHasNamedModel(h.leftHands, NoneHandChoice))
-                h.leftHandChoice = NoneHandChoice;
-            else
-                h.leftHandEnabled = false;
-
-            if (HandsArrayHasNamedModel(h.rightHands, NoneHandChoice))
-                h.rightHandChoice = NoneHandChoice;
-            else
-                h.rightHandEnabled = false;
-
-            bool noGripYetNoArticulated =
-                !_vrGripUsedThisScene && !_leftArticulated && !_rightArticulated;
-            h.useCollision = !noGripYetNoArticulated;
+            return PersonAtomCache.GetFramePersonPossessionSnapshot();
         }
 
         private static void TryMergeSpankingsOnFirstGripPressThisScene()
@@ -333,50 +259,52 @@ namespace geesp0t
             h.useCollision = !sphereOnlyNoGripYet;
         }
 
-        private static bool AnyPersonLeftHandPossessed()
+        /// <summary>
+        /// Name is historical: also used when passenger mode hides proxies
+        /// before possession flags flip.
+        /// </summary>
+        private static void ApplyNoneBothHandsWhilePossessed(SuperController sc)
         {
-            try
-            {
-                SuperController sc = SuperController.singleton;
-                if (sc == null)
-                    return false;
-                foreach (Atom a in sc.GetAtoms())
-                {
-                    if (a == null || a.type != "Person" || !a.gameObject.activeInHierarchy)
-                        continue;
-                    FreeControllerV3 l = a.GetStorableByID("lHandControl") as FreeControllerV3;
-                    if (l != null && l.possessed)
-                        return true;
-                }
-            }
-            catch
-            {
-            }
-
-            return false;
+            if (sc == null)
+                return;
+            _leftArticulated = false;
+            _rightArticulated = false;
+            ApplyNoneBothControls(sc);
+            QueueApplyHandsEndOfFrame(sc);
         }
 
-        private static bool AnyPersonRightHandPossessed()
+        private static void ApplyNoneBothControls(SuperController sc)
         {
-            try
-            {
-                SuperController sc = SuperController.singleton;
-                if (sc == null)
-                    return false;
-                foreach (Atom a in sc.GetAtoms())
-                {
-                    if (a == null || a.type != "Person" || !a.gameObject.activeInHierarchy)
-                        continue;
-                    FreeControllerV3 r = a.GetStorableByID("rHandControl") as FreeControllerV3;
-                    if (r != null && r.possessed)
-                        return true;
-                }
-            }
-            catch
-            {
-            }
+            if (sc == null)
+                return;
+            ApplyNoneOnSingleControl(sc.commonHandModelControl);
+            ApplyNoneOnSingleControl(sc.alternateControllerHandModelControl);
+        }
 
-            return false;
+        /// <summary>
+        /// Both sides use VaM’s <c>None</c> hand entry when present; else that
+        /// side disabled.
+        /// </summary>
+        private static void ApplyNoneOnSingleControl(HandModelControl h)
+        {
+            if (h == null)
+                return;
+            h.leftHandEnabled = true;
+            h.rightHandEnabled = true;
+
+            if (HandsArrayHasNamedModel(h.leftHands, NoneHandChoice))
+                h.leftHandChoice = NoneHandChoice;
+            else
+                h.leftHandEnabled = false;
+
+            if (HandsArrayHasNamedModel(h.rightHands, NoneHandChoice))
+                h.rightHandChoice = NoneHandChoice;
+            else
+                h.rightHandEnabled = false;
+
+            bool noGripYetNoArticulated =
+                !_vrGripUsedThisScene && !_leftArticulated && !_rightArticulated;
+            h.useCollision = !noGripYetNoArticulated;
         }
 
         private static bool HandsArrayHasNamedModel(HandModelControl.Hand[] hands, string modelName)

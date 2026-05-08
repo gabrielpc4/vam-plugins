@@ -39,6 +39,8 @@ paths in this list).
 - Track scene load edges and same-folder load pulses.
 - Hold simulation/audio/exposure during scene settle through
   `SceneSettleRuntime` and same-folder load guards.
+- Prime the shared per-frame Person possession snapshot before late feature
+  ticks fan out to hand, palm-HUD, and toy helpers.
 - Release transient head-hide state after scene settle completes.
 - Register the emergency `Space` release action consumed by the HUD hotkey
   dispatcher.

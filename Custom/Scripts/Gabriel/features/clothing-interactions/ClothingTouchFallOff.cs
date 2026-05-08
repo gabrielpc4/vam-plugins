@@ -71,7 +71,7 @@ namespace geesp0t
             if (IsFallOffAlreadyActiveOnGarment(item))
                 return false;
 
-            string key = personAtom.uid + "::" + (string.IsNullOrEmpty(item.uid) ? item.name : item.uid);
+            string key = BuildGarmentKey(personAtom, item);
             float last;
             if (cooldownByKey.TryGetValue(key, out last) && now - last < RetouchCooldownSeconds)
                 return false;
@@ -132,6 +132,8 @@ namespace geesp0t
             int activeCount = QuickCountActiveClothing(items);
             bool slotsChanged = slots != _lastClothingSlots;
             bool activeChanged = activeCount != _lastActiveClothingCount;
+            if (slotsChanged || activeChanged)
+                _fallOffEnabledGarmentKeys.Clear();
             _lastClothingSlots = slots;
             _lastActiveClothingCount = activeCount;
 
@@ -139,6 +141,7 @@ namespace geesp0t
             {
                 _noFallOffWorkKnown = true;
                 _lastTickHandCollision = false;
+                _fallOffEnabledGarmentKeys.Clear();
                 return;
             }
 
@@ -177,9 +180,20 @@ namespace geesp0t
             for (int i = 0; i < items.Length; i++)
             {
                 DAZClothingItem item = items[i];
+                string garmentKey;
                 if (item == null || !item.active)
                     continue;
-                TryEnableFallOffOnGarment(_selector, item, _person, _cooldownByGarmentKey, now);
+                garmentKey = BuildGarmentKey(_person, item);
+                if (TryEnableFallOffOnGarment(
+                        _selector,
+                        item,
+                        _person,
+                        _cooldownByGarmentKey,
+                        now))
+                {
+                    if (!string.IsNullOrEmpty(garmentKey))
+                        _fallOffEnabledGarmentKeys.Add(garmentKey);
+                }
             }
         }
 
@@ -217,14 +231,40 @@ namespace geesp0t
             return n;
         }
 
-        private static bool AnyGarmentNeedsFallOffEnableScan(DAZClothingItem[] items)
+        private static string BuildGarmentKey(
+            Atom personAtom,
+            DAZClothingItem item)
+        {
+            if (personAtom == null || item == null)
+                return null;
+
+            return personAtom.uid + "::" +
+                (string.IsNullOrEmpty(item.uid) ? item.name : item.uid);
+        }
+
+        private bool AnyGarmentNeedsFallOffEnableScan(DAZClothingItem[] items)
         {
             if (items == null)
                 return false;
             for (int i = 0; i < items.Length; i++)
             {
-                if (GarmentHasClothSimNeedingBreakEnabled(items[i]))
+                DAZClothingItem item = items[i];
+                string garmentKey = BuildGarmentKey(_person, item);
+                if (!string.IsNullOrEmpty(garmentKey) &&
+                    _fallOffEnabledGarmentKeys.Contains(garmentKey))
+                {
+                    continue;
+                }
+
+                if (GarmentHasClothSimNeedingBreakEnabled(item))
                     return true;
+
+                if (!string.IsNullOrEmpty(garmentKey) &&
+                    item != null &&
+                    item.active)
+                {
+                    _fallOffEnabledGarmentKeys.Add(garmentKey);
+                }
             }
 
             return false;
@@ -308,6 +348,9 @@ namespace geesp0t
         }
 
         private readonly Dictionary<string, float> _cooldownByGarmentKey = new Dictionary<string, float>();
+
+        private readonly HashSet<string> _fallOffEnabledGarmentKeys =
+            new HashSet<string>();
     }
 
     /// <summary>Versão antiga: relay em rigidbody de roupa. Mantida vazia para Unity remover componentes antigos em cena.</summary>

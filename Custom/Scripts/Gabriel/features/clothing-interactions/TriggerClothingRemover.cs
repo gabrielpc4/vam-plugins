@@ -41,11 +41,6 @@ namespace geesp0t
                 return;
             }
 
-            if (!AnyScenePersonHasActiveClothing(sc))
-            {
-                return;
-            }
-
             try
             {
                 leftTriggerDown = sc.GetLeftGrab();
@@ -123,42 +118,6 @@ namespace geesp0t
                 string.Equals(selectedHandModel, "Male 2", StringComparison.Ordinal);
         }
 
-        private static bool AnyScenePersonHasActiveClothing(SuperController sc)
-        {
-            List<Atom> atoms;
-            int i;
-
-            if (sc == null)
-            {
-                return false;
-            }
-
-            atoms = sc.GetAtoms();
-            if (atoms == null)
-            {
-                return false;
-            }
-
-            for (i = 0; i < atoms.Count; i++)
-            {
-                Atom atom = atoms[i];
-                DAZCharacterSelector selector;
-
-                if (atom == null || atom.type != "Person")
-                {
-                    continue;
-                }
-
-                selector = atom.GetStorableByID("geometry") as DAZCharacterSelector;
-                if (selector != null && HasAnyActiveClothing(selector))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         private static void TryStripWithHand(Transform handTransform, string whichHandLabel)
         {
             if (handTransform == null || !handTransform.gameObject.activeInHierarchy)
@@ -219,9 +178,16 @@ namespace geesp0t
 
             float bestScore = float.MaxValue;
             bool bestPreferUpper = true;
+            List<Atom> persons = PersonAtomCache.GetActivePersonsThisFrame();
 
-            foreach (Atom atom in SuperController.singleton.GetAtoms())
+            if (persons == null || persons.Count == 0)
             {
+                return false;
+            }
+
+            for (int personIndex = 0; personIndex < persons.Count; personIndex++)
+            {
+                Atom atom = persons[personIndex];
                 if (atom == null || atom.type != "Person")
                 {
                     continue;

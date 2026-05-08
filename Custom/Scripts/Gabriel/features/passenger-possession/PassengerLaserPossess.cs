@@ -18,6 +18,13 @@ namespace geesp0t
         /// <summary>Min seconds between successful laser+A triggers.</summary>
         private const float RetriggerCooldownSeconds = 0.2f;
 
+        private const int InitialBeamHitBufferSize = 32;
+
+        private const int MaxBeamHitBufferSize = 256;
+
+        private static RaycastHit[] _beamHits =
+            new RaycastHit[InitialBeamHitBufferSize];
+
         /// <summary>
         /// First <c>Person</c> collider along the beam, sorted by hit distance.
         /// </summary>
@@ -26,32 +33,106 @@ namespace geesp0t
             Vector3 direction,
             float length)
         {
+            Vector3 rayDirection;
+            bool saturated;
+            int hitCount;
+
             if (direction.sqrMagnitude < 1e-12f)
             {
                 return null;
             }
 
-            RaycastHit[] hits = Physics.RaycastAll(origin, direction, length);
-            if (hits == null || hits.Length == 0)
+            rayDirection = direction.normalized;
+            hitCount = RaycastBeamHits(
+                origin,
+                rayDirection,
+                length,
+                out saturated);
+            if (hitCount == 0)
             {
                 return null;
             }
 
-            Array.Sort(hits, delegate(RaycastHit a, RaycastHit b)
+            if (saturated)
             {
-                return a.distance.CompareTo(b.distance);
-            });
+                RaycastHit[] overflowHits =
+                    Physics.RaycastAll(origin, rayDirection, length);
+                return FindClosestPersonInHits(
+                    overflowHits,
+                    overflowHits != null ? overflowHits.Length : 0);
+            }
 
-            for (int hitIndex = 0; hitIndex < hits.Length; hitIndex++)
+            return FindClosestPersonInHits(_beamHits, hitCount);
+        }
+
+        private static Atom FindClosestPersonInHits(
+            RaycastHit[] hits,
+            int hitCount)
+        {
+            Atom bestPerson;
+            float bestDistance;
+            int hitIndex;
+
+            if (hits == null || hitCount <= 0)
             {
-                Atom hitPerson = TryResolvePersonFromHit(hits[hitIndex]);
+                return null;
+            }
+
+            bestPerson = null;
+            bestDistance = float.MaxValue;
+            for (hitIndex = 0; hitIndex < hitCount; hitIndex++)
+            {
+                RaycastHit hit = hits[hitIndex];
+                Atom hitPerson = TryResolvePersonFromHit(hit);
                 if (hitPerson != null)
                 {
-                    return hitPerson;
+                    if (hit.distance < bestDistance)
+                    {
+                        bestDistance = hit.distance;
+                        bestPerson = hitPerson;
+                    }
                 }
             }
 
-            return null;
+            return bestPerson;
+        }
+
+        private static int RaycastBeamHits(
+            Vector3 origin,
+            Vector3 direction,
+            float length,
+            out bool saturated)
+        {
+            int hitCount;
+            int newSize;
+
+            saturated = false;
+            while (true)
+            {
+                hitCount = Physics.RaycastNonAlloc(
+                    origin,
+                    direction,
+                    _beamHits,
+                    length);
+                if (hitCount < _beamHits.Length)
+                {
+                    return hitCount;
+                }
+
+                if (_beamHits.Length >= MaxBeamHitBufferSize)
+                {
+                    saturated = true;
+                    return hitCount;
+                }
+
+                newSize = _beamHits.Length * 2;
+                if (newSize > MaxBeamHitBufferSize)
+                {
+                    newSize = MaxBeamHitBufferSize;
+                }
+
+                _beamHits = new RaycastHit[newSize];
+            }
         }
 
         /// <summary>

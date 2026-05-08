@@ -63,15 +63,18 @@ namespace geesp0t
             if (VrEulerPossessHandHud.IsVisible())
                 capRight = false;
 
-            Atom leftTarget = null;
             if (capLeft)
-                leftTarget = UpdateBeamForward(sc, MotionLeft(sc), _beamLeft);
+                UpdateBeamForward(sc, MotionLeft(sc), _beamLeft, false);
             else
                 HideOne(_beamLeft);
 
             Atom rightTarget = null;
             if (capRight)
-                rightTarget = UpdateBeamForward(sc, MotionRight(sc), _beamRight);
+                rightTarget = UpdateBeamForward(
+                    sc,
+                    MotionRight(sc),
+                    _beamRight,
+                    true);
             else
                 HideOne(_beamRight);
 
@@ -302,7 +305,8 @@ namespace geesp0t
         private static Atom UpdateBeamForward(
             SuperController sc,
             Transform motion,
-            Transform beam)
+            Transform beam,
+            bool resolvePersonHit)
         {
             if (motion == null || beam == null)
             {
@@ -331,6 +335,9 @@ namespace geesp0t
                 radialScale);
 
             beam.gameObject.SetActive(true);
+            if (!resolvePersonHit)
+                return null;
+
             return PassengerLaserPossess.FindFirstPersonAlongBeam(
                 motion.position,
                 motion.forward,

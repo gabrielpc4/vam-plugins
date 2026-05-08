@@ -684,6 +684,8 @@ namespace geesp0t
             if (sc == null || sc.isLoading)
                 return;
 
+            PersonAtomCache.PrimeFramePersonPossessionSnapshot(sc);
+
             blockOverlap =
                 blockOverlapFullGrab != null && blockOverlapFullGrab.val;
             OverlapFullGrabRelease.LateTick(blockOverlap);

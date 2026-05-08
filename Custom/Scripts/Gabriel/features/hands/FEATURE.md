@@ -21,6 +21,8 @@ full-grab auto-release without reflection.
   `ClothingTouchFallOffGripMerge` in
   **`clothing-interactions/ClothingTouchFallOffDeferredMerge.cs`** (session
   bundle).
+- Uses the shared per-frame possession snapshot from `util/PersonAtomCache` so
+  hand visibility and palm-HUD gating share one Person scan.
 - Uses palm-hud input, passenger runtime,
   animation-no-loop-detection heuristics, and
   `SpankingsGripBlockPathKeywords`.

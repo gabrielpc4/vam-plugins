@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using MeshVR;
 using UnityEngine;
 using UnityEngine.UI;
@@ -21,14 +22,36 @@ namespace geesp0t
 
         private const string UiButtonTextStorableId = "Text";
 
+        private const float MissingTriggerRetrySeconds = 1f;
+
+        private static UIButtonTrigger _cachedTrigger;
+
+        private static bool _cachedTriggerResolved;
+
+        private static float _nextTriggerResolveRetryTime;
+
         public static void BindHost(MVRScript plugin)
         {
             _pluginRunner = plugin;
+            InvalidateTriggerCache();
+            SuperController sc = SuperController.singleton;
+            if (sc != null)
+            {
+                sc.onAtomUIDsChangedHandlers -= OnAtomUIDsChanged;
+                sc.onAtomUIDsChangedHandlers += OnAtomUIDsChanged;
+            }
         }
 
         public static void ReleaseHost()
         {
+            SuperController sc = SuperController.singleton;
+            if (sc != null)
+            {
+                sc.onAtomUIDsChangedHandlers -= OnAtomUIDsChanged;
+            }
+
             _pluginRunner = null;
+            InvalidateTriggerCache();
         }
 
         /// <summary>
@@ -61,7 +84,10 @@ namespace geesp0t
                 return;
             SuperController sc = SuperController.singleton;
             if (sc == null || sc.isLoading)
+            {
+                InvalidateTriggerCache();
                 return;
+            }
 
             UIButtonTrigger ubt = TryResolveTrigger(sc);
             if (ubt == null || ubt.trigger == null)
@@ -80,7 +106,10 @@ namespace geesp0t
                 return;
             SuperController sc = SuperController.singleton;
             if (sc == null || sc.isLoading)
+            {
+                InvalidateTriggerCache();
                 return;
+            }
 
             _pluginRunner.StartCoroutine(FireAfterClosingMenuCo(sc));
         }
@@ -92,12 +121,47 @@ namespace geesp0t
         {
             SuperController sc = SuperController.singleton;
             if (sc == null || sc.isLoading)
+            {
+                InvalidateTriggerCache();
                 return false;
+            }
             UIButtonTrigger ubt = TryResolveTrigger(sc);
             return ubt != null && ubt.trigger != null;
         }
 
         private static UIButtonTrigger TryResolveTrigger(SuperController sc)
+        {
+            UIButtonTrigger cachedTrigger;
+
+            if (sc == null)
+                return null;
+
+            if (TryGetValidCachedTrigger(out cachedTrigger))
+                return cachedTrigger;
+
+            if (_cachedTriggerResolved &&
+                Time.unscaledTime < _nextTriggerResolveRetryTime)
+            {
+                return null;
+            }
+
+            UIButtonTrigger resolved = TryResolveTriggerSlow(sc);
+            if (IsTriggerValid(resolved))
+            {
+                _cachedTrigger = resolved;
+                _cachedTriggerResolved = true;
+                _nextTriggerResolveRetryTime = 0f;
+                return resolved;
+            }
+
+            _cachedTrigger = null;
+            _cachedTriggerResolved = true;
+            _nextTriggerResolveRetryTime =
+                Time.unscaledTime + MissingTriggerRetrySeconds;
+            return null;
+        }
+
+        private static UIButtonTrigger TryResolveTriggerSlow(SuperController sc)
         {
             if (sc == null)
                 return null;
@@ -162,6 +226,51 @@ namespace geesp0t
             }
 
             return null;
+        }
+
+        private static bool TryGetValidCachedTrigger(
+            out UIButtonTrigger trigger)
+        {
+            trigger = _cachedTrigger;
+            if (IsTriggerValid(trigger))
+                return true;
+
+            trigger = null;
+            _cachedTrigger = null;
+            return false;
+        }
+
+        private static bool IsTriggerValid(UIButtonTrigger trigger)
+        {
+            if (trigger == null || trigger.trigger == null)
+                return false;
+            if (trigger.gameObject == null ||
+                !trigger.gameObject.activeInHierarchy)
+            {
+                return false;
+            }
+
+            Atom atom = trigger.containingAtom;
+            if (atom != null &&
+                (!atom.gameObject.activeInHierarchy ||
+                    !string.Equals(atom.type, "UIButton", StringComparison.Ordinal)))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static void InvalidateTriggerCache()
+        {
+            _cachedTrigger = null;
+            _cachedTriggerResolved = false;
+            _nextTriggerResolveRetryTime = 0f;
+        }
+
+        private static void OnAtomUIDsChanged(List<string> atomUids)
+        {
+            InvalidateTriggerCache();
         }
 
         private static IEnumerator FireTriggerActivePulseCo(UIButtonTrigger ubt)

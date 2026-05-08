@@ -889,6 +889,7 @@ namespace geesp0t
         private string PickLegacyTypePreferringAbsentFromScene()
         {
             List<string> pool;
+            HashSet<string> presentTypes;
 
             pool = BuildVarietyToyTypePool();
 
@@ -903,24 +904,18 @@ namespace geesp0t
 
             if (svc != null)
             {
+                presentTypes = new HashSet<string>(StringComparer.Ordinal);
+                foreach (Atom atom in svc.GetAtoms())
+                {
+                    if (atom == null || string.IsNullOrEmpty(atom.type))
+                        continue;
+
+                    presentTypes.Add(atom.type);
+                }
+
                 foreach (string tp in pool)
                 {
-                    bool any;
-                    any = false;
-
-                    foreach (Atom a in svc.GetAtoms())
-                    {
-                        if (a == null)
-                            continue;
-
-                        if (a.type != tp)
-                            continue;
-
-                        any = true;
-                        break;
-                    }
-
-                    if (!any)
+                    if (!presentTypes.Contains(tp))
                         absent.Add(tp);
                 }
             }
@@ -1300,34 +1295,9 @@ namespace geesp0t
         /// </summary>
         private static bool AnyPersonHeadOrHandPossessedForToySpawnGuard()
         {
-            try
-            {
-                SuperController sc = SuperController.singleton;
-                if (sc == null)
-                    return false;
-                foreach (Atom a in sc.GetAtoms())
-                {
-                    if (a == null || a.type != "Person" ||
-                        !a.gameObject.activeInHierarchy)
-                        continue;
-                    FreeControllerV3 h =
-                        a.GetStorableByID("headControl") as FreeControllerV3;
-                    if (h != null && h.possessed)
-                        return true;
-                    FreeControllerV3 l =
-                        a.GetStorableByID("lHandControl") as FreeControllerV3;
-                    if (l != null && l.possessed)
-                        return true;
-                    FreeControllerV3 r =
-                        a.GetStorableByID("rHandControl") as FreeControllerV3;
-                    if (r != null && r.possessed)
-                        return true;
-                }
-            }
-            catch
-            {
-            }
-            return false;
+            return PersonAtomCache
+                .GetFramePersonPossessionSnapshot()
+                .AnyHeadOrHandPossessed;
         }
 
         /// <summary>

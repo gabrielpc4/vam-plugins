@@ -91,6 +91,18 @@ namespace geesp0t
 
         private static Dictionary<string, HeadZoneScratch> _headZoneScratchByUid;
 
+        private static int _cachedHeadTargetFrame = -1;
+
+        private static Transform _cachedHeadTargetProbeSource;
+
+        private static Atom _cachedHeadTargetPerson;
+
+        private static FreeControllerV3 _cachedHeadTargetHead;
+
+        private static int _cachedSuppressImprovedPoVFrame = -1;
+
+        private static Dictionary<string, bool> _cachedSuppressImprovedPoVByUid;
+
         /// <summary>
         /// Restores skin/accessory materials, clears hide-target state, and shows possessor alignment meshes.
         /// Does not unregister camera hooks while VR head proximity hide remains enabled — call after possession clears or similar flows.
@@ -104,6 +116,7 @@ namespace geesp0t
             _handlersConfigured = false;
             _nextPollSkinNullTime = -1f;
             _nextConfigureRetryTime = -1f;
+            ResetFrameCaches();
         }
 
         /// <summary>Easy Mate plugin toggle: hide head materials when the HMD is inside any Person’s head cylinder.</summary>
@@ -120,6 +133,7 @@ namespace geesp0t
             }
             else if (!enabled)
             {
+                ResetFrameCaches();
                 UnregisterHooks();
             }
         }
@@ -137,6 +151,7 @@ namespace geesp0t
             _nextPollSkinNullTime = -1f;
             _nextConfigureRetryTime = -1f;
             _headZoneScratchByUid = null;
+            ResetFrameCaches();
             _coroutineHost = null;
             _shutdownInProgress = false;
         }
@@ -198,27 +213,44 @@ namespace geesp0t
             return s;
         }
 
+        private static void ResetFrameCaches()
+        {
+            _cachedHeadTargetFrame = -1;
+            _cachedHeadTargetProbeSource = null;
+            _cachedHeadTargetPerson = null;
+            _cachedHeadTargetHead = null;
+            _cachedSuppressImprovedPoVFrame = -1;
+            if (_cachedSuppressImprovedPoVByUid != null)
+            {
+                _cachedSuppressImprovedPoVByUid.Clear();
+            }
+        }
+
         /// <summary>
-        /// Stereo L/R eye cameras are IPD apart; <see cref="SuperController.centerCameraTarget"/> is a single rig point so both eyes share one in/out test.
+        /// Stereo L/R eye cameras are IPD apart;
+        /// <see cref="SuperController.centerCameraTarget"/> is a single rig point
+        /// so both eyes share one in/out test.
         /// </summary>
-        private static Vector3 ResolveHeadZoneProbeWorldPosition(SuperController sc, Camera invokingEyeCamera)
+        private static Transform ResolveHeadZoneProbeTransform(
+            SuperController sc,
+            Camera invokingEyeCamera)
         {
             if (sc != null && sc.centerCameraTarget != null)
             {
-                return sc.centerCameraTarget.transform.position;
+                return sc.centerCameraTarget.transform;
             }
 
             if (sc != null && sc.lookCamera != null)
             {
-                return sc.lookCamera.transform.position;
+                return sc.lookCamera.transform;
             }
 
             if (invokingEyeCamera != null)
             {
-                return invokingEyeCamera.transform.position;
+                return invokingEyeCamera.transform;
             }
 
-            return Vector3.zero;
+            return null;
         }
 
         private static bool TryGetRadialSqInHeadZone(HeadZoneScratch scratch, FreeControllerV3 head, Vector3 probeWorldPosition, float radiusScale, out float radialSq)
@@ -270,32 +302,51 @@ namespace geesp0t
             if (sc == null || !_headProximityHide)
                 return;
 
-            Vector3 probe = ResolveHeadZoneProbeWorldPosition(sc, cam);
+            Transform probeSource = ResolveHeadZoneProbeTransform(sc, cam);
+            if (_cachedHeadTargetFrame == Time.frameCount &&
+                _cachedHeadTargetProbeSource == probeSource)
+            {
+                bestAtom = _cachedHeadTargetPerson;
+                bestHead = _cachedHeadTargetHead;
+                return;
+            }
+
+            Vector3 probe = probeSource != null
+                ? probeSource.position
+                : Vector3.zero;
             FreeControllerV3 strictHead;
             Atom strictPerson = PickClosestPersonInHeadZone(probe, 1f, out strictHead);
             if (strictPerson != null)
             {
                 bestAtom = strictPerson;
                 bestHead = strictHead;
-                return;
+            }
+            else if (_hideHandlerPerson != null && _handlersConfigured &&
+                !ShouldSuppressForPassengerImprovedPoV(_hideHandlerPerson))
+            {
+                FreeControllerV3 heldHead =
+                    _hideHandlerPerson.GetStorableByID("headControl") as
+                        FreeControllerV3;
+                if (heldHead != null)
+                {
+                    float unusedRsq;
+                    if (TryGetRadialSqInHeadZone(
+                            GetHeadZoneScratch(_hideHandlerPerson),
+                            heldHead,
+                            probe,
+                            HeadZoneRelaxRadiusScaleWhileHiding,
+                            out unusedRsq))
+                    {
+                        bestAtom = _hideHandlerPerson;
+                        bestHead = heldHead;
+                    }
+                }
             }
 
-            if (_hideHandlerPerson == null || !_handlersConfigured)
-                return;
-
-            if (ShouldSuppressForPassengerImprovedPoV(_hideHandlerPerson))
-                return;
-
-            FreeControllerV3 heldHead = _hideHandlerPerson.GetStorableByID("headControl") as FreeControllerV3;
-            if (heldHead == null)
-                return;
-
-            float unusedRsq;
-            if (!TryGetRadialSqInHeadZone(GetHeadZoneScratch(_hideHandlerPerson), heldHead, probe, HeadZoneRelaxRadiusScaleWhileHiding, out unusedRsq))
-                return;
-
-            bestAtom = _hideHandlerPerson;
-            bestHead = heldHead;
+            _cachedHeadTargetFrame = Time.frameCount;
+            _cachedHeadTargetProbeSource = probeSource;
+            _cachedHeadTargetPerson = bestAtom;
+            _cachedHeadTargetHead = bestHead;
         }
 
         private static Atom PickClosestPersonInHeadZone(Vector3 probeWorldPosition, float radiusScale, out FreeControllerV3 headOut)
@@ -335,27 +386,62 @@ namespace geesp0t
 
         private static bool ShouldSuppressForPassengerImprovedPoV(Atom person)
         {
+            bool cached;
+            string personUid;
+            bool result;
+
             if (person == null)
                 return false;
+
+            personUid = person.uid;
+            if (_cachedSuppressImprovedPoVFrame != Time.frameCount)
+            {
+                _cachedSuppressImprovedPoVFrame = Time.frameCount;
+                if (_cachedSuppressImprovedPoVByUid == null)
+                    _cachedSuppressImprovedPoVByUid =
+                        new Dictionary<string, bool>();
+                else
+                    _cachedSuppressImprovedPoVByUid.Clear();
+            }
+
+            if (!string.IsNullOrEmpty(personUid) &&
+                _cachedSuppressImprovedPoVByUid.TryGetValue(
+                    personUid,
+                    out cached))
+            {
+                return cached;
+            }
 
             JSONStorable improvedPoVStorable =
                 FindPluginStorableByClassSuffix(person, "ImprovedPoV");
             if (improvedPoVStorable == null)
-                return false;
+            {
+                result = false;
+            }
+            else
+            {
+                JSONStorableBool hideFaceBool =
+                    improvedPoVStorable.GetBoolJSONParam("Hide face");
+                JSONStorableBool hideHairBool =
+                    improvedPoVStorable.GetBoolJSONParam("Hide hair");
+                JSONStorableBool possessedOnlyBool =
+                    improvedPoVStorable.GetBoolJSONParam(
+                        "Activate only when possessed");
 
-            JSONStorableBool hideFaceBool =
-                improvedPoVStorable.GetBoolJSONParam("Hide face");
-            JSONStorableBool hideHairBool =
-                improvedPoVStorable.GetBoolJSONParam("Hide hair");
-            JSONStorableBool possessedOnlyBool =
-                improvedPoVStorable.GetBoolJSONParam("Activate only when possessed");
+                if (possessedOnlyBool == null || possessedOnlyBool.val)
+                    result = false;
+                else
+                {
+                    bool hideFace = hideFaceBool != null && hideFaceBool.val;
+                    bool hideHair = hideHairBool != null && hideHairBool.val;
+                    result = hideFace || hideHair;
+                }
+            }
 
-            if (possessedOnlyBool == null || possessedOnlyBool.val)
-                return false;
+            if (!string.IsNullOrEmpty(personUid))
+                _cachedSuppressImprovedPoVByUid[personUid] = result;
 
-            bool hideFace = hideFaceBool != null && hideFaceBool.val;
-            bool hideHair = hideHairBool != null && hideHairBool.val;
-            return hideFace || hideHair;
+            return result;
         }
 
         private static JSONStorable FindPluginStorableByClassSuffix(

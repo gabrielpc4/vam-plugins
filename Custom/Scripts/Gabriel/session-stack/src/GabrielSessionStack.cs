@@ -50,11 +50,6 @@ namespace geesp0t
 
         private OnSceneStartup onSceneStartup = new OnSceneStartup();
 
-        //to place a male atom in a scene (if starting with a female look scene)
-        protected Atom createdMaleAtom = null;
-        protected String createdMaleName = "Gabriel_Male_Person";
-
-        private bool wantToSetAppearance = false;
         private const string PLUGIN_LIFE = "AddonPackages/MacGruber.Life.6.var:/Custom/Scripts/MacGruber/Life/MacGruber_Life.cslist";
         private const string PLUGIN_SPANKINGS = "Custom/Scripts/Spankings/Spankings.cslist";
         private const string PLUGIN_EXPLOSION_LIMITER = "Custom/Scripts/ExplosionLimiter-ns.cs";
@@ -129,8 +124,6 @@ namespace geesp0t
             keyboardShortcuts = new SessionKeyboardShortcuts();
 
             keyboardShortcuts.Init(this, onSceneStartup);
-
-            createdMaleAtom = SuperController.singleton.GetAtomByUid(createdMaleName);
         }
 
         public void ShowUI()
@@ -145,15 +138,6 @@ namespace geesp0t
         {
             try
             {
-                createdMaleAtom = SuperController.singleton.GetAtomByUid(createdMaleName);
-                if (createdMaleAtom != null)
-                {
-                    Log("Create Male Atom: AtomUIDChange wantToSetAppearance = true");
-                    wantToSetAppearance = true;
-                    isLoading = true;
-                    loadingTimeCounter = Time.timeSinceLevelLoad;
-                }
-
                 bool sawPerson = false;
                 foreach (string atomName in atomUIDs)
                 {
@@ -362,41 +346,27 @@ namespace geesp0t
             {
                 Log("Scene finished loading (session plugin)");
                 sceneChanged = false;
-                appliedPersonPlugins = false;
-
-                if (!wantToSetAppearance)
+                Log("load person plugins after scene load (Update)");
+                try
                 {
+                    LoadPersonPlugins(
+                        suppressSpankingsForPendingSceneLoad);
                     appliedPersonPlugins = true;
-                    Log("load person plugins after scene load (Update)");
-                    try
-                    {
-                        LoadPersonPlugins(
-                            false,
-                            suppressSpankingsForPendingSceneLoad);
-                        if (!personPluginReloadPending)
-                            suppressSpankingsForPendingSceneLoad = false;
-                    }
-                    catch (Exception e)
-                    {
-                        SuperController.LogError("[GabrielSessionStack] LoadPersonPlugins after scene load failed: " + e);
-                    }
+                    if (!personPluginReloadPending)
+                        suppressSpankingsForPendingSceneLoad = false;
+                }
+                catch (Exception e)
+                {
+                    SuperController.LogError("[GabrielSessionStack] LoadPersonPlugins after scene load failed: " + e);
                 }
             }
 
-            if (wantToSetAppearance && !SuperController.singleton.isLoading)
-            {
-                Log("Create Male Atom: Update calls SetupMaleAtom");
-                wantToSetAppearance = false;
-                SetupMaleAtom();
-            }
-
-            if (personPluginReloadPending && !wantToSetAppearance && !SuperController.singleton.isLoading)
+            if (personPluginReloadPending && !SuperController.singleton.isLoading)
             {
                 personPluginReloadPending = false;
                 try
                 {
                     LoadPersonPlugins(
-                        false,
                         suppressSpankingsForPendingSceneLoad);
                     suppressSpankingsForPendingSceneLoad = false;
                 }
@@ -565,9 +535,7 @@ namespace geesp0t
                 StringComparison.OrdinalIgnoreCase);
         }
 
-        void LoadPersonPlugins(
-            bool maleOnly = false,
-            bool suppressSpankingsForThisCall = false)
+        void LoadPersonPlugins(bool suppressSpankingsForThisCall = false)
         {
             List<Atom> personList = SuperController.singleton.GetAtoms().Where(a => a.type == "Person").ToList();
             if (personList.Count == 0)
@@ -581,7 +549,6 @@ namespace geesp0t
             foreach (Atom at in personList)
             {
                 bool isMale = at.GetComponentInChildren<DAZCharacter>().isMale;
-                if (at.uid == createdMaleName) isMale = true; //sometimes the created atom wasn't being seen as male
 
                 Log("Is male: " + isMale);
 
@@ -597,8 +564,6 @@ namespace geesp0t
                 }
                 else
                 {
-                    if (maleOnly) continue;
-
                     foreach (string pluginString in femalePlugins)
                     {
                         desiredPlugins.Add(pluginString);
@@ -951,96 +916,6 @@ namespace geesp0t
 
 
 
-        private void RemoveMaleAtom()
-        {
-            if (createdMaleAtom != null)
-            {
-                SuperController.singleton.RemoveAtom(createdMaleAtom);
-                createdMaleAtom = null;
-            }
-        }
-
-        public void CreateMaleIfNeeded()
-        {
-            createdMaleAtom = SuperController.singleton.GetAtomByUid(createdMaleName);
-            if (createdMaleAtom == null)
-            {
-                Log("Create Male Atom: Start coroutine");
-                StartCoroutine(CreateMaleAtom());
-            }
-            else
-            {
-                //we already have the male, set it up
-                SetupMaleAtom();
-            }
-        }
-
-        private void SetupMaleAtom()
-        {
-
-            Log("Create Male Atom: SetupMaleAtom");
-            createdMaleAtom = SuperController.singleton.GetAtomByUid(createdMaleName);
-            Log("Create Male Atom: is active and enabled: " + createdMaleAtom.isActiveAndEnabled);
-            createdMaleAtom.LoadAppearancePreset("Saves/Person/appearance/Gabriel_AddMalePerson_Template.json");
-            createdMaleAtom.uid = createdMaleName;
-
-            //now that it's male, we can turn it on and it will load the correct plugins
-            JSONStorable atomControlReceiver = atomControlReceiver = createdMaleAtom.GetStorableByID("AtomControl");
-            atomControlReceiver.SetBoolParamValue("on", true);
-
-
-            //put him in front of the girl?
-            IEnumerable<Atom> personAtoms = SuperController.singleton.GetAtoms().Where(a => a.type == "Person");
-
-            Atom femaleAtom = null;
-            foreach (Atom at in personAtoms)
-            {
-                if (!at.GetComponentInChildren<DAZCharacter>().isMale && !(at.uid == createdMaleName))
-                {
-                    femaleAtom = at;
-                    break;
-                }
-            }
-
-            if (femaleAtom != null)
-            {
-                Transform headTransfrom = femaleAtom.freeControllers.First(freec => freec.name == "headControl").transform;
-                Vector3 pos = headTransfrom.position;
-                Vector3 newPos = pos + headTransfrom.forward;
-
-                createdMaleAtom.transform.position = newPos;
-
-                LookAtConstrained(pos, createdMaleAtom.transform);
-
-                createdMaleAtom.transform.position = new Vector3(newPos.x, 0, newPos.z);
-            }
-            else
-            {
-
-                createdMaleAtom.transform.SetPositionAndRotation(new Vector3(0, 0, 1.0f), Quaternion.Euler(new Vector3(0, 180.0f, 0)));
-            }
-
-            //now that it's in place we can turn on physics
-            atomControlReceiver.SetBoolParamValue("collisionEnabled", true);
-
-            LoadPersonPlugins(true);
-            Log("Create Male Atom: SetupMaleAtom END");
-        }
-        public void LookAtConstrained(Vector3 targetPos, Transform sourceTransform)
-        {
-            sourceTransform.LookAt(new Vector3(targetPos.x, sourceTransform.position.y, targetPos.z));
-        }
-
-        private IEnumerator CreateMaleAtom()
-        {
-            yield return SuperController.singleton.AddAtomByType("Person", createdMaleName);
-            if (logMessages) SuperController.LogMessage("created " + createdMaleName);
-            createdMaleAtom = SuperController.singleton.GetAtomByUid(createdMaleName);
-
-            JSONStorable atomControlReceiver = atomControlReceiver = createdMaleAtom.GetStorableByID("AtomControl");
-            atomControlReceiver.SetBoolParamValue("collisionEnabled", false);
-            //atomControlReceiver.SetBoolParamValue("on", false);
-        }
     }
 }
  

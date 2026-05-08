@@ -32,7 +32,6 @@ These are the only Gabriel-owned implementation paths that should be extended:
 These are not Gabriel-owned rewrites and can remain where they already live:
 
 - `Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/**`
-- `Custom/Scripts/AutoMate/SESSION_PLUGINS/ClockSessionPlugin.cs`
 - `Custom/Scripts/E-MotionLite/**`
 - `Custom/Scripts/E-MotionFinal/**`
 - `Custom/Scripts/Spankings/**`
@@ -54,8 +53,6 @@ depends on them:
 
 - `Custom/Scripts/Easy Mate/src/RemoveThisObject.cs`
   Current `Default.json` and `MainMenu.json` still reference it.
-- `Custom/Scripts/AutoMate/SESSION_PLUGINS/ClockSessionPlugin.cs`
-  `PossessionWalker` still references this file directly.
 
 ## Removed In This Cutover
 
@@ -68,6 +65,7 @@ real feature replaces them:
 - `Custom/Scripts/LocalMp4Viewer/**`
 - `Custom/Scripts/ImprovedPoV_TongueLicking.cs`
 - `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV_TongueLicking.cs`
+- `Custom/Scripts/AutoMate/SESSION_PLUGINS/ClockSessionPlugin.cs`
 - Old `scene_menu_tools/**` root copies after migration into
   `Custom/Scripts/Gabriel/tools/scene-menu/**`
 - Old build folders, plugin-builder projects, sample defaults, logs, and other
@@ -77,5 +75,5 @@ real feature replaces them:
 
 - Do not expand scene JSON rewrites beyond the current Gabriel bootstrap/menu
   cutover unless the user explicitly asks for more scene edits.
-- If `RemoveThisObject.cs` or `ClockSessionPlugin.cs` are retired later, update
-  the dependent scenes/scripts first, then remove the legacy path.
+- If `RemoveThisObject.cs` is retired later, update the dependent scenes first,
+  then remove the legacy path.

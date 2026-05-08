@@ -18,7 +18,7 @@ Runtime automation layer for scene loads and Person atoms. It decides which pers
 
 ## Responsibilities
 - Track scene load edges, Person atom changes, and pending reloads before merging managed person plugins.
-- Create/use the Gabriel male appearance template atom and keep person plugin state consistent across loads.
+- Keep person plugin state consistent across scene loads and Person atom changes.
 - Hold simulation/audio/exposure during scene settle through `OnSceneStartup` and same-folder load guards.
 - Expose emergency/session shortcuts through `SessionKeyboardShortcuts`.
 
@@ -37,4 +37,4 @@ Update this file in the same turn whenever any of these change:
 
 - Managed person plugin paths or settings keys change.
 - Scene-settle timing, same-folder guards, or startup keybindings change.
-- Male template creation or appearance preset behavior changes.
+- Person plugin merge timing or atom-change reload behavior changes.

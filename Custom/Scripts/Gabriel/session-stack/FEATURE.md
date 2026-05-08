@@ -1,11 +1,12 @@
 # Gabriel Session Stack
 
 ## Purpose
-Runtime automation layer for scene loads and Person atoms. It decides which person plugins Gabriel owns, when they are merged, and how scene-settle playback holds behave.
+Runtime helper for scene loads. It decides when the full scene-settle workflow
+should run, skips that workflow for same-folder load pulses, and exposes the
+session keyboard shortcuts.
 
 ## Live Files
 - `GabrielSessionStack.cslist`
-- `SETTINGS.json`
 - `src/GabrielSessionStack.cs`
 - `src/OnSceneStartup.cs`
 - `src/SameFolderSceneLoadCheck.cs`
@@ -13,28 +14,27 @@ Runtime automation layer for scene loads and Person atoms. It decides which pers
 
 ## Load Path
 - Loaded as a session plugin by `Custom/Scripts/Gabriel/bootstrap/GabrielBootstrap.cs`.
-- Reads configuration from `Custom/Scripts/Gabriel/session-stack/SETTINGS.json`.
-- Owns Gabriel-managed person plugin paths for `ImprovedPoV` and `ClothingTouchFallOff` plus scene-settle control.
+- Detects same-folder load pulses before delegating scene-settle control to
+  `src/OnSceneStartup.cs`.
 
 ## Responsibilities
-- Track scene load edges, Person atom changes, and pending reloads before merging managed person plugins.
-- Keep person plugin state consistent across scene loads and Person atom changes.
+- Track scene load edges and same-folder load pulses.
 - Hold simulation/audio/exposure during scene settle through `OnSceneStartup` and same-folder load guards.
+- Release transient head-hide state after scene settle completes.
 - Expose emergency/session shortcuts through `SessionKeyboardShortcuts`.
 
 ## Dependencies And Coupling
-- Depends on `Custom/Scripts/Gabriel/features/improved-pov/ImprovedPoV.cs` and `Custom/Scripts/Gabriel/features/clothing-interactions/ClothingTouchFallOff.cslist`.
-- Shares same-folder load logic with the `scene-camera` feature and startup-state assumptions with `ui-hud`.
+- Depends on `src/OnSceneStartup.cs`, `src/SameFolderSceneLoadCheck.cs`, and
+  `src/SessionKeyboardShortcuts.cs`.
+- Calls `Custom/Scripts/Gabriel/features/head-hide/HeadProximityHide.cs` after
+  the settle hold ends.
 
 ## References
 - `Reference/VaM-Scene-Startup-And-Settle.md`
 - `Reference/VaM-Scripting-Notes.md`
-- `Custom/Scripts/Gabriel/features/improved-pov/FEATURE.md`
-- `Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md`
 
 ## Update Checklist
 Update this file in the same turn whenever any of these change:
 
-- Managed person plugin paths or settings keys change.
 - Scene-settle timing, same-folder guards, or startup keybindings change.
-- Person plugin merge timing or atom-change reload behavior changes.
+- Plugin panel copy or the `Space`/`P` shortcut behavior changes.

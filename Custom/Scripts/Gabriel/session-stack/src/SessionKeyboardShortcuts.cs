@@ -6,10 +6,10 @@ using UnityEngine.EventSystems;
 namespace geesp0t
 {
     /// <summary>
-    /// Keyboard shortcuts for the session Auto Load Person Plugins plugin (e.g.
+    /// Keyboard shortcuts for the Gabriel session stack (e.g.
     /// <b>Space</b> = force release scene settle pause / exposure hold even while
     /// loading; <b>P</b> = possess+align+select Person under look or closest).
-    /// World-space HUD was removed; use the plugin panel for load/sets.
+    /// World-space HUD was removed; use the plugin panel for settle info.
     /// </summary>
     public class SessionKeyboardShortcuts
     {

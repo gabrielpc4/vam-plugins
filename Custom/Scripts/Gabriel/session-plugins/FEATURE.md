@@ -7,9 +7,10 @@ pulses, full scene-settle workflow, late feature ticks, HUD binding, and the
 scene-settle release action for the shared hotkey dispatcher.
 
 The same compile unit includes **DildoOnHands** (VR hand toy spawn),
-**ClothingTouchFallOffDeferredMerge** (grip-deferred clothing merge coroutine),
-and **`GabrielSessionOrchestrator`** constants/methods for merging
-`PluginClothingTouchFallOff` onto Person atoms.
+**ClothingTouchFallOffDeferredMerge** (grip-deferred clothing merge coroutine;
+`ClothingTouchFallOffPluginPath` holds the person `.cs` path), and
+**`GabrielSessionOrchestrator`** methods that call into
+`PluginManager.TryMergePluginOntoPerson`.
 **TriggerClothingRemover** compiles from `features/clothing-interactions/Clothing.cslist`
 (own session plugin slot). Bootstrap merges the log clipboard bundle,
 `GabrielSessionPlugins.cslist`, and that **Clothing.cslist** in order.

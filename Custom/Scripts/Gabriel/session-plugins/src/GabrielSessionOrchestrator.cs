@@ -20,13 +20,6 @@ namespace geesp0t
             "ForceReleaseSceneSettleHold";
         private const int HudBindRetryFrames = 120;
 
-        /// <summary>
-        /// Person plugin: proximity hand → cloth fall-off. Merged onto Person
-        /// atoms by session orchestrator (not a HUD toggle).
-        /// </summary>
-        public const string PluginClothingTouchFallOff =
-            "Custom/Scripts/Gabriel/features/clothing-interactions/ClothingTouchFallOff.cs";
-
         private static bool logMessages;
 
         private GabrielHud _gabrielHud;
@@ -142,7 +135,9 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Merges <see cref="PluginClothingTouchFallOff"/> onto every Person atom.
+        /// Merges
+        /// <see cref="ClothingTouchFallOffPluginPath.PersonPlugin"/> onto every
+        /// Person atom.
         /// </summary>
         public void MergeClothingTouchFallOffOnAllPersonsOnly()
         {
@@ -152,7 +147,7 @@ namespace geesp0t
                 {
                     PluginManager.TryMergePluginOntoPerson(
                         at,
-                        PluginClothingTouchFallOff);
+                        ClothingTouchFallOffPluginPath.PersonPlugin);
                 }
             }
             catch (Exception e)

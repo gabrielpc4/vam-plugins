@@ -9,10 +9,10 @@ TouchFallOff **person plugin**. Deferred grip merge lives in
 - `Clothing.cslist` *(session compile: `ClothingClassifier.cs` +
   `TriggerClothingRemover.cs`; loaded by bootstrap — not merged into
   `GabrielSessionPlugins.cslist` because VaM does not nest cslists)*
-- `ClothingTouchFallOff.cs` *(person-only `MVRScript`; no HUD/orchestrator path
-  constants here)*
+- `ClothingTouchFallOff.cs` *(person-only `MVRScript`)*
 - `ClothingTouchFallOffDeferredMerge.cs`
-  *(`ClothingTouchFallOffGripMerge` coroutine — `GabrielSessionPlugins.cslist`)*
+  *(`ClothingTouchFallOffPluginPath`, `ClothingTouchFallOffGripMerge` —
+  `GabrielSessionPlugins.cslist`)*
 - `ClothingClassifier.cs` *(unified `Keywords`, `TorsoBand`, `Text`, strip
   pick and `ClassifyTorsoBand` — shared)*
 - `TriggerClothingRemover.cs` *(VR grab trigger removes nearest torso-band
@@ -24,10 +24,11 @@ see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.
 ## Load Path
 - `Clothing.cslist` is merged as its own session plugin by `GabrielBootstrap`
   (after log clipboard and `GabrielSessionPlugins.cslist`).
-- **ClothingTouchFallOff** person merge path and
-  **MergeClothingTouchFallOffOnAllPersonsOnly** live on
-  **`GabrielSessionOrchestrator`** (grip-deferred queue via
-  `ClothingTouchFallOffGripMerge` in `ClothingTouchFallOffDeferredMerge.cs`).
+- **ClothingTouchFallOff** person merge path is
+  `ClothingTouchFallOffPluginPath.PersonPlugin` in
+  `ClothingTouchFallOffDeferredMerge.cs`; **MergeClothingTouchFallOffOnAllPersonsOnly**
+  runs on **`GabrielSessionOrchestrator`** (grip-deferred queue via
+  `ClothingTouchFallOffGripMerge` in the same file).
 - HUD merges **only** when other features need it; touch-fall is **not** a HUD
   button and is not configured as a plugin path constant on `GabrielHud`.
 

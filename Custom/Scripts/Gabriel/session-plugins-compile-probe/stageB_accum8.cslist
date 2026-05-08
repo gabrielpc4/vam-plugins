@@ -1,0 +1,8 @@
+﻿../session-plugins/src/SceneSettle.cs
+../session-plugins/src/PlaybackHold.cs
+../session-plugins/src/InitialExposureChange.cs
+../session-plugins/src/GabrielSessionOrchestrator.cs
+../util/FileManager.cs
+../util/PersonAtomCache.cs
+../util/PluginManager.cs
+../util/SameFolderLoadCheck.cs

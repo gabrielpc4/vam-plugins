@@ -1,0 +1,8 @@
+src/GabrielCompileProbeHost.cs
+../util/PersonAtomCache.cs
+../features/clothing-interactions/ClothingClassifier.cs
+../features/palm-hud/VrInput.cs
+../features/clothing-interactions/TriggerClothingRemover.cs
+../session-plugins/src/SceneSettle.cs
+../session-plugins/src/PlaybackHold.cs
+../session-plugins/src/InitialExposureChange.cs

@@ -15,6 +15,8 @@ namespace geesp0t
         private string[] sessionPlugins = new string[]
         {
             "Custom/Scripts/Gabriel/features/ui-hud/VaMLogClipboardHud.cslist",
+            // Optional mono compile bisect: swap the next line for a probe under
+            // session-plugins-compile-probe/ (see README.txt there).
             "Custom/Scripts/Gabriel/session-plugins/GabrielSessionPlugins.cslist",
         };
 

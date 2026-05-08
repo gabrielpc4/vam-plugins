@@ -13,6 +13,8 @@ Single session entry plugin merged on menu/default scenes. It seeds the Gabriel 
   `GabrielSessionPlugins.cslist` (orchestrator, HUD, **DildoOnHands**,
   `ClothingClassifier` + **TriggerClothingRemover**, passenger, camera, hands,
   Spankings/clothing glue).
+- Compile bisect helpers live under **`session-plugins-compile-probe/`**; swap the
+  main session `.cslist` URL there temporarily (see **`README.txt`** in that folder).
 - Desktop mode appends `Custom/Scripts/prestigitis_DesktopClothGrab.cs`.
 
 ## Responsibilities

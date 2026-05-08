@@ -17,6 +17,8 @@ paths in this list).
 
 ## Live Files
 - `GabrielSessionPlugins.cslist`
+- `../session-plugins-compile-probe/*` *(optional mono compile bisect cslists;
+  see `README.txt` in that folder; not loaded by default.)*
 - `src/GabrielSessionOrchestrator.cs` *(session runtime; scene settle + toggles)*
 - `src/SceneSettle.cs`
 - `src/PlaybackHold.cs`

@@ -48,22 +48,6 @@ namespace geesp0t
 
         private const float CanvasHeightPx = 140f;
 
-        /// <summary>
-        /// Margin between canvas bounds and backdrop panel edges.
-        /// </summary>
-        private const float PanelEdgeInsetPx = 8f;
-
-        /// <summary>
-        /// Fixed label box for row titles (world canvas px, not stretch-fill).
-        /// </summary>
-        private const float DespossuirLabelWidthPx = 232f;
-
-        private const float DespossuirLabelHeightPx = 40f;
-
-        private const float ProximaLabelWidthPx = 268f;
-
-        private const float ProximaLabelHeightPx = 40f;
-
         internal static void Tick()
         {
             SuperController sc = SuperController.singleton;
@@ -293,15 +277,7 @@ namespace geesp0t
             panelImg.sprite = WhiteSprite();
             panelImg.color = new Color(0.08f, 0.08f, 0.1f, 0.82f);
             panelImg.raycastTarget = false;
-            RectTransform panelRt = panelGo.GetComponent<RectTransform>();
-            if (panelRt == null)
-                panelRt = panelGo.AddComponent<RectTransform>();
-            panelRt.anchorMin = Vector2.zero;
-            panelRt.anchorMax = Vector2.one;
-            Vector2 inset =
-                new Vector2(PanelEdgeInsetPx, PanelEdgeInsetPx);
-            panelRt.offsetMin = inset;
-            panelRt.offsetMax = new Vector2(-PanelEdgeInsetPx, -PanelEdgeInsetPx);
+            StretchFull(panelGo);
 
             GameObject possessGo = new GameObject("DespossuirRowBtn");
             possessGo.transform.SetParent(_root.transform, false);
@@ -335,14 +311,7 @@ namespace geesp0t
             _possessRowText.alignment = TextAnchor.MiddleCenter;
             _possessRowText.color = Color.white;
             _possessRowText.raycastTarget = false;
-            RectTransform possessTextRt =
-                possessTextGo.GetComponent<RectTransform>();
-            if (possessTextRt == null)
-                possessTextRt = possessTextGo.AddComponent<RectTransform>();
-            LayoutPalmHudCenteredLabel(
-                possessTextRt,
-                DespossuirLabelWidthPx,
-                DespossuirLabelHeightPx);
+            StretchFull(possessTextGo);
 
             _btnPossessRow.gameObject.SetActive(false);
 
@@ -353,9 +322,21 @@ namespace geesp0t
                 new Vector2(0.05f, 0.52f),
                 new Vector2(0.95f, 0.98f),
                 new Color(0.14f, 0.32f, 0.52f, 0.92f),
-                20,
-                ProximaLabelWidthPx,
-                ProximaLabelHeightPx);
+                20);
+        }
+
+        /// <summary>
+        /// Stretch this <c>RectTransform</c> to parent edges (full anchors, offsets 0).
+        /// </summary>
+        private static void StretchFull(GameObject go)
+        {
+            RectTransform rt = go.GetComponent<RectTransform>();
+            if (rt == null)
+                rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
         }
 
         private static Button CreateHandButton(
@@ -365,9 +346,7 @@ namespace geesp0t
             Vector2 anchorMin,
             Vector2 anchorMax,
             Color bg,
-            int fontSize,
-            float labelWidthPx,
-            float labelHeightPx)
+            int fontSize)
         {
             GameObject go = new GameObject(name);
             go.transform.SetParent(parent, false);
@@ -405,24 +384,9 @@ namespace geesp0t
             txt.alignment = TextAnchor.MiddleCenter;
             txt.color = Color.white;
             txt.raycastTarget = false;
-            RectTransform textRt = textGo.GetComponent<RectTransform>();
-            if (textRt == null)
-                textRt = textGo.AddComponent<RectTransform>();
-            LayoutPalmHudCenteredLabel(textRt, labelWidthPx, labelHeightPx);
+            StretchFull(textGo);
 
             return btn;
-        }
-
-        private static void LayoutPalmHudCenteredLabel(
-            RectTransform rt,
-            float widthPx,
-            float heightPx)
-        {
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta = new Vector2(widthPx, heightPx);
         }
     }
 }

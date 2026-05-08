@@ -2,15 +2,17 @@
 
 ## Purpose
 All Gabriel-owned clothing-touch, strip, and proximity-strip helpers — plus the
-TouchFallOff **person plugin** (`ClothingTouchFallOffGripMerge` lives in that
-same file).
+TouchFallOff **person plugin**. Deferred grip merge lives in
+`ClothingTouchFallOffDeferredMerge.cs` (session bundle).
 
 ## Live Files
 - `Clothing.cslist` *(session compile: `ClothingClassifier.cs` +
   `TriggerClothingRemover.cs`; loaded by bootstrap — not merged into
   `GabrielSessionPlugins.cslist` because VaM does not nest cslists)*
-- `ClothingTouchFallOff.cs` *(person-only plugin; includes
-  `ClothingTouchFallOffGripMerge`; loaded from this `.cs` path, not a cslist)*
+- `ClothingTouchFallOff.cs` *(person-only `MVRScript`; no HUD/orchestrator path
+  constants here)*
+- `ClothingTouchFallOffDeferredMerge.cs`
+  *(`ClothingTouchFallOffGripMerge` coroutine — `GabrielSessionPlugins.cslist`)*
 - `ClothingClassifier.cs` *(unified `Keywords`, `TorsoBand`, `Text`, strip
   pick and `ClassifyTorsoBand` — shared)*
 - `TriggerClothingRemover.cs` *(VR grab trigger removes nearest torso-band
@@ -22,23 +24,26 @@ see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.
 ## Load Path
 - `Clothing.cslist` is merged as its own session plugin by `GabrielBootstrap`
   (after log clipboard and `GabrielSessionPlugins.cslist`).
-- HUD merges **only** `ClothingTouchFallOff.cs` onto Person atoms (single-file
-  plugin path; avoids instantiating `ClothingTouchFallOff` on CoreControl, which
-  would happen if it were listed beside `TriggerClothingRemover` in the same
-  session cslist).
+- **ClothingTouchFallOff** person merge path and
+  **MergeClothingTouchFallOffOnAllPersonsOnly** live on
+  **`GabrielSessionOrchestrator`** (grip-deferred queue via
+  `ClothingTouchFallOffGripMerge` in `ClothingTouchFallOffDeferredMerge.cs`).
+- HUD merges **only** when other features need it; touch-fall is **not** a HUD
+  button and is not configured as a plugin path constant on `GabrielHud`.
 
 ## Responsibilities
 - Enable clothing fall-off on nearby garments when hands contact a person.
 - Strip clothing bands from scene persons when Male2 VR hands grab near the torso.
 - Defer ClothingTouchFallOff merge on grip when long non-loop motion rules qualify
-  (see **`features/hands/GripHandVisibility`** callbacks into HUD).
+  (see **`features/hands/GripHandVisibility`** → `GabrielSessionOrchestrator`).
 - Proximity-strip session/person glue for VR-assisted band removal paths.
 
 ## Dependencies And Coupling
-- Grip merge queues use `GabrielHud` helpers and **`AnimationNoLoopDetection`**.
+- Grip merge queues (Spankings / clothing touch-fall) talk to
+  **`GabrielSessionOrchestrator`** and **`AnimationNoLoopDetection`**.
 - Shares behavior notes with **`features/hands`** and **`animation-no-loop-detection`**.
-- `ClothingTouchFallOff` is a managed person-plugin path via `GabrielHud`, not the
-  session bundle.
+- `ClothingTouchFallOff` person-plugin merge is orchestrated from
+  **`GabrielSessionOrchestrator`**, not from HUD-owned plugin path constants.
 
 ## References
 - `Custom/Scripts/Gabriel/features/hands/FEATURE.md`

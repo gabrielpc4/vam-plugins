@@ -15,12 +15,14 @@ full-grab auto-release without reflection.
 - Sources sit under `features/hands/`; no separate VaM `.cslist` entry.
 
 ## Dependencies And Coupling
-- Invoked only from `GabrielHud` / `GabrielHotkeys`; uses palm-hud input,
-  passenger runtime,
-  animation-no-loop-detection heuristics,
-  and `SpankingsGripBlockPathKeywords`.
-- `ClothingTouchFallOffGripMerge` stays in `clothing-interactions/ClothingTouchFallOff.cs`
-  (different area).
+- Invoked from `GabrielHud` / `GabrielHotkeys`; clothing touch-fall deferral
+  routes to **`GabrielSessionOrchestrator`** via `GripHandVisibility` and
+  `ClothingTouchFallOffGripMerge` in
+  **`clothing-interactions/ClothingTouchFallOffDeferredMerge.cs`** (session
+  bundle).
+- Uses palm-hud input, passenger runtime,
+  animation-no-loop-detection heuristics, and
+  `SpankingsGripBlockPathKeywords`.
 
 ## References
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`

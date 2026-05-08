@@ -19,8 +19,8 @@ scene-motion policy.
 - `GabrielHud` owns the user toggles (saved on the HUD preset) and starts the
   delayed load coroutine after `AnimationNoLoopDetection.LateTick` observes end-of-playback.
 - Shares long non-loop scene qualification helpers with `spankings` grip-merge
-  guard logic and `clothing-interactions` (`ClothingTouchFallOffGripMerge`
-  nested in `clothing-interactions/ClothingTouchFallOff.cs`).
+  guard logic and `clothing-interactions`
+  (`ClothingTouchFallOffGripMerge` in `ClothingTouchFallOffDeferredMerge.cs`).
 
 ## References
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`

@@ -31,8 +31,9 @@ scene-advance UIButton resolution (`NextSceneUiButton`), keyboard routing in
   `O`, `F`), plugin toggles, scene-change routing, palm **Próxima cena** via
   `NextSceneUiButton`, plus thin glue into `AnimationNoLoopDetection`, path-rule
   E-Motion merges, Spankings/Clothing grip deferrals, and fluid/camera helpers.
-- `GabrielHud` owns external plugin family paths for E-Motion, Spankings, and
-  ClothingTouchFallOff.
+- `GabrielHud` owns external plugin family paths for E-Motion and Spankings.
+  Clothing touch-fall path and person merges live on
+  **`GabrielSessionOrchestrator`**.
 - The hotkey dispatcher also invokes the session-plugins `Space` release action
   through `CoreControl`.
 - Expose user toggles for remote grip link blocking, head hide, long non-loop

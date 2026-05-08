@@ -41,9 +41,6 @@ namespace geesp0t
         public const string PluginSpankings =
             "Custom/Scripts/Spankings/Spankings.cslist";
 
-        public const string PluginClothingTouchFallOff =
-            "Custom/Scripts/Gabriel/features/clothing-interactions/ClothingTouchFallOff.cs";
-
         /// <summary>
         /// Scene atom UIDs created by <c>octopussy.Spankings</c>; removed when
         /// Spankings is toggled off.
@@ -309,28 +306,6 @@ namespace geesp0t
                 PluginEMotionFinal,
                 PersonAtomCache.IsPersonFemale,
                 "E-Motion Final merge on female Persons");
-        }
-
-        /// <summary>
-        /// Merges Gabriel clothing touch fall-off onto every Person.
-        /// </summary>
-        public void MergeClothingTouchFallOffOnAllPersonsOnly()
-        {
-            try
-            {
-                foreach (Atom at in PersonAtomCache.GetPersonAtoms())
-                {
-                    PluginManager.TryMergePluginOntoPerson(
-                        at,
-                        PluginClothingTouchFallOff);
-                }
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError(
-                    "Easy Mate clothing touch fall-off merge on all Persons: " +
-                    e);
-            }
         }
 
         /// <summary>

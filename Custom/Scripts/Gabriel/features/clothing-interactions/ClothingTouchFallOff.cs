@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -314,35 +313,5 @@ namespace geesp0t
     /// <summary>Versão antiga: relay em rigidbody de roupa. Mantida vazia para Unity remover componentes antigos em cena.</summary>
     public sealed class ClothingFallOffRelay : MonoBehaviour
     {
-    }
-
-    /// <summary>
-    /// Defers ClothingTouchFallOff merge on first Male2 VR hand grip unless the scene has
-    /// a qualifying long non-loop main motion timeline (matches Default.json-after-
-    /// animation heuristic).
-    /// </summary>
-    internal static class ClothingTouchFallOffGripMerge
-    {
-        internal static IEnumerator CoMergeAfterGripDeferred(
-            float minNonLoopAnimationClipSeconds,
-            GabrielHud hud)
-        {
-            try
-            {
-                yield return null;
-                yield return null;
-                if (hud == null)
-                    yield break;
-                if (AnimationNoLoopDetection
-                    .CurrentSceneUsesLongNonLoopAnimation(
-                        minNonLoopAnimationClipSeconds))
-                    yield break;
-                hud.MergeClothingTouchFallOffOnAllPersonsOnly();
-                hud.RefreshPluginToggleLabels();
-            }
-            finally
-            {
-            }
-        }
     }
 }

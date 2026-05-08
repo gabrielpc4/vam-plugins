@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using MeshVR;
 using UnityEngine;
 
 namespace geesp0t
@@ -18,6 +19,13 @@ namespace geesp0t
         private const string ForceReleaseSceneSettleHoldActionName =
             "ForceReleaseSceneSettleHold";
         private const int HudBindRetryFrames = 120;
+
+        /// <summary>
+        /// Person plugin: proximity hand → cloth fall-off. Merged onto Person
+        /// atoms by session orchestrator (not a HUD toggle).
+        /// </summary>
+        public const string PluginClothingTouchFallOff =
+            "Custom/Scripts/Gabriel/features/clothing-interactions/ClothingTouchFallOff.cs";
 
         private static bool logMessages;
 
@@ -130,6 +138,27 @@ namespace geesp0t
             if (hud != null)
             {
                 hud.RefreshPluginToggleLabels();
+            }
+        }
+
+        /// <summary>
+        /// Merges <see cref="PluginClothingTouchFallOff"/> onto every Person atom.
+        /// </summary>
+        public void MergeClothingTouchFallOffOnAllPersonsOnly()
+        {
+            try
+            {
+                foreach (Atom at in PersonAtomCache.GetPersonAtoms())
+                {
+                    PluginManager.TryMergePluginOntoPerson(
+                        at,
+                        PluginClothingTouchFallOff);
+                }
+            }
+            catch (Exception e)
+            {
+                SuperController.LogError(
+                    "Gabriel clothing touch fall-off merge on all Persons: " + e);
             }
         }
 
@@ -312,18 +341,10 @@ namespace geesp0t
         {
             try
             {
-                GabrielHud hud = null;
-                yield return StartCoroutine(CoWaitForHudBinding());
-                hud = ResolveGabrielHud();
-                if (hud == null)
-                {
-                    yield break;
-                }
-
                 yield return StartCoroutine(
                     ClothingTouchFallOffGripMerge.CoMergeAfterGripDeferred(
                         GetMinNonLoopAnimationSecondsForDefaultScene(),
-                        hud));
+                        this));
             }
             finally
             {

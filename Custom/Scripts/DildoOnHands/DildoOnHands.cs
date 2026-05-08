@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -24,7 +24,7 @@ namespace geesp0t
         /// extract_toy_catalog.py (checked in beside this plugin). Full scenes
         /// work too if you paste their path here.
         public const string DefaultCatalogSceneRelativePath =
-            "Custom/Scripts/DildoOnHands/handspawn_toy_atoms.json";
+            "Custom/Scripts/Gabriel/features/dildo-on-hands/handspawn_toy_atoms.json";
 
         /// <summary>
         /// Catalog clones: <c>HandSpawnToy__…</c>; legacy: <c>HandSpawnToy_…</c> — both match.

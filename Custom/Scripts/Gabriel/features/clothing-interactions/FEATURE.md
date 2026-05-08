@@ -1,23 +1,26 @@
 # Gabriel Clothing Interactions
 
 ## Purpose
-All Gabriel-owned clothing-touch, strip, and VR-hand clothing helpers. This area mixes one session plugin, one per-person plugin, and two helper modules compiled into the HUD stack.
+All Gabriel-owned clothing-touch, strip, and VR-hand clothing helpers. This area
+mixes one session plugin, one per-person plugin, and `Hands/` HUD-compiled grip
+helpers (overlap release, hand visibility, Spankings deferral).
 
 ## Live Files
-- `ClothingTouchFallOff.cs`
+- `Hands/ClothingTouchFallOff.cs` *(person plugin; includes
+  `ClothingTouchFallOffGripMerge` helper in same file)*
 - `ClothingTouchFallOff.cslist`
 - `VrProximityStripClothing.cs`
 - `VrProximityStripClothingPlugin.cs`
 - `VrProximityStripClothing.cslist`
-- `GripHandVisibility.cs`
-- `OverlapFullGrabRelease.cs`
-- `ClothingTouchFallOffGripMerge.cs`
+- `Hands/GripHandVisibility.cs`
+- `Hands/OverlapFullGrabRelease.cs`
+- `Hands/SpankingsGripDeferredMerge.cs`
 
 ## Load Path
 - `GabrielBootstrap` loads `VrProximityStripClothing.cslist` as a session plugin.
 - `GabrielSessionStack` and HUD routines merge `ClothingTouchFallOff.cslist` onto Person atoms.
-- `GripHandVisibility`, `OverlapFullGrabRelease`, and `ClothingTouchFallOffGripMerge`
-  are compiled into `GabrielHud.cslist`.
+- Hands helpers (`GripHandVisibility`, `OverlapFullGrabRelease`,
+  `SpankingsGripDeferredMerge`) are compiled into `GabrielHud.cslist`.
 
 ## Responsibilities
 - Enable clothing fall-off on nearby garments when hands contact a person.

@@ -10,7 +10,7 @@ Hand-off doc for another LLM or developer. Paths live under
 - **`GabrielHud.cs`** calls **`VrEulerPossessHandHud.Tick()`** from **`Update`**.
 - **`GabrielHud.LateUpdate`** runs **`MonitorModeLaserRestore.Tick`** (beams +
   **`PassengerLaserPossess`** trigger).
-- Desktop hotkeys: **`GabrielHudButtonsHotkeys.cs`**.
+- Desktop hotkeys: **`GabrielHotkeys.cs`**.
 
 ---
 
@@ -100,7 +100,7 @@ not necessarily this full-path unless you wire it elsewhere.
 | Aim beams glue | `scene-camera/MonitorModeLaserRestore.cs` |
 | Passenger runtime | `passenger-possession/PassengerRuntime.cs` |
 | Next-scene UIButton helpers | `ui-hud/GabrielHudButtons.cs` |
-| Desktop hotkeys | `ui-hud/GabrielHudButtonsHotkeys.cs` |
+| Desktop hotkeys | `ui-hud/GabrielHotkeys.cs` |
 | Session **`GabrielHud`** | `ui-hud/GabrielHud.cs` |
 | Compile list | `ui-hud/GabrielHud.cslist` |
 

@@ -39,7 +39,7 @@ namespace geesp0t
         private static Coroutine _autoPossessConfirmCo;
         /// <summary>Set in <see cref="Init"/> so static possess coroutine can refresh HUD after merging plugins.</summary>
         private static System.Action _refreshPluginToggleLabelsStatic;
-        private GabrielHudButtonsHotkeys hotkeys;
+        private GabrielHotkeys hotkeys;
 
         /// <summary>Rebuilt from <see cref="SuperController.GetAtoms"/> when invalid; see <see cref="InvalidatePersonGenderCaches"/>.</summary>
         private static bool _personGenderListsCacheValid;
@@ -198,7 +198,7 @@ namespace geesp0t
             isDesktopMode = !(SuperController.singleton.isOVR || SuperController.singleton.isOpenVR);
             RegisterPersonGenderCacheInvalidation();
             _refreshPluginToggleLabelsStatic = RefreshPluginToggleLabels;
-            hotkeys = new GabrielHudButtonsHotkeys(this);
+            hotkeys = new GabrielHotkeys(this);
         }
 
         public void ProcessHotkeysUpdate()

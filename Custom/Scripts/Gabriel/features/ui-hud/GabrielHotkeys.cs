@@ -5,7 +5,11 @@ using UnityEngine.EventSystems;
 
 namespace geesp0t
 {
-    internal sealed class GabrielHudButtonsHotkeys
+    /// <summary>
+    /// Desktop keyboard shortcuts for the Gabriel HUD plugin; delegates menu actions
+    /// to <see cref="GabrielHudButtons"/> and cross-feature helpers.
+    /// </summary>
+    internal sealed class GabrielHotkeys
     {
         private const string CoreControlAtomUid = "CoreControl";
         private const string GabrielSessionStackSuffix = ".GabrielSessionStack";
@@ -14,7 +18,7 @@ namespace geesp0t
 
         private readonly GabrielHudButtons owner;
 
-        internal GabrielHudButtonsHotkeys(GabrielHudButtons owner)
+        internal GabrielHotkeys(GabrielHudButtons owner)
         {
             this.owner = owner;
         }

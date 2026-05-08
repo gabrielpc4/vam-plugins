@@ -10,7 +10,7 @@ cross-feature runtime orchestration.
 - `GabrielHud.cslist`
 - `GabrielHudButtons.cs`
 - `NextSceneUiButton.cs`
-- `GabrielHudButtonsHotkeys.cs`
+- `GabrielHotkeys.cs`
 - `VaMLogClipboardHud.cs`
 - `VaMLogClipboardHud.cslist`
 
@@ -21,7 +21,7 @@ cross-feature runtime orchestration.
 
 ## Responsibilities
 - Build and refresh the world-space Gabriel menu on `mainHUD`.
-- Own the keyboard hotkey polling surface (`Space`, `Ctrl+Shift+S`, `K`,
+- Own the keyboard hotkeys in `GabrielHotkeys` (`Space`, `Ctrl+Shift+S`, `K`,
   `O`, `F`), plugin toggles, scene-change callbacks, and palm **Próxima cena** via
   `NextSceneUiButton`.
 - Expose user toggles for remote grip link blocking, head hide, mocap-end default loads, same-folder camera retain, monitor lasers, and fluid-cum visibility.

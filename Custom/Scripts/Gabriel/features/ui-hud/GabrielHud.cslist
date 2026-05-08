@@ -1,7 +1,7 @@
 GabrielHud.cs
 GabrielHudButtons.cs
 NextSceneUiButton.cs
-GabrielHudButtonsHotkeys.cs
+GabrielHotkeys.cs
 ../palm-hud/VrInput.cs
 ../palm-hud/VrEulerPossessPoseCheck.cs
 ../palm-hud/VrEulerPossessHandHud.cs

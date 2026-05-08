@@ -760,13 +760,32 @@ namespace geesp0t
         {
             Color accessButtonColor = new Color(0.8392f, 0.8392f, 0.8392f);
             Color accessTextColor = new Color(0f, 0f, 0f);
-            float xSpacing = 0.22f;
+            // Column 1 (E-Motion) stays anchored; column 2 is closer than
+            // 2 * spacing so Spankings sit nearer without shifting E-Motion
+            // toward the log clipboard column.
+            const float emotionColumnTranslateX = 0.22f;
+            const float gapEmotionColumnToSpankings = 0.14f;
+            const float fallbackColumnStride = 0.22f;
+            float translateX;
             float ySpacing = 0.05f;
             UIDynamicButton button = CreateButton(name, width, 40f, labelFontSize);
 
+            switch (column)
+            {
+            case 1:
+                translateX = emotionColumnTranslateX;
+                break;
+            case 2:
+                translateX = emotionColumnTranslateX + gapEmotionColumnToSpankings;
+                break;
+            default:
+                translateX = column * fallbackColumnStride;
+                break;
+            }
+
             button.button.onClick.AddListener(callback);
             button.transform.Translate(
-                column * xSpacing,
+                translateX,
                 0.50f - row * ySpacing,
                 0f,
                 Space.Self);

@@ -18,7 +18,8 @@ namespace geesp0t
         private const string ForceReleaseSceneSettleHoldActionName =
             "ForceReleaseSceneSettleHold";
         private const string ClothingTouchFallOffPersonPluginPath =
-            "Custom/Scripts/Gabriel/features/clothing-interactions/ClothingTouchFallOff.cs";
+            "Custom/Scripts/Gabriel/features/clothing-interactions/" +
+            "ClothingTouchFallOff.cslist";
         private const int HudBindRetryFrames = 120;
 
         private static bool logMessages;

@@ -117,8 +117,8 @@ The decompiled `Assembly-CSharp` reference and many community plugins assume Uni
   - Presets and defaults load from **`Custom/Scripts/E-MotionFinal/Presets/`** (same pattern as Original/Lite: **`GetPluginPath()`** + `\Presets\`), not from legacy **`Custom/E-Motion/Presets`**.
   - **Gabriel HUD** (`Custom/Scripts/Gabriel/features/ui-hud/GabrielHud.cs`):
     after a qualifying **long non-loop** main **`motionAnimationMaster`**
-    timeline ends (when **`loadDefaultWhenLongNonLoopAnimationEnds`** / minimum
-    clip seconds are met), **`AnimationNoLoopDetection`** triggers a delayed load of
+    timeline ends (when Gabriel’s long-animation threshold / minimum clip
+    seconds are met), **`AnimationNoLoopDetection`** triggers a delayed load of
     **`Saves/scene/Default.json`** (see **`features/animation-no-loop-detection`**); this
     is **not** an E-Motion merge.
   - Legacy EasyMate note (historical bundled stack): after a **long non-loop**

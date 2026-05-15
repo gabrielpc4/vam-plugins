@@ -17,7 +17,8 @@ paths in this list).
 
 ## Live Files
 - `GabrielSessionPlugins.cslist`
-- `src/GabrielSessionOrchestrator.cs` *(session runtime; scene settle + toggles)*
+- `src/GabrielSessionOrchestrator.cs` *(session runtime; scene settle +
+  built-in defaults)*
 - `src/SceneSettle.cs`
 - `src/PlaybackHold.cs`
 - `src/InitialExposureChange.cs`

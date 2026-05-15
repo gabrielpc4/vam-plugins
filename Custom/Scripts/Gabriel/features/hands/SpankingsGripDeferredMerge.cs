@@ -4,8 +4,8 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// First-grip Spankings merge on female Persons (deferred), with long non-loop
-    /// scene skip rules tied to HUD toggles.
+    /// First-grip Spankings merge on female Persons (deferred), with long
+    /// non-loop scene skip rules matching <see cref="AnimationNoLoopDetection"/>.
     /// </summary>
     internal static class SpankingsGripDeferredMerge
     {
@@ -15,13 +15,12 @@ namespace geesp0t
             if (SpankingsGripBlockPathKeywords
                 .CurrentSceneBlocksGripSpankingsMerge())
                 return true;
-            if (orchestrator != null &&
-                orchestrator.IsLoadDefaultOnLongNonLoopAnimationEndEnabled())
+            if (orchestrator != null)
             {
-                float animationMinSec =
-                    orchestrator.GetMinNonLoopAnimationSecondsForDefaultScene();
                 if (AnimationNoLoopDetection
-                    .CurrentSceneBlocksGripSpankingsMerge(animationMinSec))
+                    .CurrentSceneBlocksGripSpankingsMerge(
+                        GabrielSessionOrchestrator
+                            .MinNonLoopAnimationSecondsForDefaultSceneLoad))
                     return true;
             }
 
@@ -41,14 +40,12 @@ namespace geesp0t
                 if (SpankingsGripBlockPathKeywords
                     .CurrentSceneBlocksGripSpankingsMerge())
                     yield break;
-                if (orchestrator != null &&
-                    orchestrator.IsLoadDefaultOnLongNonLoopAnimationEndEnabled())
+                if (orchestrator != null)
                 {
-                    float animationMinSec =
-                        orchestrator
-                            .GetMinNonLoopAnimationSecondsForDefaultScene();
                     if (AnimationNoLoopDetection
-                        .CurrentSceneBlocksGripSpankingsMerge(animationMinSec))
+                        .CurrentSceneBlocksGripSpankingsMerge(
+                            GabrielSessionOrchestrator
+                                .MinNonLoopAnimationSecondsForDefaultSceneLoad))
                         yield break;
                 }
                 hud.MergeSpankingsOnFemalePersonsOnly();
@@ -58,15 +55,12 @@ namespace geesp0t
                 if (SpankingsGripBlockPathKeywords
                     .CurrentSceneBlocksGripSpankingsMerge())
                     yield break;
-                if (orchestrator != null &&
-                    orchestrator.IsLoadDefaultOnLongNonLoopAnimationEndEnabled())
+                if (orchestrator != null)
                 {
-                    float animationMinSecRetry =
-                        orchestrator
-                            .GetMinNonLoopAnimationSecondsForDefaultScene();
                     if (AnimationNoLoopDetection
                         .CurrentSceneBlocksGripSpankingsMerge(
-                            animationMinSecRetry))
+                            GabrielSessionOrchestrator
+                                .MinNonLoopAnimationSecondsForDefaultSceneLoad))
                         yield break;
                 }
                 if (hud.AnyFemalePersonMissingSpankings())

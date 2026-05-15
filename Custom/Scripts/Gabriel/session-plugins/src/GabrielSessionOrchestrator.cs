@@ -8,7 +8,7 @@ namespace geesp0t
 {
     /// <summary>
     /// Late-order Gabriel session runtime: scene-settle release, scene-load edge
-    /// tracking, per-frame feature ticks, and session-wide toggles that used to
+    /// tracking, per-frame feature ticks, and built-in defaults that used to
     /// live on <see cref="GabrielHud"/>.
     /// </summary>
     public class GabrielSessionOrchestrator : MVRScript
@@ -21,6 +21,18 @@ namespace geesp0t
             "Custom/Scripts/Gabriel/features/clothing-interactions/" +
             "ClothingTouchFallOff.cslist";
         private const int HudBindRetryFrames = 120;
+
+        /// <summary>
+        /// Long-animation threshold (seconds) for Default.json end path,
+        /// deferred Spankings merge, and clothing touch-fall gating (formerly
+        /// JSON-tunable).
+        /// </summary>
+        internal const float MinNonLoopAnimationSecondsForDefaultSceneLoad = 45f;
+
+        /// <summary>
+        /// Fluid cum mesh hide delay after load (realtime seconds).
+        /// </summary>
+        private const float FluidCumRevealDelayRealtimeSeconds = 10f;
 
         private static bool logMessages;
 
@@ -46,49 +58,6 @@ namespace geesp0t
 
         private JSONStorableAction forceReleaseSceneSettleHoldAction;
 
-        /// <summary>
-        /// When true (default), calls
-        /// <see cref="SuperController.DisableRemoteHoldGrab"/> so the VR
-        /// <b>grip</b> cannot start the remote hand-link while aiming with the
-        /// controller laser.
-        /// </summary>
-        public JSONStorableBool disableRemoteGripHandLink;
-
-        /// <summary>
-        /// When true (default), a short VR grip press toggles both sides between
-        /// articulated hands and VaM sphere/kinematic hands; the first such grip
-        /// can also queue deferred Spankings merge.
-        /// </summary>
-        public JSONStorableBool gripTogglesHandVisibility;
-
-        /// <summary>
-        /// When true (default), restores pre-link state on overlap full-grab
-        /// targets during <see cref="LateUpdate"/>.
-        /// </summary>
-        public JSONStorableBool blockOverlapFullGrab;
-
-        /// <summary>
-        /// When true (default), HMD inside a Person head cylinder hides
-        /// face/hair/glasses on VR eye cameras.
-        /// </summary>
-        public JSONStorableBool headProximityHide;
-
-        /// <summary>
-        /// After a long non-looping main scene animation ends, load Default.json.
-        /// </summary>
-        public JSONStorableBool loadDefaultWhenLongNonLoopAnimationEnds;
-
-        /// <summary>Min dominant clip length for that path (seconds).</summary>
-        public JSONStorableFloat minSecondsNonLoopAnimationClipForDefaultSceneLoad;
-
-        public JSONStorableBool restoreMonitorModeControllerLaser;
-
-        public JSONStorableBool retainCameraPoseSameFolderLoads;
-
-        public JSONStorableBool hideFluidCumMeshUntilAfterLoadDelay;
-
-        public JSONStorableFloat fluidCumRevealDelayRealtimeSeconds;
-
         private bool prevSuperControllerIsLoading;
 
         // Same-folder pulses come from loads like atom/toy changes and should not
@@ -105,19 +74,6 @@ namespace geesp0t
         /// the user navigates to a different folder.
         /// </summary>
         private bool clothingTouchFallOffGripMergeCommittedForFolderBatch;
-
-        internal bool IsLoadDefaultOnLongNonLoopAnimationEndEnabled()
-        {
-            return loadDefaultWhenLongNonLoopAnimationEnds != null &&
-                loadDefaultWhenLongNonLoopAnimationEnds.val;
-        }
-
-        internal float GetMinNonLoopAnimationSecondsForDefaultScene()
-        {
-            return minSecondsNonLoopAnimationClipForDefaultSceneLoad != null
-                ? minSecondsNonLoopAnimationClipForDefaultSceneLoad.val
-                : 45f;
-        }
 
         internal void StartAnimationNoLoopDetectionDeferredDefaultCoroutine()
         {
@@ -199,7 +155,7 @@ namespace geesp0t
                 "",
                 "Gabriel session orchestrator handles scene-settle playback " +
                 "hold, same-folder load suppression, late runtime ticks, " +
-                "and shared session toggles.");
+                "and built-in session default behaviors.");
             UIDynamicTextField dtext = CreateTextField(explanationString);
             dtext.height = 520;
 
@@ -208,65 +164,7 @@ namespace geesp0t
                 ForceReleaseSceneSettleHoldFromAction);
             RegisterAction(forceReleaseSceneSettleHoldAction);
 
-            disableRemoteGripHandLink = new JSONStorableBool(
-                "Disable remote grip hand-link (Quest / OpenVR)",
-                true,
-                OnDisableRemoteGripHandLinkChanged);
-            RegisterBool(disableRemoteGripHandLink);
-
-            gripTogglesHandVisibility = new JSONStorableBool(
-                "Grip toggles VR hand visibility",
-                true);
-            RegisterBool(gripTogglesHandVisibility);
-
-            blockOverlapFullGrab = new JSONStorableBool(
-                "Block overlap full-grab (auto-release each frame)",
-                true);
-            RegisterBool(blockOverlapFullGrab);
-
-            headProximityHide = new JSONStorableBool(
-                "VR head proximity hide",
-                true,
-                OnHeadProximityHideChanged);
-            RegisterBool(headProximityHide);
-
-            retainCameraPoseSameFolderLoads = new JSONStorableBool(
-                "Retain camera pose (loads from same folder)",
-                true,
-                OnRetainSameFolderPoseChanged);
-            RegisterBool(retainCameraPoseSameFolderLoads);
-            SameFolderCameraRetain.SetRetainEnabled(
-                retainCameraPoseSameFolderLoads.val);
-
-            loadDefaultWhenLongNonLoopAnimationEnds = new JSONStorableBool(
-                "Load Saves/scene/Default.json when long animation ends (no loop)",
-                true);
-            RegisterBool(loadDefaultWhenLongNonLoopAnimationEnds);
-
-            minSecondsNonLoopAnimationClipForDefaultSceneLoad =
-                new JSONStorableFloat(
-                    "Min animation length (s) for end-of-clip default scene load",
-                    45f,
-                    5f,
-                    600f);
-            RegisterFloat(minSecondsNonLoopAnimationClipForDefaultSceneLoad);
-
-            restoreMonitorModeControllerLaser = new JSONStorableBool(
-                "Monitor mode: beams (Quest X/A touch or SteamVR TargetShow)",
-                true);
-            RegisterBool(restoreMonitorModeControllerLaser);
-
-            hideFluidCumMeshUntilAfterLoadDelay = new JSONStorableBool(
-                "Hide DillDoe cum (Fluid) until after load delay",
-                true);
-            RegisterBool(hideFluidCumMeshUntilAfterLoadDelay);
-
-            fluidCumRevealDelayRealtimeSeconds = new JSONStorableFloat(
-                "Fluid cum: seconds after load before show (realtime)",
-                10f,
-                0f,
-                120f);
-            RegisterFloat(fluidCumRevealDelayRealtimeSeconds);
+            SameFolderCameraRetain.SetRetainEnabled(true);
 
             SuperController sc = SuperController.singleton;
             if (sc != null)
@@ -342,7 +240,7 @@ namespace geesp0t
             }
 
             if (AnimationNoLoopDetection.CurrentSceneUsesLongNonLoopAnimation(
-                    GetMinNonLoopAnimationSecondsForDefaultScene()))
+                    MinNonLoopAnimationSecondsForDefaultSceneLoad))
             {
                 return false;
             }
@@ -384,32 +282,15 @@ namespace geesp0t
             return false;
         }
 
-        private void OnHeadProximityHideChanged(bool v)
-        {
-            HeadProximityHide.SetHeadProximityHideEnabled(v, this);
-        }
-
-        private void OnDisableRemoteGripHandLinkChanged(bool v)
-        {
-            ApplyRemoteHoldGrabPreference();
-        }
-
-        private void OnRetainSameFolderPoseChanged(bool v)
-        {
-            SameFolderCameraRetain.SetRetainEnabled(v);
-        }
-
         private void ApplyRemoteHoldGrabPreference()
         {
             SuperController sc = SuperController.singleton;
-            if (sc == null || disableRemoteGripHandLink == null)
+            if (sc == null)
                 return;
             if (!sc.isOVR && !sc.isOpenVR)
                 return;
-            if (disableRemoteGripHandLink.val)
-                sc.DisableRemoteHoldGrab();
-            else
-                sc.EnableRemoteHoldGrab();
+            // Same default as former JSON: disable remote laser aim hand-link.
+            sc.DisableRemoteHoldGrab();
         }
 
         void Start()
@@ -418,12 +299,7 @@ namespace geesp0t
             ResolveGabrielHud();
 
             ApplyRemoteHoldGrabPreference();
-            if (headProximityHide != null)
-            {
-                HeadProximityHide.SetHeadProximityHideEnabled(
-                    headProximityHide.val,
-                    this);
-            }
+            HeadProximityHide.SetHeadProximityHideEnabled(true, this);
 
             StartCoroutine(CoRefreshHeadProximityHooksAfterStartFrames());
             GripHandVisibility.DisableVrHandModelsForSceneStart();
@@ -442,14 +318,7 @@ namespace geesp0t
             yield return null;
             yield return null;
 
-            if (headProximityHide == null)
-            {
-                yield break;
-            }
-
-            HeadProximityHide.SetHeadProximityHideEnabled(
-                headProximityHide.val,
-                this);
+            HeadProximityHide.SetHeadProximityHideEnabled(true, this);
         }
 
         private void StartPathRuleEmotionMergeDeferred()
@@ -556,8 +425,6 @@ namespace geesp0t
         {
             SuperController scFsm = SuperController.singleton;
             bool loadingNow;
-            bool fluidCumHide;
-            float fluidCumDelay;
 
             if (scFsm == null)
             {
@@ -579,26 +446,15 @@ namespace geesp0t
                 sameFolderLoadCheck.CaptureIdleLoadDir(scFsm);
             }
 
-            fluidCumHide =
-                hideFluidCumMeshUntilAfterLoadDelay != null &&
-                hideFluidCumMeshUntilAfterLoadDelay.val;
-            fluidCumDelay =
-                fluidCumRevealDelayRealtimeSeconds != null
-                    ? fluidCumRevealDelayRealtimeSeconds.val
-                    : 10f;
             FluidCumHideDuringSceneLoad.Tick(
-                fluidCumHide,
+                true,
                 loadingNow,
-                fluidCumDelay);
+                FluidCumRevealDelayRealtimeSeconds);
 
-            if (retainCameraPoseSameFolderLoads != null &&
-                retainCameraPoseSameFolderLoads.val)
-            {
-                if (prevSuperControllerIsLoading && !loadingNow)
-                    SameFolderCameraRetain.QueueRestoreCoroutineIfNeeded(this);
-                if (!prevSuperControllerIsLoading && loadingNow)
-                    SameFolderCameraRetain.NotifyLoadBeginning(scFsm);
-            }
+            if (prevSuperControllerIsLoading && !loadingNow)
+                SameFolderCameraRetain.QueueRestoreCoroutineIfNeeded(this);
+            if (!prevSuperControllerIsLoading && loadingNow)
+                SameFolderCameraRetain.NotifyLoadBeginning(scFsm);
 
             prevSuperControllerIsLoading = loadingNow;
 
@@ -674,12 +530,7 @@ namespace geesp0t
                     sameFolderLoad &&
                         clothingTouchFallOffGripMergeCommittedForFolderBatch);
 
-                if (headProximityHide != null)
-                {
-                    HeadProximityHide.SetHeadProximityHideEnabled(
-                        headProximityHide.val,
-                        this);
-                }
+                HeadProximityHide.SetHeadProximityHideEnabled(true, this);
             }
         }
 
@@ -708,12 +559,6 @@ namespace geesp0t
         {
             bool sceneSettleJustEnded;
             SuperController sc;
-            bool blockOverlap;
-            bool gripHands;
-            bool animationNoLoopDetectionLoadDefault;
-            float animationMinSec;
-            bool monitorLaser;
-
             sceneSettleJustEnded =
                 sceneSettle.TickDuringLoad(
                     skipSceneSettleWorkflowForPendingLoad);
@@ -728,36 +573,20 @@ namespace geesp0t
 
             PersonAtomCache.PrimeFramePersonPossessionSnapshot(sc);
 
-            blockOverlap =
-                blockOverlapFullGrab != null && blockOverlapFullGrab.val;
-            OverlapFullGrabRelease.LateTick(blockOverlap);
+            OverlapFullGrabRelease.LateTick(true);
 
-            gripHands =
-                gripTogglesHandVisibility != null &&
-                gripTogglesHandVisibility.val;
-            GripHandVisibility.LateTick(gripHands);
+            GripHandVisibility.LateTick();
 
             TriggerClothingRemover.LateTickStrip(sc);
 
-            if (retainCameraPoseSameFolderLoads != null &&
-                retainCameraPoseSameFolderLoads.val)
-            {
-                SameFolderCameraRetain.LateTickIdleCapture(sc);
-            }
+            SameFolderCameraRetain.LateTickIdleCapture(sc);
 
-            animationNoLoopDetectionLoadDefault =
-                loadDefaultWhenLongNonLoopAnimationEnds != null &&
-                loadDefaultWhenLongNonLoopAnimationEnds.val;
-            animationMinSec = GetMinNonLoopAnimationSecondsForDefaultScene();
             AnimationNoLoopDetection.LateTick(
-                animationNoLoopDetectionLoadDefault,
-                animationMinSec,
+                true,
+                MinNonLoopAnimationSecondsForDefaultSceneLoad,
                 this);
 
-            monitorLaser =
-                restoreMonitorModeControllerLaser != null &&
-                restoreMonitorModeControllerLaser.val;
-            MonitorModeLaserRestore.Tick(monitorLaser);
+            MonitorModeLaserRestore.Tick(true);
             VrEulerPossessHandHud.Tick();
             PassengerRuntime.Tick(this);
         }

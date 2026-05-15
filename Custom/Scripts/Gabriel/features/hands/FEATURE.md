@@ -1,9 +1,11 @@
 # Gabriel hands (HUD grip helpers)
 
 ## Purpose
-HUD-compiled VR hand / overlap helpers shared by Gabriel HUD routing: articulated
-Male2 toggles vs sphere proxy, deferred first-grip Spankings merges, overlap
-full-grab auto-release without reflection.
+HUD-compiled VR hand / overlap helpers shared by Gabriel HUD routing: VR grip
+cycles hand proxies **None → Male 2 → SphereKinematic (collision on) → None**.
+While a Person **head or hand** is possessed, or passenger mode is
+active/pending, proxies stay **None** (character mesh only). Deferred
+first-grip Spankings merges, overlap full-grab auto-release without reflection.
 
 ## Live Files
 - `GripHandVisibility.cs`

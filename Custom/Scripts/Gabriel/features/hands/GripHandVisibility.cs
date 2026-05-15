@@ -6,10 +6,11 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// Quest squeeze / OpenVR HoldGrab: toggles Male2 vs sphere unless blocked
-    /// while any Person head/hand is possessed or passenger mode is
-    /// active/pending; then <b>None</b> hand models are forced and no
-    /// Spankings merge runs on grip.
+    /// Quest squeeze / OpenVR HoldGrab: cycles VR hand proxies
+    /// <b>None</b> → <b>Male 2</b> → <b>SphereKinematic</b> (with collision) →
+    /// <b>None</b> unless blocked while any Person head/hand is possessed or
+    /// passenger mode is active/pending; then <b>None</b> hand models are
+    /// forced and no Spankings merge runs on grip.
     /// </summary>
     internal static class GripHandVisibility
     {
@@ -19,14 +20,26 @@ namespace geesp0t
         /// <summary>Second entry in VaM’s VR hand choice list (after None): sphere / kinematic proxy.</summary>
         private const string SphereKinematicChoice = "SphereKinematic";
 
+        /// <summary>Cycle step 1 / default: no visible proxy models.</summary>
+        private const int StageNone = 0;
+
+        /// <summary>Cycle step 2: articulated Male 2 on hands not possessed.</summary>
+        private const int StageMale2 = 1;
+
+        /// <summary>Cycle step 3: sphere proxies with controller collision on.</summary>
+        private const int StageSphere = 2;
+
         private static readonly string[] PreferredHandIds = { "Male2", "Male 2" };
 
-        private static bool _leftArticulated;
+        /// <summary>Grip cycles: none → Male2 → sphere → wrap to none.</summary>
+        private static int _handProxyStage;
 
-        private static bool _rightArticulated;
-
-        /// <summary>Until the user presses a VR grip this scene, sphere proxies stay non-colliding after scene reset.</summary>
+        /// <summary>Until the user presses a VR grip this scene, None stays non-colliding after scene reset.</summary>
         private static bool _vrGripUsedThisScene;
+
+        /// <summary>Prior frame used head/hand/passenger forced None — used to
+        /// reapply grip stage once when that guard lifts.</summary>
+        private static bool _hadForceNoneProxiesLastFrame;
 
         /// <summary>After <see cref="DisableVrHandModelsForSceneStart"/>, first grip press this scene merges Spankings once onto females missing it.</summary>
         private static bool _mergedSpankingsAfterFirstGripThisScene;
@@ -79,8 +92,8 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Scene load: both sides sphere (or legacy-off if slot missing);
-        /// collisions off until first VR grip. Optionally marks the
+        /// Scene load: both hands <c>None</c>; collisions off until first VR
+        /// grip. Optionally marks the
         /// first-grip Spankings merge as already consumed, used for
         /// same-folder continuation loads. When
         /// <paramref name="suppressClothingTouchFallOffGripMergeThisScene"/>
@@ -91,36 +104,48 @@ namespace geesp0t
             bool suppressFirstGripSpankingsMergeThisScene = false,
             bool suppressClothingTouchFallOffGripMergeThisScene = false)
         {
-            _leftArticulated = false;
-            _rightArticulated = false;
+            _handProxyStage = StageNone;
             _mergedSpankingsAfterFirstGripThisScene =
                 suppressFirstGripSpankingsMergeThisScene;
             _mergedClothingTouchFallOffAfterFirstMale2ThisScene =
                 suppressClothingTouchFallOffGripMergeThisScene;
             _vrGripUsedThisScene = false;
+            _hadForceNoneProxiesLastFrame = false;
             SuperController sc = SuperController.singleton;
             ApplyBothControls(sc);
             QueueApplyHandsEndOfFrame(sc);
         }
 
-        public static void LateTick(bool featureEnabled)
+        /// <summary>
+        /// Each frame: if head/hand possessed or passenger/active pending,
+        /// force VaM hand proxies to <b>None</b>. Otherwise, when XR is usable
+        /// for grip input, a short VR grip press advances None → Male2 → sphere
+        /// → wrap.
+        /// </summary>
+        public static void LateTick()
         {
-            PersonFramePossessionSnapshot possessionSnapshot;
-
-            if (!featureEnabled)
-                return;
-
             SuperController sc = SuperController.singleton;
             if (sc == null || sc.isLoading)
                 return;
-            if (!VrInput.IsLikelyVrRuntimeSafe(sc))
-                return;
 
+            // Hide game VR hand proxies whenever a Person head/hand is possessed
+            // or passenger mode applies (before the grip cycle below).
             if (ShouldForceNoneVrHandProxies())
             {
                 ApplyNoneBothHandsWhilePossessed(sc);
+                _hadForceNoneProxiesLastFrame = true;
                 return;
             }
+
+            if (_hadForceNoneProxiesLastFrame)
+            {
+                _hadForceNoneProxiesLastFrame = false;
+                ApplyBothControls(sc);
+                QueueApplyHandsEndOfFrame(sc);
+            }
+
+            if (!VrInput.IsLikelyVrRuntimeSafe(sc))
+                return;
 
             bool leftDown = VrInput.PollLeftGripClickDown(sc);
             bool rightDown = VrInput.PollRightGripClickDown(sc);
@@ -131,22 +156,12 @@ namespace geesp0t
             TryMergeSpankingsOnFirstGripPressThisScene();
 
             _vrGripUsedThisScene = true;
-            possessionSnapshot =
-                PersonAtomCache.GetFramePersonPossessionSnapshot();
+            _handProxyStage = _handProxyStage + 1;
+            if (_handProxyStage > StageSphere)
+                _handProxyStage = StageNone;
 
-            // Toggle both hands in lockstep (show both Male2 when going articulated) — per-side still respects possession.
-            bool nextBothArticulated = !(_leftArticulated && _rightArticulated);
-            if (nextBothArticulated)
-            {
-                _leftArticulated = !possessionSnapshot.AnyLeftHandPossessed;
-                _rightArticulated = !possessionSnapshot.AnyRightHandPossessed;
+            if (_handProxyStage == StageMale2)
                 TryMergeClothingTouchFallOffOnFirstMale2GripThisScene();
-            }
-            else
-            {
-                _leftArticulated = false;
-                _rightArticulated = false;
-            }
 
             ApplyBothControls(sc);
             QueueApplyHandsEndOfFrame(sc);
@@ -247,14 +262,52 @@ namespace geesp0t
                 return;
             }
 
+            if (_handProxyStage == StageNone)
+            {
+                ApplyNoneOnSingleControl(h);
+                return;
+            }
+
             h.leftHandEnabled = true;
             h.rightHandEnabled = true;
 
-            if (_leftArticulated)
+            // Male 2 on free hands; sphere fallback on possessed sides.
+            if (_handProxyStage == StageMale2)
             {
-                EnsurePreferredHandModels(h, left: true, right: false);
+                PersonFramePossessionSnapshot snap =
+                    GetFramePersonPossessionSnapshot();
+                if (!snap.AnyLeftHandPossessed)
+                {
+                    EnsurePreferredHandModels(h, left: true, right: false);
+                }
+                else if (HandsArrayHasNamedModel(h.leftHands, SphereKinematicChoice))
+                {
+                    h.leftHandChoice = SphereKinematicChoice;
+                }
+                else
+                {
+                    h.leftHandEnabled = false;
+                }
+
+                if (!snap.AnyRightHandPossessed)
+                {
+                    EnsurePreferredHandModels(h, left: false, right: true);
+                }
+                else if (HandsArrayHasNamedModel(h.rightHands, SphereKinematicChoice))
+                {
+                    h.rightHandChoice = SphereKinematicChoice;
+                }
+                else
+                {
+                    h.rightHandEnabled = false;
+                }
+
+                h.useCollision = true;
+                return;
             }
-            else if (HandsArrayHasNamedModel(h.leftHands, SphereKinematicChoice))
+
+            // Sphere kinematic on both sides, collisions on.
+            if (HandsArrayHasNamedModel(h.leftHands, SphereKinematicChoice))
             {
                 h.leftHandChoice = SphereKinematicChoice;
             }
@@ -263,11 +316,7 @@ namespace geesp0t
                 h.leftHandEnabled = false;
             }
 
-            if (_rightArticulated)
-            {
-                EnsurePreferredHandModels(h, left: false, right: true);
-            }
-            else if (HandsArrayHasNamedModel(h.rightHands, SphereKinematicChoice))
+            if (HandsArrayHasNamedModel(h.rightHands, SphereKinematicChoice))
             {
                 h.rightHandChoice = SphereKinematicChoice;
             }
@@ -276,8 +325,7 @@ namespace geesp0t
                 h.rightHandEnabled = false;
             }
 
-            bool sphereOnlyNoGripYet = !_vrGripUsedThisScene && !_leftArticulated && !_rightArticulated;
-            h.useCollision = !sphereOnlyNoGripYet;
+            h.useCollision = true;
         }
 
         /// <summary>
@@ -288,8 +336,6 @@ namespace geesp0t
         {
             if (sc == null)
                 return;
-            _leftArticulated = false;
-            _rightArticulated = false;
             ApplyNoneBothControls(sc);
             QueueApplyHandsEndOfFrame(sc);
         }
@@ -323,9 +369,9 @@ namespace geesp0t
             else
                 h.rightHandEnabled = false;
 
-            bool noGripYetNoArticulated =
-                !_vrGripUsedThisScene && !_leftArticulated && !_rightArticulated;
-            h.useCollision = !noGripYetNoArticulated;
+            bool noGripYetAtNone =
+                !_vrGripUsedThisScene && _handProxyStage == StageNone;
+            h.useCollision = !noGripYetAtNone;
         }
 
         private static bool HandsArrayHasNamedModel(HandModelControl.Hand[] hands, string modelName)

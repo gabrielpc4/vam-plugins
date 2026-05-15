@@ -152,7 +152,7 @@ public class ImprovedPoV : MVRScript
             {
                 // Slightly lower than stock (0.17): pull camera a bit forward on the
                 // look axis for a more natural in-head PoV.
-                _cameraDepthJSON = new JSONStorableFloat("Camera depth", 0.11f, 0f, 0.5f, false);
+                _cameraDepthJSON = new JSONStorableFloat("Camera depth", 0.15f, 0f, 0.5f, false);
                 RegisterFloat(_cameraDepthJSON);
                 var cameraDepthSlider = CreateSlider(_cameraDepthJSON, false);
                 cameraDepthSlider.slider.onValueChanged.AddListener(delegate (float val)

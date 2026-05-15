@@ -68,3 +68,9 @@ Custom/**
 /Saves/scene/CG-STUDIO/SnD - The Lamb/SnD - The Lamb Ver.2.vac
 /Saves/scene/CG-STUDIO/S&D/SnD - The Lamb/SnD - The Lamb Ver.2.vac
 /Saves/scene/_My Scenes/Downloaded/CG-STUDIO/SnD - The Lamb/SnD - The Lamb Ver.2.vac
+
+# Root `Gabriel` is a junction/symlink to `Custom/Scripts/Gabriel`. Ignore it so
+# Git does not list a duplicate untracked tree (root is outside `Custom/Scripts/`
+# but still matched by global `!**/*.cs` and similar negation rules).
+/Gabriel/
+prefs.json

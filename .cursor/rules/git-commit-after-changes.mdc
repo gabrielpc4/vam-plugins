@@ -1,32 +1,6 @@
 ---
-description: Whitelist gitignore — add ! exceptions for touched files, then commit (VaM vam-plugins).
+description: 
 alwaysApply: true
 ---
 
-# Git: whitelist exceptions + commit after changes
-
-This repo uses **whitelist-only** `.gitignore` (`*` plus `!…` exceptions). Files you create or edit are **ignored until** they have matching exception rules.
-
-Whenever you **modify, create, or delete** a project file you intend to keep under version control:
-
-1. **Check tracking**  
-   After your edit, if the path would stay ignored, fix `.gitignore` first — do **not** rely on `git add -f` for normal plugin/script/tool files.
-
-2. **Add exceptions** when needed  
-   - If `git check-ignore -v <path>` reports that the file is ignored and there is **no** matching `!` rule for that path, append the minimal rules so Git can see the file, following the style already in `.gitignore`:
-     - Use **forward slashes**, paths **relative to repo root**.
-     - If the file sits under a **new** directory chain not already opened by existing `!foo/` lines, add `!/each/parent/` segments (same idea as `!/Custom/` … `!/Custom/Scripts/…`) so Git can traverse down to the file.
-     - For a **single file**: `!path/to/File.ext`.
-     - For a **whole subtree** you maintain (like an app folder): prefer `!path/to/root/` and `!path/to/root/**` when that matches how the repo already groups things.
-   - **Do not** blanket-whitelist huge trees (e.g. entire `Reference/Assembly-CSharp-decompiled/`, game `VaM_Data/`, etc.) unless the user explicitly asked to track them.
-
-3. **Commit in the same turn**  
-   Stage **only** paths you **created, modified, or deleted in the current conversation** (explicit `git add -- path/to/file …`). Do **not** run `git add .`, `git add -A` / `--all`, `git add -u` without path arguments, or `git commit -a` / `-am` unless the user explicitly asked for a repo-wide staging/commit. Then commit with a clear conventional message (`feat:`, `fix:`, `chore:`, …). Do not leave intentional work uncommitted unless the user said not to commit.
-
-4. **Scope**  
-   This repo may have **thousands of untracked or dirty files** (e.g. game content). Do **not** stage unrelated paths (`Saves/`, assets, logs, or bulk trees) unless the user explicitly asked to include them. Before committing, run `git status` and ensure only your edited paths are staged (`git diff --cached --stat`).
-
-5. **`Custom/Scripts/Gabriel/` subtree**  
-   When the user asks to **commit everything under Gabriel** or when you **touch any file** under `Custom/Scripts/Gabriel/`: at the **end** of that assistant turn, commit all pending changes whose paths are under `Custom/Scripts/Gabriel/` (fix `.gitignore` `!` rules first if needed). Use `git add -- <each-touched-path>` for normal edits; if the user explicitly wants the **whole Gabriel tree** staged, use `git add -- Custom/Scripts/Gabriel/` and confirm with `git diff --cached --stat` that nothing outside Gabriel is included. Never leave deliberate Gabriel edits uncommitted at turn end unless the user said not to commit.
-
-Applies to this VaM workspace and follow-up edits in the same conversation.
+Whenever you **modify, create, or delete** a project file, commit and push the changes, even the ones you haven't made

@@ -1,5 +1,5 @@
 { 
-   "renderScale" : "1", 
+   "renderScale" : "2", 
    "msaaLevel" : "2", 
    "desktopVsync" : "true", 
    "pixelLightCount" : "2", 
@@ -23,7 +23,7 @@
    "thumbSpreadOffset" : "0", 
    "thumbBendOffset" : "10", 
    "physicsRate" : "Auto", 
-   "physicsUpdateCap" : "2", 
+   "physicsUpdateCap" : "3", 
    "softBodyPhysics" : "true", 
    "glowEffects" : "High", 
    "useHeadCollider" : "false", 
@@ -56,8 +56,8 @@
    "VRUISide" : "Right", 
    "motionControllerAlwaysUseAlternateHands" : "false", 
    "leapMotionAllowPinchGrab" : "true", 
-   "motionControllerLeftHandChoice" : "Male 2", 
-   "motionControllerRightHandChoice" : "Male 2", 
+   "motionControllerLeftHandChoice" : "SphereKinematic", 
+   "motionControllerRightHandChoice" : "SphereKinematic", 
    "motionControllerLinkHands" : "true", 
    "motionControllerUseCollision" : "true", 
    "motionControllerHandsPositionOffset" : { 

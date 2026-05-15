@@ -26,6 +26,10 @@ scene-advance UIButton resolution (`NextSceneUiButton`), keyboard routing in
 
 ## Responsibilities
 - Build and refresh the world-space Gabriel menu on `mainHUD`.
+- World-space E-Motion / Spankings buttons start **hidden** after load;
+  `ResetVROrientation` exposes **Show Easy Buttons** / **Hide Easy Buttons**
+  (same wording as before) which calls this plugin's **Show UI** / **Hide UI**
+  actions only — Easy Mate `MainUIButtons` are no longer tied to that toggle.
 - Own the keyboard hotkeys in `GabrielHotkeys` (`Space`, `Ctrl+Shift+S`, `K`,
   `O`, `F`), plugin toggles, scene-change routing, and palm HUD next-scene via
   `NextSceneUiButton`, plus thin glue into `AnimationNoLoopDetection`, path-rule

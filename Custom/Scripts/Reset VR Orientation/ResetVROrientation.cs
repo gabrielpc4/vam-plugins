@@ -36,7 +36,11 @@ namespace geesp0t
         UIDynamicButton _resetVROrientationButton = null;
         UIDynamicButton toggleUIButton = null;
 
-        bool uiShown = true;
+        /// <summary>
+        /// World Gabriel HUD buttons (E-Motion / Spankings column); Easy Mate
+        /// MainUIButtons stay visible — this toggle does not hide them.
+        /// </summary>
+        bool _gabrielHudEasyButtonsVisible = false;
 
         private bool isDesktopMode = false;
 
@@ -357,39 +361,29 @@ namespace geesp0t
 
         public void ToggleUIShown()
         {
-            uiShown = !uiShown;
+            JSONStorable gabrielHud;
+
+            _gabrielHudEasyButtonsVisible = !_gabrielHudEasyButtonsVisible;
 
             SetButtonNames();
 
-            if (_mainMenuButton != null) _mainMenuButton.gameObject.SetActive(uiShown);
-            if (_additionalButton != null) _additionalButton.gameObject.SetActive(uiShown);
-            if (_resetVROrientationButton != null) _resetVROrientationButton.gameObject.SetActive(uiShown);
-
-            JSONStorable autoLoadPluginsUI = FindPluginInScene("geesp0t.Auto_Load_Person_Plugins");
-            JSONStorable easyMateUI = FindPluginInScene("geesp0t.EasyMate");
-            JSONStorable possessSexUI = FindPluginInScene("geesp0t.PossessSex"); 
-            //if (autoLoadPluginsUI != null) SuperController.LogMessage("ACTION NAMES: " + string.Join(", ", autoLoadPluginsUI.GetActionNames().ToArray()));
-
-            if (uiShown)
+            gabrielHud = FindPluginInScene("geesp0t.GabrielHud");
+            if (gabrielHud != null)
             {
-                if (autoLoadPluginsUI != null) autoLoadPluginsUI.CallAction("Show UI");
-                if (easyMateUI != null) easyMateUI.CallAction("Show UI");
-                if (possessSexUI != null) possessSexUI.CallAction("Show UI");
-            }
-            else
-            {
-                if (autoLoadPluginsUI != null) autoLoadPluginsUI.CallAction("Hide UI");
-                if (easyMateUI != null) easyMateUI.CallAction("Hide UI");
-                if (possessSexUI != null) possessSexUI.CallAction("Hide UI");
+                if (_gabrielHudEasyButtonsVisible)
+                    gabrielHud.CallAction("Show UI");
+                else
+                    gabrielHud.CallAction("Hide UI");
             }
         }
         
         public void SetButtonNames()
         { 
-            if (uiShown)
+            if (_gabrielHudEasyButtonsVisible)
             {
                 toggleUIButton.buttonText.text = "Hide Easy Buttons";
-            } else
+            }
+            else
             {
                 toggleUIButton.buttonText.text = "Show Easy Buttons";
             }

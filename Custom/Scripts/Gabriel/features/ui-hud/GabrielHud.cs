@@ -131,6 +131,9 @@ namespace geesp0t
             try
             {
                 RebuildHudCanvas();
+                // World HUD matches Reset VR "Easy Buttons" default: hidden until
+                // user taps Show Easy Buttons on ResetVROrientation canvas.
+                HideUI();
             }
             finally
             {

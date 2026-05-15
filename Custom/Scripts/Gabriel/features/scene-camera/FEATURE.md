@@ -19,7 +19,8 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 - Persist/reapply camera pose across same-folder loads.
 - Restore desktop/monitor aim cylinders for the expected input gestures.
 - Tick `PassengerLaserPossess` when beams run so **right beam + face A**
-  can start passenger on a lit hit person.
+  can start passenger on a lit hit person (face A confirm uses
+  `SuperController.GetRightSelect` via `VrInput`, same as OpenVR UI suppression).
 - Keep the left beam visual-only; only the right beam resolves person hits.
 - Refresh the right-beam closest-person target at a relaxed cadence while the
   beam stays active, and invalidate it as soon as the beam hides.

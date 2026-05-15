@@ -56,7 +56,6 @@ namespace geesp0t
         private static bool _waitingForInitialTeleportAfterHeadNeutralize;
         private static int _initialHeadNeutralizeFramesRemaining;
         private static float _preservedInitialHeadDownwardPitchDegrees;
-        private static int _headNeutralizeDebugLogCount;
 
         public static bool IsPassengerModeActiveOrPending()
         {
@@ -492,7 +491,6 @@ namespace geesp0t
                 _waitingForInitialTeleportAfterHeadNeutralize = false;
                 _initialHeadNeutralizeFramesRemaining = 0;
                 _preservedInitialHeadDownwardPitchDegrees = 0f;
-                _headNeutralizeDebugLogCount = 0;
             }
         }
 
@@ -640,7 +638,6 @@ namespace geesp0t
             _waitingForInitialTeleportAfterHeadNeutralize = true;
             _initialHeadNeutralizeFramesRemaining =
                 InitialHeadNeutralizeFrames;
-            _headNeutralizeDebugLogCount = 0;
 
             FreeControllerV3 headControl =
                 passengerPerson.GetStorableByID("headControl") as FreeControllerV3;
@@ -650,10 +647,6 @@ namespace geesp0t
                         ? headControl.control.rotation
                         : headRigidbody.transform.rotation);
             ForcePassengerHeadControlNeutralRotation(headControl);
-            LogPassengerHeadNeutralizeDebug("start", headControl);
-
-            SuperController.LogMessage(
-                "Easy Mate passenger: press any VR grip or trigger to possess the model's hands.");
         }
 
         private static void UpdatePassengerRuntime(
@@ -700,18 +693,15 @@ namespace geesp0t
 
                 if (_initialHeadNeutralizeFramesRemaining > 0)
                 {
-                    LogPassengerHeadNeutralizeDebug("warmup", headControl);
                     _initialHeadNeutralizeFramesRemaining--;
                     return;
                 }
 
                 if (!IsPassengerHeadControlNeutralized(headControl))
                 {
-                    LogPassengerHeadNeutralizeDebug("waiting", headControl);
                     return;
                 }
 
-                LogPassengerHeadNeutralizeDebug("settled", headControl);
                 ApplyPassengerPose(superController, true);
                 _waitingForInitialTeleportAfterHeadNeutralize = false;
                 initialTeleportCompletedThisTurn = true;
@@ -748,10 +738,6 @@ namespace geesp0t
                 superController.centerCameraTarget != null ?
                 superController.centerCameraTarget.transform :
                 null;
-            Quaternion navigationRigRotationBefore =
-                navigationRig.rotation;
-            Vector3 navigationRigPositionBefore =
-                navigationRig.position;
             string desiredHeadRotationSourceName;
             Quaternion desiredHeadRotation =
                 BuildPassengerDesiredHeadRotation(
@@ -782,7 +768,6 @@ namespace geesp0t
                 navigationRig.rotation = navigationRigRotation;
             }
 
-            Vector3 up = navigationRig.up;
             Vector3 targetPosition =
                 _passengerHeadRigidbody.position +
                 _passengerHeadRigidbody.transform.forward *
@@ -795,66 +780,11 @@ namespace geesp0t
 
             if (activeThisTurn)
             {
-                float playerHeightAdjustBefore =
-                    superController.playerHeightAdjust;
-                float playerHeightAdjustOffset = Vector3.Dot(
-                    positionOffset - navigationRig.position,
-                    up);
-
                 navigationRig.position = positionOffset;
 
                 ApplyPassengerFirstSnapLateralCenter(
                     superController,
                     motionControllerHead);
-
-                SuperController.LogMessage(
-                    "GabrielHud DEBUG passenger first teleport: " +
-                    "person=" +
-                    (_passengerTargetPerson != null ?
-                        _passengerTargetPerson.uid :
-                        "null") +
-                    " hmdRot=" +
-                    FormatEulerForDebug(
-                        motionControllerHead != null ?
-                        motionControllerHead.rotation :
-                        Quaternion.identity) +
-                    " rigBefore=" +
-                    FormatEulerForDebug(navigationRigRotationBefore) +
-                    " desiredHeadRot=" +
-                    FormatEulerForDebug(desiredHeadRotation) +
-                    " desiredHeadRotSource=" +
-                    desiredHeadRotationSourceName +
-                    " headDelta=" +
-                    FormatEulerForDebug(headRotationDelta) +
-                    " rigAfter=" +
-                    FormatEulerForDebug(navigationRig.rotation) +
-                    " charHeadRot=" +
-                    FormatEulerForDebug(
-                        _passengerHeadRigidbody.transform.rotation) +
-                    " hmdPos=" +
-                    FormatVectorForDebug(
-                        motionControllerHead != null ?
-                        motionControllerHead.position :
-                        Vector3.zero) +
-                    " rigPosBefore=" +
-                    FormatVectorForDebug(navigationRigPositionBefore) +
-                    " targetPos=" +
-                    FormatVectorForDebug(targetPosition) +
-                    " autoSnapPos=" +
-                    FormatVectorForDebug(_possessor.autoSnapPoint.position) +
-                    " posOffset=" +
-                    FormatVectorForDebug(positionOffset) +
-                    " rigPosAfter=" +
-                    FormatVectorForDebug(navigationRig.position) +
-                    " charHeadPos=" +
-                    FormatVectorForDebug(
-                        _passengerHeadRigidbody.position) +
-                    " playerHeightAdjustBefore=" +
-                    playerHeightAdjustBefore.ToString("F4") +
-                    " playerHeightAdjustAfter=" +
-                    superController.playerHeightAdjust.ToString("F4") +
-                    " playerHeightAdjustOffset=" +
-                    playerHeightAdjustOffset.ToString("F4"));
             }
             else
             {
@@ -1235,25 +1165,6 @@ namespace geesp0t
             return new Quaternion(result.x, result.y, result.z, result.w);
         }
 
-        private static string FormatEulerForDebug(Quaternion rotation)
-        {
-            Vector3 eulerAngles = rotation.eulerAngles;
-            return string.Format(
-                "({0:F2}, {1:F2}, {2:F2})",
-                eulerAngles.x,
-                eulerAngles.y,
-                eulerAngles.z);
-        }
-
-        private static string FormatVectorForDebug(Vector3 vector)
-        {
-            return string.Format(
-                "({0:F4}, {1:F4}, {2:F4})",
-                vector.x,
-                vector.y,
-                vector.z);
-        }
-
         private static void ForcePassengerHeadControlNeutralRotation(
             FreeControllerV3 headControl)
         {
@@ -1267,83 +1178,6 @@ namespace geesp0t
 
             if (headControl.followWhenOff != null)
                 headControl.followWhenOff.rotation = neutralRotation;
-        }
-
-        private static void LogPassengerHeadNeutralizeDebug(
-            string phase,
-            FreeControllerV3 headControl)
-        {
-            if (_headNeutralizeDebugLogCount >= 12 &&
-                _headNeutralizeDebugLogCount % 30 != 0)
-            {
-                _headNeutralizeDebugLogCount++;
-                return;
-            }
-
-            if (headControl == null || headControl.control == null)
-            {
-                SuperController.LogMessage(
-                    "GabrielHud DEBUG passenger head neutralize: phase=" +
-                    phase +
-                    " headControl=null");
-                _headNeutralizeDebugLogCount++;
-                return;
-            }
-
-            Quaternion neutralRotation =
-                GetPassengerNeutralHeadControlRotation(headControl);
-            Vector3 currentEulerAngles =
-                headControl.control.rotation.eulerAngles;
-            Vector3 targetEulerAngles =
-                neutralRotation.eulerAngles;
-            Vector3 currentLocalEulerAngles =
-                headControl.control.localEulerAngles;
-
-            float xDeltaDegrees = Mathf.Abs(
-                NormalizeSignedEulerAngle(
-                    currentEulerAngles.x - targetEulerAngles.x));
-            float yDeltaDegrees = Mathf.Abs(
-                NormalizeSignedEulerAngle(
-                    currentEulerAngles.y - targetEulerAngles.y));
-            float zDeltaDegrees = Mathf.Abs(
-                NormalizeSignedEulerAngle(
-                    currentEulerAngles.z - targetEulerAngles.z));
-
-            string sourceName;
-            Vector3 upAxis;
-            Vector3 neutralForward = GetPassengerNeutralForward(
-                headControl,
-                out upAxis,
-                out sourceName);
-
-            SuperController.LogMessage(
-                "GabrielHud DEBUG passenger head neutralize: phase=" +
-                phase +
-                " person=" +
-                (_passengerTargetPerson != null ?
-                    _passengerTargetPerson.uid :
-                    "null") +
-                " currentWorld=" +
-                FormatEulerForDebug(headControl.control.rotation) +
-                " currentLocal=" +
-                FormatVectorForDebug(currentLocalEulerAngles) +
-                " targetWorld=" +
-                FormatEulerForDebug(neutralRotation) +
-                " delta=(" +
-                xDeltaDegrees.ToString("F2") + ", " +
-                yDeltaDegrees.ToString("F2") + ", " +
-                zDeltaDegrees.ToString("F2") + ")" +
-                " preservedDownPitch=" +
-                _preservedInitialHeadDownwardPitchDegrees.ToString("F2") +
-                " source=" +
-                sourceName +
-                " neutralForward=" +
-                FormatVectorForDebug(neutralForward) +
-                " warmupFramesRemaining=" +
-                _initialHeadNeutralizeFramesRemaining.ToString() +
-                " rotationState=" +
-                headControl.currentRotationState.ToString());
-            _headNeutralizeDebugLogCount++;
         }
 
         private static bool IsPassengerHeadControlNeutralized(

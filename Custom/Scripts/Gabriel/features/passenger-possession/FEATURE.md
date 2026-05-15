@@ -24,6 +24,7 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 - Prepare `ImprovedPoV` on the target and suppress duplicate head-hide behavior where needed.
 - Delay VR hand possession until a later grip/trigger confirmation step.
 - Raycast along the **right** UI-aim beam and map the closest hit person for laser+A start.
+- Laser+A confirm uses **`SuperController.GetRightSelect`** (via shared VR input), so Oculus skips the same frames as SteamVR when VaM is consuming right-hand select for **VR UI** (e.g. Edit mode menus / buttons).
 - Reuse the beam target for a short interval while the right beam stays active.
 - Clear stale passenger-style possession after unrelated scene loads (`SceneLoadPossessionCleanup`).
 

@@ -20,7 +20,7 @@ rows. Passenger **start** is not from the palm (see `passenger-possession` +
 
 ## Responsibilities
 - Show/hide the right-hand palm HUD from HMD-relative euler windows.
-- Map Quest/OpenVR face buttons, menu, select, and grip-trigger abstractions through `VrInput`.
+- Map Quest/OpenVR face buttons, menu, select, and grip-trigger abstractions through `VrInput` (**face A / right Select** uses `SuperController.GetRightSelect` so VaM can suppress selects during VR UI, including Oculus).
 - Show **Despossuir** and **Próxima cena** when applicable; no gender submenu.
 - Keep the right-hand back-of-hand pose window aligned with the current palm HUD behavior.
 

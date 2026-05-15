@@ -14,7 +14,7 @@ Vendored AcidBubbles Improved PoV plugin with repo-specific defaults and integra
 ## Responsibilities
 - Handle first-person camera positioning, face/hair hiding, and render-time material swaps for possession.
 - Register camera render hooks only while the effect is active.
-- Expose the repo's active camera depth and height defaults through the plugin UI.
+- Expose the repo's active camera depth and height defaults through the plugin UI (depth default **0.11**; vendor stock is 0.17).
 - Stay compatible with `HeadProximityHide` and passenger possession expectations.
 
 ## Dependencies And Coupling

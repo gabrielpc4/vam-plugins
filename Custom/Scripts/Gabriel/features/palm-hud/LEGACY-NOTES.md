@@ -52,6 +52,8 @@ HMD basis: **`lookCamera`** else **`centerCameraTarget`**
 **File:** `palm-hud/VrInput.cs`
 
 - **Face A:** **`PollRightFaceADown`** / **`PollPalmHudPossessRowFaceADown`** —
+  delegates to **`SuperController.GetRightSelect`** (OVR and OpenVR); VaM
+  suppresses select while interacting with VR UI (`rightGUIInteract`).
   Despossuir when that row exists.
 - **Face B:** **`PollPalmHudProximaCenaFaceBDown`** — next scene.
 - Lasers often miss the **`WorldSpace`** canvas; code **polls buttons**, not only
@@ -64,10 +66,12 @@ HMD basis: **`lookCamera`** else **`centerCameraTarget`**
 **Files:**
 
 - **`passenger-possession/PassengerLaserPossess.cs`** — raycast resolver +
-  **`TryTriggerFromRightBeamPersonHit`** (**`PollRightFaceADown`** + cooldown +
+  **`TryTriggerFromRightBeamPersonHit`** (**`PollRightFaceADown`** →
+  **`GetRightSelect`** + cooldown +
   **`PassengerRuntime.RequestPassengerForSpecificPerson`**). Skips **Edit**
   mode and when the palm HUD is **visible** (right beam aim is suppressed
-  anyway while palm is up).
+  anyway while palm is up). **`GetRightSelect`** also skips frames where VaM
+  consumes right select for VR UI (e.g. laser on a UI button).
 - **`scene-camera/MonitorModeLaserRestore.cs`** — draws forward cylinders when
   **UI aim** capacitive/state is held (Quest **X**/ **A touch**, OpenVR
   **GetLeft/RightUIPointerShow**); passes hit **`Person`** atoms into

@@ -88,8 +88,10 @@ namespace geesp0t
 
         /// <summary>
         /// Right face <b>A</b> / right Select confirmation input.
-        /// OVR <c>RTouch</c> <see cref="OVRInput.Button.One"/>; OpenVR
-        /// <see cref="SuperController.GetRightSelect"/>.
+        /// Delegates to <see cref="SuperController.GetRightSelect"/> so Oculus
+        /// matches OpenVR: VaM suppresses select while <c>rightGUIInteract</c>
+        /// (VR laser on UI), avoiding passenger / palm actions when clicking UI
+        /// in Edit mode or elsewhere.
         /// </summary>
         public static bool PollRightFaceADown(SuperController sc)
         {
@@ -98,22 +100,7 @@ namespace geesp0t
                 return false;
             }
 
-            if (sc.isOVR)
-            {
-                return TryOvrRightTouchButtonDown(OVRInput.Button.One);
-            }
-
-            if (sc.isOpenVR)
-            {
-                return sc.GetRightSelect();
-            }
-
-            if (XrHeadsetLikelyOn(sc))
-            {
-                return TryOvrRightTouchButtonDown(OVRInput.Button.One);
-            }
-
-            return false;
+            return sc.GetRightSelect();
         }
 
         /// <summary>

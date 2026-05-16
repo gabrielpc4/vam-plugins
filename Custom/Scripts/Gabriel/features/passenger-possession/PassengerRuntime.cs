@@ -89,7 +89,28 @@ namespace geesp0t
         private static Transform _passengerEyeLookProxyLeft;
         private static Transform _passengerEyeLookProxyRight;
 
+        /// <summary>
+        /// VaM <see cref="EyesControl"/> was switched to <c>LookMode.None</c> so
+        /// it stops driving <see cref="LookAtWithLimits"/> while passenger owns
+        /// eye targets; restored on stop.
+        /// </summary>
+        private static bool _passengerEyesDriverDetached;
+
+        private static string _passengerSavedEyesLookMode;
+
+        private static Transform _passengerSavedEyesLookAt;
+
+        private static List<PassengerMacSuspendState> _passengerMacSuspendSnaps =
+            new List<PassengerMacSuspendState>();
+
         private static float _nextPassengerDiagLogTime = -1f;
+
+        private sealed class PassengerMacSuspendState
+        {
+            public MotionAnimationControl mac;
+            public bool prevSuspendPos;
+            public bool prevSuspendRot;
+        }
 
         private static void PassengerDiagLog(string message)
         {
@@ -335,8 +356,23 @@ namespace geesp0t
             if (_isPassengerModeActive)
             {
                 UpdatePassengerRuntime(superController);
-                UpdatePassengerChestForwardEyeLookProxyPositions();
             }
+        }
+
+        /// <summary>
+        /// Runs after animation <c>Update</c> (same frame) so eye-socket poses
+        /// see motion / timeline before we place chest-forward proxies.
+        /// </summary>
+        public static void LateTick(MVRScript host)
+        {
+            SetSessionPluginHost(host);
+
+            if (!_isPassengerModeActive)
+            {
+                return;
+            }
+
+            UpdatePassengerChestForwardEyeLookProxyPositions();
         }
 
         private static void StopAutoPossessRoutine()
@@ -1184,6 +1220,93 @@ namespace geesp0t
             return null;
         }
 
+        private static void RestorePassengerEyeTargetMotionPlayback()
+        {
+            if (_passengerMacSuspendSnaps == null ||
+                _passengerMacSuspendSnaps.Count == 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _passengerMacSuspendSnaps.Count; i++)
+            {
+                PassengerMacSuspendState s = _passengerMacSuspendSnaps[i];
+                if (s.mac != null)
+                {
+                    s.mac.suspendPositionPlayback = s.prevSuspendPos;
+                    s.mac.suspendRotationPlayback = s.prevSuspendRot;
+                }
+            }
+
+            _passengerMacSuspendSnaps.Clear();
+        }
+
+        /// <summary>
+        /// Patterns often animate <c>eyeTargetControl</c>; suspend that playback
+        /// so only passenger <see cref="LookAtWithLimits"/> drives eye aim.
+        /// Scenes any <see cref="MotionAnimationControl"/> whose
+        /// <c>controller</c> is this person&apos;s eye-target FC.
+        /// </summary>
+        private static void QuarantinePassengerEyeTargetMotionPlayback(
+            Atom passengerPerson)
+        {
+            RestorePassengerEyeTargetMotionPlayback();
+
+            if (passengerPerson == null)
+            {
+                return;
+            }
+
+            FreeControllerV3 eyeTargetFc =
+                passengerPerson.GetStorableByID("eyeTargetControl") as
+                FreeControllerV3;
+            if (eyeTargetFc == null)
+            {
+                return;
+            }
+
+            SuperController sc = SuperController.singleton;
+            if (sc == null)
+            {
+                return;
+            }
+
+            List<Atom> atoms = sc.GetAtoms();
+            for (int atomIndex = 0; atomIndex < atoms.Count; atomIndex++)
+            {
+                Atom a = atoms[atomIndex];
+                if (a == null)
+                {
+                    continue;
+                }
+
+                MotionAnimationControl[] macs =
+                    a.GetComponentsInChildren<MotionAnimationControl>(true);
+                if (macs == null)
+                {
+                    continue;
+                }
+
+                for (int macIndex = 0; macIndex < macs.Length; macIndex++)
+                {
+                    MotionAnimationControl mac = macs[macIndex];
+                    if (mac == null || mac.controller != eyeTargetFc)
+                    {
+                        continue;
+                    }
+
+                    PassengerMacSuspendState state =
+                        new PassengerMacSuspendState();
+                    state.mac = mac;
+                    state.prevSuspendPos = mac.suspendPositionPlayback;
+                    state.prevSuspendRot = mac.suspendRotationPlayback;
+                    _passengerMacSuspendSnaps.Add(state);
+                    mac.suspendPositionPlayback = true;
+                    mac.suspendRotationPlayback = true;
+                }
+            }
+        }
+
         /// <summary>
         /// Finds <c>lEye</c> / <c>rEye</c> <see cref="LookAtWithLimits"/> on a
         /// Person (same name convention as stock VaM).
@@ -1432,6 +1555,17 @@ namespace geesp0t
                 return;
             }
 
+            EyesControl eyesControl =
+                passengerPerson.GetStorableByID("Eyes") as EyesControl;
+            if (eyesControl != null)
+            {
+                _passengerSavedEyesLookMode =
+                    eyesControl.currentLookMode.ToString();
+                _passengerSavedEyesLookAt = eyesControl.lookAt;
+                eyesControl.currentLookMode = EyesControl.LookMode.None;
+                _passengerEyesDriverDetached = true;
+            }
+
             EnsurePassengerEyeLookProxyTransforms(passengerPerson);
 
             if (left != null)
@@ -1440,6 +1574,8 @@ namespace geesp0t
                 _passengerSavedLeftLookTarget = left.target;
                 left.lookAtCameraLocation = CameraTarget.CameraLocation.None;
                 left.target = _passengerEyeLookProxyLeft;
+                left.enabled = true;
+                left.on = true;
                 _passengerEyeLookLeftPatched = true;
             }
 
@@ -1449,18 +1585,18 @@ namespace geesp0t
                 _passengerSavedRightLookTarget = right.target;
                 right.lookAtCameraLocation = CameraTarget.CameraLocation.None;
                 right.target = _passengerEyeLookProxyRight;
+                right.enabled = true;
+                right.on = true;
                 _passengerEyeLookRightPatched = true;
             }
 
+            QuarantinePassengerEyeTargetMotionPlayback(passengerPerson);
             UpdatePassengerChestForwardEyeLookProxyPositions();
         }
 
         private static void RestorePassengerChestForwardEyeLook(Atom passengerPerson)
         {
-            if (!_passengerEyeLookLeftPatched && !_passengerEyeLookRightPatched)
-            {
-                return;
-            }
+            RestorePassengerEyeTargetMotionPlayback();
 
             if (passengerPerson != null && passengerPerson.type == "Person")
             {
@@ -1483,6 +1619,24 @@ namespace geesp0t
             _passengerEyeLookLeftPatched = false;
             _passengerEyeLookRightPatched = false;
             DestroyPassengerEyeLookProxies();
+
+            if (_passengerEyesDriverDetached &&
+                passengerPerson != null &&
+                passengerPerson.type == "Person")
+            {
+                EyesControl eyesControl =
+                    passengerPerson.GetStorableByID("Eyes") as EyesControl;
+                if (eyesControl != null &&
+                    !string.IsNullOrEmpty(_passengerSavedEyesLookMode))
+                {
+                    eyesControl.lookAt = _passengerSavedEyesLookAt;
+                    eyesControl.SetLookMode(_passengerSavedEyesLookMode);
+                }
+
+                _passengerEyesDriverDetached = false;
+                _passengerSavedEyesLookMode = null;
+                _passengerSavedEyesLookAt = null;
+            }
         }
 
         private static void PrepareImprovedPoVForPassenger(

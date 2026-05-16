@@ -61,8 +61,13 @@ in `GabrielSessionPlugins.cslist` or VaM would also run it on CoreControl.
 | `features/spankings/` | [features/spankings/FEATURE.md](features/spankings/FEATURE.md) |
 | `features/dildo-on-hands/` | [features/dildo-on-hands/FEATURE.md](features/dildo-on-hands/FEATURE.md) |
 | `features/improved-pov/` | [features/improved-pov/FEATURE.md](features/improved-pov/FEATURE.md) |
+| `features/group-pivot-handle/` | [features/group-pivot-handle/FEATURE.md](features/group-pivot-handle/FEATURE.md) *(optional manual plugin)* |
 | `tools/scene-camera/` | [tools/scene-camera/FEATURE.md](tools/scene-camera/FEATURE.md) |
 | `tools/scene-menu/` | [tools/scene-menu/FEATURE.md](tools/scene-menu/FEATURE.md) |
+
+**Person `headControl` → Rotation (VaM UI):** **X** = pitch (up/down), **Y** =
+yaw (left/right), **Z** = roll (tilt). Passenger code follows this mapping; see
+[passenger-possession/FEATURE.md](features/passenger-possession/FEATURE.md#headcontrol-rotation-vam).
 
 ## Tree ownership
 

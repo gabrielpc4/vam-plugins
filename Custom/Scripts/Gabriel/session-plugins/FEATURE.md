@@ -44,6 +44,8 @@ paths in this list).
   `SceneSettleRuntime` and same-folder load guards.
 - Prime the shared per-frame Person possession snapshot before late feature
   ticks fan out to hand, palm-HUD, and toy helpers.
+- Call `PassengerRuntime.LateTick` after `PassengerRuntime.Tick` in
+  `LateUpdate` so passenger eye proxies update post-animation `Update`.
 - Release transient head-hide state after scene settle completes.
 - Register the emergency `Space` release action consumed by the HUD hotkey
   dispatcher.

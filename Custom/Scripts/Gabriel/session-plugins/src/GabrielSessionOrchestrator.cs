@@ -589,6 +589,7 @@ namespace geesp0t
             MonitorModeLaserRestore.Tick(true);
             VrEulerPossessHandHud.Tick();
             PassengerRuntime.Tick(this);
+            PassengerRuntime.LateTick(this);
         }
 
         void OnDestroy()

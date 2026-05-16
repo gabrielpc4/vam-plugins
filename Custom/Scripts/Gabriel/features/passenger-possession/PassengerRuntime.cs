@@ -94,16 +94,20 @@ namespace geesp0t
         private static Transform _passengerSavedEyesLookAt;
 
         /// <summary>
-        /// MAC rows unlinked from <c>eyeTargetControl</c> during passenger;
-        /// each entry restores <see cref="MotionAnimationControl.controller"/>.
+        /// <see cref="AnimationPattern"/> uses a child <see cref="MoveProducer"/>
+        /// whose <c>receiver</c> drives a free controller; during passenger we
+        /// clear that link for the target Person&apos;s
+        /// <c>eyeTargetControl</c> and <c>headControl</c>, then restore it on
+        /// exit.
         /// </summary>
-        private static List<PassengerMacEyeTargetDetachState> _passengerMacEyeTargetDetachSnaps =
-            new List<PassengerMacEyeTargetDetachState>();
+        private static List<PassengerAnimationPatternMoveProducerState>
+            _passengerAnimationPatternMoveProducerSnaps =
+                new List<PassengerAnimationPatternMoveProducerState>();
 
-        private sealed class PassengerMacEyeTargetDetachState
+        private sealed class PassengerAnimationPatternMoveProducerState
         {
-            public MotionAnimationControl mac;
-            public FreeControllerV3 previousController;
+            public MoveProducer moveProducer;
+            public FreeControllerV3 savedReceiver;
         }
 
         /// <summary>
@@ -1169,38 +1173,38 @@ namespace geesp0t
             return null;
         }
 
-        private static void RestorePassengerEyeTargetMotionPlayback()
+        private static void RestorePassengerAnimationPatternMoveProducers()
         {
-            if (_passengerMacEyeTargetDetachSnaps == null ||
-                _passengerMacEyeTargetDetachSnaps.Count == 0)
+            if (_passengerAnimationPatternMoveProducerSnaps == null ||
+                _passengerAnimationPatternMoveProducerSnaps.Count == 0)
             {
                 return;
             }
 
-            for (int i = 0; i < _passengerMacEyeTargetDetachSnaps.Count; i++)
+            int i;
+            for (i = 0; i < _passengerAnimationPatternMoveProducerSnaps.Count; i++)
             {
-                PassengerMacEyeTargetDetachState s =
-                    _passengerMacEyeTargetDetachSnaps[i];
-                if (s.mac != null)
+                PassengerAnimationPatternMoveProducerState s =
+                    _passengerAnimationPatternMoveProducerSnaps[i];
+                if (s.moveProducer != null)
                 {
-                    s.mac.controller = s.previousController;
+                    s.moveProducer.receiver = s.savedReceiver;
                 }
             }
 
-            _passengerMacEyeTargetDetachSnaps.Clear();
+            _passengerAnimationPatternMoveProducerSnaps.Clear();
         }
 
         /// <summary>
-        /// Patterns often animate <c>eyeTargetControl</c>; briefly null
-        /// <see cref="MotionAnimationControl.controller"/> so Look At and FC
-        /// aim are not overwritten by MAC. Restores the link on exit.
-        /// Scenes any <see cref="MotionAnimationControl"/> whose
-        /// <c>controller</c> is this person&apos;s eye-target FC.
+        /// Breaks <see cref="MoveProducer.receiver"/> on every in-scene
+        /// <see cref="AnimationPattern"/> that targets this Person&apos;s
+        /// <c>eyeTargetControl</c> or <c>headControl</c> (same as setting
+        /// Receiver to None in the pattern UI).
         /// </summary>
-        private static void QuarantinePassengerEyeTargetMotionPlayback(
+        private static void QuarantinePassengerAnimationPatternMoveProducers(
             Atom passengerPerson)
         {
-            RestorePassengerEyeTargetMotionPlayback();
+            RestorePassengerAnimationPatternMoveProducers();
 
             if (passengerPerson == null)
             {
@@ -1210,7 +1214,9 @@ namespace geesp0t
             FreeControllerV3 eyeTargetFc =
                 passengerPerson.GetStorableByID("eyeTargetControl") as
                 FreeControllerV3;
-            if (eyeTargetFc == null)
+            FreeControllerV3 headFc =
+                passengerPerson.GetStorableByID("headControl") as FreeControllerV3;
+            if (eyeTargetFc == null && headFc == null)
             {
                 return;
             }
@@ -1222,7 +1228,8 @@ namespace geesp0t
             }
 
             List<Atom> atoms = sc.GetAtoms();
-            for (int atomIndex = 0; atomIndex < atoms.Count; atomIndex++)
+            int atomIndex;
+            for (atomIndex = 0; atomIndex < atoms.Count; atomIndex++)
             {
                 Atom a = atoms[atomIndex];
                 if (a == null)
@@ -1230,27 +1237,43 @@ namespace geesp0t
                     continue;
                 }
 
-                MotionAnimationControl[] macs =
-                    a.GetComponentsInChildren<MotionAnimationControl>(true);
-                if (macs == null)
+                AnimationPattern[] patterns =
+                    a.GetComponentsInChildren<AnimationPattern>(true);
+                if (patterns == null)
                 {
                     continue;
                 }
 
-                for (int macIndex = 0; macIndex < macs.Length; macIndex++)
+                int p;
+                for (p = 0; p < patterns.Length; p++)
                 {
-                    MotionAnimationControl mac = macs[macIndex];
-                    if (mac == null || mac.controller != eyeTargetFc)
+                    AnimationPattern pattern = patterns[p];
+                    if (pattern == null || pattern.animatedTransform == null)
                     {
                         continue;
                     }
 
-                    PassengerMacEyeTargetDetachState state =
-                        new PassengerMacEyeTargetDetachState();
-                    state.mac = mac;
-                    state.previousController = mac.controller;
-                    _passengerMacEyeTargetDetachSnaps.Add(state);
-                    mac.controller = null;
+                    MoveProducer mp =
+                        pattern.animatedTransform.GetComponent<MoveProducer>();
+                    if (mp == null || mp.receiver == null)
+                    {
+                        continue;
+                    }
+
+                    FreeControllerV3 rcv = mp.receiver;
+                    bool eyeMatch = eyeTargetFc != null && rcv == eyeTargetFc;
+                    bool headMatch = headFc != null && rcv == headFc;
+                    if (!eyeMatch && !headMatch)
+                    {
+                        continue;
+                    }
+
+                    PassengerAnimationPatternMoveProducerState state =
+                        new PassengerAnimationPatternMoveProducerState();
+                    state.moveProducer = mp;
+                    state.savedReceiver = rcv;
+                    _passengerAnimationPatternMoveProducerSnaps.Add(state);
+                    mp.receiver = null;
                 }
             }
         }
@@ -1538,13 +1561,13 @@ namespace geesp0t
                 _passengerEyeLookRightPatched = true;
             }
 
-            QuarantinePassengerEyeTargetMotionPlayback(passengerPerson);
+            QuarantinePassengerAnimationPatternMoveProducers(passengerPerson);
             UpdatePassengerChestForwardEyeLookProxyPositions();
         }
 
         private static void RestorePassengerChestForwardEyeLook(Atom passengerPerson)
         {
-            RestorePassengerEyeTargetMotionPlayback();
+            RestorePassengerAnimationPatternMoveProducers();
 
             if (passengerPerson != null && passengerPerson.type == "Person")
             {

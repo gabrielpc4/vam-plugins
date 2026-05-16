@@ -33,10 +33,12 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
   from each socket (same eye height as the socket, not pitched toward the
   chest) so gaze stays character-forward when you turn your HMD (restored on
   stop). **`Eyes` (`EyesControl`)** is set to **LookMode.None** during passenger
-  so it does not retarget the eyes; any **`MotionAnimationControl`** whose
-  **`controller`** is **`eyeTargetControl`** has that link **cleared**
-  ( **`controller` = null** ) scene-wide while active so timeline/pattern motion
-  cannot drive the eye-aim free controller. Both are restored on stop.
+  so it does not retarget the eyes; every in-scene **`AnimationPattern`**
+  whose **`MoveProducer`** **receiver** is this Person&apos;s
+  **`eyeTargetControl`** or **`headControl`** has that receiver **cleared**
+  (same as Receiver **None** in the pattern UI) so curve playback does not
+  drive those free controllers; **`MotionAnimationControl`** timeline can still
+  target them if present. Links are **restored** on stop.
   Proxy positions refresh in **`PassengerRuntime.LateTick`** (after animation
   `Update`).
 - While active, `headControl` tracks the HMD via
@@ -97,7 +99,8 @@ Update this file in the same turn whenever any of these change:
 
 - Target selection, startup alignment, hand possession timing, or laser+A rules change.
 - Initial torso pitch capture, head-follow **`AlignTo`** path, eye **`EyesControl`** /
-  **`MotionAnimationControl`** eye-target unlink, or **`LateTick`** proxy
+  **`AnimationPattern` / `MoveProducer`** head & eye receiver quarantine, or
+  **`LateTick`** proxy
   updates.
 - ImprovedPoV prep or restore behavior changes.
 - Any preserved-state fields or narrow-possess filters change.

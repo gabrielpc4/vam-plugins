@@ -43,13 +43,6 @@ namespace geesp0t
 
         private const float PalmHudHideSecondsAfterHandsPossessTrigger = 5f;
 
-        /// <summary>
-        /// When true, logs <c>SuperController.LogMessage</c> lines (throttled)
-        /// for head snap, rig alignment, and HMD vs torso forward.
-        /// </summary>
-        private const bool PassengerEnableDiagLogging = true;
-        private const float PassengerDiagLogIntervalSeconds = 0.35f;
-
         private static MVRScript _sessionPluginHost;
 
         private static Coroutine _autoPossessCoroutine;
@@ -107,39 +100,10 @@ namespace geesp0t
         private static List<PassengerMacEyeTargetDetachState> _passengerMacEyeTargetDetachSnaps =
             new List<PassengerMacEyeTargetDetachState>();
 
-        private static float _nextPassengerDiagLogTime = -1f;
-
         private sealed class PassengerMacEyeTargetDetachState
         {
             public MotionAnimationControl mac;
             public FreeControllerV3 previousController;
-        }
-
-        private static void PassengerDiagLog(string message)
-        {
-            if (!PassengerEnableDiagLogging)
-            {
-                return;
-            }
-
-            SuperController.LogMessage("[Gabriel passenger] " + message);
-        }
-
-        private static void PassengerDiagLogThrottled(string message)
-        {
-            if (!PassengerEnableDiagLogging)
-            {
-                return;
-            }
-
-            float now = Time.unscaledTime;
-            if (now < _nextPassengerDiagLogTime)
-            {
-                return;
-            }
-
-            _nextPassengerDiagLogTime = now + PassengerDiagLogIntervalSeconds;
-            SuperController.LogMessage("[Gabriel passenger] " + message);
         }
 
         /// <summary>
@@ -194,65 +158,6 @@ namespace geesp0t
 
             right.Normalize();
             return Vector3.SignedAngle(flatHead, headFwd, right);
-        }
-
-        private static float ComputeDotHmdVsTorsoForward(
-            Transform motionControllerHead)
-        {
-            if (motionControllerHead == null ||
-                _passengerTargetPerson == null)
-            {
-                return 0f;
-            }
-
-            string src;
-            Vector3 up;
-            Vector3 chestFlat = GetPassengerNeutralForward(
-                null,
-                out up,
-                out src);
-            if (chestFlat.sqrMagnitude < 1e-10f)
-            {
-                return 0f;
-            }
-
-            chestFlat.Normalize();
-            return Vector3.Dot(motionControllerHead.forward, chestFlat);
-        }
-
-        private static void PassengerEmitRuntimeDiagThrottled(
-            SuperController superController,
-            FreeControllerV3 headControl)
-        {
-            if (headControl == null ||
-                headControl.control == null ||
-                superController.centerCameraTarget == null ||
-                _passengerHeadRigidbody == null)
-            {
-                return;
-            }
-
-            Transform hmd = superController.centerCameraTarget.transform;
-            Quaternion hc = headControl.control.rotation;
-            Vector3 hrf = _passengerHeadRigidbody.transform.forward;
-            float dotHmdChest = ComputeDotHmdVsTorsoForward(hmd);
-            string sn;
-            Vector3 up;
-            Vector3 cf = GetPassengerNeutralForward(null, out up, out sn);
-            float dotRbChest = 0f;
-            if (cf.sqrMagnitude >= 1e-10f)
-            {
-                cf.Normalize();
-                dotRbChest = Vector3.Dot(hrf, cf);
-            }
-
-            PassengerDiagLogThrottled(
-                "RUNTIME hmdEuler=" +
-                hmd.rotation.eulerAngles.ToString("F0") +
-                " headCtrlEuler=" + hc.eulerAngles.ToString("F0") +
-                " dot(hmdFwd,chestFlat)=" + dotHmdChest.ToString("F2") +
-                " dot(headRB,chestFlat)=" + dotRbChest.ToString("F2") +
-                " torsoSn=" + sn);
         }
 
         public static bool IsPassengerModeActiveOrPending()
@@ -716,7 +621,6 @@ namespace geesp0t
                 _waitingForInitialTeleportAfterHeadNeutralize = false;
                 _initialHeadNeutralizeFramesRemaining = 0;
                 _preservedInitialHeadPitchDegrees = 0f;
-                _nextPassengerDiagLogTime = -1f;
             }
         }
 
@@ -869,10 +773,6 @@ namespace geesp0t
                 passengerPerson.GetStorableByID("headControl") as FreeControllerV3;
             _preservedInitialHeadPitchDegrees =
                 ComputePassengerSignedHeadPitchVsTorso(headControl);
-            PassengerDiagLog(
-                "Activate uid=" + passengerPerson.uid +
-                " preservedSignedTorsoPitchDeg=" +
-                _preservedInitialHeadPitchDegrees.ToString("F2"));
             ForcePassengerHeadControlNeutralRotation(headControl);
             ApplyPassengerChestForwardEyeLook(passengerPerson);
         }
@@ -942,7 +842,6 @@ namespace geesp0t
                 if (!initialTeleportCompletedThisTurn)
                     ApplyPassengerPose(superController, false);
                 ApplyPassengerHeadRotationFollow(superController, headControl);
-                PassengerEmitRuntimeDiagThrottled(superController, headControl);
             }
             catch (Exception exception)
             {
@@ -1031,7 +930,6 @@ namespace geesp0t
                 superController.centerCameraTarget.transform :
                 null;
             Quaternion desiredHeadRotation = Quaternion.identity;
-            string desiredHeadRotationSourceName = "none";
             Vector3 snapTorsoUp = Vector3.up;
             Quaternion navigationRigRotation;
             Quaternion headRotationDelta = Quaternion.identity;
@@ -1040,7 +938,6 @@ namespace geesp0t
             {
                 desiredHeadRotation = BuildPassengerDesiredHeadRotation(
                     navigationRig.up,
-                    out desiredHeadRotationSourceName,
                     out snapTorsoUp);
                 navigationRigRotation = desiredHeadRotation;
 
@@ -1075,22 +972,6 @@ namespace geesp0t
 
                     navigationRig.rotation = navigationRigRotation;
                 }
-
-                string hmdEulerStr = motionControllerHead != null
-                    ? motionControllerHead.rotation.eulerAngles.ToString("F1")
-                    : "n/a";
-                float dotHmdChest = ComputeDotHmdVsTorsoForward(
-                    motionControllerHead);
-                PassengerDiagLog(
-                    "INITIAL RIG SNAP rigEuler=" +
-                    navigationRigRotation.eulerAngles.ToString("F1") +
-                    " desiredHeadRot=" +
-                    desiredHeadRotation.eulerAngles.ToString("F1") +
-                    " preservedTorsoPitchDeg=" +
-                    _preservedInitialHeadPitchDegrees.ToString("F1") +
-                    " torsoSrc=" + desiredHeadRotationSourceName +
-                    " hmdEuler=" + hmdEulerStr +
-                    " dot(hmdFwd,chestFlatFwd)=" + dotHmdChest.ToString("F3"));
             }
 
             Vector3 targetPosition =
@@ -1214,14 +1095,6 @@ namespace geesp0t
 
             headControl.currentRotationState = FreeControllerV3.RotationState.On;
             headControl.AlignTo(motionControllerHead, true);
-
-            PassengerDiagLogThrottled(
-                "headFollow AlignTo(HMD) possFwd=" +
-                headControl.PossessForwardAxis.ToString() +
-                " possUp=" +
-                headControl.PossessUpAxis.ToString() +
-                " ctrlEuler=" +
-                headControl.control.rotation.eulerAngles.ToString("F0"));
         }
 
         private static bool IsFemalePerson(Atom atom)
@@ -2107,16 +1980,15 @@ namespace geesp0t
 
         private static Quaternion BuildPassengerDesiredHeadRotation(
             Vector3 upAxis,
-            out string sourceName,
             out Vector3 resolvedTorsoUp)
         {
             resolvedTorsoUp = Vector3.up;
-            sourceName = "none";
             if (_passengerHeadRigidbody == null)
             {
                 return Quaternion.identity;
             }
 
+            string sourceName;
             Vector3 stableUpAxis;
             Vector3 neutralForward = GetPassengerNeutralForward(
                 null,
@@ -2131,9 +2003,6 @@ namespace geesp0t
 
             if (neutralForward.sqrMagnitude < 1e-10f)
             {
-                PassengerDiagLog(
-                    "BuildPassengerDesiredHeadRotation: no neutralForward; " +
-                    "fallback identity");
                 return Quaternion.identity;
             }
 
@@ -2153,8 +2022,6 @@ namespace geesp0t
             Vector3 rightChest = Vector3.Cross(upAxis, neutralForward);
             if (rightChest.sqrMagnitude < 1e-10f)
             {
-                PassengerDiagLog(
-                    "BuildPassengerDesiredHeadRotation: degenerate rightChest");
                 return Quaternion.LookRotation(neutralForward, upAxis);
             }
 
@@ -2165,12 +2032,6 @@ namespace geesp0t
             Quaternion result =
                 Quaternion.AngleAxis(pitchDegrees, rightChest) *
                 neutralRotation;
-
-            PassengerDiagLog(
-                "BuildPassengerDesiredHeadRotation src=" + sourceName +
-                " chestYawOnly pitchPreserved=" +
-                _preservedInitialHeadPitchDegrees.ToString("F1") +
-                " pitch+off=" + pitchDegrees.ToString("F1"));
 
             return result;
         }

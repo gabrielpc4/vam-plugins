@@ -80,15 +80,6 @@ looking at the ceiling), in which case **pre-snap play-space** **`navigationRig.
 is projected instead so Unity does not pick an arbitrary ~90° roll.
 The old `eulerAngles.z = 0` hack broke pitch/yaw.
 
-## Diagnostic console logging
-
-`PassengerRuntime.cs`: set **`PassengerEnableDiagLogging`** to `true` (default)
-to emit **`SuperController.LogMessage`** lines prefixed with
-**`[Gabriel passenger]`** — unthrottled on activate, initial rig snap, and
-`BuildPassengerDesiredHeadRotation`; **throttled** (~`PassengerDiagLogIntervalSeconds`)
-for per-frame head-follow yaw/pitch and runtime HMD vs chest-flat `dot` values.
-Set **`PassengerEnableDiagLogging`** to `false` to silence.
-
 ## Dependencies And Coupling
 - Depends on `improved-pov/ImprovedPoV.cs` and cooperates with `HeadProximityHide`.
 - Cooperates with `scene-camera` (`MonitorModeLaserRestore`), `NextSceneUiButton`
@@ -105,8 +96,7 @@ Set **`PassengerEnableDiagLogging`** to `false` to silence.
 Update this file in the same turn whenever any of these change:
 
 - Target selection, startup alignment, hand possession timing, or laser+A rules change.
-- Diagnostic logging toggles (`PassengerEnableDiagLogging`, throttle), initial
-  torso pitch capture, head-follow **`AlignTo`** path, eye **`EyesControl`** /
+- Initial torso pitch capture, head-follow **`AlignTo`** path, eye **`EyesControl`** /
   **`MotionAnimationControl`** eye-target unlink, or **`LateTick`** proxy
   updates.
 - ImprovedPoV prep or restore behavior changes.

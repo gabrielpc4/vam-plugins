@@ -2,6 +2,7 @@ src/SceneSettle.cs
 src/PlaybackHold.cs
 src/InitialExposureChange.cs
 src/GabrielSessionOrchestrator.cs
+src/MirrorReflectionHighResOnSceneLoad.cs
 src/PersonTongueCollisionDisable.cs
 ../util/FileManager.cs
 ../util/PersonAtomCache.cs

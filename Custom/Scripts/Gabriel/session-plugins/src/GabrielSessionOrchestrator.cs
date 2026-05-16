@@ -511,6 +511,9 @@ namespace geesp0t
                 PersonTongueCollisionDisable.ResetForNewScene();
                 PersonTongueCollisionDisable.ApplyToAllPersonAtoms(scFsm);
 
+                MirrorReflectionHighResOnSceneLoad.ApplyIfSceneHasMirrorHosts(
+                    scFsm);
+
                 PassengerRuntime.NotifySceneChanged(this);
                 SceneLoadPossessionCleanup.ClearPossessionAfterSceneApplyIfHadAny();
 

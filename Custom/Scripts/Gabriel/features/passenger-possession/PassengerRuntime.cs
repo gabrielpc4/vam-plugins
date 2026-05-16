@@ -100,16 +100,19 @@ namespace geesp0t
 
         private static Transform _passengerSavedEyesLookAt;
 
-        private static List<PassengerMacSuspendState> _passengerMacSuspendSnaps =
-            new List<PassengerMacSuspendState>();
+        /// <summary>
+        /// MAC rows unlinked from <c>eyeTargetControl</c> during passenger;
+        /// each entry restores <see cref="MotionAnimationControl.controller"/>.
+        /// </summary>
+        private static List<PassengerMacEyeTargetDetachState> _passengerMacEyeTargetDetachSnaps =
+            new List<PassengerMacEyeTargetDetachState>();
 
         private static float _nextPassengerDiagLogTime = -1f;
 
-        private sealed class PassengerMacSuspendState
+        private sealed class PassengerMacEyeTargetDetachState
         {
             public MotionAnimationControl mac;
-            public bool prevSuspendPos;
-            public bool prevSuspendRot;
+            public FreeControllerV3 previousController;
         }
 
         private static void PassengerDiagLog(string message)
@@ -1295,28 +1298,29 @@ namespace geesp0t
 
         private static void RestorePassengerEyeTargetMotionPlayback()
         {
-            if (_passengerMacSuspendSnaps == null ||
-                _passengerMacSuspendSnaps.Count == 0)
+            if (_passengerMacEyeTargetDetachSnaps == null ||
+                _passengerMacEyeTargetDetachSnaps.Count == 0)
             {
                 return;
             }
 
-            for (int i = 0; i < _passengerMacSuspendSnaps.Count; i++)
+            for (int i = 0; i < _passengerMacEyeTargetDetachSnaps.Count; i++)
             {
-                PassengerMacSuspendState s = _passengerMacSuspendSnaps[i];
+                PassengerMacEyeTargetDetachState s =
+                    _passengerMacEyeTargetDetachSnaps[i];
                 if (s.mac != null)
                 {
-                    s.mac.suspendPositionPlayback = s.prevSuspendPos;
-                    s.mac.suspendRotationPlayback = s.prevSuspendRot;
+                    s.mac.controller = s.previousController;
                 }
             }
 
-            _passengerMacSuspendSnaps.Clear();
+            _passengerMacEyeTargetDetachSnaps.Clear();
         }
 
         /// <summary>
-        /// Patterns often animate <c>eyeTargetControl</c>; suspend that playback
-        /// so only passenger <see cref="LookAtWithLimits"/> drives eye aim.
+        /// Patterns often animate <c>eyeTargetControl</c>; briefly null
+        /// <see cref="MotionAnimationControl.controller"/> so Look At and FC
+        /// aim are not overwritten by MAC. Restores the link on exit.
         /// Scenes any <see cref="MotionAnimationControl"/> whose
         /// <c>controller</c> is this person&apos;s eye-target FC.
         /// </summary>
@@ -1368,14 +1372,12 @@ namespace geesp0t
                         continue;
                     }
 
-                    PassengerMacSuspendState state =
-                        new PassengerMacSuspendState();
+                    PassengerMacEyeTargetDetachState state =
+                        new PassengerMacEyeTargetDetachState();
                     state.mac = mac;
-                    state.prevSuspendPos = mac.suspendPositionPlayback;
-                    state.prevSuspendRot = mac.suspendRotationPlayback;
-                    _passengerMacSuspendSnaps.Add(state);
-                    mac.suspendPositionPlayback = true;
-                    mac.suspendRotationPlayback = true;
+                    state.previousController = mac.controller;
+                    _passengerMacEyeTargetDetachSnaps.Add(state);
+                    mac.controller = null;
                 }
             }
         }

@@ -950,6 +950,69 @@ namespace geesp0t
             }
         }
 
+        /// <summary>
+        /// Pick a world <c>up</c> for <see cref="Quaternion.LookRotation"/> on
+        /// the navigation rig after the initial head delta. Torso up is wrong
+        /// when it is nearly parallel to <paramref name="rigForward"/> (common
+        /// when lying on the back looking at the ceiling).
+        /// </summary>
+        private static Vector3 ComputePassengerRigLookSnapUp(
+            Vector3 rigForward,
+            Vector3 torsoUpWorld,
+            Vector3 rigUpBeforeSnap)
+        {
+            Vector3 fwd = rigForward;
+            if (fwd.sqrMagnitude < 1e-12f)
+            {
+                return Vector3.up;
+            }
+
+            fwd.Normalize();
+
+            Vector3 torso = torsoUpWorld;
+            if (torso.sqrMagnitude < 1e-12f)
+            {
+                torso = Vector3.up;
+            }
+            else
+            {
+                torso.Normalize();
+            }
+
+            float parallel = Mathf.Abs(Vector3.Dot(fwd, torso));
+            Vector3 upReference = torso;
+            if (parallel > 0.88f)
+            {
+                upReference = rigUpBeforeSnap;
+                if (upReference.sqrMagnitude < 1e-12f)
+                {
+                    upReference = Vector3.up;
+                }
+                else
+                {
+                    upReference.Normalize();
+                }
+            }
+
+            Vector3 projected = Vector3.ProjectOnPlane(upReference, fwd);
+            if (projected.sqrMagnitude < 1e-10f)
+            {
+                projected = Vector3.ProjectOnPlane(Vector3.up, fwd);
+            }
+
+            if (projected.sqrMagnitude < 1e-10f)
+            {
+                projected = Vector3.ProjectOnPlane(Vector3.right, fwd);
+            }
+
+            if (projected.sqrMagnitude < 1e-10f)
+            {
+                return Vector3.up;
+            }
+
+            return projected.normalized;
+        }
+
         private static void ApplyPassengerPose(
             SuperController superController,
             bool activeThisTurn)
@@ -980,21 +1043,31 @@ namespace geesp0t
 
                 if (motionControllerHead != null)
                 {
+                    // Play-space up before the snap — stable roll reference when
+                    // lying down (view forward ~ parallel to torso up).
+                    Vector3 rigUpBeforeSnap = navigationRig.up;
                     headRotationDelta =
                         desiredHeadRotation *
                         Quaternion.Inverse(motionControllerHead.rotation);
                     navigationRigRotation =
                         headRotationDelta * navigationRig.rotation;
 
-                    // Drop roll only: keep rig forward, align up to torso (chest)
-                    // up — avoids euler.z=0 corrupting pitch/yaw vs the head.
+                    // Drop roll only: keep rig forward, orthonormalize up.
+                    // Torso-up alone fails supine: HMD forward and chest.up can
+                    // both align with world vertical, so LookRotation picks
+                    // arbitrary roll (~90° camera tilt). Then fall back to
+                    // pre-snap rig up projected perpendicular to forward.
                     Vector3 rigFwd = navigationRigRotation * Vector3.forward;
                     if (rigFwd.sqrMagnitude > 1e-12f &&
                         snapTorsoUp.sqrMagnitude > 1e-12f)
                     {
+                        Vector3 snapUp = ComputePassengerRigLookSnapUp(
+                            rigFwd,
+                            snapTorsoUp,
+                            rigUpBeforeSnap);
                         navigationRigRotation = Quaternion.LookRotation(
                             rigFwd.normalized,
-                            snapTorsoUp.normalized);
+                            snapUp);
                     }
 
                     navigationRig.rotation = navigationRigRotation;

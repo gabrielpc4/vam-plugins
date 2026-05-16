@@ -73,8 +73,11 @@ axis if the model was looking sideways. **Pitch** (up/down) matches the
 person’s starting head nod in the torso frame (**`AngleAxis` around
 `Cross(torsoUp, chestFlat)`**, not `Euler` on `LookRotation`, which skewed
 tilt), plus optional `RotationOffsetXDegrees`. After the delta multiply,
-roll is stripped with **`LookRotation(rigForward, torsoUp)`** — the old
-`eulerAngles.z = 0` hack broke pitch/yaw.
+roll is stripped with **`LookRotation(rigForward, snapUp)`** — **`snapUp`**
+uses torso **up** unless it is nearly parallel to **rig forward** (e.g. supine,
+looking at the ceiling), in which case **pre-snap play-space** **`navigationRig.up`**
+is projected instead so Unity does not pick an arbitrary ~90° roll.
+The old `eulerAngles.z = 0` hack broke pitch/yaw.
 
 ## Diagnostic console logging
 

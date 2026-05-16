@@ -378,11 +378,22 @@ namespace geesp0t
 
                 if (atomUids == null || atomUids.Count == 0)
                     return;
-                if (!EmotionPathKeywords.MatchesCurrentScenePath())
-                    return;
 
                 SuperController sc = SuperController.singleton;
                 if (sc == null || sc.isLoading)
+                    return;
+
+                int j;
+                for (j = 0; j < atomUids.Count; j++)
+                {
+                    Atom a = sc.GetAtomByUid(atomUids[j]);
+                    if (a != null && a.type == "Person")
+                    {
+                        PersonTongueCollisionDisable.TryDisableForPerson(a);
+                    }
+                }
+
+                if (!EmotionPathKeywords.MatchesCurrentScenePath())
                     return;
 
                 bool sawPerson = false;
@@ -496,6 +507,9 @@ namespace geesp0t
                 hud = ResolveGabrielHud();
 
                 PersonAtomCache.InvalidatePersonGenderCaches();
+
+                PersonTongueCollisionDisable.ResetForNewScene();
+                PersonTongueCollisionDisable.ApplyToAllPersonAtoms(scFsm);
 
                 PassengerRuntime.NotifySceneChanged(this);
                 SceneLoadPossessionCleanup.ClearPossessionAfterSceneApplyIfHadAny();

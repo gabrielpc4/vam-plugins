@@ -27,6 +27,58 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 - Laser+A confirm uses **`SuperController.GetRightSelect`** (via shared VR input), so Oculus skips the same frames as SteamVR when VaM is consuming right-hand select for **VR UI** (e.g. Edit mode menus / buttons).
 - Reuse the beam target for a short interval while the right beam stays active.
 - Clear stale passenger-style possession after unrelated scene loads (`SceneLoadPossessionCleanup`).
+- Snap the rig with a forward offset along the head rigidbody
+  (`PositionOffsetZMeters`). While active, repoint `lEye`/`rEye`
+  `LookAtWithLimits` at runtime proxies along **world-horizontal** torso **yaw**
+  from each socket (same eye height as the socket, not pitched toward the
+  chest) so gaze stays character-forward when you turn your HMD (restored on
+  stop).
+- While active, `headControl` tracks the HMD via
+  **`FreeControllerV3.AlignTo`** on `centerCameraTarget` (same as VaM head
+  possession: **`PossessForwardAxis`** / **`PossessUpAxis`**). The **Rotation**
+  gizmo still behaves as **X** pitch, **Y** yaw, **Z** roll; see
+  [HeadControl rotation (VaM)](#headcontrol-rotation-vam).
+
+## HeadControl rotation (VaM)
+
+For Person atoms, **`headControl` → Rotation** in the VaM UI behaves as:
+
+| Axis | Role |
+|------|------|
+| **X** | Pitch — nod **up / down** |
+| **Y** | Yaw — turn **left / right** |
+| **Z** | Roll — head **tilt** (ear toward shoulder) |
+
+Passenger runtime calls **`headControl.AlignTo(centerCameraTarget, …)`** — the
+same **`FreeControllerV3.AlignTo`** path VaM uses when possessing the head:
+it honors **`PossessForwardAxis`** / **`PossessUpAxis`** (nose is not always +Z).
+Using **`LookRotation(HMD.forward, …)`** alone assumed Unity **`forward`** was
+the look axis and could leave the mesh yaw ~90° off while the rig view stayed
+correct.
+
+## Initial HMD tilt (passenger start)
+
+Before `headControl` is neutralized, **`ComputePassengerSignedHeadPitchVsTorso`**
+records signed **nod** vs the torso horizontal plane (same construction as
+in-game head pitch relative to chest, not world Euler).
+
+The **first** navigation rig snap uses **chest-flat forward** for **horizontal**
+facing (VaM **R.Y** / where the chest points), **ignoring** head twist on that
+axis if the model was looking sideways. **Pitch** (up/down) matches the
+person’s starting head nod in the torso frame (**`AngleAxis` around
+`Cross(torsoUp, chestFlat)`**, not `Euler` on `LookRotation`, which skewed
+tilt), plus optional `RotationOffsetXDegrees`. After the delta multiply,
+roll is stripped with **`LookRotation(rigForward, torsoUp)`** — the old
+`eulerAngles.z = 0` hack broke pitch/yaw.
+
+## Diagnostic console logging
+
+`PassengerRuntime.cs`: set **`PassengerEnableDiagLogging`** to `true` (default)
+to emit **`SuperController.LogMessage`** lines prefixed with
+**`[Gabriel passenger]`** — unthrottled on activate, initial rig snap, and
+`BuildPassengerDesiredHeadRotation`; **throttled** (~`PassengerDiagLogIntervalSeconds`)
+for per-frame head-follow yaw/pitch and runtime HMD vs chest-flat `dot` values.
+Set **`PassengerEnableDiagLogging`** to `false` to silence.
 
 ## Dependencies And Coupling
 - Depends on `improved-pov/ImprovedPoV.cs` and cooperates with `HeadProximityHide`.
@@ -44,5 +96,7 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 Update this file in the same turn whenever any of these change:
 
 - Target selection, startup alignment, hand possession timing, or laser+A rules change.
+- Diagnostic logging toggles (`PassengerEnableDiagLogging`, throttle), initial
+  torso pitch capture, or head-follow `AngleAxis` math.
 - ImprovedPoV prep or restore behavior changes.
 - Any preserved-state fields or narrow-possess filters change.

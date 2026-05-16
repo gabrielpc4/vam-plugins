@@ -24,12 +24,31 @@ namespace geesp0t
         private const float RotationSmoothingSeconds = 0.1985169f;
         private const float RotationOffsetXDegrees = 15.17952f;
         private const float PositionSmoothingSeconds = 0.05345887f;
+        /// <summary>
+        /// Forward offset along the head rigidbody forward when snapping the
+        /// navigation rig to the passenger head (VaM <c>LookAtWithLimits</c>
+        /// converges on <c>CameraTarget</c>; a larger value keeps the rig
+        /// center farther in front of the skull).
+        /// </summary>
         private const float PositionOffsetZMeters = 0.1149023f;
+        /// <summary>
+        /// World-space distance from each eye to its synthetic look target along
+        /// torso (chest) forward — only direction matters for
+        /// <see cref="LookAtWithLimits"/>.
+        /// </summary>
+        private const float PassengerChestForwardEyeLookDistanceMeters = 3f;
         private const float PendingActivationTimeoutSeconds = 3f;
         private const int InitialHeadNeutralizeFrames = 2;
         private const float HeadNeutralizeAngleToleranceDegrees = 1.5f;
 
         private const float PalmHudHideSecondsAfterHandsPossessTrigger = 5f;
+
+        /// <summary>
+        /// When true, logs <c>SuperController.LogMessage</c> lines (throttled)
+        /// for head snap, rig alignment, and HMD vs torso forward.
+        /// </summary>
+        private const bool PassengerEnableDiagLogging = true;
+        private const float PassengerDiagLogIntervalSeconds = 0.35f;
 
         private static MVRScript _sessionPluginHost;
 
@@ -55,7 +74,162 @@ namespace geesp0t
         private static bool _passengerVrHandsPossessionStartedThisSession;
         private static bool _waitingForInitialTeleportAfterHeadNeutralize;
         private static int _initialHeadNeutralizeFramesRemaining;
-        private static float _preservedInitialHeadDownwardPitchDegrees;
+        /// <summary>
+        /// Signed pitch (deg) of head vs torso horizontal at passenger start;
+        /// see <see cref="ComputePassengerSignedHeadPitchVsTorso"/>.
+        /// </summary>
+        private static float _preservedInitialHeadPitchDegrees;
+
+        private static bool _passengerEyeLookLeftPatched;
+        private static bool _passengerEyeLookRightPatched;
+        private static CameraTarget.CameraLocation _passengerSavedLeftLookLoc;
+        private static CameraTarget.CameraLocation _passengerSavedRightLookLoc;
+        private static Transform _passengerSavedLeftLookTarget;
+        private static Transform _passengerSavedRightLookTarget;
+        private static Transform _passengerEyeLookProxyLeft;
+        private static Transform _passengerEyeLookProxyRight;
+
+        private static float _nextPassengerDiagLogTime = -1f;
+
+        private static void PassengerDiagLog(string message)
+        {
+            if (!PassengerEnableDiagLogging)
+            {
+                return;
+            }
+
+            SuperController.LogMessage("[Gabriel passenger] " + message);
+        }
+
+        private static void PassengerDiagLogThrottled(string message)
+        {
+            if (!PassengerEnableDiagLogging)
+            {
+                return;
+            }
+
+            float now = Time.unscaledTime;
+            if (now < _nextPassengerDiagLogTime)
+            {
+                return;
+            }
+
+            _nextPassengerDiagLogTime = now + PassengerDiagLogIntervalSeconds;
+            SuperController.LogMessage("[Gabriel passenger] " + message);
+        }
+
+        /// <summary>
+        /// Signed pitch (deg): angle from torso-horizontal head forward to actual
+        /// <c>headControl.forward</c> around the horizontal right axis (torso
+        /// <c>up</c>).
+        /// </summary>
+        private static float ComputePassengerSignedHeadPitchVsTorso(
+            FreeControllerV3 headControl)
+        {
+            Vector3 headFwd;
+            if (headControl != null && headControl.control != null)
+            {
+                headFwd = headControl.control.forward;
+            }
+            else if (_passengerHeadRigidbody != null)
+            {
+                headFwd = _passengerHeadRigidbody.transform.forward;
+            }
+            else
+            {
+                return 0f;
+            }
+
+            string src;
+            Vector3 torsoUp;
+            Vector3 torsoFlatFwd = GetPassengerNeutralForward(
+                headControl,
+                out torsoUp,
+                out src);
+            if (torsoFlatFwd.sqrMagnitude < 1e-10f ||
+                torsoUp.sqrMagnitude < 1e-10f)
+            {
+                return 0f;
+            }
+
+            torsoFlatFwd.Normalize();
+            torsoUp.Normalize();
+
+            Vector3 flatHead = Vector3.ProjectOnPlane(headFwd, torsoUp);
+            if (flatHead.sqrMagnitude < 1e-10f)
+            {
+                return 0f;
+            }
+
+            flatHead.Normalize();
+            Vector3 right = Vector3.Cross(torsoUp, flatHead);
+            if (right.sqrMagnitude < 1e-10f)
+            {
+                return 0f;
+            }
+
+            right.Normalize();
+            return Vector3.SignedAngle(flatHead, headFwd, right);
+        }
+
+        private static float ComputeDotHmdVsTorsoForward(
+            Transform motionControllerHead)
+        {
+            if (motionControllerHead == null ||
+                _passengerTargetPerson == null)
+            {
+                return 0f;
+            }
+
+            string src;
+            Vector3 up;
+            Vector3 chestFlat = GetPassengerNeutralForward(
+                null,
+                out up,
+                out src);
+            if (chestFlat.sqrMagnitude < 1e-10f)
+            {
+                return 0f;
+            }
+
+            chestFlat.Normalize();
+            return Vector3.Dot(motionControllerHead.forward, chestFlat);
+        }
+
+        private static void PassengerEmitRuntimeDiagThrottled(
+            SuperController superController,
+            FreeControllerV3 headControl)
+        {
+            if (headControl == null ||
+                headControl.control == null ||
+                superController.centerCameraTarget == null ||
+                _passengerHeadRigidbody == null)
+            {
+                return;
+            }
+
+            Transform hmd = superController.centerCameraTarget.transform;
+            Quaternion hc = headControl.control.rotation;
+            Vector3 hrf = _passengerHeadRigidbody.transform.forward;
+            float dotHmdChest = ComputeDotHmdVsTorsoForward(hmd);
+            string sn;
+            Vector3 up;
+            Vector3 cf = GetPassengerNeutralForward(null, out up, out sn);
+            float dotRbChest = 0f;
+            if (cf.sqrMagnitude >= 1e-10f)
+            {
+                cf.Normalize();
+                dotRbChest = Vector3.Dot(hrf, cf);
+            }
+
+            PassengerDiagLogThrottled(
+                "RUNTIME hmdEuler=" +
+                hmd.rotation.eulerAngles.ToString("F0") +
+                " headCtrlEuler=" + hc.eulerAngles.ToString("F0") +
+                " dot(hmdFwd,chestFlat)=" + dotHmdChest.ToString("F2") +
+                " dot(headRB,chestFlat)=" + dotRbChest.ToString("F2") +
+                " torsoSn=" + sn);
+        }
 
         public static bool IsPassengerModeActiveOrPending()
         {
@@ -161,6 +335,7 @@ namespace geesp0t
             if (_isPassengerModeActive)
             {
                 UpdatePassengerRuntime(superController);
+                UpdatePassengerChestForwardEyeLookProxyPositions();
             }
         }
 
@@ -457,6 +632,17 @@ namespace geesp0t
 
             try
             {
+                try
+                {
+                    RestorePassengerChestForwardEyeLook(_passengerTargetPerson);
+                }
+                catch (Exception lookAtException)
+                {
+                    SuperController.LogError(
+                        "Easy Mate passenger look-at restore failed: " +
+                        lookAtException.Message);
+                }
+
                 RestoreImprovedPoVForPassengerTarget(_passengerTargetPerson);
 
                 SuperController superController = SuperController.singleton;
@@ -490,7 +676,8 @@ namespace geesp0t
                 _currentPositionVelocity = Vector3.zero;
                 _waitingForInitialTeleportAfterHeadNeutralize = false;
                 _initialHeadNeutralizeFramesRemaining = 0;
-                _preservedInitialHeadDownwardPitchDegrees = 0f;
+                _preservedInitialHeadPitchDegrees = 0f;
+                _nextPassengerDiagLogTime = -1f;
             }
         }
 
@@ -641,12 +828,14 @@ namespace geesp0t
 
             FreeControllerV3 headControl =
                 passengerPerson.GetStorableByID("headControl") as FreeControllerV3;
-            _preservedInitialHeadDownwardPitchDegrees =
-                GetPassengerDownwardPitchToPreserve(
-                    headControl != null && headControl.control != null
-                        ? headControl.control.rotation
-                        : headRigidbody.transform.rotation);
+            _preservedInitialHeadPitchDegrees =
+                ComputePassengerSignedHeadPitchVsTorso(headControl);
+            PassengerDiagLog(
+                "Activate uid=" + passengerPerson.uid +
+                " preservedSignedTorsoPitchDeg=" +
+                _preservedInitialHeadPitchDegrees.ToString("F2"));
             ForcePassengerHeadControlNeutralRotation(headControl);
+            ApplyPassengerChestForwardEyeLook(passengerPerson);
         }
 
         private static void UpdatePassengerRuntime(
@@ -714,6 +903,7 @@ namespace geesp0t
                 if (!initialTeleportCompletedThisTurn)
                     ApplyPassengerPose(superController, false);
                 ApplyPassengerHeadRotationFollow(superController, headControl);
+                PassengerEmitRuntimeDiagThrottled(superController, headControl);
             }
             catch (Exception exception)
             {
@@ -738,34 +928,57 @@ namespace geesp0t
                 superController.centerCameraTarget != null ?
                 superController.centerCameraTarget.transform :
                 null;
-            string desiredHeadRotationSourceName;
-            Quaternion desiredHeadRotation =
-                BuildPassengerDesiredHeadRotation(
-                    navigationRig.up,
-                    out desiredHeadRotationSourceName);
-            Quaternion navigationRigRotation = desiredHeadRotation;
+            Quaternion desiredHeadRotation = Quaternion.identity;
+            string desiredHeadRotationSourceName = "none";
+            Vector3 snapTorsoUp = Vector3.up;
+            Quaternion navigationRigRotation;
             Quaternion headRotationDelta = Quaternion.identity;
+
             if (activeThisTurn)
             {
+                desiredHeadRotation = BuildPassengerDesiredHeadRotation(
+                    navigationRig.up,
+                    out desiredHeadRotationSourceName,
+                    out snapTorsoUp);
+                navigationRigRotation = desiredHeadRotation;
+
                 if (motionControllerHead != null)
                 {
-                    desiredHeadRotation = KeepOnlyDownwardPitch(
-                        desiredHeadRotation,
-                        motionControllerHead.rotation);
                     headRotationDelta =
                         desiredHeadRotation *
                         Quaternion.Inverse(motionControllerHead.rotation);
                     navigationRigRotation =
                         headRotationDelta * navigationRig.rotation;
+
+                    // Drop roll only: keep rig forward, align up to torso (chest)
+                    // up — avoids euler.z=0 corrupting pitch/yaw vs the head.
+                    Vector3 rigFwd = navigationRigRotation * Vector3.forward;
+                    if (rigFwd.sqrMagnitude > 1e-12f &&
+                        snapTorsoUp.sqrMagnitude > 1e-12f)
+                    {
+                        navigationRigRotation = Quaternion.LookRotation(
+                            rigFwd.normalized,
+                            snapTorsoUp.normalized);
+                    }
+
+                    navigationRig.rotation = navigationRigRotation;
                 }
 
-                Vector3 rotationEulerAngles = navigationRigRotation.eulerAngles;
-                navigationRigRotation.eulerAngles = new Vector3(
-                    rotationEulerAngles.x,
-                    rotationEulerAngles.y,
-                    0f);
-
-                navigationRig.rotation = navigationRigRotation;
+                string hmdEulerStr = motionControllerHead != null
+                    ? motionControllerHead.rotation.eulerAngles.ToString("F1")
+                    : "n/a";
+                float dotHmdChest = ComputeDotHmdVsTorsoForward(
+                    motionControllerHead);
+                PassengerDiagLog(
+                    "INITIAL RIG SNAP rigEuler=" +
+                    navigationRigRotation.eulerAngles.ToString("F1") +
+                    " desiredHeadRot=" +
+                    desiredHeadRotation.eulerAngles.ToString("F1") +
+                    " preservedTorsoPitchDeg=" +
+                    _preservedInitialHeadPitchDegrees.ToString("F1") +
+                    " torsoSrc=" + desiredHeadRotationSourceName +
+                    " hmdEuler=" + hmdEulerStr +
+                    " dot(hmdFwd,chestFlatFwd)=" + dotHmdChest.ToString("F3"));
             }
 
             Vector3 targetPosition =
@@ -859,6 +1072,14 @@ namespace geesp0t
             navigationRig.position += correction;
         }
 
+        /// <summary>
+        /// Same alignment as VaM head possession: <see cref="FreeControllerV3.AlignTo"/>
+        /// maps <see cref="FreeControllerV3.PossessForwardAxis"/> /
+        /// <see cref="FreeControllerV3.PossessUpAxis"/> from the HMD transform.
+        /// A plain <c>LookRotation(hmd.forward, …)</c> assumes +Z is the nose
+        /// axis; custom persons may use +X (or other), which reads as a large yaw
+        /// error on the mesh while the camera stays correct.
+        /// </summary>
         private static void ApplyPassengerHeadRotationFollow(
             SuperController superController,
             FreeControllerV3 headControl)
@@ -880,13 +1101,15 @@ namespace geesp0t
             }
 
             headControl.currentRotationState = FreeControllerV3.RotationState.On;
-            headControl.control.rotation = motionControllerHead.rotation;
+            headControl.AlignTo(motionControllerHead, true);
 
-            if (headControl.followWhenOff != null)
-            {
-                headControl.followWhenOff.rotation =
-                    motionControllerHead.rotation;
-            }
+            PassengerDiagLogThrottled(
+                "headFollow AlignTo(HMD) possFwd=" +
+                headControl.PossessForwardAxis.ToString() +
+                " possUp=" +
+                headControl.PossessUpAxis.ToString() +
+                " ctrlEuler=" +
+                headControl.control.rotation.eulerAngles.ToString("F0"));
         }
 
         private static bool IsFemalePerson(Atom atom)
@@ -959,6 +1182,307 @@ namespace geesp0t
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Finds <c>lEye</c> / <c>rEye</c> <see cref="LookAtWithLimits"/> on a
+        /// Person (same name convention as stock VaM).
+        /// </summary>
+        private static void FindEyeLookAtLimits(
+            Atom passengerPerson,
+            out LookAtWithLimits left,
+            out LookAtWithLimits right)
+        {
+            left = null;
+            right = null;
+            if (passengerPerson == null)
+            {
+                return;
+            }
+
+            LookAtWithLimits[] eyes =
+                passengerPerson.GetComponentsInChildren<LookAtWithLimits>(
+                    true);
+            for (int i = 0; i < eyes.Length; i++)
+            {
+                LookAtWithLimits e = eyes[i];
+                if (e == null)
+                {
+                    continue;
+                }
+
+                if (e.name == "lEye")
+                {
+                    left = e;
+                }
+                else if (e.name == "rEye")
+                {
+                    right = e;
+                }
+            }
+        }
+
+        private static void EnsurePassengerEyeLookProxyTransforms(Atom person)
+        {
+            if (person == null)
+            {
+                return;
+            }
+
+            if (_passengerEyeLookProxyLeft == null)
+            {
+                GameObject go = new GameObject("GabrielPassengerChestFwdEyeL");
+                go.hideFlags = HideFlags.HideAndDontSave;
+                _passengerEyeLookProxyLeft = go.transform;
+                _passengerEyeLookProxyLeft.SetParent(person.transform, false);
+            }
+
+            if (_passengerEyeLookProxyRight == null)
+            {
+                GameObject go = new GameObject("GabrielPassengerChestFwdEyeR");
+                go.hideFlags = HideFlags.HideAndDontSave;
+                _passengerEyeLookProxyRight = go.transform;
+                _passengerEyeLookProxyRight.SetParent(person.transform, false);
+            }
+        }
+
+        private static void DestroyPassengerEyeLookProxies()
+        {
+            if (_passengerEyeLookProxyLeft != null)
+            {
+                UnityEngine.Object.Destroy(_passengerEyeLookProxyLeft.gameObject);
+                _passengerEyeLookProxyLeft = null;
+            }
+
+            if (_passengerEyeLookProxyRight != null)
+            {
+                UnityEngine.Object.Destroy(_passengerEyeLookProxyRight.gameObject);
+                _passengerEyeLookProxyRight = null;
+            }
+        }
+
+        /// <summary>
+        /// Horizontal torso forward (chest preferred): eyes aim along this axis
+        /// from each socket so head/HMD yaw does not steer the gaze.
+        /// </summary>
+        private static bool TryGetPassengerTorsoForward(
+            Atom person,
+            out Vector3 forward)
+        {
+            forward = Vector3.zero;
+            if (person == null)
+            {
+                return false;
+            }
+
+            FreeControllerV3 chest =
+                person.GetStorableByID("chestControl") as FreeControllerV3;
+            FreeControllerV3 torso = chest;
+            if (torso == null || torso.control == null)
+            {
+                torso =
+                    person.GetStorableByID("pelvisControl") as FreeControllerV3;
+            }
+
+            if (torso == null || torso.control == null)
+            {
+                torso =
+                    person.GetStorableByID("abdomenControl") as FreeControllerV3;
+            }
+
+            if (torso != null && torso.control != null)
+            {
+                Vector3 up = torso.control.up;
+                if (up.sqrMagnitude < 1e-12f)
+                {
+                    up = Vector3.up;
+                }
+
+                up.Normalize();
+                forward = Vector3.ProjectOnPlane(torso.control.forward, up);
+                if (forward.sqrMagnitude < 1e-10f)
+                {
+                    forward = torso.control.forward;
+                }
+
+                forward.Normalize();
+                return true;
+            }
+
+            if (_passengerHeadRigidbody != null)
+            {
+                forward = _passengerHeadRigidbody.transform.forward;
+                if (forward.sqrMagnitude < 1e-12f)
+                {
+                    return false;
+                }
+
+                forward.Normalize();
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Torso <b>yaw</b> in the world-horizontal plane (VaM up): proxy lies
+        /// at the same world height as the eye so gaze does not pitch toward the
+        /// chest when the torso leans.
+        /// </summary>
+        private static bool TryGetPassengerEyeLevelYawForward(
+            Atom person,
+            out Vector3 forward)
+        {
+            forward = Vector3.zero;
+            if (person == null)
+            {
+                return false;
+            }
+
+            Vector3 torsoFwd;
+            if (!TryGetPassengerTorsoForward(person, out torsoFwd))
+            {
+                return false;
+            }
+
+            forward = Vector3.ProjectOnPlane(torsoFwd, Vector3.up);
+            if (forward.sqrMagnitude < 1e-10f)
+            {
+                forward = Vector3.Scale(
+                    torsoFwd,
+                    new Vector3(1f, 0f, 1f));
+            }
+
+            if (forward.sqrMagnitude < 1e-10f)
+            {
+                return false;
+            }
+
+            forward.Normalize();
+            return true;
+        }
+
+        private static void UpdatePassengerChestForwardEyeLookProxyPositions()
+        {
+            if (!_passengerEyeLookLeftPatched && !_passengerEyeLookRightPatched)
+            {
+                return;
+            }
+
+            if (_passengerTargetPerson == null)
+            {
+                return;
+            }
+
+            Vector3 eyeLevelFwd;
+            if (!TryGetPassengerEyeLevelYawForward(
+                    _passengerTargetPerson,
+                    out eyeLevelFwd))
+            {
+                return;
+            }
+
+            LookAtWithLimits left;
+            LookAtWithLimits right;
+            FindEyeLookAtLimits(_passengerTargetPerson, out left, out right);
+
+            if (left != null &&
+                _passengerEyeLookLeftPatched &&
+                _passengerEyeLookProxyLeft != null)
+            {
+                Transform le = left.transform;
+                _passengerEyeLookProxyLeft.position =
+                    le.position +
+                    eyeLevelFwd * PassengerChestForwardEyeLookDistanceMeters;
+            }
+
+            if (right != null &&
+                _passengerEyeLookRightPatched &&
+                _passengerEyeLookProxyRight != null)
+            {
+                Transform re = right.transform;
+                _passengerEyeLookProxyRight.position =
+                    re.position +
+                    eyeLevelFwd * PassengerChestForwardEyeLookDistanceMeters;
+            }
+        }
+
+        /// <summary>
+        /// Repoints each eye <see cref="LookAtWithLimits"/> at a synthetic
+        /// target along <b>world-horizontal</b> torso yaw from that eye socket
+        /// (eye height, character-forward - not head-local, not the HMD).
+        /// </summary>
+        private static void ApplyPassengerChestForwardEyeLook(Atom passengerPerson)
+        {
+            _passengerEyeLookLeftPatched = false;
+            _passengerEyeLookRightPatched = false;
+            DestroyPassengerEyeLookProxies();
+
+            if (passengerPerson == null ||
+                passengerPerson.type != "Person")
+            {
+                return;
+            }
+
+            LookAtWithLimits left;
+            LookAtWithLimits right;
+            FindEyeLookAtLimits(passengerPerson, out left, out right);
+            if (left == null && right == null)
+            {
+                return;
+            }
+
+            EnsurePassengerEyeLookProxyTransforms(passengerPerson);
+
+            if (left != null)
+            {
+                _passengerSavedLeftLookLoc = left.lookAtCameraLocation;
+                _passengerSavedLeftLookTarget = left.target;
+                left.lookAtCameraLocation = CameraTarget.CameraLocation.None;
+                left.target = _passengerEyeLookProxyLeft;
+                _passengerEyeLookLeftPatched = true;
+            }
+
+            if (right != null)
+            {
+                _passengerSavedRightLookLoc = right.lookAtCameraLocation;
+                _passengerSavedRightLookTarget = right.target;
+                right.lookAtCameraLocation = CameraTarget.CameraLocation.None;
+                right.target = _passengerEyeLookProxyRight;
+                _passengerEyeLookRightPatched = true;
+            }
+
+            UpdatePassengerChestForwardEyeLookProxyPositions();
+        }
+
+        private static void RestorePassengerChestForwardEyeLook(Atom passengerPerson)
+        {
+            if (!_passengerEyeLookLeftPatched && !_passengerEyeLookRightPatched)
+            {
+                return;
+            }
+
+            if (passengerPerson != null && passengerPerson.type == "Person")
+            {
+                LookAtWithLimits left;
+                LookAtWithLimits right;
+                FindEyeLookAtLimits(passengerPerson, out left, out right);
+                if (left != null && _passengerEyeLookLeftPatched)
+                {
+                    left.lookAtCameraLocation = _passengerSavedLeftLookLoc;
+                    left.target = _passengerSavedLeftLookTarget;
+                }
+
+                if (right != null && _passengerEyeLookRightPatched)
+                {
+                    right.lookAtCameraLocation = _passengerSavedRightLookLoc;
+                    right.target = _passengerSavedRightLookTarget;
+                }
+            }
+
+            _passengerEyeLookLeftPatched = false;
+            _passengerEyeLookRightPatched = false;
+            DestroyPassengerEyeLookProxies();
         }
 
         private static void PrepareImprovedPoVForPassenger(
@@ -1229,23 +1753,22 @@ namespace geesp0t
                 neutralForward = Vector3.forward;
 
             neutralForward.Normalize();
-            return Quaternion.LookRotation(
-                neutralForward,
-                upAxis) * Quaternion.Euler(
-                    _preservedInitialHeadDownwardPitchDegrees,
-                    0f,
-                    0f);
-        }
+            if (upAxis.sqrMagnitude < 1e-10f)
+            {
+                upAxis = Vector3.up;
+            }
 
-        private static float GetPassengerDownwardPitchToPreserve(
-            Quaternion rotation)
-        {
-            float pitchDegrees = NormalizeSignedEulerAngle(
-                rotation.eulerAngles.x);
-            if (pitchDegrees > 0f && pitchDegrees <= 90f)
-                return pitchDegrees;
+            upAxis.Normalize();
+            Vector3 rightNeutral = Vector3.Cross(upAxis, neutralForward);
+            if (rightNeutral.sqrMagnitude < 1e-10f)
+            {
+                return Quaternion.LookRotation(neutralForward, upAxis);
+            }
 
-            return 0f;
+            rightNeutral.Normalize();
+            return
+                Quaternion.AngleAxis(_preservedInitialHeadPitchDegrees, rightNeutral) *
+                Quaternion.LookRotation(neutralForward, upAxis);
         }
 
         private static Vector3 GetPassengerNeutralForward(
@@ -1355,22 +1878,15 @@ namespace geesp0t
 
         private static Quaternion BuildPassengerDesiredHeadRotation(
             Vector3 upAxis,
-            out string sourceName)
+            out string sourceName,
+            out Vector3 resolvedTorsoUp)
         {
+            resolvedTorsoUp = Vector3.up;
             sourceName = "none";
             if (_passengerHeadRigidbody == null)
+            {
                 return Quaternion.identity;
-
-            Quaternion headRotationWithOffset =
-                _passengerHeadRigidbody.transform.rotation *
-                Quaternion.Euler(
-                    RotationOffsetXDegrees,
-                    0f,
-                    0f);
-            float pitchDegrees = NormalizeSignedEulerAngle(
-                headRotationWithOffset.eulerAngles.x);
-            if (_preservedInitialHeadDownwardPitchDegrees > pitchDegrees)
-                pitchDegrees = _preservedInitialHeadDownwardPitchDegrees;
+            }
 
             Vector3 stableUpAxis;
             Vector3 neutralForward = GetPassengerNeutralForward(
@@ -1378,37 +1894,56 @@ namespace geesp0t
                 out stableUpAxis,
                 out sourceName);
             if (stableUpAxis.sqrMagnitude >= 1e-10f)
+            {
                 upAxis = stableUpAxis;
+            }
+
+            resolvedTorsoUp = upAxis;
+
             if (neutralForward.sqrMagnitude < 1e-10f)
-                return headRotationWithOffset;
+            {
+                PassengerDiagLog(
+                    "BuildPassengerDesiredHeadRotation: no neutralForward; " +
+                    "fallback identity");
+                return Quaternion.identity;
+            }
 
             neutralForward.Normalize();
+            if (upAxis.sqrMagnitude < 1e-10f)
+            {
+                upAxis = Vector3.up;
+            }
 
+            upAxis.Normalize();
+
+            float pitchDegrees =
+                _preservedInitialHeadPitchDegrees + RotationOffsetXDegrees;
+
+            // Chest horizontal yaw only (not head twist on that axis); pitch is
+            // head nod in torso frame (same axis as preserved vs. horizontal).
+            Vector3 rightChest = Vector3.Cross(upAxis, neutralForward);
+            if (rightChest.sqrMagnitude < 1e-10f)
+            {
+                PassengerDiagLog(
+                    "BuildPassengerDesiredHeadRotation: degenerate rightChest");
+                return Quaternion.LookRotation(neutralForward, upAxis);
+            }
+
+            rightChest.Normalize();
             Quaternion neutralRotation = Quaternion.LookRotation(
                 neutralForward,
                 upAxis);
-            return neutralRotation * Quaternion.Euler(
-                pitchDegrees,
-                0f,
-                0f);
-        }
+            Quaternion result =
+                Quaternion.AngleAxis(pitchDegrees, rightChest) *
+                neutralRotation;
 
-        private static Quaternion KeepOnlyDownwardPitch(
-            Quaternion desiredRotation,
-            Quaternion currentHmdRotation)
-        {
-            Vector3 desiredEulerAngles = desiredRotation.eulerAngles;
-            float desiredPitch =
-                NormalizeSignedEulerAngle(desiredEulerAngles.x);
-            if (desiredPitch > 0f)
-            {
-                Vector3 currentHmdEulerAngles =
-                    currentHmdRotation.eulerAngles;
-                desiredEulerAngles.x = currentHmdEulerAngles.x;
-                desiredRotation = Quaternion.Euler(desiredEulerAngles);
-            }
+            PassengerDiagLog(
+                "BuildPassengerDesiredHeadRotation src=" + sourceName +
+                " chestYawOnly pitchPreserved=" +
+                _preservedInitialHeadPitchDegrees.ToString("F1") +
+                " pitch+off=" + pitchDegrees.ToString("F1"));
 
-            return desiredRotation;
+            return result;
         }
 
         private static float NormalizeSignedEulerAngle(float eulerAngle)

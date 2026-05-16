@@ -965,13 +965,28 @@ namespace geesp0t
                     if (rigFwd.sqrMagnitude > 1e-12f &&
                         snapTorsoUp.sqrMagnitude > 1e-12f)
                     {
-                        Vector3 snapUp = ComputePassengerRigLookSnapUp(
-                            rigFwd,
-                            snapTorsoUp,
-                            rigUpBeforeSnap);
+                        rigFwd.Normalize();
+                        // First snap: world-level roll only (no twist from chest
+                        // up in LookRotation). Near zenith/nadir, world up is
+                        // degenerate — keep existing torso/rig-up fallback.
+                        Vector3 rollFreeUp;
+                        float fwdAbsDotWorldUp =
+                            Mathf.Abs(Vector3.Dot(rigFwd, Vector3.up));
+                        if (fwdAbsDotWorldUp > 0.985f)
+                        {
+                            rollFreeUp = ComputePassengerRigLookSnapUp(
+                                rigFwd,
+                                snapTorsoUp,
+                                rigUpBeforeSnap);
+                        }
+                        else
+                        {
+                            rollFreeUp = Vector3.up;
+                        }
+
                         navigationRigRotation = Quaternion.LookRotation(
-                            rigFwd.normalized,
-                            snapUp);
+                            rigFwd,
+                            rollFreeUp);
                     }
 
                     navigationRig.rotation = navigationRigRotation;

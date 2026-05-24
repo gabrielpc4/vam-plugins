@@ -24,6 +24,10 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 - Prepare `ImprovedPoV` on the target and suppress duplicate head-hide behavior where needed.
 - Delay VR hand possession until a later grip/trigger confirmation step.
 - Raycast along the **right** UI-aim beam and map the closest hit person for laser+A start.
+- While active on a target Person, **sunglasses** garments (names/tags
+  containing `Sunglasses`, via `ClothingClassifier.IsPassengerSunglassesClothing`)
+  are **deactivated** and **restored** on passenger stop (`PassengerRuntime` +
+  `PersonAtomCache.TryGetCharacterSelector`).
 - Laser+A confirm uses **`SuperController.GetRightSelect`** (via shared VR input), so Oculus skips the same frames as SteamVR when VaM is consuming right-hand select for **VR UI** (e.g. Edit mode menus / buttons).
 - Reuse the beam target for a short interval while the right beam stays active.
 - Clear stale passenger-style possession after unrelated scene loads (`SceneLoadPossessionCleanup`).
@@ -84,6 +88,8 @@ The old `eulerAngles.z = 0` hack broke pitch/yaw.
 
 ## Dependencies And Coupling
 - Depends on `improved-pov/ImprovedPoV.cs` and cooperates with `HeadProximityHide`.
+- Uses `ClothingClassifier` / `PersonAtomCache` to hide sunglasses on the
+  passenger target during possession.
 - Cooperates with `scene-camera` (`MonitorModeLaserRestore`), `NextSceneUiButton`
   (palm next-scene row), `palm-hud`, and `GabrielHud` / `PassengerRuntime`.
 
@@ -98,6 +104,8 @@ The old `eulerAngles.z = 0` hack broke pitch/yaw.
 Update this file in the same turn whenever any of these change:
 
 - Target selection, startup alignment, hand possession timing, or laser+A rules change.
+- Sunglasses hide/restore on the passenger target, or `ClothingClassifier`
+  sunglasses heuristics change.
 - Initial torso pitch capture, head-follow **`AlignTo`** path, eye **`EyesControl`** /
   **`AnimationPattern` / `MoveProducer`** head & eye receiver quarantine, or
   **`LateTick`** proxy

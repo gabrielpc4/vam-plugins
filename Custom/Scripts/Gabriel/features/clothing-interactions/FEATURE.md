@@ -8,6 +8,8 @@ when the scene qualifies.
 
 ## Live Files
 - `ClothingTouchFallOff.cs` *(person-only `MVRScript`)*
+- `ClothingTouchFallOff.cslist` *(includes ``../../util/PersonAtomCache.cs`` so
+  fall-off proximity can reuse cached free-controller reads)*
 - `ClothingTouchFallOffDeferredMerge.cs` *(standalone script; inlined merge path
   is implemented on **`GabrielSessionOrchestrator`**, not referenced from session
   `*.cslist` today)*
@@ -35,6 +37,9 @@ see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.
   button and is not configured as a plugin path constant on `GabrielHud`.
 
 ## Responsibilities
+- `ClothingClassifier.IsPassengerSunglassesClothing` flags sunglasses by
+  display name / tags (`Sunglasses` substring) so passenger VR can toggle
+  them off during possession (see **`features/passenger-possession`**).
 - Enable clothing fall-off on nearby garments when hands contact a person.
 - Memoize garments whose fall-off is already enabled until clothing slots or
   active counts change.
@@ -69,3 +74,4 @@ Update this file in the same turn whenever any of these change:
 - Any cslist load path changes.
 - Touch fall-off thresholds or garment scan rules change.
 - Band classification / proximity-strip behavior changes.
+- Passenger sunglasses naming rules (`IsPassengerSunglassesClothing`) change.

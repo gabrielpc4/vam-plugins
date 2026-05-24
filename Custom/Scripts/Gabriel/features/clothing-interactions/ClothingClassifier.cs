@@ -166,6 +166,21 @@ namespace geesp0t
             return true;
         }
 
+        /// <summary>
+        /// Garment whose name/tags suggest sunglasses; passenger VR hides active
+        /// matches while head possession runs (restored on exit).
+        /// </summary>
+        public static bool IsPassengerSunglassesClothing(DAZClothingItem item)
+        {
+            if (item == null)
+            {
+                return false;
+            }
+
+            string blob = SearchBlob(item);
+            return blob.Contains("sunglasses");
+        }
+
         private static int ClassifyTorsoBandInt(DAZClothingItem item)
         {
             DAZClothingItem.ExclusiveRegion region = item.exclusiveRegion;

@@ -56,7 +56,8 @@ namespace geesp0t
 
         /// <summary>
         /// True when a <c>UIButton</c> label should be treated as the scene-advance
-        /// control (<c>next</c>, <c>proxima</c>/<c>próxima</c>, etc.).
+        /// control (<c>next</c>, <c>proxima</c>/<c>próxima</c>, SapuzEx-style <c>&gt;&gt;</c>,
+        /// etc.).
         /// </summary>
         private static bool LabelMatchesSceneNext(string raw)
         {
@@ -65,6 +66,8 @@ namespace geesp0t
             string trimmed = raw.Trim();
             if (trimmed.Length == 0)
                 return false;
+            if (trimmed.IndexOf(">>", StringComparison.Ordinal) >= 0)
+                return true;
             if (trimmed.IndexOf("next", StringComparison.OrdinalIgnoreCase) >= 0)
                 return true;
             if (trimmed.IndexOf("proxima", StringComparison.OrdinalIgnoreCase) >= 0)

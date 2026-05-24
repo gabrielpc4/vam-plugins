@@ -3,7 +3,9 @@
 Rewire **one** main-hub ``UIButton`` so it loads a chosen scene:
 
 - Edits ``Saves/scene/Default.json`` only in memory, then writes it and **copies** it to
-  ``Saves/scene/MainMenu.json`` so both hub files stay byte-for-byte identical.
+  ``Saves/scene/MainMenu.json`` so both hub files stay byte-for-byte identical (thumbnail
+  inject also mirrors ``Default``→``MainMenu`` when it succeeds; this script always copies at
+  the end so pair stays synced if inject skips or fails).
 - After resolving a scene ``.json``, if the **pack folder** (e.g. ``CG-STUDIO/Amnesia`` for
   ``.../Amnesia/Amnesia - CAMRIDE/Amnesia - CAMRIDE.json``) contains a ``.vac``, the script
   picks that ``.vac`` as the pack asset **unless** a ``.json`` with the **same basename**

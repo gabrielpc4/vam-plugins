@@ -497,6 +497,66 @@
          ]
       },
       {
+         "id": "_SceneThumb_RightTopB4",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.5175",
+            "z": "1.8"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/new magic trick.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.5175",
+                  "z": "1.8"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
          "id": "RightTopB4",
          "on": "true",
          "type": "UIButton",
@@ -532,7 +592,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nMenu de apar\u00eancias:\nP\u00e1gina 4"
+               "text": "\n\n\n\n\n\n\nCenas:\nnew magic trick"
             },
             {
                "id": "Canvas",
@@ -564,7 +624,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "PersonLooksMenu_4.json"
+                        "sceneFilePath": "./sapuzex/new magic trick.json"
                      }
                   ],
                   "transitionActions": [],
@@ -629,7 +689,7 @@
             },
             {
                "id": "Image",
-               "url": "Saves/scene/acidbubbles/acidbubbles_passenger/acidbubbles_passenger.jpg"
+               "url": "Saves/scene/acidbubbles/acidbubbles_passenger/pass.jpg"
             },
             {
                "id": "PluginManager",
@@ -966,6 +1026,66 @@
          ]
       },
       {
+         "id": "_SceneThumb_RightBottomB1",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.0075",
+            "z": "0.27"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/Niko3DX/N3D Chrisx/N3D Chrisx.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.0075",
+                  "z": "0.27"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
          "id": "RightBottomB1",
          "on": "true",
          "type": "UIButton",
@@ -1001,7 +1121,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nMais p\u00e1ginas:\nP\u00e1gina 4"
+               "text": "\n\n\n\n\n\n\nCenas:\nN3D Chrisx"
             },
             {
                "id": "Canvas",
@@ -1033,7 +1153,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "MainMenu_Page_4.json"
+                        "sceneFilePath": "./Niko3DX/N3D Chrisx/N3D Chrisx.json"
                      }
                   ],
                   "transitionActions": [],
@@ -1154,6 +1274,66 @@
          ]
       },
       {
+         "id": "_SceneThumb_RightBottomB2",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.0075",
+            "z": "0.78"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/cooking lesson/intro.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.0075",
+                  "z": "0.78"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
          "id": "RightBottomB2",
          "on": "true",
          "type": "UIButton",
@@ -1189,7 +1369,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nMenu de posi\u00e7\u00f5es:\nMenu VAMasutra"
+               "text": "\n\n\n\n\n\n\nCenas:\nintro"
             },
             {
                "id": "Canvas",
@@ -1221,7 +1401,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "VAMasutraMenu.json"
+                        "sceneFilePath": "./sapuzex/cooking lesson/intro.json"
                      }
                   ],
                   "transitionActions": [],
@@ -1238,6 +1418,66 @@
                   "x": "-2.309996",
                   "y": "-0.25",
                   "z": "0.78"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "_SceneThumb_RightBottomB3",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.0075",
+            "z": "1.29"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/Niko3DX/N3D Annie/N3D Annie.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.0075",
+                  "z": "1.29"
                },
                "rotation": {
                   "x": "1.001791E-05",
@@ -1283,7 +1523,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nCenas:\nBruxas sedutoras"
+               "text": "\n\n\n\n\n\n\nCenas:\nN3D Annie"
             },
             {
                "id": "Canvas",
@@ -1315,7 +1555,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./Zombie_SiriS/Seductive Witches/Seductive Witches - Mod - Fix for no tie texture.json"
+                        "sceneFilePath": "./Niko3DX/N3D Annie/N3D Annie.json"
                      }
                   ],
                   "transitionActions": [],
@@ -1402,6 +1642,66 @@
          ]
       },
       {
+         "id": "_SceneThumb_RightBottomB4",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.0075",
+            "z": "1.8"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/camgirl live show/webcam starter kit.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.0075",
+                  "z": "1.8"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
          "id": "RightBottomB4",
          "on": "true",
          "type": "UIButton",
@@ -1437,7 +1737,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nCenas:\nJen"
+               "text": "\n\n\n\n\n\n\nCenas:\ncamgirl live show"
             },
             {
                "id": "Canvas",
@@ -1469,7 +1769,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./VRYoda/Jen For VAM/Jen For VAM/Jen For VAM.json"
+                        "sceneFilePath": "./sapuzex/camgirl live show/camgirl live show.json"
                      }
                   ],
                   "transitionActions": [],
@@ -1486,6 +1786,66 @@
                   "x": "-2.309996",
                   "y": "-0.25",
                   "z": "1.8"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "_SceneThumb_RightBottomB5",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.0075",
+            "z": "2.31"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/detention/detention.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.0075",
+                  "z": "2.31"
                },
                "rotation": {
                   "x": "1.001791E-05",
@@ -1531,7 +1891,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nCenas:\nKay"
+               "text": "\n\n\n\n\n\n\nCenas:\ndetention"
             },
             {
                "id": "Canvas",
@@ -1563,7 +1923,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./VRYoda/Kay for VAM/Kay For VAM/Kay For VAM.json"
+                        "sceneFilePath": "./sapuzex/detention/detention.json"
                      }
                   ],
                   "transitionActions": [],
@@ -1580,6 +1940,66 @@
                   "x": "-2.309996",
                   "y": "-0.25",
                   "z": "2.31"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "_SceneThumb_RightBottomB6",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.0075",
+            "z": "2.82"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/cat submission/cat scene 1.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.0075",
+                  "z": "2.82"
                },
                "rotation": {
                   "x": "1.001791E-05",
@@ -1625,7 +2045,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nCenas:\nAkissi"
+               "text": "\n\n\n\n\n\n\nCenas:\ncat scene 1"
             },
             {
                "id": "Canvas",
@@ -1657,7 +2077,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./Tiseb29/Akissi/Akissi.json"
+                        "sceneFilePath": "./sapuzex/cat submission/cat scene 1.json"
                      }
                   ],
                   "transitionActions": [],
@@ -1674,6 +2094,66 @@
                   "x": "-2.309996",
                   "y": "-0.25",
                   "z": "2.82"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "_SceneThumb_RightBottomB7",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.0075",
+            "z": "3.33"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/MammothVanilla8/Seductive Duo/Seductive Duo.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.0075",
+                  "z": "3.33"
                },
                "rotation": {
                   "x": "1.001791E-05",
@@ -1719,7 +2199,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nCenas:\nShell"
+               "text": "\n\n\n\n\n\n\nCenas:\nSeductive Duo"
             },
             {
                "id": "Canvas",
@@ -1751,7 +2231,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./Thatcrazysob89/Shell 1.0/SHELL 1.0/SHELL 1.0.json"
+                        "sceneFilePath": "./MammothVanilla8/Seductive Duo/Seductive Duo.json"
                      }
                   ],
                   "transitionActions": [],
@@ -1768,6 +2248,66 @@
                   "x": "-2.309996",
                   "y": "-0.25",
                   "z": "3.33"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "_SceneThumb_RightBottomB8",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.0075",
+            "z": "3.85"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/robotUX/robotUX.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.0075",
+                  "z": "3.85"
                },
                "rotation": {
                   "x": "1.001791E-05",
@@ -1813,7 +2353,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nCenas:\nGarry"
+               "text": "\n\n\n\n\n\n\nCenas:\nrobotUX"
             },
             {
                "id": "Canvas",
@@ -1845,7 +2385,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./Tiseb29/Garry/Garry.json"
+                        "sceneFilePath": "./sapuzex/robotUX/robotUX.json"
                      }
                   ],
                   "transitionActions": [],
@@ -1862,6 +2402,66 @@
                   "x": "-2.309996",
                   "y": "-0.25",
                   "z": "3.85"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "_SceneThumb_RightTopB1",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.5175",
+            "z": "0.27"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/hunting season intro.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.5175",
+                  "z": "0.27"
                },
                "rotation": {
                   "x": "1.001791E-05",
@@ -1907,7 +2507,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nMenu de apar\u00eancias:\nP\u00e1gina 1"
+               "text": "\n\n\n\n\n\n\nCenas:\nhunting season intro"
             },
             {
                "id": "Canvas",
@@ -1939,7 +2539,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "PersonLooksMenu.json"
+                        "sceneFilePath": "./sapuzex/hunting season intro.json"
                      }
                   ],
                   "transitionActions": [],
@@ -2154,6 +2754,66 @@
          ]
       },
       {
+         "id": "_SceneThumb_RightTopB2",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.5175",
+            "z": "0.78"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/japaness maid/mess up 1.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.5175",
+                  "z": "0.78"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
          "id": "RightTopB2",
          "on": "true",
          "type": "UIButton",
@@ -2189,7 +2849,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nMenu de apar\u00eancias:\nP\u00e1gina 2"
+               "text": "\n\n\n\n\n\n\nCenas:\nmess up 1"
             },
             {
                "id": "Canvas",
@@ -2221,7 +2881,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "PersonLooksMenu_2.json"
+                        "sceneFilePath": "./sapuzex/japaness maid/mess up 1.json"
                      }
                   ],
                   "transitionActions": [],
@@ -2380,6 +3040,66 @@
          ]
       },
       {
+         "id": "_SceneThumb_RightTopB3",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.5175",
+            "z": "1.29"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/maid intro.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.5175",
+                  "z": "1.29"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
          "id": "RightTopB3",
          "on": "true",
          "type": "UIButton",
@@ -2415,7 +3135,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nMenu de apar\u00eancias:\nP\u00e1gina 3"
+               "text": "\n\n\n\n\n\n\nCenas:\nmaid intro"
             },
             {
                "id": "Canvas",
@@ -2447,7 +3167,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "PersonLooksMenu_3.json"
+                        "sceneFilePath": "./sapuzex/maid intro.json"
                      }
                   ],
                   "transitionActions": [],
@@ -2816,6 +3536,66 @@
          ]
       },
       {
+         "id": "_SceneThumb_RightTopB5",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.5175",
+            "z": "2.31"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/rainy night revenge.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.5175",
+                  "z": "2.31"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
          "id": "RightTopB5",
          "on": "true",
          "type": "UIButton",
@@ -2851,7 +3631,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nMenu de apar\u00eancias:\nP\u00e1gina 5"
+               "text": "\n\n\n\n\n\n\nCenas:\nrainy night revenge"
             },
             {
                "id": "Canvas",
@@ -2883,7 +3663,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "PersonLooksMenu_5.json"
+                        "sceneFilePath": "./sapuzex/rainy night revenge.json"
                      }
                   ],
                   "transitionActions": [],
@@ -2900,6 +3680,66 @@
                   "x": "-2.309996",
                   "y": "0.26",
                   "z": "2.31"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "_SceneThumb_RightTopB7",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.5175",
+            "z": "3.33"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/tribal ritual intro.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.5175",
+                  "z": "3.33"
                },
                "rotation": {
                   "x": "1.001791E-05",
@@ -2945,7 +3785,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nCenas:\nAzul"
+               "text": "\n\n\n\n\n\n\nCenas:\ntribal ritual intro"
             },
             {
                "id": "Canvas",
@@ -2977,7 +3817,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./MammothVanilla8/Blue/Blue.json"
+                        "sceneFilePath": "./sapuzex/tribal ritual intro.json"
                      }
                   ],
                   "transitionActions": [],
@@ -3098,6 +3938,66 @@
          ]
       },
       {
+         "id": "_SceneThumb_FrontBottomB8",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.04",
+            "y": "0.0075",
+            "z": "-0.01"
+         },
+         "containerRotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/hospital isolation.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.04",
+                  "y": "0.0075",
+                  "z": "-0.01"
+               },
+               "rotation": {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
          "id": "FrontBottomB8",
          "on": "true",
          "type": "UIButton",
@@ -3133,7 +4033,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nMais p\u00e1ginas:\nP\u00e1gina 3"
+               "text": "\n\n\n\n\n\n\nHist\u00f3ria:\nhospital isolation"
             },
             {
                "id": "Canvas",
@@ -3165,7 +4065,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "MainMenu_Page_3.json"
+                        "sceneFilePath": "./sapuzex/hospital isolation.json"
                      }
                   ],
                   "transitionActions": [],
@@ -3186,6 +4086,66 @@
                "rotation": {
                   "x": "0",
                   "y": "0",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "_SceneThumb_RightTopB6",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.5175",
+            "z": "2.82"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/sexy photo shoot.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.5175",
+                  "z": "2.82"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
                   "z": "0"
                }
             }
@@ -3227,7 +4187,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nCenas:\nSala de vestir"
+               "text": "\n\n\n\n\n\n\nCenas:\nsexy photo shoot"
             },
             {
                "id": "Canvas",
@@ -3259,7 +4219,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./CG-STUDIO/A Dressing Room/A Dressing Room/A Dressing Room.json"
+                        "sceneFilePath": "./sapuzex/sexy photo shoot.json"
                      }
                   ],
                   "transitionActions": [],
@@ -3276,6 +4236,66 @@
                   "x": "-2.309996",
                   "y": "0.26",
                   "z": "2.82"
+               },
+               "rotation": {
+                  "x": "1.001791E-05",
+                  "y": "90.00001",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "_SceneThumb_RightTopB8",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.319996",
+            "y": "0.5175",
+            "z": "3.84"
+         },
+         "containerRotation": {
+            "x": "1.001791E-05",
+            "y": "90.00001",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/wedding gift intro.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.319996",
+                  "y": "0.5175",
+                  "z": "3.84"
                },
                "rotation": {
                   "x": "1.001791E-05",
@@ -3321,7 +4341,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nCenas:\nN3D Annie"
+               "text": "\n\n\n\n\n\n\nCenas:\nwedding gift intro"
             },
             {
                "id": "Canvas",
@@ -3353,7 +4373,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./Niko3DX/N3D Annie/N3D Annie.json"
+                        "sceneFilePath": "./sapuzex/wedding gift intro.json"
                      }
                   ],
                   "transitionActions": [],
@@ -3910,6 +4930,66 @@
          ]
       },
       {
+         "id": "_SceneThumb_FrontBottomB6",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-1.02",
+            "y": "0.0075",
+            "z": "-0.01"
+         },
+         "containerRotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/elemental nymphs.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-1.02",
+                  "y": "0.0075",
+                  "z": "-0.01"
+               },
+               "rotation": {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
          "id": "FrontBottomB6",
          "on": "true",
          "type": "UIButton",
@@ -3945,7 +5025,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nHist\u00f3ria:\nSimula\u00e7\u00e3o sexual"
+               "text": "\n\n\n\n\n\n\nHist\u00f3ria:\nelemental nymphs"
             },
             {
                "id": "Canvas",
@@ -3977,7 +5057,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./geesp0t/Tutorials/Advanced Possession/1.json"
+                        "sceneFilePath": "./sapuzex/elemental nymphs.json"
                      }
                   ],
                   "transitionActions": [],
@@ -3994,6 +5074,66 @@
                   "x": "-1.02",
                   "y": "-0.25",
                   "z": "0"
+               },
+               "rotation": {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "_SceneThumb_FrontBottomB7",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-1.53",
+            "y": "0.0075",
+            "z": "-0.01"
+         },
+         "containerRotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/hockey night.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-1.53",
+                  "y": "0.0075",
+                  "z": "-0.01"
                },
                "rotation": {
                   "x": "0",
@@ -4039,7 +5179,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nHist\u00f3ria:\nEasy Mix e constru\u00e7\u00e3o de cenas"
+               "text": "\n\n\n\n\n\n\nHist\u00f3ria:\nhockey night"
             },
             {
                "id": "Canvas",
@@ -4071,7 +5211,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./geesp0t/Tutorials/Scene Building/0.json"
+                        "sceneFilePath": "./sapuzex/hockey night.json"
                      }
                   ],
                   "transitionActions": [],
@@ -5316,7 +6456,7 @@
             },
             {
                "id": "Image",
-               "url": "Saves/scene/female_male/female_male.jpg"
+               "url": "Saves/scene/sapuzex/beach sunset intro.jpg"
             },
             {
                "id": "PluginManager",
@@ -5373,7 +6513,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nHist\u00f3ria:\nB\u00e1sicos e primeiros passos"
+               "text": "\n\n\n\n\n\n\nHist\u00f3ria:\nbeach sunset intro"
             },
             {
                "id": "Canvas",
@@ -5405,7 +6545,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./female_male/female_male.json"
+                        "sceneFilePath": "./sapuzex/beach sunset intro.json"
                      }
                   ],
                   "transitionActions": [],
@@ -5422,6 +6562,66 @@
                   "x": "-1.02",
                   "y": "0.26",
                   "z": "0"
+               },
+               "rotation": {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "_SceneThumb_FrontTopB7",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-1.53",
+            "y": "0.5175",
+            "z": "-0.01"
+         },
+         "containerRotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/college detention.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-1.53",
+                  "y": "0.5175",
+                  "z": "-0.01"
                },
                "rotation": {
                   "x": "0",
@@ -5467,7 +6667,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nHist\u00f3ria:\nJogando com pessoas e novos bot\u00f5es f\u00e1ceis"
+               "text": "\n\n\n\n\n\n\nHist\u00f3ria:\ncollege detention"
             },
             {
                "id": "Canvas",
@@ -5499,7 +6699,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./geesp0t/Tutorials/Person/0.json"
+                        "sceneFilePath": "./sapuzex/college detention.json"
                      }
                   ],
                   "transitionActions": [],
@@ -5516,6 +6716,66 @@
                   "x": "-1.53",
                   "y": "0.26",
                   "z": "0"
+               },
+               "rotation": {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+               }
+            }
+         ]
+      },
+      {
+         "id": "_SceneThumb_FrontTopB8",
+         "on": "true",
+         "type": "ImagePanelEmissive",
+         "position": {
+            "x": "1.4",
+            "y": "1",
+            "z": "0"
+         },
+         "rotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "containerPosition": {
+            "x": "-2.04",
+            "y": "0.5175",
+            "z": "-0.01"
+         },
+         "containerRotation": {
+            "x": "0",
+            "y": "0",
+            "z": "0"
+         },
+         "storables": [
+            {
+               "id": "CollisionTrigger",
+               "trigger": {
+                  "startActions": [],
+                  "transitionActions": [],
+                  "endActions": []
+               }
+            },
+            {
+               "id": "scale",
+               "scale": "0.5075"
+            },
+            {
+               "id": "Image",
+               "url": "Saves/scene/sapuzex/demonic summoning.jpg"
+            },
+            {
+               "id": "PluginManager",
+               "plugins": {}
+            },
+            {
+               "id": "control",
+               "position": {
+                  "x": "-2.04",
+                  "y": "0.5175",
+                  "z": "-0.01"
                },
                "rotation": {
                   "x": "0",
@@ -5561,7 +6821,7 @@
             {
                "id": "Text",
                "fontSize": "70",
-               "text": "\n\n\n\n\n\n\nMais p\u00e1ginas:\nP\u00e1gina 2"
+               "text": "\n\n\n\n\n\n\nHist\u00f3ria:\ndemonic summoning"
             },
             {
                "id": "Canvas",
@@ -5593,7 +6853,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "MainMenu_Page_2.json"
+                        "sceneFilePath": "./sapuzex/demonic summoning.json"
                      }
                   ],
                   "transitionActions": [],

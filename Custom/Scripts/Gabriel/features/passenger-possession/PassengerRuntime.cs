@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using MeshVR;
 using UnityEngine;
 
 namespace geesp0t
@@ -109,6 +110,17 @@ namespace geesp0t
             public MoveProducer moveProducer;
             public FreeControllerV3 savedReceiver;
         }
+
+        private sealed class PassengerSunglassesClothingSnap
+        {
+            public DAZClothingItem Item;
+
+            public bool SavedActive;
+        }
+
+        private static readonly List<PassengerSunglassesClothingSnap>
+            PassengerSunglassesSnaps =
+                new List<PassengerSunglassesClothingSnap>(4);
 
         /// <summary>
         /// Signed pitch (deg): angle from torso-horizontal head forward to actual
@@ -582,6 +594,17 @@ namespace geesp0t
             {
                 try
                 {
+                    RestorePassengerSunglassesClothing();
+                }
+                catch (Exception sunglassesRestoreException)
+                {
+                    SuperController.LogError(
+                        "Easy Mate passenger sunglasses restore failed: " +
+                        sunglassesRestoreException.Message);
+                }
+
+                try
+                {
                     RestorePassengerChestForwardEyeLook(_passengerTargetPerson);
                 }
                 catch (Exception lookAtException)
@@ -779,6 +802,68 @@ namespace geesp0t
                 ComputePassengerSignedHeadPitchVsTorso(headControl);
             ForcePassengerHeadControlNeutralRotation(headControl);
             ApplyPassengerChestForwardEyeLook(passengerPerson);
+            ApplyPassengerSunglassesHideForTarget(passengerPerson);
+        }
+
+        private static void ApplyPassengerSunglassesHideForTarget(Atom passengerPerson)
+        {
+            DAZCharacterSelector selector;
+            DAZClothingItem[] items;
+            int index;
+            DAZClothingItem item;
+            PassengerSunglassesClothingSnap snap;
+
+            RestorePassengerSunglassesClothing();
+
+            if (passengerPerson == null ||
+                passengerPerson.type != "Person")
+            {
+                return;
+            }
+
+            selector = PersonAtomCache.TryGetCharacterSelector(passengerPerson);
+            if (selector == null || selector.clothingItems == null)
+            {
+                return;
+            }
+
+            items = selector.clothingItems;
+            for (index = 0; index < items.Length; index++)
+            {
+                item = items[index];
+                if (item == null || !item.active)
+                {
+                    continue;
+                }
+
+                if (!ClothingClassifier.IsPassengerSunglassesClothing(item))
+                {
+                    continue;
+                }
+
+                snap = new PassengerSunglassesClothingSnap();
+                snap.Item = item;
+                snap.SavedActive = true;
+                PassengerSunglassesSnaps.Add(snap);
+                item.active = false;
+            }
+        }
+
+        private static void RestorePassengerSunglassesClothing()
+        {
+            PassengerSunglassesClothingSnap snap;
+            int i;
+
+            for (i = 0; i < PassengerSunglassesSnaps.Count; i++)
+            {
+                snap = PassengerSunglassesSnaps[i];
+                if (snap.Item != null && snap.SavedActive)
+                {
+                    snap.Item.active = true;
+                }
+            }
+
+            PassengerSunglassesSnaps.Clear();
         }
 
         private static void UpdatePassengerRuntime(

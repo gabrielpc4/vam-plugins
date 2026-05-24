@@ -37,7 +37,8 @@ scene-advance UIButton resolution (`NextSceneUiButton`), keyboard routing in
   `SoftPhysicsScenePreference`, path-rule
   E-Motion merges, Spankings/Clothing grip deferrals, and fluid/camera helpers.
 - Cache the resolved next-scene `UIButtonTrigger` until scene/load or atom UID
-  changes invalidate it.
+  changes invalidate it. Label heuristics include English/Portuguese `next`,
+  SapuzEx-style `>>`, etc.
 - `GabrielHud` owns external plugin family paths for E-Motion and Spankings.
   Clothing touch-fall path and person merges live on
   **`GabrielSessionOrchestrator`**.

@@ -32,6 +32,9 @@ description: Specialize on Gabriel's offline scene-menu and hub patch scripts, t
 4. Keep runtime-side `.cs` changes C# 6 compatible and use `SuperController`
    APIs instead of reflection; for tool-side Python, keep request/log contracts
    aligned with the documented runtime integration points.
-5. Update `Custom/Scripts/Gabriel/tools/scene-menu/FEATURE.md` in the same turn
+5. Keep hub `Default.json` and `MainMenu.json` identical whenever menu hub JSON
+   changes (see `tools/scene-menu/FEATURE.md`; use
+   `sync_hub_default_mainmenu.py` if they drift).
+6. Update `Custom/Scripts/Gabriel/tools/scene-menu/FEATURE.md` in the same turn
    whenever behavior, owned files, load paths, inputs, settings, dependencies,
    or optimization assumptions change.

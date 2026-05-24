@@ -15,6 +15,11 @@ from ``Saves/scene/MainMenu_Original.json`` (same button ``id``). Otherwise any
 ``_SceneThumb_*`` is removed.
 JPEG next to the scene ``.json`` (same name, or newest in folder); if none, no panel.
 
+After a successful edit to ``Default.json``, this script **copies** it to
+``MainMenu.json`` so both hub files stay identical (same contract as
+``rewire_hub_scene_button.py``). Use ``--no-sync-main-menu`` only if you are
+sure you want to skip that mirror.
+
 Run from repo / VaM root (folder that contains ``Saves/scene/`` and ``Custom/Scripts/Gabriel/tools/scene-menu/``):
   python Custom/Scripts/Gabriel/tools/scene-menu/inject_default_scene_thumbnails.py
 """
@@ -26,6 +31,7 @@ import math
 import os
 import shutil
 import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 BACK_M = 0.01  # 1 cm behind button plane (local -Z after container rotation)
@@ -42,6 +48,16 @@ THUMB_Y_QUARTER_HEIGHT_FRAC = 0.25
 THUMB_Y_EXTRA_M = 0.05
 
 DEFAULT_BASELINE_MENU_REL = os.path.join("Saves", "scene", "MainMenu_Original.json")
+_MAIN_MENU_SCENE_REL = os.path.join("Saves", "scene", "MainMenu.json")
+
+
+def _find_vam_root_from_here() -> str:
+    """Folder that contains ``Saves/scene`` (walk up from this script)."""
+    start = Path(__file__).resolve()
+    for anc in [start.parent, *start.parents]:
+        if (anc / "Saves" / "scene").is_dir():
+            return str(anc)
+    return str(start.parent.parent)
 
 
 def _f(s: Any) -> float:
@@ -279,7 +295,11 @@ def _build_thumb_atom(
 
 
 def inject(
-    vam_root: str, scene_rel: str, baseline_rel: str, dry_run: bool
+    vam_root: str,
+    scene_rel: str,
+    baseline_rel: str,
+    dry_run: bool,
+    sync_main_menu: bool,
 ) -> int:
     scene_path = os.path.join(vam_root, scene_rel.replace("/", os.sep))
     if not os.path.isfile(scene_path):
@@ -348,7 +368,21 @@ def inject(
         "(no JPEG). Backup:",
         bak,
     )
+    if sync_main_menu and _is_hub_default_scene(scene_rel):
+        mp = os.path.join(vam_root, _MAIN_MENU_SCENE_REL.replace("/", os.sep))
+        shutil.copyfile(scene_path, mp)
+        print(
+            "COPIED:",
+            scene_path,
+            "->",
+            mp,
+        )
     return 0
+
+
+def _is_hub_default_scene(scene_rel: str) -> bool:
+    tail = scene_rel.strip().replace("\\", "/").lstrip("./").lower()
+    return tail.endswith("saves/scene/default.json")
 
 
 def _resync_scene_thumbs(
@@ -393,11 +427,13 @@ def _resync_scene_thumbs(
 
 
 def main() -> int:
-    here = os.path.dirname(os.path.abspath(__file__))
-    vam_root = os.path.abspath(os.path.join(here, ".."))
+    vam_root = _find_vam_root_from_here()
     scene_rel = os.path.join("Saves", "scene", "Default.json")
     dry = "--dry-run" in sys.argv
-    return inject(vam_root, scene_rel, DEFAULT_BASELINE_MENU_REL, dry)
+    sync = "--no-sync-main-menu" not in sys.argv
+    return inject(
+        vam_root, scene_rel, DEFAULT_BASELINE_MENU_REL, dry, sync_main_menu=sync
+    )
 
 
 if __name__ == "__main__":

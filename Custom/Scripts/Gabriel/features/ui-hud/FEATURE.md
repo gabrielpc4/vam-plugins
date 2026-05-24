@@ -30,8 +30,9 @@ scene-advance UIButton resolution (`NextSceneUiButton`), keyboard routing in
   `ResetVROrientation` exposes **Show Easy Buttons** / **Hide Easy Buttons**
   (same wording as before) which calls this plugin's **Show UI** / **Hide UI**
   actions only — Easy Mate `MainUIButtons` are no longer tied to that toggle.
-- Own the keyboard hotkeys in `GabrielHotkeys` (`Space`, `Ctrl+Shift+S`, `K`,
-  `O`, `F`), plugin toggles, scene-change routing, and palm HUD next-scene via
+- Own the keyboard hotkeys in `GabrielHotkeys` (`Space`, `Ctrl+Shift+S`,
+  `C` (camera/rig patch), `K` / `L` (soft body physics on/off), `O`, `F`),
+  plugin toggles, scene-change routing, and palm HUD next-scene via
   `NextSceneUiButton`, plus thin glue into `AnimationNoLoopDetection`, path-rule
   E-Motion merges, Spankings/Clothing grip deferrals, and fluid/camera helpers.
 - Cache the resolved next-scene `UIButtonTrigger` until scene/load or atom UID

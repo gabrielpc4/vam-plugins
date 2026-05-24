@@ -24,7 +24,8 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
   beam stays active, and invalidate it as soon as the beam hides.
 - Hide DillDoe fluid mesh until scene load settles.
 - Nudge standalone monitor-camera FOV from VaM defaults to Gabriel preference.
-- Capture camera/rig snapshots from the K hotkey and route them into the offline patch scripts.
+- Capture camera/rig snapshots from the C hotkey and route them into the
+  offline patch scripts.
 - **`[CameraRig]`** rotation uses center-eye world euler with **euler Z (roll)
   stripped to 0** before patching.
 - Python strips root **`playerNavCollider`** when present so VaM does not overwrite rig rotation from physical-floor tracking.
@@ -45,6 +46,6 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 ## Update Checklist
 Update this file in the same turn whenever any of these change:
 
-- K-hotkey request payload or Python script paths change.
+- Camera-patch (C-hotkey) request payload or Python script paths change.
 - Monitor laser triggers change.
 - Fluid-cum reveal timing or load guards change.

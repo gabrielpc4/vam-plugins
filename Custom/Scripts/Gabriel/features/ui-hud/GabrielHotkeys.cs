@@ -78,7 +78,7 @@ namespace geesp0t
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.K))
+            if (Input.GetKeyDown(KeyCode.C))
             {
                 try
                 {
@@ -87,7 +87,57 @@ namespace geesp0t
                 catch (Exception e)
                 {
                     SuperController.LogError(
-                        "K hotkey (patch scene JSON camera / rig): " + e);
+                        "C hotkey (patch scene JSON camera / rig): " + e);
+                }
+
+                return;
+            }
+
+            if (Input.GetKeyDown(KeyCode.K))
+            {
+                try
+                {
+                    if (UserPreferences.singleton == null)
+                    {
+                        SuperController.LogError(
+                            "K hotkey (soft body physics on): " +
+                            "UserPreferences.singleton is null.");
+                        return;
+                    }
+
+                    UserPreferences.singleton.softPhysics = true;
+                    SuperController.LogMessage(
+                        "Soft body physics on.");
+                }
+                catch (Exception e)
+                {
+                    SuperController.LogError(
+                        "K hotkey (soft body physics on): " + e);
+                }
+
+                return;
+            }
+
+            if (Input.GetKeyDown(KeyCode.L))
+            {
+                try
+                {
+                    if (UserPreferences.singleton == null)
+                    {
+                        SuperController.LogError(
+                            "L hotkey (soft body physics off): " +
+                            "UserPreferences.singleton is null.");
+                        return;
+                    }
+
+                    UserPreferences.singleton.softPhysics = false;
+                    SuperController.LogMessage(
+                        "Soft body physics off.");
+                }
+                catch (Exception e)
+                {
+                    SuperController.LogError(
+                        "L hotkey (soft body physics off): " + e);
                 }
 
                 return;

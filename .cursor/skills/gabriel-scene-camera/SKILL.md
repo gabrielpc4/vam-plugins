@@ -1,6 +1,6 @@
 ---
 name: gabriel-scene-camera
-description: Specialize on Gabriel scene-camera helpers, monitor laser restoration, fluid-cum load hiding, and the K-hotkey patch bridge. Use when editing `Custom/Scripts/Gabriel/features/scene-camera/**` or diagnosing camera/scene-load behavior.
+description: Specialize on Gabriel scene-camera helpers, monitor laser restoration, fluid-cum load hiding, and the C-hotkey patch bridge. Use when editing `Custom/Scripts/Gabriel/features/scene-camera/**` or diagnosing camera/scene-load behavior.
 ---
 
 # Gabriel Scene Camera

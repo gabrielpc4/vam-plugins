@@ -1,7 +1,9 @@
 # Gabriel Scene Camera Tools
 
 ## Purpose
-Offline Python tooling used by the K-hotkey scene-camera workflow. These scripts patch scene JSON camera values based on the request payload emitted by the runtime feature.
+Offline Python tooling used by the Gabriel C-hotkey scene-camera workflow.
+These scripts patch scene JSON camera values based on the request payload
+emitted by the runtime feature.
 
 ## Live Files
 - `patch_scene_initial_camera.py`
@@ -30,4 +32,4 @@ Offline Python tooling used by the K-hotkey scene-camera workflow. These scripts
 Update this file in the same turn whenever any of these change:
 
 - CLI arguments, request schema, or generated sidecar file names change.
-- The K-hotkey runtime expects new or removed payload fields.
+- The C-hotkey runtime expects new or removed payload fields.

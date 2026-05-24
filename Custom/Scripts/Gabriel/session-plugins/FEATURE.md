@@ -49,6 +49,9 @@ paths in this list).
 - Release transient head-hide state after scene settle completes.
 - Register the emergency `Space` release action consumed by the HUD hotkey
   dispatcher.
+- Indirectly drives initial `UserPreferences.softPhysics` via
+  `AnimationNoLoopDetection` after each scene’s motion state is first evaluated
+  (long non-loop off; exception paths and other scenes on).
 
 ## Dependencies And Coupling
 - Depends on `src/SceneSettle.cs`, `src/PlaybackHold.cs`,
@@ -71,3 +74,4 @@ Update this file in the same turn whenever any of these change:
 - `SceneSettleRuntime` responsibility boundaries or the session-plugins file split
   changes.
 - Action wiring or the `Space` shortcut behavior changes.
+- Session-level defaults coupled to animation no-loop detection (e.g. soft physics).

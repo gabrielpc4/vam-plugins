@@ -7,10 +7,10 @@ after playback ends (delayed in realtime), unless the load/save dir path matches
 the exception bucket. **No E-Motion coupling** — this is standalone
 scene-motion policy.
 
-On the first motion-state evaluation after each scene change, sets
-`UserPreferences.softPhysics`: **off** for long non-loop scenes (typical dance
-timelines), **on** for all other scenes and for **exception** paths (same folder
-token rule as Default.json deferral, e.g. `booty shake`).
+On the first motion-state evaluation after each scene change, notifies
+`SoftPhysicsScenePreference` so **`UserPreferences.softPhysics`** tracks the same
+long non-loop vs exception policy (implementation lives under
+**`features/soft-physics-preference/`**).
 
 ## Live Files
 - `AnimationNoLoopDetection.cs`
@@ -29,8 +29,8 @@ token rule as Default.json deferral, e.g. `booty shake`).
 ## Dependencies And Coupling
 - `GabrielSessionOrchestrator` owns the user toggles for this policy (saved on the
   orchestrator plugin preset).
-- Writes `UserPreferences.softPhysics` once per newly evaluated motion state after
-  each scene reset (same long non-loop + exception semantics as Default.json deferral).
+- After each recomputed motion state, calls **`SoftPhysicsScenePreference`**
+  (prefs write; see **`features/soft-physics-preference/`**).
 - Shares long non-loop scene qualification helpers with `spankings` grip-merge
   guard logic and `clothing-interactions`
   (`ClothingTouchFallOffGripMerge` in `ClothingTouchFallOffDeferredMerge.cs`).
@@ -41,11 +41,13 @@ token rule as Default.json deferral, e.g. `booty shake`).
 - `Custom/Scripts/Gabriel/features/ui-hud/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/spankings/FEATURE.md`
 - `Custom/Scripts/Gabriel/features/clothing-interactions/FEATURE.md`
+- `Custom/Scripts/Gabriel/features/soft-physics-preference/FEATURE.md`
 
 ## Update Checklist
 Update this file in the same turn whenever any of these change:
 
 - End detection, delay seconds, target JSON path, or exception exclusion rules.
-- Soft-body physics auto policy or `UserPreferences` coupling.
+- Coupling flags passed to **`SoftPhysicsScenePreference`** (semantics must stay
+  aligned).
 - Interaction with other features that read
   `CurrentSceneUsesLongNonLoopAnimation` / grip merge blocking.

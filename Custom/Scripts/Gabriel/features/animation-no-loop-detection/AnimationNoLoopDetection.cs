@@ -199,30 +199,9 @@ namespace geesp0t
             _seenPlaybackAdvance = false;
             _nextPlaybackCompletionCheckTime = -1f;
 
-            ApplySoftPhysicsPreferenceForSceneMotionPolicy();
-        }
-
-        /// <summary>
-        /// After scene motion state is first qualified, match user soft-body
-        /// physics to the long non-loop policy: off for dominant non-loop
-        /// dance-length clips (performance), on otherwise. Exception paths
-        /// (e.g. folder token <c>booty shake</c>) keep soft physics on even
-        /// when the clip is long and non-looping.
-        /// </summary>
-        private static void ApplySoftPhysicsPreferenceForSceneMotionPolicy()
-        {
-            UserPreferences prefs;
-            bool wantSoftPhysics;
-
-            prefs = UserPreferences.singleton;
-            if (prefs == null)
-            {
-                return;
-            }
-
-            wantSoftPhysics =
-                !_sceneHasLongNonLoopAnimation || _sceneMatchesExceptionRule;
-            prefs.softPhysics = wantSoftPhysics;
+            SoftPhysicsScenePreference.ApplyFromLongNonLoopSceneFlags(
+                _sceneHasLongNonLoopAnimation,
+                _sceneMatchesExceptionRule);
         }
 
         /// <summary>

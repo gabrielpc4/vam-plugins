@@ -34,7 +34,8 @@ Single plugin URL; one compile that typically includes:
   `TriggerClothingRemover`, `ClothingTouchFallOffDeferredMerge`
   (`ClothingTouchFallOffPluginPath`; **not** the person `MVRScript` on CoreControl)
 - **`util/*`**, **`features/passenger-possession/*`**, palm-hud, scene-camera,
-  hands, head-hide, e-motion, spankings, animation-no-loop — helpers
+  hands, head-hide, e-motion, spankings, animation-no-loop,
+  **`features/soft-physics-preference/*`** — helpers
 
 **Offline parity:** `features/ui-hud/GabrielHud.cslist` lists the **same** `.cs`
 set with paths relative to `features/ui-hud/`.
@@ -58,6 +59,7 @@ in `GabrielSessionPlugins.cslist` or VaM would also run it on CoreControl.
 | `features/head-hide/` | [features/head-hide/FEATURE.md](features/head-hide/FEATURE.md) |
 | `features/e-motion/` | [features/e-motion/FEATURE.md](features/e-motion/FEATURE.md) |
 | `features/animation-no-loop-detection/` | [features/animation-no-loop-detection/FEATURE.md](features/animation-no-loop-detection/FEATURE.md) |
+| `features/soft-physics-preference/` | [features/soft-physics-preference/FEATURE.md](features/soft-physics-preference/FEATURE.md) |
 | `features/spankings/` | [features/spankings/FEATURE.md](features/spankings/FEATURE.md) |
 | `features/dildo-on-hands/` | [features/dildo-on-hands/FEATURE.md](features/dildo-on-hands/FEATURE.md) |
 | `features/improved-pov/` | [features/improved-pov/FEATURE.md](features/improved-pov/FEATURE.md) |

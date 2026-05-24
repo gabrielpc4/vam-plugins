@@ -11,6 +11,7 @@ GabrielHud.cs
 NextSceneUiButton.cs
 GabrielHotkeys.cs
 ../animation-no-loop-detection/AnimationNoLoopDetection.cs
+../soft-physics-preference/SoftPhysicsScenePreference.cs
 ../palm-hud/VrInput.cs
 ../palm-hud/VrEulerPossessPoseCheck.cs
 ../palm-hud/VrEulerPossessHandHud.cs

@@ -43,7 +43,7 @@ scene-advance UIButton resolution (`NextSceneUiButton`), keyboard routing in
   through `CoreControl`.
 - Expose user toggles on **`GabrielSessionOrchestrator`** (and HUD actions) for
   remote grip link blocking, head hide, long non-loop animation-end default loads,
-  same-folder camera retain, monitor lasers, and fluid-cum visibility.
+  monitor lasers, and fluid-cum visibility.
 
 ## Dependencies And Coupling
 - Calls into other feature folders compiled in **`GabrielSessionPlugins.cslist`**

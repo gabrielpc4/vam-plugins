@@ -20,7 +20,6 @@ GabrielHotkeys.cs
 ../passenger-possession/PassengerPossessableNarrow.cs
 ../passenger-possession/SceneLoadPossessionCleanup.cs
 ../scene-camera/SceneCameraPatch.cs
-../scene-camera/SameFolderCameraRetain.cs
 ../scene-camera/FluidCumHideDuringSceneLoad.cs
 ../scene-camera/MonitorModeLaserRestore.cs
 ../scene-camera/DefaultMonitorCameraFov.cs

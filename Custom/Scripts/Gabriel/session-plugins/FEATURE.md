@@ -9,8 +9,8 @@ scene-settle release action for the shared hotkey dispatcher.
 The same compile unit includes **DildoOnHands**, **`ClothingClassifier`** +
 **`TriggerClothingRemover`**, **`GabrielSessionOrchestrator`**, and
 **`../util/SameFolderLoadCheck.cs`** (path normalization plus idle vs load-folder
-matching for **`SameFolderCameraRetain`**, **`SceneSettleRuntime`**, and
-clothing touch-fall same-folder suppression). Bootstrap injects only
+matching for **`SceneSettleRuntime`** and clothing touch-fall same-folder
+suppression). Bootstrap injects only
 `VaMLogClipboardHud.cslist` plus **`GabrielSessionPlugins.cslist`** (VaM does not
 nest `.cslist` files; multiple scripts share one compile by listing their `.cs`
 paths in this list).

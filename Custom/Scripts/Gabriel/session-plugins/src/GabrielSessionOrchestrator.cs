@@ -164,8 +164,6 @@ namespace geesp0t
                 ForceReleaseSceneSettleHoldFromAction);
             RegisterAction(forceReleaseSceneSettleHoldAction);
 
-            SameFolderCameraRetain.SetRetainEnabled(true);
-
             SuperController sc = SuperController.singleton;
             if (sc != null)
             {
@@ -462,11 +460,6 @@ namespace geesp0t
                 loadingNow,
                 FluidCumRevealDelayRealtimeSeconds);
 
-            if (prevSuperControllerIsLoading && !loadingNow)
-                SameFolderCameraRetain.QueueRestoreCoroutineIfNeeded(this);
-            if (!prevSuperControllerIsLoading && loadingNow)
-                SameFolderCameraRetain.NotifyLoadBeginning(scFsm);
-
             prevSuperControllerIsLoading = loadingNow;
 
             if (loadingNow)
@@ -595,8 +588,6 @@ namespace geesp0t
             GripHandVisibility.LateTick();
 
             TriggerClothingRemover.LateTickStrip(sc);
-
-            SameFolderCameraRetain.LateTickIdleCapture(sc);
 
             AnimationNoLoopDetection.LateTick(
                 true,

@@ -22,7 +22,6 @@ src/PersonTongueCollisionDisable.cs
 ../features/passenger-possession/PassengerPossessableNarrow.cs
 ../features/passenger-possession/SceneLoadPossessionCleanup.cs
 ../features/scene-camera/SceneCameraPatch.cs
-../features/scene-camera/SameFolderCameraRetain.cs
 ../features/scene-camera/FluidCumHideDuringSceneLoad.cs
 ../features/scene-camera/MonitorModeLaserRestore.cs
 ../features/scene-camera/DefaultMonitorCameraFov.cs

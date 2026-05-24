@@ -74,3 +74,5 @@ Custom/**
 # but still matched by global `!**/*.cs` and similar negation rules).
 /Gabriel/
 prefs.json
+Custom/Scripts/Gabriel/tools/scene-camera/last_scene_camera_patch_request.json
+Custom/Scripts/Gabriel/tools/scene-camera/last_scene_camera_patch_log.txt

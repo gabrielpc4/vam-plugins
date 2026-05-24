@@ -9,9 +9,11 @@ namespace geesp0t
 {
     /// <summary>
     /// <b>K</b> hotkey: captures navigation / monitor / height / WindowCamera /
-    /// <c>[CameraRig]</c>, writes <c>tools/last_scene_camera_patch_request.json</c>.
+    /// center-eye <c>[CameraRig]</c> rotation (euler Z stripped to 0), writes
+    /// <c>tools/last_scene_camera_patch_request.json</c>.
     /// If <see cref="SuperController.currentLoadDir"/> contains exactly one non-meta
-    /// <c>.json</c>, runs <c>tools/patch_scene_initial_camera.py</c> automatically.
+    /// <c>.json</c>, runs <c>tools/patch_scene_initial_camera.py</c> automatically
+    /// (drops root <c>playerNavCollider</c> so tilt survives VR reload).
     /// If there are none or multiple, logs an error and the full camera snapshot so you can run
     /// <c>tools/patch_scene_camera_manual_cli.py</c> with the scene JSON you choose and the same request file.
     /// </summary>
@@ -172,6 +174,10 @@ namespace geesp0t
                 SuperController.LogMessage(string.Format(
                     "GabrielHud [key K]: python exit 0. Details: {0}",
                     PatchToolLogRelative));
+                SuperController.LogMessage(
+                    "GabrielHud [key K]: patch removed root playerNavCollider if present — " +
+                    "VaM otherwise forces rig orientation to physical floor each frame; " +
+                    "re-bind Floor on Player Navigation panel if you want that again.");
             }
         }
 
@@ -487,6 +493,25 @@ namespace geesp0t
                 SuperController.LogMessage("GabrielHud [key K]: navigationRig is null");
             }
 
+            if (sc.navigationRig != null && sc.centerCameraTarget != null)
+            {
+                Transform ceCapturedWide;
+                Quaternion patchRotCapturedWide;
+
+                ceCapturedWide = sc.centerCameraTarget.transform;
+                patchRotCapturedWide = ComputeCameraRigRotationForPatch(sc);
+                SuperController.LogMessage(string.Format(
+                    "GabrielHud [key K]: centerCameraTarget world euler=({0:F4},{1:F4},{2:F4})",
+                    ceCapturedWide.rotation.eulerAngles.x,
+                    ceCapturedWide.rotation.eulerAngles.y,
+                    ceCapturedWide.rotation.eulerAngles.z));
+                SuperController.LogMessage(string.Format(
+                    "GabrielHud [key K]: cameraRig PATCH euler (center-eye, Z=0)=({0:F4},{1:F4},{2:F4})",
+                    patchRotCapturedWide.eulerAngles.x,
+                    patchRotCapturedWide.eulerAngles.y,
+                    patchRotCapturedWide.eulerAngles.z));
+            }
+
             Atom windowCameraAtomCapturedWide;
             windowCameraAtomCapturedWide = sc.GetAtomByUid("WindowCamera");
             if (windowCameraAtomCapturedWide != null &&
@@ -511,6 +536,53 @@ namespace geesp0t
             }
         }
 
+        /// <summary>
+        /// Euler baked into atom [CameraRig]. Uses world rotation of
+        /// <see cref="SuperController.centerCameraTarget"/> (full tilt/yaw/pitch).
+        /// Roll stripped to euler <c>Z == 0</c> before JSON write.
+        /// VaM VR ties the rig to <c>playerNavCollider</c> unless the offline patch
+        /// removes that binding so this rotation can survive reload.
+        /// </summary>
+        private static Quaternion ComputeCameraRigRotationForPatch(SuperController sc)
+        {
+            Transform rigCapturedWide;
+            Transform camCapturedWide;
+            Quaternion rawCapturedWide;
+
+            if (sc == null)
+            {
+                return Quaternion.identity;
+            }
+
+            rigCapturedWide = sc.navigationRig;
+            if (rigCapturedWide == null)
+            {
+                return Quaternion.identity;
+            }
+
+            if (sc.centerCameraTarget == null)
+            {
+                rawCapturedWide = rigCapturedWide.rotation;
+            }
+            else
+            {
+                camCapturedWide = sc.centerCameraTarget.transform;
+                rawCapturedWide = camCapturedWide.rotation;
+            }
+
+            return StripCameraRigEulerRollZ(rawCapturedWide);
+        }
+
+        /// <summary>
+        /// Forces euler Z to zero on patch payload (VaM rotation UI roll axis).
+        /// </summary>
+        private static Quaternion StripCameraRigEulerRollZ(Quaternion rotationCapturedWide)
+        {
+            Vector3 eulerCapturedWide;
+            eulerCapturedWide = rotationCapturedWide.eulerAngles;
+            return Quaternion.Euler(eulerCapturedWide.x, eulerCapturedWide.y, 0f);
+        }
+
         private static JSONClass BuildPatchRequest(SuperController sc)
         {
             JSONClass root = new JSONClass();
@@ -532,7 +604,7 @@ namespace geesp0t
             {
                 navigationRigNodeCapturedWide["position"] = Vec3Json(sc.navigationRig.position);
                 navigationRigNodeCapturedWide["rotation"] =
-                    Vec3Json(sc.navigationRig.rotation.eulerAngles);
+                    Vec3Json(ComputeCameraRigRotationForPatch(sc).eulerAngles);
             }
             else
             {

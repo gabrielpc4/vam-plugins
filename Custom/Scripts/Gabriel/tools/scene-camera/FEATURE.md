@@ -13,6 +13,9 @@ Offline Python tooling used by the K-hotkey scene-camera workflow. These scripts
 
 ## Responsibilities
 - Patch target scene JSON files from a captured camera request payload.
+- Remove root **`playerNavCollider`** when the usual pattern matches so patched
+  **`[CameraRig]`** orientation survives VR load (otherwise VaM syncs rig
+  rotation to physical floor tracking each frame).
 - Support both auto-target and manual CLI workflows for camera patching.
 
 ## Dependencies And Coupling

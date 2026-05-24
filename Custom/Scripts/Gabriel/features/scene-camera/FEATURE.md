@@ -5,7 +5,6 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 
 ## Live Files
 - `SceneCameraPatch.cs`
-- `SameFolderCameraRetain.cs`
 - `MonitorModeLaserRestore.cs`
 - `FluidCumHideDuringSceneLoad.cs`
 - `DefaultMonitorCameraFov.cs`
@@ -16,7 +15,6 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 - `SceneCameraPatch` writes request data into `Custom/Scripts/Gabriel/tools/scene-camera/` and can auto-run the Python patcher.
 
 ## Responsibilities
-- Persist/reapply camera pose across same-folder loads.
 - Restore desktop/monitor aim cylinders for the expected input gestures.
 - Tick `PassengerLaserPossess` when beams run so **right beam + face A**
   can start passenger on a lit hit person (face A confirm uses
@@ -27,11 +25,12 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 - Hide DillDoe fluid mesh until scene load settles.
 - Nudge standalone monitor-camera FOV from VaM defaults to Gabriel preference.
 - Capture camera/rig snapshots from the K hotkey and route them into the offline patch scripts.
+- **`[CameraRig]`** rotation uses center-eye world euler with **euler Z (roll)
+  stripped to 0** before patching.
+- Python strips root **`playerNavCollider`** when present so VaM does not overwrite rig rotation from physical-floor tracking.
 
 ## Dependencies And Coupling
 - Shares scene-settle assumptions with `session-plugins` and `SceneSettleRuntime`.
-- `SameFolderCameraRetain` uses static `SameFolderLoadCheck.Normalize`
-  (see `../util/SameFolderLoadCheck.cs`) for folder compares.
 - `MonitorModeLaserRestore` calls into `passenger-possession/PassengerLaserPossess.cs` for shared beam hit tests.
 - Beam hit tests use a shared non-alloc closest-person scan so monitor lasers do
   not allocate every frame while aiming.
@@ -47,5 +46,5 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 Update this file in the same turn whenever any of these change:
 
 - K-hotkey request payload or Python script paths change.
-- Same-folder retain logic or monitor laser triggers change.
+- Monitor laser triggers change.
 - Fluid-cum reveal timing or load guards change.

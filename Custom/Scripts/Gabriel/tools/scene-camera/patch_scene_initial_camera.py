@@ -8,7 +8,9 @@ Usage:
   python patch_scene_initial_camera.py <scene_json_abs> <request_json_abs>
 
 Creates <scene>.json.backup once (if missing), then patches the target scene
-JSON using string-preserving replacements (suited to very large files).
+JSON using string-preserving replacements (suited to very large files). Also
+drops root ``playerNavCollider`` when present so patched ``[CameraRig]``
+rotation is not overwritten each frame by physical-floor VR tracking.
 """
 from __future__ import print_function
 
@@ -142,6 +144,28 @@ def patch_monitor_rotation(content, x, y, z):
     new_c, n = re.subn(pat, repl, content, count=1, flags=re.DOTALL)
     if n != 1:
         raise ValueError("monitorCameraRotation: expected 1 substitution, got %d" % n)
+    return new_c
+
+
+def patch_remove_root_player_nav_collider(content, log_fp=None):
+    """Remove root playerNavCollider line so VaM does not re-bind VR rig rotation
+    to the physical floor tracker on load (ProcessPlayerNavMove overwrites parent
+    rotation every frame while bound).
+    """
+    pat = r'(?m)^[ \t]*"playerNavCollider"[ \t]*:[ \t]*"[^"]*"[ \t]*,[ \t]*\r?\n'
+    new_c, n = re.subn(pat, "", content, count=1)
+    if n == 1:
+        _log(
+            "removed root playerNavCollider — re-bind Floor in VaM Player Navigation "
+            "if you want physical-floor tracking again",
+            log_fp,
+        )
+    else:
+        _log(
+            "playerNavCollider root line not matched — skipping removal "
+            "(scene may lack binding or format differs)",
+            log_fp,
+        )
     return new_c
 
 
@@ -291,6 +315,7 @@ def main(argv=None):
             atom_cr2 = patch_xyz_block(atom_cr, "position", cr["position"]["x"], cr["position"]["y"], cr["position"]["z"])
             atom_cr3 = patch_xyz_block(atom_cr2, "rotation", cr["rotation"]["x"], cr["rotation"]["y"], cr["rotation"]["z"])
             content = content[:s0] + atom_cr3 + content[e0:]
+            content = patch_remove_root_player_nav_collider(content, log_fp)
 
             if req.get("windowCamera") is not None:
                 wc = req["windowCamera"]

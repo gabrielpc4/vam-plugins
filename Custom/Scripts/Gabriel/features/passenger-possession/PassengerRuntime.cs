@@ -122,6 +122,107 @@ namespace geesp0t
             PassengerSunglassesSnaps =
                 new List<PassengerSunglassesClothingSnap>(4);
 
+        private static bool PassengerSunglassesSnapsContainItem(
+            DAZClothingItem item)
+        {
+            int idx;
+
+            if (item == null)
+            {
+                return false;
+            }
+
+            for (idx = 0; idx < PassengerSunglassesSnaps.Count; idx++)
+            {
+                if (PassengerSunglassesSnaps[idx].Item == item)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Tracks <paramref name="item"/> for passenger-stop restore exactly once (
+        /// <see cref="RestorePassengerSunglassesClothing"/>).
+        /// </summary>
+        private static void EnsurePassengerSunglassesSnapTracked(
+            DAZClothingItem item,
+            bool savedActiveWas)
+        {
+            PassengerSunglassesClothingSnap snap;
+
+            if (item == null || !savedActiveWas)
+            {
+                return;
+            }
+
+            if (PassengerSunglassesSnapsContainItem(item))
+            {
+                return;
+            }
+
+            snap = new PassengerSunglassesClothingSnap();
+            snap.Item = item;
+            snap.SavedActive = savedActiveWas;
+            PassengerSunglassesSnaps.Add(snap);
+        }
+
+        /// <summary>
+        /// VaM disables worn clothing correctly only through
+        /// <see cref="DAZCharacterSelector.SetActiveClothingItem"/> (also toggles the
+        /// garment Unity <c>GameObject</c>, clothing selector UI JSON, and runs
+        /// <c>SyncAnatomy</c>). Do not assign <c>DAZClothingItem.active</c>
+        /// alone—meshes usually stay rendered. Gabriel-wide note:
+        /// <c>features/clothing-interactions/FEATURE.md</c>.
+        /// </summary>
+        private static void HidePassengerSunglassesClothingViaSelector(
+            DAZCharacterSelector selector,
+            DAZClothingItem item)
+        {
+            if (item == null)
+            {
+                return;
+            }
+
+            if (selector != null)
+            {
+                selector.SetActiveClothingItem(item, false);
+            }
+            else
+            {
+                item.active = false;
+                if (item.gameObject != null)
+                {
+                    item.gameObject.SetActive(false);
+                }
+            }
+        }
+
+        private static void RestorePassengerSunglassesSingleViaSelectorOrFallback(
+            DAZCharacterSelector selector,
+            PassengerSunglassesClothingSnap snap)
+        {
+            if (snap.Item == null || !snap.SavedActive)
+            {
+                return;
+            }
+
+            if (selector != null)
+            {
+                selector.SetActiveClothingItem(snap.Item, true);
+            }
+            else
+            {
+                snap.Item.active = true;
+                if (snap.Item.gameObject != null)
+                {
+                    snap.Item.gameObject.SetActive(true);
+                }
+            }
+        }
+
         /// <summary>
         /// Signed pitch (deg): angle from torso-horizontal head forward to actual
         /// <c>headControl.forward</c> around the horizontal right axis (torso
@@ -596,11 +697,11 @@ namespace geesp0t
                 {
                     RestorePassengerSunglassesClothing();
                 }
-                catch (Exception sunglassesRestoreException)
+                catch (Exception passengerEyewearRestoreException)
                 {
                     SuperController.LogError(
-                        "Easy Mate passenger sunglasses restore failed: " +
-                        sunglassesRestoreException.Message);
+                        "Easy Mate passenger eyewear clothing restore failed: " +
+                            passengerEyewearRestoreException.Message);
                 }
 
                 try
@@ -805,13 +906,17 @@ namespace geesp0t
             ApplyPassengerSunglassesHideForTarget(passengerPerson);
         }
 
+        /// <summary>
+        /// Disables active classified eyewear slots when passenger starts using
+        /// <see cref="ClothingClassifier.IsPassengerSunglassesClothing"/> and
+        /// <see cref="DAZCharacterSelector.SetActiveClothingItem"/>.
+        /// </summary>
         private static void ApplyPassengerSunglassesHideForTarget(Atom passengerPerson)
         {
             DAZCharacterSelector selector;
             DAZClothingItem[] items;
             int index;
             DAZClothingItem item;
-            PassengerSunglassesClothingSnap snap;
 
             RestorePassengerSunglassesClothing();
 
@@ -841,26 +946,34 @@ namespace geesp0t
                     continue;
                 }
 
-                snap = new PassengerSunglassesClothingSnap();
-                snap.Item = item;
-                snap.SavedActive = true;
-                PassengerSunglassesSnaps.Add(snap);
-                item.active = false;
+                EnsurePassengerSunglassesSnapTracked(item, true);
+                HidePassengerSunglassesClothingViaSelector(selector, item);
             }
         }
 
+        /// <summary>
+        /// Turns suppressed eyewear back on after passenger exits.
+        /// </summary>
         private static void RestorePassengerSunglassesClothing()
         {
             PassengerSunglassesClothingSnap snap;
+            DAZCharacterSelector selectorRestore;
             int i;
+
+            selectorRestore =
+                PersonAtomCache.TryGetCharacterSelector(_passengerTargetPerson);
 
             for (i = 0; i < PassengerSunglassesSnaps.Count; i++)
             {
                 snap = PassengerSunglassesSnaps[i];
-                if (snap.Item != null && snap.SavedActive)
+                if (snap.Item == null)
                 {
-                    snap.Item.active = true;
+                    continue;
                 }
+
+                RestorePassengerSunglassesSingleViaSelectorOrFallback(
+                    selectorRestore,
+                    snap);
             }
 
             PassengerSunglassesSnaps.Clear();

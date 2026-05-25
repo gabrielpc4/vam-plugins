@@ -430,6 +430,31 @@ namespace geesp0t
                 PossessHandsOnlyRoutine(person));
         }
 
+        /// <summary>
+        /// Passenger follow drives <c>headControl</c> directly, so any saved VaM
+        /// head possession from the scene must be cleared before the hands-only
+        /// possess step starts.
+        /// </summary>
+        private static void ClearHeadPossessBeforePassengerHands(
+            SuperController sc)
+        {
+            if (sc == null)
+            {
+                return;
+            }
+
+            try
+            {
+                sc.ClearHeadPossess();
+            }
+            catch (Exception exception)
+            {
+                SuperController.LogError(
+                    "Easy Mate passenger hands clear head possess: " +
+                    exception.Message);
+            }
+        }
+
         private static IEnumerator PossessHandsOnlyRoutine(Atom person)
         {
             try
@@ -451,6 +476,7 @@ namespace geesp0t
                     yield break;
                 }
 
+                ClearHeadPossessBeforePassengerHands(sc);
                 PassengerPossessableNarrow.ApplyForTargetPerson(person);
                 sc.SelectModePossess(true);
 

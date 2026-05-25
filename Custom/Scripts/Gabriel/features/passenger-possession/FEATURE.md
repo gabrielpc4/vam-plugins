@@ -23,6 +23,11 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 - Pick target persons, align the navigation rig, and preserve/restore head and rig state.
 - Prepare `ImprovedPoV` on the target and suppress duplicate head-hide behavior where needed.
 - Delay VR hand possession until a later grip/trigger confirmation step.
+- On that grip/trigger confirmation, clear any scene-restored VaM
+  `headPossessedController` before VR hand possession
+  (`PassengerRuntime.ClearHeadPossessBeforePassengerHands` →
+  `SuperController.ClearHeadPossess`) so it does not fight Gabriel driving
+  `headControl` during passenger follow.
 - Raycast along the **right** UI-aim beam and map the closest hit person for laser+A start.
 - While active on a target Person, **eyewear** garments matched by
   `ClothingClassifier.IsPassengerSunglassesClothing` are turned **off** and

@@ -66,6 +66,9 @@ namespace geesp0t
 
         private SameFolderLoadCheck sameFolderLoadCheck = new SameFolderLoadCheck();
 
+        private SameFolderVrHmdRestore sameFolderVrHmdRestore =
+            new SameFolderVrHmdRestore();
+
         private SceneSettleRuntime sceneSettle = new SceneSettleRuntime();
 
         /// <summary>
@@ -154,7 +157,9 @@ namespace geesp0t
             explanationString = new JSONStorableString(
                 "",
                 "Gabriel session orchestrator handles scene-settle playback " +
-                "hold, same-folder load suppression, late runtime ticks, " +
+                "hold, same-folder load suppression, VR same-folder navigation " +
+                "rig + height + monitor cam snapshot restore end-of-frame after " +
+                "same-folder load, late runtime ticks, " +
                 "and built-in session default behaviors.");
             UIDynamicTextField dtext = CreateTextField(explanationString);
             dtext.height = 520;
@@ -444,10 +449,21 @@ namespace geesp0t
             PassengerRuntime.SetSessionPluginHost(this);
 
             loadingNow = scFsm.isLoading;
+            bool sameFldStart;
+
+            if (prevSuperControllerIsLoading && !loadingNow)
+            {
+                sameFolderVrHmdRestore.NotifyLoadingEnded(this, scFsm);
+            }
+
             if (!prevSuperControllerIsLoading && loadingNow)
             {
-                skipSceneSettleWorkflowForPendingLoad =
-                    sameFolderLoadCheck.IsSameFolderLoad(scFsm);
+                sameFldStart = sameFolderLoadCheck.IsSameFolderLoad(scFsm);
+                skipSceneSettleWorkflowForPendingLoad = sameFldStart;
+                sameFolderVrHmdRestore.NotifyLoadingStarted(
+                    this,
+                    scFsm,
+                    sameFldStart);
                 PassengerRuntime.NotifySceneChanged(this);
             }
             else if (!loadingNow)
@@ -508,6 +524,7 @@ namespace geesp0t
                     scFsm);
 
                 PassengerRuntime.NotifySceneChanged(this);
+
                 SceneLoadPossessionCleanup.ClearPossessionAfterSceneApplyIfHadAny();
 
                 if (_applyEmotionAfterSceneCo != null)
@@ -617,6 +634,8 @@ namespace geesp0t
                     atomEventsSc.onAtomUIDsChangedHandlers -=
                         OnAtomUIDsChangedHandlers;
                 }
+
+                sameFolderVrHmdRestore.OnPluginDestroy(this);
 
                 StopAllCoroutines();
                 _applyEmotionAfterSceneCo = null;

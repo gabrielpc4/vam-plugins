@@ -18,6 +18,7 @@ src/PersonTongueCollisionDisable.cs
 ../features/palm-hud/VrEulerPossessPoseCheck.cs
 ../features/palm-hud/VrEulerPossessHandHud.cs
 ../features/passenger-possession/PassengerRuntime.cs
+src/SameFolderVrHmdRestore.cs
 ../features/passenger-possession/PassengerLaserPossess.cs
 ../features/passenger-possession/PassengerHandPrePossessSnapshot.cs
 ../features/passenger-possession/PassengerPossessableNarrow.cs

@@ -361,6 +361,41 @@ namespace geesp0t
             ClearPendingPassengerModeActivation();
         }
 
+        /// <summary>
+        /// Called on same-folder idle→loading before <see cref="NotifySceneChanged"/>.
+        /// If passenger owns the rig, returns the pose stored when passenger
+        /// started; otherwise reads current navigation rig plus
+        /// <see cref="SuperController.playerHeightAdjust"/>.
+        /// </summary>
+        public static bool TryGetRigPoseForSameFolderRestore(
+            SuperController sc,
+            out Vector3 position,
+            out Quaternion rotation,
+            out float playerHeightAdjust)
+        {
+            position = Vector3.zero;
+            rotation = Quaternion.identity;
+            playerHeightAdjust = 0f;
+
+            if (sc == null || sc.navigationRig == null)
+            {
+                return false;
+            }
+
+            if (_isPassengerModeActive)
+            {
+                position = _previousNavigationRigPosition;
+                rotation = _previousNavigationRigRotation;
+                playerHeightAdjust = _previousPlayerHeightAdjust;
+                return true;
+            }
+
+            position = sc.navigationRig.position;
+            rotation = sc.navigationRig.rotation;
+            playerHeightAdjust = sc.playerHeightAdjust;
+            return true;
+        }
+
         public static void NotifyAtomUidsChanged(
             List<string> atomUids,
             MVRScript host)

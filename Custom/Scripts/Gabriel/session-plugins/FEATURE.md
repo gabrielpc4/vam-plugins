@@ -18,8 +18,14 @@ paths in this list).
 ## Live Files
 - `GabrielSessionPlugins.cslist`
 - `src/GabrielSessionOrchestrator.cs` *(session runtime; scene settle +
-  built-in defaults)*
+  built-in defaults; same-folder VR rig restore timing)*
 - `src/SceneSettle.cs`
+- `src/SameFolderVrHmdRestore.cs` *(OpenVR/Oculus same-folder preset hop:
+  capture navigation rig pose, **`playerHeightAdjust`**, and monitor cam local euler
+  on the idle→loading edge before **`PassengerRuntime.NotifySceneChanged`**; if
+  passenger was active, Gabriel reads **`PassengerRuntime`** pre-passenger snap;
+  after load **`WaitForEndOfFrame`** plus a short reassert wins over preset rig /
+  monitor rotation; then **`SuperController.SetSceneLoadPosition`**.)*
 - `src/PlaybackHold.cs`
 - `src/InitialExposureChange.cs`
 - `../util/SameFolderLoadCheck.cs` *(path normalize + same-folder checker;
@@ -40,6 +46,14 @@ paths in this list).
 
 ## Responsibilities
 - Track scene load edges and same-folder load pulses.
+- On OpenVR/Oculus preset loads flagged same-folder versus Gabriel&apos;s idle
+  folder, **`SameFolderVrHmdRestore`** captures rig pose on that edge (passenger:
+  **`PassengerRuntime.TryGetRigPoseForSameFolderRestore`** yields the pose stored
+  when passenger mode started); when **`SuperController.isLoading`** next clears it
+  runs after **`WaitForEndOfFrame`** and briefly re-applies across a few Unity
+  frames (so Gabriel wins over VaM preset rig / **`monitorCameraRotation`**
+  restore), then **`SuperController.SetSceneLoadPosition`** if still idle in VR,
+  skipping when passenger active or pending.
 - Hold simulation/audio/exposure during scene settle through
   `SceneSettleRuntime` and same-folder load guards.
 - Prime the shared per-frame Person possession snapshot before late feature

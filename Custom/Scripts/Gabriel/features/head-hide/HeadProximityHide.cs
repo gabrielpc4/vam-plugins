@@ -561,44 +561,6 @@ namespace geesp0t
             return cam.name == "CenterEyeAnchor" || cam.name == "Camera (eye)";
         }
 
-        private static void RestoreHeadStraightFacing(Atom person, FreeControllerV3 head)
-        {
-            if (person == null || head == null || head.control == null)
-                return;
-            try
-            {
-                Vector3 up = head.GetUpPossessAxis();
-                if (up.sqrMagnitude < 1e-12f)
-                    up = head.control != null ? head.control.up : Vector3.up;
-                up.Normalize();
-
-                Vector3 fwd;
-                FreeControllerV3 chest;
-                PersonAtomCache.TryGetCachedFreeController(
-                    person,
-                    "chestControl",
-                    out chest);
-                if (chest != null && chest.control != null)
-                {
-                    fwd = Vector3.ProjectOnPlane(chest.control.forward, up);
-                    if (fwd.sqrMagnitude < 1e-10f)
-                        fwd = Vector3.ProjectOnPlane(head.GetForwardPossessAxis(), up);
-                }
-                else
-                    fwd = Vector3.ProjectOnPlane(head.GetForwardPossessAxis(), up);
-
-                if (fwd.sqrMagnitude < 1e-10f)
-                    return;
-                fwd.Normalize();
-
-                head.control.rotation = Quaternion.LookRotation(fwd, up);
-            }
-            catch (Exception e)
-            {
-                SuperController.LogError("HeadProximityHide: restore head facing failed: " + e.Message);
-            }
-        }
-
         private static void EnsureHideHandlersMatchZoneOwner(Atom best)
         {
             if (best == _hideHandlerPerson)

@@ -17,9 +17,13 @@ namespace geesp0t
     /// extra plugin instance / <c>Update</c> shim that destabilizes some loads.
     /// When every active Person atom has zero active garments, skips all work until
     /// the next orchestrator scene change or atom UID list change wakes checks.
-    /// Gated by VrInput.IsLikelyVrRuntimeSafe so desktop modes skip all garment and
-    /// trigger polls; VR uses OVR/OpenVR flags and XR fallback when needed.
-    /// </summary>
+    /// <para>
+    /// Strips garments through
+    /// <see cref="DAZCharacterSelector.SetActiveClothingItem"/> on the geometry
+    /// storable—not <c>DAZClothingItem.active</c> alone (meshes tend to remain
+    /// visible). Canonical note: <see cref="ClothingClassifier"/> module summary /
+    /// <c>FEATURE.md</c>.
+    /// </para>
     internal static class TriggerClothingRemover
     {
         private const float MaxHandToTorsoMeters = 0.62f;
@@ -207,6 +211,8 @@ namespace geesp0t
 
             try
             {
+                // Via geometry: toggles garment GameObject, UI storables,
+                // SyncAnatomy—not item.active alone.
                 selector.SetActiveClothingItem(toRemove, false);
             }
             catch (Exception e)

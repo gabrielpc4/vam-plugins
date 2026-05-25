@@ -36,10 +36,23 @@ see **`Custom/Scripts/Gabriel/features/hands/FEATURE.md`**.
 - HUD merges **only** when other features need it; touch-fall is **not** a HUD
   button and is not configured as a plugin path constant on `GabrielHud`.
 
+## Turning garments off (Gabriel convention)
+- Turn matching garments **off** (and restore **on**) with
+  **`DAZCharacterSelector.SetActiveClothingItem`** on that Person atom&apos;s
+  **`geometry`** storable. VaM updates **`DAZClothingItem.active`**, the clothing
+  Unity **`GameObject`**, clothing-selector UI storables (`val` parity), and
+  runs **`SyncAnatomy`**.
+- Do **not** assign only **`DAZClothingItem.active`** and assume the garment
+  mesh disappears—in practice renders often linger.
+- In-repo callers: **`TriggerClothingRemover`** (VR trigger strip path);
+  **`PassengerRuntime`** (passenger eyewear on start → restore on stop after
+  **`ClothingClassifier.IsPassengerSunglassesClothing`** classifies slots).
+
 ## Responsibilities
-- `ClothingClassifier.IsPassengerSunglassesClothing` flags sunglasses by
-  display name / tags (`Sunglasses` substring) so passenger VR can toggle
-  them off during possession (see **`features/passenger-possession`**).
+- `ClothingClassifier.IsPassengerSunglassesClothing` selects passenger-hide
+  eyewear (blob **`sunglasses`** or **`exclusiveRegion.Glasses`**);
+  **`PassengerRuntime`** disables and restores matching slots via **`geometry.SetActiveClothingItem`**
+  (see **`features/passenger-possession`**).
 - Enable clothing fall-off on nearby garments when hands contact a person.
 - Memoize garments whose fall-off is already enabled until clothing slots or
   active counts change.
@@ -74,4 +87,6 @@ Update this file in the same turn whenever any of these change:
 - Any cslist load path changes.
 - Touch fall-off thresholds or garment scan rules change.
 - Band classification / proximity-strip behavior changes.
-- Passenger sunglasses naming rules (`IsPassengerSunglassesClothing`) change.
+- Passenger eyewear match rules (**`IsPassengerSunglassesClothing`**), how hides
+  are applied via **`DAZCharacterSelector.SetActiveClothingItem`**, or the
+  **Turning garments off** section accuracy change.

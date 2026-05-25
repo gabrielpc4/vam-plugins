@@ -1,3 +1,4 @@
+using System;
 using MeshVR;
 
 namespace geesp0t
@@ -6,6 +7,15 @@ namespace geesp0t
     /// Torso-band keywords, text heuristics, classification, and pick-one rules
     /// for proximity strip. No enum or List in this module so VaM dynamic Mono
     /// emit stays minimal (emitter crash at ClassifyTorsoBand public enum slice).
+    /// <para>
+    /// Gabriel code that disables worn garments must invoke
+    /// <see cref="DAZCharacterSelector.SetActiveClothingItem"/> on the Person&apos;s
+    /// <c>geometry</c> (<see cref="TriggerClothingRemover"/> and
+    /// <c>PassengerRuntime</c> eyewear hiding). VaM syncs garment <c>active</c>, the
+    /// clothing Unity <c>GameObject</c>, selector UI storables, and runs
+    /// <c>SyncAnatomy</c>; toggling only <c>DAZClothingItem.active</c> usually
+    /// leaves meshes visible.
+    /// </para>
     /// </summary>
     public static class ClothingClassifier
     {
@@ -80,6 +90,12 @@ namespace geesp0t
             "kilt",
         };
 
+        /// <summary>
+        /// Chooses which active torso-band garment a VR proximity strip removes.
+        /// Actually disabling it belongs in
+        /// <see cref="DAZCharacterSelector.SetActiveClothingItem"/> (
+        /// <see cref="TriggerClothingRemover"/>); this method only selects.
+        /// </summary>
         public static bool TryPickClothingItemToRemove(
             DAZCharacterSelector selector,
             bool preferUpper,
@@ -167,8 +183,12 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Garment whose name/tags suggest sunglasses; passenger VR hides active
-        /// matches while head possession runs (restored on exit).
+        /// True when eyewear matches passenger-hide rules (&quot;sunglasses&quot;
+        /// in name/tag blob via <see cref="SearchBlob"/>, or VaM
+        /// <c>ExclusiveRegion.Glasses</c>). Matches are turned off with
+        /// <see cref="DAZCharacterSelector.SetActiveClothingItem"/> in
+        /// <c>PassengerRuntime</c>, never by assigning <c>DAZClothingItem.active</c>
+        /// alone—see module summary.
         /// </summary>
         public static bool IsPassengerSunglassesClothing(DAZClothingItem item)
         {
@@ -178,7 +198,26 @@ namespace geesp0t
             }
 
             string blob = SearchBlob(item);
-            return blob.Contains("sunglasses");
+
+            return PassengerEyewearHideMatch(item, blob);
+        }
+
+        private static bool PassengerEyewearHideMatch(
+            DAZClothingItem item,
+            string blobLower)
+        {
+            if (item == null || blobLower == null)
+            {
+                return false;
+            }
+
+            if (blobLower.IndexOf("sunglasses", StringComparison.Ordinal) >= 0)
+            {
+                return true;
+            }
+
+            return item.exclusiveRegion ==
+                DAZClothingItem.ExclusiveRegion.Glasses;
         }
 
         private static int ClassifyTorsoBandInt(DAZClothingItem item)

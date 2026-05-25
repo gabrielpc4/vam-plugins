@@ -5,10 +5,10 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// Before passenger VR hand possession, turns <b>Possessable</b> off everywhere except
-    /// <c>headControl</c>, <c>lHandControl</c>, and <c>rHandControl</c> on the target
-    /// <c>Person</c>; then restores prior <see cref="FreeControllerV3.possessable"/> /
-    /// <c>canGrab*</c> values.
+    /// Before passenger VR hand possession, turns <b>Possessable</b> off
+    /// everywhere except <c>lHandControl</c> and <c>rHandControl</c> on the
+    /// target <c>Person</c>; then restores prior
+    /// <see cref="FreeControllerV3.possessable"/> / <c>canGrab*</c> values.
     /// </summary>
     internal static class PassengerPossessableNarrow
     {
@@ -60,8 +60,9 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Backs up every Person <see cref="FreeControllerV3"/> in the scene, then disables
-        /// possession grab except head + hands on <paramref name="targetPerson"/>.
+        /// Backs up every Person <see cref="FreeControllerV3"/> in the scene,
+        /// then disables possession grab except the hands on
+        /// <paramref name="targetPerson"/>.
         /// </summary>
         public static void ApplyForTargetPerson(Atom targetPerson)
         {
@@ -73,8 +74,6 @@ namespace geesp0t
                 return;
             }
 
-            FreeControllerV3 headControl =
-                targetPerson.GetStorableByID("headControl") as FreeControllerV3;
             FreeControllerV3 leftHandControl =
                 targetPerson.GetStorableByID("lHandControl") as FreeControllerV3;
             FreeControllerV3 rightHandControl =
@@ -121,8 +120,7 @@ namespace geesp0t
 
                     bool allowForPassengerHands =
                         atom == targetPerson &&
-                        (controller == headControl ||
-                            controller == leftHandControl ||
+                        (controller == leftHandControl ||
                             controller == rightHandControl);
 
                     SetControllerPossessableGate(controller, allowForPassengerHands);

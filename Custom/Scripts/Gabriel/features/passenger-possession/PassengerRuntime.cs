@@ -8,10 +8,12 @@ namespace geesp0t
 {
     /// <summary>
     /// Passenger mode: navigation rig follows the model head
-    /// <b>position</b> (Passenger-style); <b>rotation</b> aligns to the head only on
-    /// the first activation frame, then stays independent so the model can turn without
-    /// dragging the rig&apos;s yaw/pitch/roll. ImprovedPoV setup; VR hand possession starts
-    /// once per session when you press any grip or trigger (see
+    /// <b>position</b> (Passenger-style); startup snap aligns rig once from the head.
+    /// Per-frame HMD rotation uses <see cref="FreeControllerV3.AlignTo"/> with
+    /// alsoRotateRb false — avoids pairing <c>control</c> and
+    /// <c>followWhenOff</c> every frame (that caused one-frame mesh pops).
+    /// ImprovedPoV setup; VR hand possession starts once per session when you
+    /// press any grip or trigger (see
     /// <see cref="VrInput.PollVrAnyTriggerOrGripPressDown"/>). Start is requested from
     /// <see cref="PassengerLaserPossess"/> (right UI-aim laser + face A) via
     /// <see cref="PassengerRuntime.RequestPassengerForSpecificPerson"/>.
@@ -1062,7 +1064,6 @@ namespace geesp0t
                 _waitingForInitialTeleportAfterHeadNeutralize = false;
                 initialTeleportCompletedThisTurn = true;
             }
-
             TryStartPassengerVrHandsFromUserPress(superController);
 
             try
@@ -1315,6 +1316,8 @@ namespace geesp0t
         /// A plain <c>LookRotation(hmd.forward, …)</c> assumes +Z is the nose
         /// axis; custom persons may use +X (or other), which reads as a large yaw
         /// error on the mesh while the camera stays correct.
+        /// Uses <c>alsoRotateRb: false</c> so AlignTo does not pair control and
+        /// <c>followWhenOff</c> each frame (<c>true</c> caused mesh pops).
         /// </summary>
         private static void ApplyPassengerHeadRotationFollow(
             SuperController superController,
@@ -1337,7 +1340,7 @@ namespace geesp0t
             }
 
             headControl.currentRotationState = FreeControllerV3.RotationState.On;
-            headControl.AlignTo(motionControllerHead, true);
+            headControl.AlignTo(motionControllerHead, false);
         }
 
         private static bool IsFemalePerson(Atom atom)

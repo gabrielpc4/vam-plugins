@@ -24,10 +24,9 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
 - Prepare `ImprovedPoV` on the target and suppress duplicate head-hide behavior where needed.
 - Delay VR hand possession until a later grip/trigger confirmation step.
 - On that grip/trigger confirmation, clear any scene-restored VaM
-  `headPossessedController` before VR hand possession
-  (`PassengerRuntime.ClearHeadPossessBeforePassengerHands` →
-  `SuperController.ClearHeadPossess`) so it does not fight Gabriel driving
-  `headControl` during passenger follow.
+  `headPossessedController` first and narrow possess targets to the target
+  Person's hands only, so passenger does not cancel itself on scenes that
+  boot with saved head possession.
 - Raycast along the **right** UI-aim beam and map the closest hit person for laser+A start.
 - While active on a target Person, **eyewear** garments matched by
   `ClothingClassifier.IsPassengerSunglassesClothing` are turned **off** and
@@ -35,6 +34,7 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
   (`PassengerRuntime` +
   `PersonAtomCache.TryGetCharacterSelector`; see **`features/clothing-interactions`**
   &quot;Turning garments off&quot;—never assign **`DAZClothingItem.active`** alone).
+
 - Laser+A confirm uses **`SuperController.GetRightSelect`** (via shared VR input), so Oculus skips the same frames as SteamVR when VaM is consuming right-hand select for **VR UI** (e.g. Edit mode menus / buttons).
 - Reuse the beam target for a short interval while the right beam stays active.
 - Clear stale passenger-style possession after unrelated scene loads (`SceneLoadPossessionCleanup`).
@@ -52,11 +52,12 @@ beam + face A (`PassengerLaserPossess` + `MonitorModeLaserRestore`); **exit** us
   target them if present. Links are **restored** on stop.
   Proxy positions refresh in **`PassengerRuntime.LateTick`** (after animation
   `Update`).
-- While active, `headControl` tracks the HMD via
-  **`FreeControllerV3.AlignTo`** on `centerCameraTarget` (same as VaM head
-  possession: **`PossessForwardAxis`** / **`PossessUpAxis`**). The **Rotation**
-  gizmo still behaves as **X** pitch, **Y** yaw, **Z** roll; see
-  [HeadControl rotation (VaM)](#headcontrol-rotation-vam).
+- While active, passenger drives `headControl` toward the HMD via
+  **`FreeControllerV3.AlignTo`** (`centerCameraTarget`) with **`alsoRotateRb: false`**
+  so **`PossessForwardAxis`** / **`PossessUpAxis`** match VaM head possession
+  without per-frame **`followWhenOff`** updates (`alsoRotateRb: true` caused
+  intermittent one-frame mesh pops). The **Rotation** gizmo summary: **X** pitch, **Y** yaw,
+  **Z** roll; see [HeadControl rotation (VaM)](#headcontrol-rotation-vam).
 
 ## HeadControl rotation (VaM)
 

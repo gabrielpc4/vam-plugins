@@ -624,7 +624,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/new magic trick.json"
+                        "sceneFilePath": "./sapuzex/new magic trick/new magic trick.json"
                      }
                   ],
                   "transitionActions": [],
@@ -2539,7 +2539,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/hunting season intro.json"
+                        "sceneFilePath": "./sapuzex/hunting season/hunting season.json"
                      }
                   ],
                   "transitionActions": [],
@@ -2633,7 +2633,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/jessika bdroom/sit togheter.json"
+                        "sceneFilePath": "./sapuzex/jessika bdroom/intro.json"
                      }
                   ],
                   "transitionActions": [],
@@ -3167,7 +3167,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/maid intro.json"
+                        "sceneFilePath": "./sapuzex/japaness maid/wash me.json"
                      }
                   ],
                   "transitionActions": [],
@@ -3663,7 +3663,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/rainy night revenge.json"
+                        "sceneFilePath": "./sapuzex/rainy night revenge/rainy night revenge.json"
                      }
                   ],
                   "transitionActions": [],
@@ -3817,7 +3817,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/tribal ritual intro.json"
+                        "sceneFilePath": "./sapuzex/tribal ritual/tribal ritual.json"
                      }
                   ],
                   "transitionActions": [],
@@ -4219,7 +4219,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/sexy photo shoot.json"
+                        "sceneFilePath": "./sapuzex/sexy photo shoot/sexy photo shoot.json"
                      }
                   ],
                   "transitionActions": [],
@@ -4373,7 +4373,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/wedding gift intro.json"
+                        "sceneFilePath": "./sapuzex/wedding gift/wedding gift.json"
                      }
                   ],
                   "transitionActions": [],
@@ -4903,7 +4903,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/Perrine and Pablo story.json"
+                        "sceneFilePath": "./sapuzex/Perrine and Pablo/intro.json"
                      }
                   ],
                   "transitionActions": [],
@@ -5057,7 +5057,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/elemental nymphs.json"
+                        "sceneFilePath": "./sapuzex/elemental nymph/elemental nymph.json"
                      }
                   ],
                   "transitionActions": [],
@@ -5211,7 +5211,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/hockey night.json"
+                        "sceneFilePath": "./sapuzex/hockey night/hockey night.json"
                      }
                   ],
                   "transitionActions": [],
@@ -6297,7 +6297,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/bum play intro.json"
+                        "sceneFilePath": "./sapuzex/bum play room/intro.json"
                      }
                   ],
                   "transitionActions": [],
@@ -6391,7 +6391,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/math lesson/Menu.json"
+                        "sceneFilePath": "./sapuzex/math lesson/scenes/1 intro.json"
                      }
                   ],
                   "transitionActions": [],
@@ -6545,7 +6545,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/beach sunset intro.json"
+                        "sceneFilePath": "./sapuzex/Beach sunset/relax.json"
                      }
                   ],
                   "transitionActions": [],
@@ -6853,7 +6853,7 @@
                         "receiverAtom": "CoreControl",
                         "receiver": "SceneLoader",
                         "receiverTargetName": "LoadScene",
-                        "sceneFilePath": "./sapuzex/demonic summoning.json"
+                        "sceneFilePath": "./sapuzex/demonic summoning/demonic summoning.json"
                      }
                   ],
                   "transitionActions": [],

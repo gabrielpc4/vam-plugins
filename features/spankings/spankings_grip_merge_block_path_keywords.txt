@@ -1,0 +1,15 @@
+# Spankings VR grip auto-merge block list (Easy Mate)
+# When the scene path matches any line below, the first VR grip this scene does NOT
+# merge Spankings onto females (no immediate merge, no 4s retry). Hands still toggle.
+# VaM reads: Custom/Scripts/features/spankings/spankings_grip_merge_block_path_keywords.txt
+# Matching: lowercase haystack = currentLoadDir + space + currentSaveDir (folder paths
+# only; VaM does not put the scene file name here). Same rules as emotion_path_keywords.txt.
+# One entry per line, or separate with commas / semicolons. Lines starting with # are
+# ignored. Trimmed.
+#
+# Examples (uncomment or replace with your own):
+# saves/scene/mypack/nsfw-free
+# photostudio
+
+# Mofme CamGirlToys scenes (folder only; substring on load/save dirs)
+camgirltoys

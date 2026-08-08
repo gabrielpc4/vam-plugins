@@ -1,0 +1,16 @@
+# E-MotionLite auto-load path keywords (Easy Mate)
+# When the scene path matches (see below), Easy Mate merges E-MotionLite on all Persons (expression/gaze without scripted head/neck), not full E-Motion.
+# AutoMate full E-Motion is added via HUD “E-Motion Original”, other variants via sibling HUD buttons, or scene JSON — not globally on every load.
+# After a long non-loop main motion ends (when enabled in Hud), VaMScripts loads
+# Saves/scene/Default.json unless the haystack hits the booty-shake exclusion.
+# VaM reads: Custom/Scripts/features/e-motion/emotion_path_keywords.txt
+# Matching: lowercase haystack = currentLoadDir + space + currentSaveDir (folder paths only; VaM does not put the scene file name here).
+# One entry per line, or separate with commas / semicolons. Lines starting with # are ignored. Trimmed.
+#
+# Examples (uncomment or replace with your own):
+# _dance/
+# saves/scene/mypack
+
+
+booty shake
+female_male

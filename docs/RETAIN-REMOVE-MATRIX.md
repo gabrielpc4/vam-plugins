@@ -1,23 +1,23 @@
-# VaMScripts Retain/Remove Matrix
+# SceneControlSuite Retain/Remove Matrix
 
 ## Purpose
 
-Current-state cutover summary for the VaMScripts tree. This file is no longer a
+Current-state cutover summary for the SceneControlSuite tree. This file is no longer a
 planning scratchpad; it records what is canonical now, what is intentionally
-kept outside VaMScripts, and which legacy paths still remain for compatibility
+kept outside SceneControlSuite, and which legacy paths still remain for compatibility
 with existing scenes or other scripts.
 
 ## Documentation
 
-VaMScripts keeps **no merged feature index** beyond this file plus **`FEATURE.md` at
+SceneControlSuite keeps **no merged feature index** beyond this file plus **`FEATURE.md` at
 `Custom/Scripts/FEATURE.md`** (bootstrap + session bundle overview) and
 each area's adjacent **`FEATURE.md`**
 (for example `bootstrap/FEATURE.md`, `session-plugins/FEATURE.md`,
 `features/ui-hud/FEATURE.md`, and the same pattern under `features/*/`, `tools/*/`).
 
-## Canonical VaMScripts Areas
+## Canonical SceneControlSuite Areas
 
-These are the only VaMScripts-owned implementation paths that should be extended:
+These are the only SceneControlSuite-owned implementation paths that should be extended:
 
 - `Custom/Scripts/bootstrap/**`
 - `Custom/Scripts/session-plugins/**`
@@ -38,7 +38,7 @@ These are the only VaMScripts-owned implementation paths that should be extended
 
 ## External Dependencies Still In Use
 
-These are not VaMScripts-owned rewrites and can remain where they already live:
+These are not SceneControlSuite-owned rewrites and can remain where they already live:
 
 - `Custom/Scripts/AutoMate/PERSON_PLUGINS/E-Motion - VaM Auto Blink/**`
 - `Custom/Scripts/E-MotionLite/**`
@@ -57,7 +57,7 @@ These are not VaMScripts-owned rewrites and can remain where they already live:
 
 ## Intentionally Retained Legacy Paths
 
-These old paths still exist because something outside the VaMScripts tree still
+These old paths still exist because something outside the SceneControlSuite tree still
 depends on them:
 
 - `Custom/Scripts/Easy Mate/src/RemoveThisObject.cs`
@@ -65,7 +65,7 @@ depends on them:
 
 ## Removed In This Cutover
 
-These old VaMScripts-owned paths were deleted and should stay deleted unless a new
+These old SceneControlSuite-owned paths were deleted and should stay deleted unless a new
 real feature replaces them:
 
 - Old Easy Mate custom bootstrap, HUD, palm-hud, passenger, camera, clothing,
@@ -82,7 +82,7 @@ real feature replaces them:
 
 ## Current Follow-Up Rules
 
-- Do not expand scene JSON rewrites beyond the current VaMScripts bootstrap/menu
+- Do not expand scene JSON rewrites beyond the current SceneControlSuite bootstrap/menu
   cutover unless the user explicitly asks for more scene edits.
 - If `RemoveThisObject.cs` is retired later, update the dependent scenes first,
   then remove the legacy path.

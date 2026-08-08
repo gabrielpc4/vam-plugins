@@ -24,7 +24,7 @@ namespace geesp0t
         }
 
         /// <summary>
-        /// Runs after VaMScripts detects a scene change; cheap scan of the atom list.
+        /// Runs after SceneControlSuite detects a scene change; cheap scan of the atom list.
         /// </summary>
         public static void ApplyIfSceneHasMirrorHosts(SuperController sc)
         {

@@ -1,4 +1,4 @@
-# VaMScripts Palm HUD
+# SceneControlSuite Palm HUD
 
 ## Purpose
 VR-only hand HUD layer. It decides when the right-hand palm UI appears and how

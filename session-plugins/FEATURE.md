@@ -1,4 +1,4 @@
-# VaMScripts Session Plugins
+# SceneControlSuite Session Plugins
 
 ## Purpose
 Session bundle loaded from `SessionPlugins.cslist`. The host
@@ -23,7 +23,7 @@ paths in this list).
 - `src/SameFolderVrHmdRestore.cs` *(OpenVR/Oculus same-folder preset hop:
   capture navigation rig pose, **`playerHeightAdjust`**, and monitor cam local euler
   on the idle→loading edge before **`PassengerRuntime.NotifySceneChanged`**; if
-  passenger was active, VaMScripts reads **`PassengerRuntime`** pre-passenger snap;
+  passenger was active, SceneControlSuite reads **`PassengerRuntime`** pre-passenger snap;
   after load **`WaitForEndOfFrame`** plus a short reassert wins over preset rig /
   monitor rotation; then **`SuperController.SetSceneLoadPosition`**.)*
 - `src/PlaybackHold.cs`
@@ -46,12 +46,12 @@ paths in this list).
 
 ## Responsibilities
 - Track scene load edges and same-folder load pulses.
-- On OpenVR/Oculus preset loads flagged same-folder versus VaMScripts&apos;s idle
+- On OpenVR/Oculus preset loads flagged same-folder versus SceneControlSuite&apos;s idle
   folder, **`SameFolderVrHmdRestore`** captures rig pose on that edge (passenger:
   **`PassengerRuntime.TryGetRigPoseForSameFolderRestore`** yields the pose stored
   when passenger mode started); when **`SuperController.isLoading`** next clears it
   runs after **`WaitForEndOfFrame`** and briefly re-applies across a few Unity
-  frames (so VaMScripts wins over VaM preset rig / **`monitorCameraRotation`**
+  frames (so SceneControlSuite wins over VaM preset rig / **`monitorCameraRotation`**
   restore), then **`SuperController.SetSceneLoadPosition`** if still idle in VR,
   skipping when passenger active or pending.
 - Hold simulation/audio/exposure during scene settle through

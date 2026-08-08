@@ -87,7 +87,7 @@ namespace geesp0t
             if (mainPluginManagerComponent == null)
             {
                 LogError(
-                    "Failed to find PluginManager, no VaMScripts session plugins loaded.");
+                    "Failed to find PluginManager, no SceneControlSuite session plugins loaded.");
                 return;
             }
 
@@ -101,12 +101,12 @@ namespace geesp0t
                 {
                     pluginJson = CreatePluginJSON(sessionPlugins);
                     manager.LateRestoreFromJSON(pluginJson);
-                    Log("Loaded all VaMScripts session plugins.");
+                    Log("Loaded all SceneControlSuite session plugins.");
                 }
                 catch (Exception e)
                 {
                     LogError(
-                        "Failed to load VaMScripts session plugins: " + e);
+                        "Failed to load SceneControlSuite session plugins: " + e);
                 }
                 return;
             }
@@ -128,7 +128,7 @@ namespace geesp0t
 
             if (missingPlugins.Count == 0)
             {
-                Log("All VaMScripts session plugins already loaded.");
+                Log("All SceneControlSuite session plugins already loaded.");
                 return;
             }
 
@@ -138,11 +138,11 @@ namespace geesp0t
                 missingPlugins = missingPlugins.Distinct().ToList();
                 pluginJson = CreatePluginJSON(missingPlugins.ToArray());
                 manager.LateRestoreFromJSON(pluginJson);
-                Log("Added missing VaMScripts session plugins.");
+                Log("Added missing SceneControlSuite session plugins.");
             }
             catch (Exception e)
             {
-                LogError("Failed to add VaMScripts session plugins: " + e);
+                LogError("Failed to add SceneControlSuite session plugins: " + e);
             }
         }
 

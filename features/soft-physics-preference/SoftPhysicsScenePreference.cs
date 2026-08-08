@@ -1,7 +1,7 @@
 namespace geesp0t
 {
     /// <summary>
-    /// Sets <see cref="UserPreferences.softPhysics"/> from VaMScripts scene-motion
+    /// Sets <see cref="UserPreferences.softPhysics"/> from SceneControlSuite scene-motion
     /// policy driven by long non-loop detection: off for dominant non-loop
     /// dance-length clips (performance), on for all other scenes. Exception paths
     /// (same folder tokens as animation no-loop exclusion, e.g.

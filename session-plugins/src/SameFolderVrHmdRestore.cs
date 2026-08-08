@@ -10,7 +10,7 @@ namespace geesp0t
     /// <see cref="SuperController.playerHeightAdjust"/>, and
     /// <see cref="SuperController.MonitorCenterCamera"/> local euler (scene JSON
     /// reapplies it on load) on the idle→loading edge before
-    /// <see cref="PassengerRuntime.NotifySceneChanged"/> (passenger: VaMScripts
+    /// <see cref="PassengerRuntime.NotifySceneChanged"/> (passenger: SceneControlSuite
     /// reads the pose stored at passenger start). After
     /// <see cref="SuperController.isLoading"/> clears, apply as soon as VaM
     /// finishes the frame (<see cref="WaitForEndOfFrame"/> plus a short
@@ -35,7 +35,7 @@ namespace geesp0t
 
         private float capturedPlayerHeightAdjust;
 
-        /// <summary>Scene JSON restores monitor cam euler; VaMScripts overrides.</summary>
+        /// <summary>Scene JSON restores monitor cam euler; SceneControlSuite overrides.</summary>
         private bool hasCapturedMonitorLocalEuler;
 
         private Vector3 capturedMonitorLocalEulerAngles;

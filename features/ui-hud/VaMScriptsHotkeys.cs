@@ -6,7 +6,7 @@ using UnityEngine.EventSystems;
 namespace geesp0t
 {
     /// <summary>
-    /// Desktop keyboard shortcuts for the VaMScripts HUD plugin; delegates menu actions
+    /// Desktop keyboard shortcuts for the SceneControlSuite HUD plugin; delegates menu actions
     /// to <see cref="Hud"/> and cross-feature helpers.
     /// </summary>
     internal sealed class Hotkeys

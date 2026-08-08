@@ -1,4 +1,4 @@
-# VaMScripts UI HUD
+# SceneControlSuite UI HUD
 
 ## Purpose
 Main session HUD and hotkey hub. World-space menu, log copy HUD,
@@ -25,7 +25,7 @@ scene-advance UIButton resolution (`NextSceneUiButton`), keyboard routing in
   if the main session compile fails.
 
 ## Responsibilities
-- Build and refresh the world-space VaMScripts menu on `mainHUD`.
+- Build and refresh the world-space SceneControlSuite menu on `mainHUD`.
 - World-space E-Motion / Spankings buttons start **hidden** after load;
   `ResetVROrientation` exposes **Show Easy Buttons** / **Hide Easy Buttons**
   (same wording as before) which calls this plugin's **Show UI** / **Hide UI**
@@ -58,7 +58,7 @@ scene-advance UIButton resolution (`NextSceneUiButton`), keyboard routing in
   `e-motion`, `spankings`, plus `Hud`-owned plugin toggles.
 
 ## References
-- `Custom/Scripts/FEATURE.md` (VaMScripts overview)
+- `Custom/Scripts/FEATURE.md` (SceneControlSuite overview)
 - `Custom/Scripts/features/palm-hud/FEATURE.md`
 - `Custom/Scripts/features/animation-no-loop-detection/FEATURE.md`
 - `Custom/Scripts/features/passenger-possession/FEATURE.md`

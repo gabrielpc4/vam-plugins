@@ -1,4 +1,4 @@
-# VaMScripts Scene Menu Tools
+# SceneControlSuite Scene Menu Tools
 
 ## Purpose
 Offline Python utilities for hub/menu scene rewires, thumbnail injection, localization, and scene cleanup. They are not runtime plugins and should only touch scene JSON when the user explicitly asks for scene-menu edits.
@@ -32,7 +32,7 @@ Offline Python utilities for hub/menu scene rewires, thumbnail injection, locali
   (root ``* intro`` / ``* story`` / ``Menu`` / shallow folder JSON), excludes
   packs already linked on the hub, then applies the same path + pt-BR label
   wiring as `rewire_hub_scene_button.py` in one pass.
-- Keep the moved script docstrings/examples aligned with the VaMScripts folder path instead of the removed `scene_menu_tools` root.
+- Keep the moved script docstrings/examples aligned with the SceneControlSuite folder path instead of the removed `scene_menu_tools` root.
 - Avoid expanding scene rewrites unless the user explicitly asks for them.
 
 ## Dependencies And Coupling

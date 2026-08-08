@@ -1,4 +1,4 @@
-# VaM Script Toolkit
+# Virt-A-Mate Scene Control Suite
 
 This repository contains a collection of scripts and small tools for **Virt-A-Mate (VaM)**. It is designed to make scene-based VR sessions easier to control, more predictable when loading, and more comfortable to navigate while keeping each feature independently useful.
 

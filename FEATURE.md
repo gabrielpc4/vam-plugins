@@ -1,8 +1,8 @@
-# VaMScripts (`Custom/Scripts`)
+# SceneControlSuite (`Custom/Scripts`)
 
 ## Purpose
 
-VaMScripts is the repo-maintained VaM session stack: bootstrap entry, the main
+SceneControlSuite is the repo-maintained VaM session stack: bootstrap entry, the main
 session compile (`SessionPlugins.cslist`), optional log-clipboard plugin,
 and feature modules under `features/` plus offline `tools/`.
 

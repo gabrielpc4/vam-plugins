@@ -1,4 +1,4 @@
-# VaMScripts Passenger Possession
+# SceneControlSuite Passenger Possession
 
 ## Purpose
 Passenger-style body possession: align the rig to a target person, prepare

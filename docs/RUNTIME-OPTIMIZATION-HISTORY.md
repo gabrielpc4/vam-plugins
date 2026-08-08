@@ -1,12 +1,12 @@
-# VaMScripts runtime optimization history
+# SceneControlSuite runtime optimization history
 
 ## Purpose
 
-This file records performance-motivated VaMScripts runtime changes so future
+This file records performance-motivated SceneControlSuite runtime changes so future
 regressions can be mapped back to the most likely optimization.
 
 This is not a full changelog. It only tracks the optimization work introduced
-by the May 2026 VaMScripts runtime audit and follow-up tuning.
+by the May 2026 SceneControlSuite runtime audit and follow-up tuning.
 
 ## Commits
 
@@ -211,7 +211,7 @@ to make hide behavior visibly stale.
 
 ## Intentional non-change
 
-No single global "closest person" cache was added for all VaMScripts systems.
+No single global "closest person" cache was added for all SceneControlSuite systems.
 
 Different systems mean different things by "closest":
 

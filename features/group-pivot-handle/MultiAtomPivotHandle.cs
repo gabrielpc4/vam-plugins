@@ -7,7 +7,7 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// Optional editor utility (not loaded by VaMScripts session bundle). Pivot
+    /// Optional editor utility (not loaded by SceneControlSuite session bundle). Pivot
     /// handle: spawn a small Cube, parent chosen atoms under it, move the cube
     /// to move the group (VaM atom parent / childAtomContainer). Detach restores
     /// previous parentAtom links saved at attach time.

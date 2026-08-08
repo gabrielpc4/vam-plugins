@@ -1,7 +1,7 @@
-# VaMScripts hands (HUD grip helpers)
+# SceneControlSuite hands (HUD grip helpers)
 
 ## Purpose
-HUD-compiled VR hand / overlap helpers shared by VaMScripts HUD routing: VR grip
+HUD-compiled VR hand / overlap helpers shared by SceneControlSuite HUD routing: VR grip
 cycles hand proxies **None → Male 2 → SphereKinematic (collision on) → None**.
 While a Person **head or hand** is possessed, or passenger mode is
 active/pending, proxies stay **None** (character mesh only). Deferred

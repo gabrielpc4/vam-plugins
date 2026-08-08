@@ -1,7 +1,7 @@
-# VaMScripts soft physics scene preference
+# SceneControlSuite soft physics scene preference
 
 ## Purpose
-Keeps VaM **`UserPreferences.softPhysics`** aligned with VaMScripts’s long
+Keeps VaM **`UserPreferences.softPhysics`** aligned with SceneControlSuite’s long
 non-loop scene policy: disables soft body physics on heavy non-loop timelines
 (typical dances), enables it elsewhere. **Exception folders** match the path
 tokens used by `AnimationNoLoopDetection` so those scenes stay on.

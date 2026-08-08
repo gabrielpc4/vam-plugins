@@ -263,14 +263,14 @@ namespace geesp0t
             {
                 sc.Load(DeferredDefaultScenePath);
                 SuperController.LogMessage(
-                    "VaMScripts session orchestrator: Loaded " +
+                    "SceneControlSuite session orchestrator: Loaded " +
                     DeferredDefaultScenePath +
                     " after non-loop animation end (delayed).");
             }
             catch (System.Exception e)
             {
                 SuperController.LogError(
-                    "VaMScripts session orchestrator: scene load after " +
+                    "SceneControlSuite session orchestrator: scene load after " +
                     "non-loop animation end: " +
                     e.Message);
             }

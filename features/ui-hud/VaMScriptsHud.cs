@@ -10,7 +10,7 @@ using UnityEngine.XR;
 namespace geesp0t
 {
     /// <summary>
-    /// World-space HUD and hotkey hub for VaMScripts session features. Late runtime
+    /// World-space HUD and hotkey hub for SceneControlSuite session features. Late runtime
     /// orchestration lives in <see cref="SessionOrchestrator"/>.
     /// </summary>
     public class Hud : MVRScript

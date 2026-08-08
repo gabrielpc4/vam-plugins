@@ -1,4 +1,4 @@
-# VaMScripts Dildo On Hands
+# SceneControlSuite Dildo On Hands
 
 ## Purpose
 VR toy spawn utility loaded as a session plugin. It spawns or clones a toy at the right hand from a curated catalog and cleans up spawned toys on scene-load edges.
@@ -9,7 +9,7 @@ VR toy spawn utility loaded as a session plugin. It spawns or clones a toy at th
 - `handspawn_toy_atoms.json`
 
 ## Load Path
-- Defaults load with **`SessionPlugins.cslist`** (VaMScripts bootstrap also
+- Defaults load with **`SessionPlugins.cslist`** (SceneControlSuite bootstrap also
   inserts log clipboard). `DildoOnHands.cs` is **listed inside**
   `SessionPlugins.cslist`; **`DildoOnHands.cslist`** remains for
   toy-only standalone testing and now also includes

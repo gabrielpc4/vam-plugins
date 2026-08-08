@@ -1,7 +1,7 @@
-# VaMScripts Scene Camera Tools
+# SceneControlSuite Scene Camera Tools
 
 ## Purpose
-Offline Python tooling used by the VaMScripts C-hotkey scene-camera workflow.
+Offline Python tooling used by the SceneControlSuite C-hotkey scene-camera workflow.
 These scripts patch scene JSON camera values based on the request payload
 emitted by the runtime feature.
 

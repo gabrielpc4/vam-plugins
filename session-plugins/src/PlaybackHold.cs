@@ -18,7 +18,7 @@ namespace geesp0t
         private float sceneSettlePauseHoldDeadlineUnscaledTime;
 
         private const string sceneSettlePauseFlagDisplayName =
-            "VaMScripts scene settle";
+            "SceneControlSuite scene settle";
 
         private const float sceneSettlePauseHoldTimeoutSeconds = 30f;
 

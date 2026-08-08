@@ -1,8 +1,8 @@
-# VaMScripts E-Motion Hooks
+# SceneControlSuite E-Motion Hooks
 
 ## Purpose
 Small hook layer around the external E-Motion plugin families. It decides when
-VaMScripts auto-merges E-Motion Lite from **path keywords** (`emotion_path_keywords.txt`).
+SceneControlSuite auto-merges E-Motion Lite from **path keywords** (`emotion_path_keywords.txt`).
 
 ## Live Files
 - `EmotionPathKeywords.cs`

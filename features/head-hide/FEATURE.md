@@ -1,7 +1,7 @@
-# VaMScripts Head Hide
+# SceneControlSuite Head Hide
 
 ## Purpose
-VR-only transient head hide that hides face, hair, hats, and glasses when the HMD enters a person head cylinder. It is the VaMScripts-specific hide layer that cooperates with passenger mode and ImprovedPoV.
+VR-only transient head hide that hides face, hair, hats, and glasses when the HMD enters a person head cylinder. It is the SceneControlSuite-specific hide layer that cooperates with passenger mode and ImprovedPoV.
 
 ## Live Files
 - `HeadProximityHide.cs`

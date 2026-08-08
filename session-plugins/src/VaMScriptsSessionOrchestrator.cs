@@ -7,7 +7,7 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// Late-order VaMScripts session runtime: scene-settle release, scene-load edge
+    /// Late-order SceneControlSuite session runtime: scene-settle release, scene-load edge
     /// tracking, per-frame feature ticks, and built-in defaults that used to
     /// live on <see cref="Hud"/>.
     /// </summary>
@@ -121,7 +121,7 @@ namespace geesp0t
             catch (Exception e)
             {
                 SuperController.LogError(
-                    "VaMScripts clothing touch fall-off merge on Persons: " + e);
+                    "SceneControlSuite clothing touch fall-off merge on Persons: " + e);
             }
         }
 
@@ -156,7 +156,7 @@ namespace geesp0t
         {
             explanationString = new JSONStorableString(
                 "",
-                "VaMScripts session orchestrator handles scene-settle playback " +
+                "SceneControlSuite session orchestrator handles scene-settle playback " +
                 "hold, same-folder load suppression, VR same-folder navigation " +
                 "rig + height + monitor cam snapshot restore end-of-frame after " +
                 "same-folder load, late runtime ticks, " +
@@ -262,7 +262,7 @@ namespace geesp0t
             catch (Exception e)
             {
                 SuperController.LogError(
-                    "VaMScripts clothing touch fall-off first Male2 grip: " + e);
+                    "SceneControlSuite clothing touch fall-off first Male2 grip: " + e);
                 throw;
             }
 
@@ -311,7 +311,7 @@ namespace geesp0t
             SuperController camSc = SuperController.singleton;
             if (camSc != null)
             {
-                DefaultMonitorCameraFov.ApplyVaMScriptsPreferenceIfStillStock(
+                DefaultMonitorCameraFov.ApplySceneControlSuitePreferenceIfStillStock(
                     camSc);
             }
         }
@@ -550,7 +550,7 @@ namespace geesp0t
                 }
 
                 ApplyRemoteHoldGrabPreference();
-                DefaultMonitorCameraFov.ApplyVaMScriptsPreferenceIfStillStock(scFsm);
+                DefaultMonitorCameraFov.ApplySceneControlSuitePreferenceIfStillStock(scFsm);
                 VrInput.ResetEdgeState();
                 GripHandVisibility.DisableVrHandModelsForSceneStart(
                     sameFolderLoad,
@@ -668,7 +668,7 @@ namespace geesp0t
 
             HeadProximityHide.AfterSuperControllerFinishedSceneSettle(this);
             SuperController.LogMessage(
-                "VaMScripts session orchestrator: Space released scene settle " +
+                "SceneControlSuite session orchestrator: Space released scene settle " +
                 "hold.");
         }
 

@@ -3,15 +3,15 @@ using UnityEngine;
 namespace geesp0t
 {
     /// <summary>
-    /// If monitor FOV matches VaM defaults, bump slightly for VaMScripts desktops.
+    /// If monitor FOV matches VaM defaults, bump slightly for SceneControlSuite desktops.
     /// </summary>
     internal static class DefaultMonitorCameraFov
     {
         private const float VamDefaultMonitorCameraFov = 40f;
 
-        private const float VaMScriptsDefaultMonitorCameraFov = 50f;
+        private const float SceneControlSuiteDefaultMonitorCameraFov = 50f;
 
-        internal static void ApplyVaMScriptsPreferenceIfStillStock(SuperController sc)
+        internal static void ApplySceneControlSuitePreferenceIfStillStock(SuperController sc)
         {
             if (sc == null)
                 return;
@@ -19,7 +19,7 @@ namespace geesp0t
             if (Mathf.Abs(sc.monitorCameraFOV - VamDefaultMonitorCameraFov) > 0.001f)
                 return;
 
-            sc.monitorCameraFOV = VaMScriptsDefaultMonitorCameraFov;
+            sc.monitorCameraFOV = SceneControlSuiteDefaultMonitorCameraFov;
         }
     }
 }

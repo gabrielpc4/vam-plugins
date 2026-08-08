@@ -1,4 +1,4 @@
-# VaMScripts palm HUD and passenger handoff notes
+# SceneControlSuite palm HUD and passenger handoff notes
 
 Hand-off doc for another LLM or developer. Paths live under
 `Custom/Scripts/features/`, namespace **`geesp0t`**, VaM plugin C# **6.0**.

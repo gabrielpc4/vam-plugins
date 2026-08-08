@@ -1,4 +1,4 @@
-# VaMScripts animation no-loop detection (Default scene load)
+# SceneControlSuite animation no-loop detection (Default scene load)
 
 ## Purpose
 Detects non-looping timeline / scene motion playback on the main

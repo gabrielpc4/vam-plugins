@@ -1,7 +1,7 @@
-# VaMScripts Clothing Interactions
+# SceneControlSuite Clothing Interactions
 
 ## Purpose
-All VaMScripts-owned clothing-touch, strip, and proximity-strip helpers — plus the
+All SceneControlSuite-owned clothing-touch, strip, and proximity-strip helpers — plus the
 TouchFallOff **person plugin**. Grip-triggered orchestrator merge (see
 session-plugins) attaches the plugin only after the first articulated-hand enable
 when the scene qualifies.
@@ -36,7 +36,7 @@ see **`Custom/Scripts/features/hands/FEATURE.md`**.
 - HUD merges **only** when other features need it; touch-fall is **not** a HUD
   button and is not configured as a plugin path constant on `Hud`.
 
-## Turning garments off (VaMScripts convention)
+## Turning garments off (SceneControlSuite convention)
 - Turn matching garments **off** (and restore **on**) with
   **`DAZCharacterSelector.SetActiveClothingItem`** on that Person atom&apos;s
   **`geometry`** storable. VaM updates **`DAZClothingItem.active`**, the clothing

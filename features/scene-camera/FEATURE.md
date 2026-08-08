@@ -1,4 +1,4 @@
-# VaMScripts Scene Camera
+# SceneControlSuite Scene Camera
 
 ## Purpose
 Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus the bridge into the offline scene-camera patch scripts.
@@ -23,7 +23,7 @@ Camera and scene-load quality-of-life helpers attached to the HUD runtime, plus 
 - Refresh the right-beam closest-person target at a relaxed cadence while the
   beam stays active, and invalidate it as soon as the beam hides.
 - Hide DillDoe fluid mesh until scene load settles.
-- Nudge standalone monitor-camera FOV from VaM defaults to VaMScripts preference.
+- Nudge standalone monitor-camera FOV from VaM defaults to SceneControlSuite preference.
 - Capture camera/rig snapshots from the C hotkey and route them into the
   offline patch scripts.
 - **`[CameraRig]`** rotation uses center-eye world euler with **euler Z (roll)

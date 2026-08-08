@@ -176,7 +176,7 @@ namespace geesp0t
         /// <see cref="DAZCharacterSelector.SetActiveClothingItem"/> (also toggles the
         /// garment Unity <c>GameObject</c>, clothing selector UI JSON, and runs
         /// <c>SyncAnatomy</c>). Do not assign <c>DAZClothingItem.active</c>
-        /// alone—meshes usually stay rendered. VaMScripts-wide note:
+        /// alone—meshes usually stay rendered. SceneControlSuite-wide note:
         /// <c>features/clothing-interactions/FEATURE.md</c>.
         /// </summary>
         private static void HidePassengerSunglassesClothingViaSelector(
@@ -1602,7 +1602,7 @@ namespace geesp0t
 
             if (_passengerEyeLookProxyLeft == null)
             {
-                GameObject go = new GameObject("VaMScriptsPassengerChestFwdEyeL");
+                GameObject go = new GameObject("SceneControlSuitePassengerChestFwdEyeL");
                 go.hideFlags = HideFlags.HideAndDontSave;
                 _passengerEyeLookProxyLeft = go.transform;
                 _passengerEyeLookProxyLeft.SetParent(person.transform, false);
@@ -1610,7 +1610,7 @@ namespace geesp0t
 
             if (_passengerEyeLookProxyRight == null)
             {
-                GameObject go = new GameObject("VaMScriptsPassengerChestFwdEyeR");
+                GameObject go = new GameObject("SceneControlSuitePassengerChestFwdEyeR");
                 go.hideFlags = HideFlags.HideAndDontSave;
                 _passengerEyeLookProxyRight = go.transform;
                 _passengerEyeLookProxyRight.SetParent(person.transform, false);

@@ -1,7 +1,7 @@
-# VaMScripts Bootstrap
+# SceneControlSuite Bootstrap
 
 ## Purpose
-Single session entry plugin merged on menu/default scenes. It seeds the VaMScripts runtime by injecting the canonical session plugin set onto CoreControl.
+Single session entry plugin merged on menu/default scenes. It seeds the SceneControlSuite runtime by injecting the canonical session plugin set onto CoreControl.
 
 ## Live Files
 - `Bootstrap.cs`

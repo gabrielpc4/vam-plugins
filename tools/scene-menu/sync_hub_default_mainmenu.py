@@ -3,7 +3,7 @@
 Keep hub menu scenes identical: ``Saves/scene/Default.json`` →
 ``Saves/scene/MainMenu.json`` (same bytes).
 
-VaM VaMScripts workflows treat ``Default.json`` as the edited hub scene, then mirror
+VaM SceneControlSuite workflows treat ``Default.json`` as the edited hub scene, then mirror
 to ``MainMenu.json`` so both stay byte-for-byte the same.
 
 Run from VaM root:

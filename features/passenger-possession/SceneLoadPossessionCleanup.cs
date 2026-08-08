@@ -1,7 +1,7 @@
 namespace geesp0t
 {
     /// <summary>
-    /// After loading a new scene preset, clears possession via VaMScripts HUD if any
+    /// After loading a new scene preset, clears possession via SceneControlSuite HUD if any
     /// FreeController possession was active (avoids stuck rig/person wiring).
     /// </summary>
     internal static class SceneLoadPossessionCleanup

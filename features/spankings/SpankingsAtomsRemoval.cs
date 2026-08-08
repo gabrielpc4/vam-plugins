@@ -43,7 +43,7 @@ namespace geesp0t
                 catch (Exception e)
                 {
                     SuperController.LogError(
-                        "VaMScripts: remove Spankings scene atom \"" + uid +
+                        "SceneControlSuite: remove Spankings scene atom \"" + uid +
                         "\": " + e.Message);
                 }
             }

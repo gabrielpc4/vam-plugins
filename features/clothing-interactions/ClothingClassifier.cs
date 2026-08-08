@@ -8,7 +8,7 @@ namespace geesp0t
     /// for proximity strip. No enum or List in this module so VaM dynamic Mono
     /// emit stays minimal (emitter crash at ClassifyTorsoBand public enum slice).
     /// <para>
-    /// VaMScripts code that disables worn garments must invoke
+    /// SceneControlSuite code that disables worn garments must invoke
     /// <see cref="DAZCharacterSelector.SetActiveClothingItem"/> on the Person&apos;s
     /// <c>geometry</c> (<see cref="TriggerClothingRemover"/> and
     /// <c>PassengerRuntime</c> eyewear hiding). VaM syncs garment <c>active</c>, the

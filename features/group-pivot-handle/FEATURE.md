@@ -3,7 +3,7 @@
 ## Purpose
 
 Optional **`MVRScript`** to move several atoms together by parenting them to a
-spawned Cube pivot (`Atom.parentAtom`). **Not part of VaMScripts session bootstrap
+spawned Cube pivot (`Atom.parentAtom`). **Not part of SceneControlSuite session bootstrap
 or `SessionPlugins.cslist`**.
 
 ## Live files

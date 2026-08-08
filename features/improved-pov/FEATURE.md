@@ -1,7 +1,7 @@
-# VaMScripts Improved PoV
+# SceneControlSuite Improved PoV
 
 ## Purpose
-Vendored AcidBubbles Improved PoV plugin with repo-specific defaults and integrations. This is the only surviving VaMScripts-owned first-person possession plugin in the tree; the TongueLicking fork has been removed.
+Vendored AcidBubbles Improved PoV plugin with repo-specific defaults and integrations. This is the only surviving SceneControlSuite-owned first-person possession plugin in the tree; the TongueLicking fork has been removed.
 
 ## Live Files
 - `ImprovedPoV.cs`

@@ -1,4 +1,4 @@
-# VaMScripts Spankings Hooks
+# SceneControlSuite Spankings Hooks
 
 ## Purpose
 Minimal blocklist feature for Spankings auto-merge, plus HUD-compiled deferral

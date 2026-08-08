@@ -1,9 +1,0 @@
-{ 
-   "autoMorphLoaders" : [ 
-      { 
-         "id" : "Draenei02L", 
-		 "personUid" : ""
-         "preset" : "Mira"
-      }
-   ]
-}

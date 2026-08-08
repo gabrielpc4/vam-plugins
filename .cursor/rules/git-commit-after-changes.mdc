@@ -1,6 +1,0 @@
----
-description: 
-alwaysApply: true
----
-
-Whenever you **modify, create, or delete** a project file, commit and push the changes, even the ones you haven't made

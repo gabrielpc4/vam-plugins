@@ -1602,7 +1602,7 @@ namespace geesp0t
 
             if (_passengerEyeLookProxyLeft == null)
             {
-                GameObject go = new GameObject("PassengerChestFwdEyeL");
+                GameObject go = new GameObject("VaMScriptsPassengerChestFwdEyeL");
                 go.hideFlags = HideFlags.HideAndDontSave;
                 _passengerEyeLookProxyLeft = go.transform;
                 _passengerEyeLookProxyLeft.SetParent(person.transform, false);
@@ -1610,7 +1610,7 @@ namespace geesp0t
 
             if (_passengerEyeLookProxyRight == null)
             {
-                GameObject go = new GameObject("PassengerChestFwdEyeR");
+                GameObject go = new GameObject("VaMScriptsPassengerChestFwdEyeR");
                 go.hideFlags = HideFlags.HideAndDontSave;
                 _passengerEyeLookProxyRight = go.transform;
                 _passengerEyeLookProxyRight.SetParent(person.transform, false);

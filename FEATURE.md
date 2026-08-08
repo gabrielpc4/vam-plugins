@@ -1,4 +1,4 @@
-# VaMScripts (`Custom/Scripts/VaMScripts`)
+# VaMScripts (`Custom/Scripts`)
 
 ## Purpose
 
